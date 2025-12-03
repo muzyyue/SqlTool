@@ -23,7 +23,19 @@ export function useExcelParser() {
           const headers = jsonData[0]
           const rows = jsonData.slice(1)
           
-          resolve({ headers, rows })
+          // 确保所有数据行的长度与表头一致
+          const validRows = rows.map(row => {
+            // 如果行长度不够，用空字符串填充
+            while (row.length < headers.length) {
+              row.push('')
+            }
+            // 如果行长度过长，截断到表头长度
+            return row.slice(0, headers.length)
+          })
+          
+          // 调试日志已移除
+          
+          resolve({ headers, rows: validRows })
         } catch (error) {
           reject(new Error('解析Excel文件失败：' + error.message))
         }

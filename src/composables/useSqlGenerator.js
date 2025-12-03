@@ -12,17 +12,29 @@ export function useSqlGenerator() {
       return ''
     }
     
+    // 调试日志已移除
+    
     // 构建字段列表部分
-    const fields = headers.map(header => `[${header}]`).join(', ')
+    const fields = headers.map(header => `${header}`).join(', ')
     
     // 构建值列表部分
     const values = rows.map(row => {
+
+    console.log('Row:', row);
+    
+      // 确保row是一个数组且长度与headers匹配
+      if (!Array.isArray(row) || row.length !== headers.length) {
+        console.error('Row does not match headers:', row)
+        return ''
+      }
+      
       const rowValues = row.map(cell => `'${escapeSqlString(cell)}'`).join(', ')
       return `(${rowValues})`
-    }).join(',\n')
+    }).filter(Boolean).join(',\n')
     
     // 构建完整的INSERT语句
-    const sql = `INSERT INTO [${tableName}] (${fields}) VALUES\n${values};`
+    const sql = `INSERT INTO ${tableName} (${fields}) VALUES
+${values};`
     
     return sql
   }

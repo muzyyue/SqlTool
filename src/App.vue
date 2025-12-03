@@ -52,9 +52,9 @@ const handleFileUpload = async (file) => {
 }
 
 // 处理表名变化
-const handleTableNameChange = (value) => {
-  state.tableName = value
-}
+  const handleTableNameChange = (event) => {
+    state.tableName = event.target.value
+  }
 
 // 重新生成SQL（当表名变化时）
 const regenerateSql = async () => {
