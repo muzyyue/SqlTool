@@ -2,42 +2,42 @@
 
 一个根据excel文件，自动生成sql语句的工具。
 
-## Recommended IDE Setup
+## 推荐的IDE配置
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+[VS Code](https://code.visualstudio.com/) + [Vue (官方)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (并禁用Vetur)。
 
-## Recommended Browser Setup
+## 推荐的浏览器配置
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd) 
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
+- 基于Chromium的浏览器（Chrome、Edge、Brave等）：
+  - [Vue.js开发工具](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd) 
+  - [在Chrome开发工具中启用自定义对象格式化器](http://bit.ly/object-formatters)
+- Firefox：
+  - [Vue.js开发工具](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
+  - [在Firefox开发工具中启用自定义对象格式化器](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
 
-## Customize configuration
+## 自定义配置
 
-See [Vite Configuration Reference](https://vite.dev/config/).
+查看 [Vite配置参考](https://vite.dev/config/)。
 
-## Project Setup
+## 项目设置
 
 ```sh
 pnpm install
 ```
 
-### Compile and Hot-Reload for Development
+### 开发模式下编译和热重载
 
 ```sh
 pnpm dev
 ```
 
-### Compile and Minify for Production
+### 生产模式下编译和压缩
 
 ```sh
 pnpm build
 ```
 
-### Lint with [ESLint](https://eslint.org/)
+### 使用[ESLint](https://eslint.org/)进行代码检查
 
 ```sh
 pnpm lint

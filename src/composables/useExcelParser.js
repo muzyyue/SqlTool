@@ -33,9 +33,36 @@ export function useExcelParser() {
             return row.slice(0, headers.length)
           })
           
+          // 处理一对多数据，继承上一行的非空值
+          const processedRows = [...validRows]
+          
+          // 从第二行开始处理，确保可以访问上一行
+          for (let index = 1; index < processedRows.length; index++) {
+            const currentRow = [...processedRows[index]]
+            const previousRow = processedRows[index - 1]
+            
+            // 检查当前行是否为真正的一对多关系行
+            // 一对多关系行的特征：不是空行（至少有一个非空字段），但也不是完整行（至少有一个空字段）
+            const hasAnyValue = currentRow.some(value => value || value === 0 || value === false)
+            const hasAnyEmpty = currentRow.some(value => !value && value !== 0 && value !== false)
+            
+            // 如果是真正的一对多关系行，继承上一行的非空值
+            if (hasAnyValue && hasAnyEmpty) {
+              // 遍历每个字段
+              for (let i = 0; i < currentRow.length; i++) {
+                // 如果当前字段为空，继承上一行的值
+                if (!currentRow[i] && currentRow[i] !== 0 && currentRow[i] !== false) {
+                  currentRow[i] = previousRow[i]
+                }
+              }
+            }
+            
+            processedRows[index] = currentRow
+          }
+          
           // 调试日志已移除
           
-          resolve({ headers, rows: validRows })
+          resolve({ headers, rows: processedRows })
         } catch (error) {
           reject(new Error('解析Excel文件失败：' + error.message))
         }
