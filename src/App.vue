@@ -10,7 +10,26 @@ const { parseExcel } = useExcelParser()
 const { convertHeaders } = usePinyinConverter()
 const { generateInsertSql } = useSqlGenerator()
 
-// 状态管理
+// 定义常用数据库函数列表
+  const commonDbFunctions = [
+    { label: '系统日期（Oracle）', value: 'sysdate' },
+    { label: '系统日期（SQL Server）', value: 'getdate()' },
+    { label: '系统日期（MySQL/PostgreSQL）', value: 'now()' },
+    { label: '当前用户（Oracle）', value: 'user' },
+    { label: '当前用户（SQL Server）', value: 'user_name()' },
+    { label: '当前用户（MySQL）', value: 'user()' },
+    { label: '当前用户（PostgreSQL）', value: 'current_user' },
+    { label: '系统时间戳（Oracle）', value: 'systimestamp' },
+    { label: '系统时间戳（SQL Server）', value: 'current_timestamp' },
+    { label: '系统时间戳（MySQL）', value: 'current_timestamp()' },
+    { label: '系统时间戳（PostgreSQL）', value: 'current_timestamp' },
+    { label: '当前会话ID（Oracle）', value: "sys_context('USERENV','SESSIONID')" },
+    { label: '当前会话ID（SQL Server）', value: '@@SPID' },
+    { label: '当前会话ID（MySQL）', value: 'connection_id()' },
+    { label: '当前会话ID（PostgreSQL）', value: 'pg_backend_pid()' }
+  ]
+
+  // 状态管理
   const state = reactive({
     tableName: '',
     uploadedFile: null,
@@ -21,8 +40,13 @@ const { generateInsertSql } = useSqlGenerator()
     rows: [], // 存储解析后的数据行
     primaryKeyField: '', // 主键字段
     multiValueSeparator: ',', // 多值分隔符
-    dynamicFields: [], // 存储动态添加的字段，格式: [{name: '字段名', value: '字段值'}]
-    filteredFields: [] // 存储被过滤的字段名
+    dynamicFields: [], // 存储动态添加的字段，格式: [{name: '字段名', value: '字段值', function: '数据库函数'}]
+    filteredFields: [], // 存储被过滤的字段名
+    batchUpdate: {
+      fieldName: '', // 要修改的字段名
+      oldValue: '', // 要匹配的旧值
+      newValue: '' // 要替换的新值
+    }
   })
 
 // 处理文件上传
@@ -82,8 +106,19 @@ const handlePrimaryKeyChange = (value) => {
 }
 
 // 动态字段相关函数
+// 添加动态字段
 const addDynamicField = () => {
-  state.dynamicFields.push({ name: '', value: '' })
+  if (state.dynamicFields.some(field => field.name === '')) {
+    message.warning('请先填写上一个动态字段的名称')
+    return
+  }
+  
+  state.dynamicFields.push({ name: '', value: '', function: '' })
+  
+  // 重新生成SQL语句
+  if (state.tableName && state.rows.length > 0) {
+    regenerateSql()
+  }
 }
 
 const removeDynamicField = (index) => {
@@ -98,6 +133,21 @@ const updateDynamicFieldName = (index, value) => {
 const updateDynamicFieldValue = (index, value) => {
     if (state.dynamicFields[index]) {
       state.dynamicFields[index].value = value;
+      // 当手动输入值时，清除选择的函数
+      if (value) {
+        state.dynamicFields[index].function = '';
+      }
+    }
+  };
+
+  // 更新动态字段的函数选择
+  const updateDynamicFieldFunction = (index, funcValue) => {
+    if (state.dynamicFields[index]) {
+      state.dynamicFields[index].function = funcValue;
+      // 当选择函数时，清除手动输入的值
+      if (funcValue) {
+        state.dynamicFields[index].value = '';
+      }
     }
   };
 
@@ -136,17 +186,13 @@ const regenerateSql = async () => {
   state.isLoading = true
 
   try {
-    // 重新解析Excel文件
-    const { headers, rows } = await parseExcel(state.uploadedFile)
-    
-    // 转换表头为拼音首字母
-    const convertedHeaders = convertHeaders(headers)
+    // 直接使用当前的状态数据，避免重新解析Excel文件覆盖用户编辑
     
     // 生成SQL语句
     state.generatedSql = generateInsertSql(
       state.tableName, 
-      convertedHeaders, 
-      rows, 
+      state.convertedHeaders, 
+      state.rows, 
       state.primaryKeyField, 
       state.multiValueSeparator,
       state.dynamicFields,
@@ -174,9 +220,48 @@ const handleCellChange = (rowIndex, colIndex, value) => {
   }
 }
 
+// 批量修改字段值
+const handleBatchUpdate = () => {
+  if (!state.batchUpdate.fieldName) {
+    message.warning('请选择要修改的字段')
+    return
+  }
+  
+  if (state.batchUpdate.oldValue === '' && state.batchUpdate.oldValue !== 0) {
+    message.warning('请输入要匹配的旧值')
+    return
+  }
+  
+  // 找到要修改的字段在表头中的索引
+  const fieldIndex = state.convertedHeaders.indexOf(state.batchUpdate.fieldName)
+  if (fieldIndex === -1) {
+    message.error('未找到指定字段')
+    return
+  }
+  
+  // 批量修改匹配的字段值
+  let updateCount = 0
+  state.rows.forEach(row => {
+    if (row[fieldIndex] === state.batchUpdate.oldValue) {
+      row[fieldIndex] = state.batchUpdate.newValue
+      updateCount++
+    }
+  })
+  
+  if (updateCount > 0) {
+    // 重新生成SQL语句
+    if (state.tableName) {
+      regenerateSql()
+    }
+    message.success(`成功修改 ${updateCount} 条记录`)
+  } else {
+    message.info('未找到匹配的记录')
+  }
+}
+
 // 清除所有数据和SQL
 const clearAll = () => {
-  // 重置状态
+  // 重置基本状态
   state.uploadedFile = null
   state.tableName = ''
   state.generatedSql = ''
@@ -184,13 +269,28 @@ const clearAll = () => {
   state.convertedHeaders = []
   state.rows = []
   
+  // 重置高级配置
+  state.primaryKeyField = ''
+  state.multiValueSeparator = ','
+  
+  // 重置动态字段
+  state.dynamicFields = []
+  
+  // 重置批量修改配置
+  state.batchUpdate.fieldName = ''
+  state.batchUpdate.oldValue = ''
+  state.batchUpdate.newValue = ''
+  
+  // 重置字段过滤
+  state.filteredFields = []
+  
   // 重置文件上传组件
   const fileInput = document.querySelector('input[type="file"]')
   if (fileInput) {
     fileInput.value = ''
   }
   
-  message.success('已清除所有数据')
+  message.success('已清除所有数据和SQL')
 }
 
 // 复制SQL到剪贴板
@@ -293,16 +393,29 @@ const copySqlToClipboard = () => {
             @change="updateDynamicFieldName(index, $event.target.value)"
           />
           <a-input
-            v-model:value="field.value"
-            placeholder="字段值（不填则为NULL）"
-            style="width: 200px; margin-right: 10px;"
-            @change="updateDynamicFieldValue(index, $event.target.value)"
-          />
-          <a-button danger size="small" @click="removeDynamicField(index)">
-            <template #icon>
-              <delete-outlined />
-            </template>
-          </a-button>
+                v-model:value="field.value"
+                placeholder="字段值（不填则为NULL）"
+                style="width: 200px; margin-right: 10px;"
+                @change="updateDynamicFieldValue(index, $event.target.value)"
+              />
+              <span style="margin-right: 10px;">或选择函数:</span>
+              <a-select
+                v-model:value="field.function"
+                placeholder="选择数据库函数"
+                allow-search
+                style="width: 200px; margin-right: 10px;"
+                @change="updateDynamicFieldFunction(index, $event)"
+              >
+                <a-select-option v-for="(func, idx) in commonDbFunctions" :key="idx" :value="func.value">
+                  {{ func.label }}
+                  <span style="color: #999; margin-left: 5px;">({{ func.value }})</span>
+                </a-select-option>
+              </a-select>
+              <a-button danger size="small" @click="removeDynamicField(index)">
+                <template #icon>
+                  <delete-outlined />
+                </template>
+              </a-button>
         </div>
         <a-button type="default" @click="addDynamicField" style="margin-top: 10px;">
           <template #icon>
@@ -329,6 +442,41 @@ const copySqlToClipboard = () => {
               <span v-if="state.headers[index]" style="color: #999; margin-left: 5px;">({{ state.headers[index] }})</span>
             </a-checkbox>
           </div>
+        </div>
+      </div>
+
+      <!-- 批量修改字段值配置 -->
+      <div class="config-section" v-if="state.convertedHeaders.length > 0">
+        <div class="config-item">
+          <h3>批量修改字段值</h3>
+          <p>修改某一个字段的所有符合条件的值</p>
+        </div>
+        <div class="config-item">
+          <a-select
+            v-model:value="state.batchUpdate.fieldName"
+            placeholder="选择要修改的字段"
+            style="width: 200px; margin-right: 10px;"
+          >
+            <a-select-option v-for="(header, index) in state.convertedHeaders" :key="index" :value="header">
+              {{ header }}
+              <span v-if="state.headers[index]" style="color: #999; margin-left: 5px;">({{ state.headers[index] }})</span>
+            </a-select-option>
+          </a-select>
+          <span style="margin-right: 10px;">=</span>
+          <a-input
+            v-model:value="state.batchUpdate.oldValue"
+            placeholder="要匹配的旧值"
+            style="width: 150px; margin-right: 10px;"
+          />
+          <span style="margin-right: 10px;">改为</span>
+          <a-input
+            v-model:value="state.batchUpdate.newValue"
+            placeholder="要替换的新值"
+            style="width: 150px; margin-right: 10px;"
+          />
+          <a-button type="primary" @click="handleBatchUpdate">
+            批量修改
+          </a-button>
         </div>
       </div>
 

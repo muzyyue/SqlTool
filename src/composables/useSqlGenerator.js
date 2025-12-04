@@ -49,14 +49,33 @@ export function useSqlGenerator() {
         
         // 添加动态字段的值
         validDynamicFields.forEach(field => {
-          const fieldValue = field.value !== undefined ? field.value : '';
-          fullRow.push(fieldValue);
+          // 优先使用数据库函数，如果没有选择函数，则使用手动输入的值
+          const fieldValue = field.function || (field.value !== undefined ? field.value : '');
+          // 将函数值或普通值添加到行数据中，并标记是否为函数
+          fullRow.push({
+            value: fieldValue,
+            isFunction: !!field.function
+          });
         });
         
         // 然后根据过滤后的表头提取需要的字段值
         const filteredRow = filteredHeaders.map(header => {
           const index = allHeaders.indexOf(header);
-          return index >= 0 ? fullRow[index] : '';
+          if (index >= 0) {
+            const value = fullRow[index];
+            // 如果是普通值（不是动态字段），转换为标准格式
+            if (typeof value === 'string' || typeof value === 'number' || value === null || value === undefined) {
+              return {
+                value: value,
+                isFunction: false
+              };
+            }
+            return value;
+          }
+          return {
+            value: '',
+            isFunction: false
+          };
         });
         
         return filteredRow;
@@ -74,7 +93,15 @@ export function useSqlGenerator() {
               const newRow = [...row]
               newRow[headers.indexOf(primaryKeyField)] = trimmedValue
               const processedRow = processRow(newRow);
-              const rowValues = processedRow.map(cell => `'${escapeSqlString(cell)}'`).join(', ')
+              const rowValues = processedRow.map(cell => {
+                if (cell.isFunction) {
+                  // 数据库函数不需要引号包裹
+                  return cell.value;
+                } else {
+                  // 普通值需要转义并添加引号
+                  return `'${escapeSqlString(cell.value)}'`;
+                }
+              }).join(', ')
               allValues.push(`(${rowValues})`)
             }
           })
@@ -84,7 +111,15 @@ export function useSqlGenerator() {
       
       // 正常生成一行记录
       const processedRow = processRow(row);
-      const rowValues = processedRow.map(cell => `'${escapeSqlString(cell)}'`).join(', ')
+      const rowValues = processedRow.map(cell => {
+        if (cell.isFunction) {
+          // 数据库函数不需要引号包裹
+          return cell.value;
+        } else {
+          // 普通值需要转义并添加引号
+          return `'${escapeSqlString(cell.value)}'`;
+        }
+      }).join(', ')
       allValues.push(`(${rowValues})`)
     })
     
