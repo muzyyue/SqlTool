@@ -1,6 +1,6 @@
 # SqlTool
 
-This template should help get you started developing with Vue 3 in Vite.
+一个根据excel文件，自动生成sql语句的工具。
 
 ## Recommended IDE Setup
 
@@ -42,3 +42,4 @@ pnpm build
 ```sh
 pnpm lint
 ```
+
