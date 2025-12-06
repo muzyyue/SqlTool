@@ -15,18 +15,33 @@ const { generateInsertSql } = useSqlGenerator()
     { label: '系统日期（Oracle）', value: 'sysdate' },
     { label: '系统日期（SQL Server）', value: 'getdate()' },
     { label: '系统日期（MySQL/PostgreSQL）', value: 'now()' },
+    { label: '系统日期（达梦）', value: 'sysdate' },
     { label: '当前用户（Oracle）', value: 'user' },
     { label: '当前用户（SQL Server）', value: 'user_name()' },
     { label: '当前用户（MySQL）', value: 'user()' },
     { label: '当前用户（PostgreSQL）', value: 'current_user' },
+    { label: '当前用户（达梦）', value: 'user' },
     { label: '系统时间戳（Oracle）', value: 'systimestamp' },
     { label: '系统时间戳（SQL Server）', value: 'current_timestamp' },
     { label: '系统时间戳（MySQL）', value: 'current_timestamp()' },
     { label: '系统时间戳（PostgreSQL）', value: 'current_timestamp' },
+    { label: '系统时间戳（达梦）', value: 'sysdate' },
     { label: '当前会话ID（Oracle）', value: "sys_context('USERENV','SESSIONID')" },
     { label: '当前会话ID（SQL Server）', value: '@@SPID' },
     { label: '当前会话ID（MySQL）', value: 'connection_id()' },
-    { label: '当前会话ID（PostgreSQL）', value: 'pg_backend_pid()' }
+    { label: '当前会话ID（PostgreSQL）', value: 'pg_backend_pid()' },
+    { label: '当前会话ID（达梦）', value: 'sessid' },
+    { label: '达梦自增序列', value: 'SYS_GUID()' },
+    { label: '达梦字符串长度', value: 'length' },
+    { label: '达梦当前日期', value: 'CURRENT_DATE' },
+    { label: '达梦当前时间', value: 'CURRENT_TIME' },
+    { label: '达梦当前时间戳', value: 'CURRENT_TIMESTAMP' },
+    { label: '达梦转换为日期', value: 'to_date' },
+    { label: '达梦转换为字符', value: 'to_char' },
+    { label: '达梦转换为数值', value: 'to_number' },
+    { label: '达梦字符串拼接', value: 'concat' },
+    { label: '达梦空值处理', value: 'nvl' },
+    { label: '达梦多行转一行', value: 'wm_concat' }
   ]
 
   // 状态管理
@@ -40,7 +55,7 @@ const { generateInsertSql } = useSqlGenerator()
     rows: [], // 存储解析后的数据行
     primaryKeyField: '', // 主键字段
     multiValueSeparator: ',', // 多值分隔符
-    dynamicFields: [], // 存储动态添加的字段，格式: [{name: '字段名', value: '字段值', function: '数据库函数'}]
+    dynamicFields: [], // 存储动态添加的字段，格式: [{name: '字段名', value: '字段值', function: '数据库函数', type: '字段类型', startNum: '起始数字', addQuotes: true}]
     filteredFields: [], // 存储被过滤的字段名
     batchUpdate: {
       fieldName: '', // 要修改的字段名
@@ -63,28 +78,28 @@ const handleFileUpload = async (file) => {
   try {
     // 解析Excel文件
     const { headers, rows } = await parseExcel(file)
-    
+
     // 转换表头为拼音首字母
     const convertedHeaders = convertHeaders(headers)
-    
+
     // 存储解析后的数据
     state.headers = headers
     state.convertedHeaders = convertedHeaders
     state.rows = rows
-    
+
     // 生成SQL语句
       if (state.tableName) {
         state.generatedSql = generateInsertSql(
-      state.tableName, 
-      convertedHeaders, 
-      rows, 
-      state.primaryKeyField, 
+      state.tableName,
+      convertedHeaders,
+      rows,
+      state.primaryKeyField,
       state.multiValueSeparator,
       state.dynamicFields,
       state.filteredFields
     )
       }
-    
+
     message.success('Excel文件解析成功')
   } catch (error) {
     message.error(error.message || '解析Excel文件失败')
@@ -106,15 +121,21 @@ const handlePrimaryKeyChange = (value) => {
 }
 
 // 动态字段相关函数
+// 字段类型选项
+const fieldTypes = [
+  { label: '普通值', value: 'normal' },
+  { label: '数字递增', value: 'increment' }
+]
+
 // 添加动态字段
 const addDynamicField = () => {
   if (state.dynamicFields.some(field => field.name === '')) {
     message.warning('请先填写上一个动态字段的名称')
     return
   }
-  
-  state.dynamicFields.push({ name: '', value: '', function: '' })
-  
+
+  state.dynamicFields.push({ name: '', value: '', function: '', type: 'normal', startNum: 1, addQuotes: true })
+
   // 重新生成SQL语句
   if (state.tableName && state.rows.length > 0) {
     regenerateSql()
@@ -140,6 +161,34 @@ const updateDynamicFieldValue = (index, value) => {
     }
   };
 
+  // 更新动态字段的类型
+  const updateDynamicFieldType = (index, type) => {
+    if (state.dynamicFields[index]) {
+      state.dynamicFields[index].type = type;
+      // 如果切换到数字递增类型，清除函数和值
+      if (type === 'increment') {
+        state.dynamicFields[index].function = '';
+        state.dynamicFields[index].addQuotes = false;
+      }
+    }
+  };
+
+  // 更新动态字段的起始数字
+  const updateDynamicFieldStartNum = (index, value) => {
+    if (state.dynamicFields[index]) {
+      // 确保是数字类型
+      const num = parseInt(value) || 1;
+      state.dynamicFields[index].startNum = num;
+    }
+  };
+
+  // 更新动态字段是否添加单引号
+  const updateDynamicFieldQuotes = (index, checked) => {
+    if (state.dynamicFields[index]) {
+      state.dynamicFields[index].addQuotes = checked;
+    }
+  };
+
   // 更新动态字段的函数选择
   const updateDynamicFieldFunction = (index, funcValue) => {
     if (state.dynamicFields[index]) {
@@ -160,7 +209,7 @@ const updateDynamicFieldValue = (index, value) => {
       // 如果字段未被过滤，添加到过滤列表
       state.filteredFields.push(fieldName);
     }
-    
+
     // 当过滤字段变化时，重新生成SQL
     if (state.tableName && state.uploadedFile) {
       regenerateSql();
@@ -187,18 +236,18 @@ const regenerateSql = async () => {
 
   try {
     // 直接使用当前的状态数据，避免重新解析Excel文件覆盖用户编辑
-    
+
     // 生成SQL语句
     state.generatedSql = generateInsertSql(
-      state.tableName, 
-      state.convertedHeaders, 
-      state.rows, 
-      state.primaryKeyField, 
+      state.tableName,
+      state.convertedHeaders,
+      state.rows,
+      state.primaryKeyField,
       state.multiValueSeparator,
       state.dynamicFields,
       state.filteredFields
     )
-    
+
     message.success('SQL语句生成成功')
   } catch (error) {
     message.error(error.message || '生成SQL语句失败')
@@ -212,7 +261,7 @@ const handleCellChange = (rowIndex, colIndex, value) => {
   // 更新指定位置的数据
   if (state.rows[rowIndex]) {
     state.rows[rowIndex][colIndex] = value
-    
+
     // 重新生成SQL语句
     if (state.tableName) {
       regenerateSql()
@@ -226,19 +275,19 @@ const handleBatchUpdate = () => {
     message.warning('请选择要修改的字段')
     return
   }
-  
+
   if (state.batchUpdate.oldValue === '' && state.batchUpdate.oldValue !== 0) {
     message.warning('请输入要匹配的旧值')
     return
   }
-  
+
   // 找到要修改的字段在表头中的索引
   const fieldIndex = state.convertedHeaders.indexOf(state.batchUpdate.fieldName)
   if (fieldIndex === -1) {
     message.error('未找到指定字段')
     return
   }
-  
+
   // 批量修改匹配的字段值
   let updateCount = 0
   state.rows.forEach(row => {
@@ -247,7 +296,7 @@ const handleBatchUpdate = () => {
       updateCount++
     }
   })
-  
+
   if (updateCount > 0) {
     // 重新生成SQL语句
     if (state.tableName) {
@@ -268,28 +317,28 @@ const clearAll = () => {
   state.headers = []
   state.convertedHeaders = []
   state.rows = []
-  
+
   // 重置高级配置
   state.primaryKeyField = ''
   state.multiValueSeparator = ','
-  
+
   // 重置动态字段
   state.dynamicFields = []
-  
+
   // 重置批量修改配置
   state.batchUpdate.fieldName = ''
   state.batchUpdate.oldValue = ''
   state.batchUpdate.newValue = ''
-  
+
   // 重置字段过滤
   state.filteredFields = []
-  
+
   // 重置文件上传组件
   const fileInput = document.querySelector('input[type="file"]')
   if (fileInput) {
     fileInput.value = ''
   }
-  
+
   message.success('已清除所有数据和SQL')
 }
 
@@ -403,16 +452,40 @@ const copySqlToClipboard = () => {
                 v-model:value="field.function"
                 placeholder="选择数据库函数"
                 allow-search
-                style="width: 200px; margin-right: 10px;"
+                style="width: 300px; margin-right: 10px;"
                 @change="updateDynamicFieldFunction(index, $event)"
+                :disabled="field.type === 'increment'"
               >
-                <a-select-option v-for="(func, idx) in commonDbFunctions" :key="idx" :value="func.value">
-                  {{ func.label }}
+                <a-select-option v-for="(func, idx) in commonDbFunctions" :key="idx" :value="func.value"
+                  >{{ func.label }}
                   <span style="color: #999; margin-left: 5px;">({{ func.value }})</span>
                 </a-select-option>
               </a-select>
-              <a-button danger size="small" @click="removeDynamicField(index)">
-                <template #icon>
+              <span style="margin-right: 10px;">字段类型:</span>
+              <a-select
+                v-model:value="field.type"
+                style="width: 120px; margin-right: 10px;"
+                @change="updateDynamicFieldType(index, $event)"
+              >
+                <a-select-option v-for="type in fieldTypes" :key="type.value" :value="type.value">
+                  {{ type.label }}
+                </a-select-option>
+              </a-select>
+              <span v-if="field.type === 'increment'" style="margin-right: 10px;">起始数字:</span>
+              <a-input-number
+                v-if="field.type === 'increment'"
+                v-model:value="field.startNum"
+                :min="1"
+                style="width: 100px; margin-right: 10px;"
+                @change="updateDynamicFieldStartNum(index, $event)"
+              />
+              <a-checkbox
+                v-model:checked="field.addQuotes"
+                style="margin-right: 10px;"
+                @change="updateDynamicFieldQuotes(index, $event.target.checked)"
+              >添加单引号</a-checkbox>
+              <a-button danger size="small" @click="removeDynamicField(index)"
+                ><template #icon>
                   <delete-outlined />
                 </template>
               </a-button>
@@ -429,12 +502,12 @@ const copySqlToClipboard = () => {
       <div class="config-section" v-if="state.convertedHeaders.length > 0">
         <h3>过滤字段（取消勾选的字段将不计入SQL语句）</h3>
         <div class="filter-fields-container">
-          <div 
-            v-for="(header, index) in state.convertedHeaders" 
-            :key="index" 
+          <div
+            v-for="(header, index) in state.convertedHeaders"
+            :key="index"
             class="filter-field-item"
           >
-            <a-checkbox 
+            <a-checkbox
               :checked="!isFieldFiltered(header)"
               @change="toggleFieldFilter(header)"
             >
