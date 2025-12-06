@@ -367,19 +367,20 @@ const copySqlToClipboard = () => {
 <template>
   <div class="app-container">
     <header class="app-header">
-      <div style="display: flex; align-items: center; justify-content: space-between;">
-        <div>
-          <h1>生成 INSERT 语句</h1>
-          <p>上传Excel文件，自动生成SQL INSERT语句</p>
-        </div>
-        <a-button @click="goBackToHome" type="default">
-          <template #icon>
-            <arrow-left-outlined />
-          </template>
-          返回首页
-        </a-button>
+      <div>
+        <h1>生成 INSERT 语句</h1>
+        <p>上传Excel文件，自动生成SQL INSERT语句</p>
       </div>
     </header>
+
+    <div class="back-button-container">
+      <a-button @click="goBackToHome" type="default">
+        <template #icon>
+          <arrow-left-outlined />
+        </template>
+        返回首页
+      </a-button>
+    </div>
 
     <main class="app-main">
       <div class="config-section">
@@ -633,12 +634,27 @@ const copySqlToClipboard = () => {
 
 .app-header {
   text-align: center;
-  margin-bottom: 40px;
+  margin-bottom: 20px;
+  width: 100%;
 }
 
 .app-header h1 {
   color: #1890ff;
   margin-bottom: 10px;
+}
+
+.back-button-container {
+  margin-bottom: 20px;
+  text-align: left;
+  max-width: 1000px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.app-main {
+  max-width: 1000px;
+  margin: 0 auto;
+  text-align: left;
 }
 
 .config-section {

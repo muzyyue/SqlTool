@@ -85,6 +85,7 @@ const goToUpdate = () => {
 .app-header {
   text-align: center;
   margin-bottom: 50px;
+  width: 100%;
 }
 
 .app-header h1 {
@@ -152,12 +153,17 @@ const goToUpdate = () => {
   gap: 30px;
   margin-bottom: 50px;
   flex-wrap: wrap;
+  width: 100%;
 }
 
 .action-button {
   padding: 12px 36px;
   font-size: 18px;
   transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .action-button:hover {
