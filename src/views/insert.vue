@@ -2,7 +2,13 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
-import { UploadOutlined, CopyOutlined, DeleteOutlined, PlusOutlined, ArrowLeftOutlined } from '@ant-design/icons-vue'
+import {
+  UploadOutlined,
+  CopyOutlined,
+  DeleteOutlined,
+  PlusOutlined,
+  ArrowLeftOutlined,
+} from '@ant-design/icons-vue'
 import { useExcelParser } from '../composables/useExcelParser'
 import { usePinyinConverter } from '../composables/usePinyinConverter'
 import { useSqlGenerator } from '../composables/useSqlGenerator'
@@ -10,7 +16,7 @@ import { useSqlGenerator } from '../composables/useSqlGenerator'
 const router = useRouter()
 const { parseExcel } = useExcelParser()
 const { convertHeaders } = usePinyinConverter()
-const { generateInsertSql } = useSqlGenerator()
+const { generateInsertSql, parseDdlForFields } = useSqlGenerator()
 
 // 返回首页
 const goBackToHome = () => {
@@ -18,58 +24,94 @@ const goBackToHome = () => {
 }
 
 // 定义常用数据库函数列表
-  const commonDbFunctions = [
-    { label: '系统日期（Oracle）', value: 'sysdate' },
-    { label: '系统日期（SQL Server）', value: 'getdate()' },
-    { label: '系统日期（MySQL/PostgreSQL）', value: 'now()' },
-    { label: '系统日期（达梦）', value: 'sysdate' },
-    { label: '当前用户（Oracle）', value: 'user' },
-    { label: '当前用户（SQL Server）', value: 'user_name()' },
-    { label: '当前用户（MySQL）', value: 'user()' },
-    { label: '当前用户（PostgreSQL）', value: 'current_user' },
-    { label: '当前用户（达梦）', value: 'user' },
-    { label: '系统时间戳（Oracle）', value: 'systimestamp' },
-    { label: '系统时间戳（SQL Server）', value: 'current_timestamp' },
-    { label: '系统时间戳（MySQL）', value: 'current_timestamp()' },
-    { label: '系统时间戳（PostgreSQL）', value: 'current_timestamp' },
-    { label: '系统时间戳（达梦）', value: 'sysdate' },
-    { label: '当前会话ID（Oracle）', value: "sys_context('USERENV','SESSIONID')" },
-    { label: '当前会话ID（SQL Server）', value: '@@SPID' },
-    { label: '当前会话ID（MySQL）', value: 'connection_id()' },
-    { label: '当前会话ID（PostgreSQL）', value: 'pg_backend_pid()' },
-    { label: '当前会话ID（达梦）', value: 'sessid' },
-    { label: '达梦自增序列', value: 'SYS_GUID()' },
-    { label: '达梦字符串长度', value: 'length' },
-    { label: '达梦当前日期', value: 'CURRENT_DATE' },
-    { label: '达梦当前时间', value: 'CURRENT_TIME' },
-    { label: '达梦当前时间戳', value: 'CURRENT_TIMESTAMP' },
-    { label: '达梦转换为日期', value: 'to_date' },
-    { label: '达梦转换为字符', value: 'to_char' },
-    { label: '达梦转换为数值', value: 'to_number' },
-    { label: '达梦字符串拼接', value: 'concat' },
-    { label: '达梦空值处理', value: 'nvl' },
-    { label: '达梦多行转一行', value: 'wm_concat' }
-  ]
+const commonDbFunctions = [
+  { label: '系统日期（Oracle）', value: 'sysdate' },
+  { label: '系统日期（SQL Server）', value: 'getdate()' },
+  { label: '系统日期（MySQL/PostgreSQL）', value: 'now()' },
+  { label: '系统日期（达梦）', value: 'sysdate' },
+  { label: '当前用户（Oracle）', value: 'user' },
+  { label: '当前用户（SQL Server）', value: 'user_name()' },
+  { label: '当前用户（MySQL）', value: 'user()' },
+  { label: '当前用户（PostgreSQL）', value: 'current_user' },
+  { label: '当前用户（达梦）', value: 'user' },
+  { label: '系统时间戳（Oracle）', value: 'systimestamp' },
+  { label: '系统时间戳（SQL Server）', value: 'current_timestamp' },
+  { label: '系统时间戳（MySQL）', value: 'current_timestamp()' },
+  { label: '系统时间戳（PostgreSQL）', value: 'current_timestamp' },
+  { label: '系统时间戳（达梦）', value: 'sysdate' },
+  { label: '当前会话ID（Oracle）', value: "sys_context('USERENV','SESSIONID')" },
+  { label: '当前会话ID（SQL Server）', value: '@@SPID' },
+  { label: '当前会话ID（MySQL）', value: 'connection_id()' },
+  { label: '当前会话ID（PostgreSQL）', value: 'pg_backend_pid()' },
+  { label: '生成gyss前缀GUID（Oracle）', value: "CONCAT('gyss',SUBSTR(SYS_GUID(), 1, 28))" },
+  { label: '生成gyss前缀GUID（达梦）', value: "CONCAT('gyss',SUBSTR(SYS_GUID(), 1, 28))" },
+  { label: '当前会话ID（达梦）', value: 'sessid' },
+  { label: '达梦自增序列', value: 'SYS_GUID()' },
+  { label: '达梦字符串长度', value: 'length' },
+  { label: '达梦当前日期', value: 'CURRENT_DATE' },
+  { label: '达梦当前时间', value: 'CURRENT_TIME' },
+  { label: '达梦当前时间戳', value: 'CURRENT_TIMESTAMP' },
+  { label: '达梦转换为日期', value: 'to_date' },
+  { label: '达梦转换为字符', value: 'to_char' },
+  { label: '达梦转换为数值', value: 'to_number' },
+  { label: '达梦字符串拼接', value: 'concat' },
+  { label: '达梦空值处理', value: 'nvl' },
+  { label: '达梦多行转一行', value: 'wm_concat' },
+]
 
-  // 状态管理
-  const state = reactive({
-    tableName: '',
-    uploadedFile: null,
-    isLoading: false,
-    generatedSql: '',
-    headers: [], // 存储解析后的表头
-    convertedHeaders: [], // 存储转换后的表头（拼音首字母）
-    rows: [], // 存储解析后的数据行
-    primaryKeyField: '', // 主键字段
-    multiValueSeparator: ',', // 多值分隔符
-    dynamicFields: [], // 存储动态添加的字段，格式: [{name: '字段名', value: '字段值', function: '数据库函数', type: '字段类型', startNum: '起始数字', addQuotes: true}]
-    filteredFields: [], // 存储被过滤的字段名
-    batchUpdate: {
-      fieldName: '', // 要修改的字段名
-      oldValue: '', // 要匹配的旧值
-      newValue: '' // 要替换的新值
+// 状态管理
+const state = reactive({
+  tableName: '',
+  uploadedFile: null,
+  isLoading: false,
+  generatedSql: '',
+  headers: [], // 存储解析后的表头
+  convertedHeaders: [], // 存储转换后的表头（拼音首字母）
+  rows: [], // 存储解析后的数据行
+  primaryKeyField: '', // 主键字段
+
+  dynamicFields: [], // 存储动态添加的字段，格式: [{name: '字段名', value: '字段值', function: '数据库函数', type: '字段类型', startNum: '起始数字', addQuotes: true}]
+  filteredFields: [], // 存储被过滤的字段名
+  batchUpdate: {
+    fieldName: '', // 要修改的字段名
+    oldValue: '', // 要匹配的旧值
+    newValue: '', // 要替换的新值
+  },
+  ddlStatement: '', // 存储数据库表DDL语句
+  ddlFields: [], // 存储从DDL解析出的字段名
+})
+
+// 处理DDL解析
+const handleDdlParse = () => {
+  if (!state.ddlStatement) {
+    message.warning('请输入DDL语句')
+    return
+  }
+
+  try {
+    state.isLoading = true
+    // 解析DDL语句获取字段名
+    const fields = parseDdlForFields(state.ddlStatement)
+    state.ddlFields = fields
+
+    if (fields.length > 0) {
+      message.success(`成功解析出${fields.length}个字段`)
+      // 如果有转换后的表头，更新过滤字段列表
+      if (state.convertedHeaders.length > 0) {
+        // 过滤掉不在DDL字段列表中的字段
+        state.filteredFields = state.convertedHeaders.filter(
+          (header) => !fields.includes(header.toLowerCase()),
+        )
+      }
+    } else {
+      message.warning('未从DDL语句中解析出任何字段')
     }
-  })
+  } catch (error) {
+    message.error('解析DDL语句失败: ' + (error.message || '未知错误'))
+  } finally {
+    state.isLoading = false
+  }
+}
 
 // 处理文件上传
 const handleFileUpload = async (file) => {
@@ -95,17 +137,16 @@ const handleFileUpload = async (file) => {
     state.rows = rows
 
     // 生成SQL语句
-      if (state.tableName) {
-        state.generatedSql = generateInsertSql(
-      state.tableName,
-      convertedHeaders,
-      rows,
-      state.primaryKeyField,
-      state.multiValueSeparator,
-      state.dynamicFields,
-      state.filteredFields
-    )
-      }
+    if (state.tableName) {
+      state.generatedSql = generateInsertSql(
+        state.tableName,
+        convertedHeaders,
+        rows,
+        state.primaryKeyField,
+        state.dynamicFields,
+        state.filteredFields,
+      )
+    }
 
     message.success('Excel文件解析成功')
   } catch (error) {
@@ -131,17 +172,24 @@ const handlePrimaryKeyChange = (value) => {
 // 字段类型选项
 const fieldTypes = [
   { label: '普通值', value: 'normal' },
-  { label: '数字递增', value: 'increment' }
+  { label: '数字递增', value: 'increment' },
 ]
 
 // 添加动态字段
 const addDynamicField = () => {
-  if (state.dynamicFields.some(field => field.name === '')) {
+  if (state.dynamicFields.some((field) => field.name === '')) {
     message.warning('请先填写上一个动态字段的名称')
     return
   }
 
-  state.dynamicFields.push({ name: '', value: '', function: '', type: 'normal', startNum: 1, addQuotes: true })
+  state.dynamicFields.push({
+    name: '',
+    value: '',
+    function: '',
+    type: 'normal',
+    startNum: 1,
+    addQuotes: true,
+  })
 
   // 重新生成SQL语句
   if (state.tableName && state.rows.length > 0) {
@@ -159,75 +207,75 @@ const updateDynamicFieldName = (index, value) => {
   }
 }
 const updateDynamicFieldValue = (index, value) => {
-    if (state.dynamicFields[index]) {
-      state.dynamicFields[index].value = value;
-      // 当手动输入值时，清除选择的函数
-      if (value) {
-        state.dynamicFields[index].function = '';
-      }
+  if (state.dynamicFields[index]) {
+    state.dynamicFields[index].value = value
+    // 当手动输入值时，清除选择的函数
+    if (value) {
+      state.dynamicFields[index].function = ''
     }
-  };
+  }
+}
 
-  // 更新动态字段的类型
-  const updateDynamicFieldType = (index, type) => {
-    if (state.dynamicFields[index]) {
-      state.dynamicFields[index].type = type;
-      // 如果切换到数字递增类型，清除函数和值
-      if (type === 'increment') {
-        state.dynamicFields[index].function = '';
-        state.dynamicFields[index].addQuotes = false;
-      }
+// 更新动态字段的类型
+const updateDynamicFieldType = (index, type) => {
+  if (state.dynamicFields[index]) {
+    state.dynamicFields[index].type = type
+    // 如果切换到数字递增类型，清除函数和值
+    if (type === 'increment') {
+      state.dynamicFields[index].function = ''
+      state.dynamicFields[index].addQuotes = false
     }
-  };
+  }
+}
 
-  // 更新动态字段的起始数字
-  const updateDynamicFieldStartNum = (index, value) => {
-    if (state.dynamicFields[index]) {
-      // 确保是数字类型
-      const num = parseInt(value) || 1;
-      state.dynamicFields[index].startNum = num;
+// 更新动态字段的起始数字
+const updateDynamicFieldStartNum = (index, value) => {
+  if (state.dynamicFields[index]) {
+    // 确保是数字类型
+    const num = parseInt(value) || 1
+    state.dynamicFields[index].startNum = num
+  }
+}
+
+// 更新动态字段是否添加单引号
+const updateDynamicFieldQuotes = (index, checked) => {
+  if (state.dynamicFields[index]) {
+    state.dynamicFields[index].addQuotes = checked
+  }
+}
+
+// 更新动态字段的函数选择
+const updateDynamicFieldFunction = (index, funcValue) => {
+  if (state.dynamicFields[index]) {
+    state.dynamicFields[index].function = funcValue
+    // 当选择函数时，清除手动输入的值
+    if (funcValue) {
+      state.dynamicFields[index].value = ''
     }
-  };
+  }
+}
 
-  // 更新动态字段是否添加单引号
-  const updateDynamicFieldQuotes = (index, checked) => {
-    if (state.dynamicFields[index]) {
-      state.dynamicFields[index].addQuotes = checked;
-    }
-  };
+// 过滤字段相关函数
+const toggleFieldFilter = (fieldName) => {
+  if (state.filteredFields.includes(fieldName)) {
+    // 如果字段已被过滤，取消过滤
+    state.filteredFields = state.filteredFields.filter((field) => field !== fieldName)
+  } else {
+    // 如果字段未被过滤，添加到过滤列表
+    state.filteredFields.push(fieldName)
+  }
 
-  // 更新动态字段的函数选择
-  const updateDynamicFieldFunction = (index, funcValue) => {
-    if (state.dynamicFields[index]) {
-      state.dynamicFields[index].function = funcValue;
-      // 当选择函数时，清除手动输入的值
-      if (funcValue) {
-        state.dynamicFields[index].value = '';
-      }
-    }
-  };
+  // 当过滤字段变化时，重新生成SQL
+  if (state.tableName && state.uploadedFile) {
+    regenerateSql()
+  }
+}
 
-  // 过滤字段相关函数
-  const toggleFieldFilter = (fieldName) => {
-    if (state.filteredFields.includes(fieldName)) {
-      // 如果字段已被过滤，取消过滤
-      state.filteredFields = state.filteredFields.filter(field => field !== fieldName);
-    } else {
-      // 如果字段未被过滤，添加到过滤列表
-      state.filteredFields.push(fieldName);
-    }
+const isFieldFiltered = (fieldName) => {
+  return state.filteredFields.includes(fieldName)
+}
 
-    // 当过滤字段变化时，重新生成SQL
-    if (state.tableName && state.uploadedFile) {
-      regenerateSql();
-    }
-  };
-
-  const isFieldFiltered = (fieldName) => {
-    return state.filteredFields.includes(fieldName);
-  };
-
-  // 重新生成SQL（当表名变化时）
+// 重新生成SQL（当表名变化时）
 const regenerateSql = async () => {
   if (!state.uploadedFile) {
     message.warning('请先上传Excel文件')
@@ -250,9 +298,8 @@ const regenerateSql = async () => {
       state.convertedHeaders,
       state.rows,
       state.primaryKeyField,
-      state.multiValueSeparator,
       state.dynamicFields,
-      state.filteredFields
+      state.filteredFields,
     )
 
     message.success('SQL语句生成成功')
@@ -297,7 +344,7 @@ const handleBatchUpdate = () => {
 
   // 批量修改匹配的字段值
   let updateCount = 0
-  state.rows.forEach(row => {
+  state.rows.forEach((row) => {
     if (row[fieldIndex] === state.batchUpdate.oldValue) {
       row[fieldIndex] = state.batchUpdate.newValue
       updateCount++
@@ -327,7 +374,6 @@ const clearAll = () => {
 
   // 重置高级配置
   state.primaryKeyField = ''
-  state.multiValueSeparator = ','
 
   // 重置动态字段
   state.dynamicFields = []
@@ -356,11 +402,14 @@ const copySqlToClipboard = () => {
     return
   }
 
-  navigator.clipboard.writeText(state.generatedSql).then(() => {
-    message.success('SQL语句已复制到剪贴板')
-  }).catch(() => {
-    message.error('复制失败，请手动复制')
-  })
+  navigator.clipboard
+    .writeText(state.generatedSql)
+    .then(() => {
+      message.success('SQL语句已复制到剪贴板')
+    })
+    .catch(() => {
+      message.error('复制失败，请手动复制')
+    })
 }
 </script>
 
@@ -388,16 +437,12 @@ const copySqlToClipboard = () => {
           <a-input
             v-model:value="state.tableName"
             placeholder="请输入表名"
-            style="width: 200px; margin-right: 10px;"
+            style="width: 200px; margin-right: 10px"
             @change="handleTableNameChange"
           />
         </div>
         <div class="config-item">
-          <a-upload
-            :before-upload="handleFileUpload"
-            :show-upload-list="false"
-            accept=".xlsx"
-          >
+          <a-upload :before-upload="handleFileUpload" :show-upload-list="false" accept=".xlsx">
             <a-button type="primary" :loading="state.isLoading">
               <template #icon>
                 <upload-outlined />
@@ -407,7 +452,11 @@ const copySqlToClipboard = () => {
           </a-upload>
         </div>
         <div class="config-item">
-          <a-button type="default" @click="regenerateSql" :disabled="!state.uploadedFile || !state.tableName">
+          <a-button
+            type="default"
+            @click="regenerateSql"
+            :disabled="!state.uploadedFile || !state.tableName"
+          >
             重新生成SQL
           </a-button>
         </div>
@@ -421,31 +470,35 @@ const copySqlToClipboard = () => {
         </div>
       </div>
 
-      <!-- 一对多数据项配置 -->
-      <div class="config-section" v-if="state.convertedHeaders.length > 0">
-        <div class="config-item">
-          <label>主键字段：</label>
-          <a-select
-            v-model:value="state.primaryKeyField"
-            placeholder="选择主键字段"
-            style="width: 200px; margin-right: 10px;"
-            @change="handlePrimaryKeyChange"
-          >
-            <a-select-option value="">不设置主键</a-select-option>
-            <a-select-option v-for="(header, index) in state.convertedHeaders" :key="index" :value="header">
-              {{ header }}
-              <span v-if="state.headers[index]" style="color: #999; margin-left: 5px;">({{ state.headers[index] }})</span>
-            </a-select-option>
-          </a-select>
-        </div>
-        <div class="config-item">
-          <label>多值分隔符：</label>
-          <a-input
-            v-model:value="state.multiValueSeparator"
-            placeholder="如: , ; |"
-            style="width: 100px;"
+      <!-- DDL解析配置 -->
+      <div class="config-section">
+        <div
+          class="config-item"
+          style="width: 100%; display: flex; flex-direction: column; align-items: flex-start"
+        >
+          <label>数据库表DDL语句：</label>
+          <a-textarea
+            v-model:value="state.ddlStatement"
+            placeholder="请输入CREATE TABLE语句或其他包含字段定义的DDL语句"
+            rows="5"
+            style="width: 100%; margin-top: 10px; margin-bottom: 10px"
           />
-          <span style="color: #999; margin-left: 10px;">用于分割同一个单元格中的多个值</span>
+          <div style="display: flex; align-items: center; gap: 16px; margin-top: 10px">
+            <a-button type="primary" @click="handleDdlParse" :loading="state.isLoading">
+              解析DDL生成字段列表
+            </a-button>
+            <span style="color: #999; font-size: 14px; line-height: 1.5">
+              解析后将自动过滤掉不在DDL字段列表中的字段
+            </span>
+          </div>
+        </div>
+        <div class="config-item" v-if="state.ddlFields.length > 0">
+          <label>解析出的字段：</label>
+          <div class="field-list">
+            <span v-for="(field, index) in state.ddlFields" :key="index" class="field-tag">
+              {{ field }}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -456,59 +509,60 @@ const copySqlToClipboard = () => {
           <a-input
             v-model:value="field.name"
             placeholder="字段名"
-            style="width: 150px; margin-right: 10px;"
+            style="width: 150px; margin-right: 10px"
             @change="updateDynamicFieldName(index, $event.target.value)"
           />
           <a-input
-                v-model:value="field.value"
-                placeholder="字段值（不填则为NULL）"
-                style="width: 200px; margin-right: 10px;"
-                @change="updateDynamicFieldValue(index, $event.target.value)"
-              />
-              <span style="margin-right: 10px;">或选择函数:</span>
-              <a-select
-                v-model:value="field.function"
-                placeholder="选择数据库函数"
-                allow-search
-                style="width: 300px; margin-right: 10px;"
-                @change="updateDynamicFieldFunction(index, $event)"
-                :disabled="field.type === 'increment'"
-              >
-                <a-select-option v-for="(func, idx) in commonDbFunctions" :key="idx" :value="func.value"
-                  >{{ func.label }}
-                  <span style="color: #999; margin-left: 5px;">({{ func.value }})</span>
-                </a-select-option>
-              </a-select>
-              <span style="margin-right: 10px;">字段类型:</span>
-              <a-select
-                v-model:value="field.type"
-                style="width: 120px; margin-right: 10px;"
-                @change="updateDynamicFieldType(index, $event)"
-              >
-                <a-select-option v-for="type in fieldTypes" :key="type.value" :value="type.value">
-                  {{ type.label }}
-                </a-select-option>
-              </a-select>
-              <span v-if="field.type === 'increment'" style="margin-right: 10px;">起始数字:</span>
-              <a-input-number
-                v-if="field.type === 'increment'"
-                v-model:value="field.startNum"
-                :min="1"
-                style="width: 100px; margin-right: 10px;"
-                @change="updateDynamicFieldStartNum(index, $event)"
-              />
-              <a-checkbox
-                v-model:checked="field.addQuotes"
-                style="margin-right: 10px;"
-                @change="updateDynamicFieldQuotes(index, $event.target.checked)"
-              >添加单引号</a-checkbox>
-              <a-button danger size="small" @click="removeDynamicField(index)"
-                ><template #icon>
-                  <delete-outlined />
-                </template>
-              </a-button>
+            v-model:value="field.value"
+            placeholder="字段值（不填则为NULL）"
+            style="width: 200px; margin-right: 10px"
+            @change="updateDynamicFieldValue(index, $event.target.value)"
+          />
+          <span style="margin-right: 10px">或选择函数:</span>
+          <a-select
+            v-model:value="field.function"
+            placeholder="选择数据库函数"
+            allow-search
+            style="width: 300px; margin-right: 10px"
+            @change="updateDynamicFieldFunction(index, $event)"
+            :disabled="field.type === 'increment'"
+          >
+            <a-select-option v-for="(func, idx) in commonDbFunctions" :key="idx" :value="func.value"
+              >{{ func.label }}
+              <span style="color: #999; margin-left: 5px">({{ func.value }})</span>
+            </a-select-option>
+          </a-select>
+          <span style="margin-right: 10px">字段类型:</span>
+          <a-select
+            v-model:value="field.type"
+            style="width: 120px; margin-right: 10px"
+            @change="updateDynamicFieldType(index, $event)"
+          >
+            <a-select-option v-for="type in fieldTypes" :key="type.value" :value="type.value">
+              {{ type.label }}
+            </a-select-option>
+          </a-select>
+          <span v-if="field.type === 'increment'" style="margin-right: 10px">起始数字:</span>
+          <a-input-number
+            v-if="field.type === 'increment'"
+            v-model:value="field.startNum"
+            :min="1"
+            style="width: 100px; margin-right: 10px"
+            @change="updateDynamicFieldStartNum(index, $event)"
+          />
+          <a-checkbox
+            v-model:checked="field.addQuotes"
+            style="margin-right: 10px"
+            @change="updateDynamicFieldQuotes(index, $event.target.checked)"
+            >添加单引号</a-checkbox
+          >
+          <a-button danger size="small" @click="removeDynamicField(index)"
+            ><template #icon>
+              <delete-outlined />
+            </template>
+          </a-button>
         </div>
-        <a-button type="default" @click="addDynamicField" style="margin-top: 10px;">
+        <a-button type="default" @click="addDynamicField" style="margin-top: 10px">
           <template #icon>
             <plus-outlined />
           </template>
@@ -525,12 +579,11 @@ const copySqlToClipboard = () => {
             :key="index"
             class="filter-field-item"
           >
-            <a-checkbox
-              :checked="!isFieldFiltered(header)"
-              @change="toggleFieldFilter(header)"
-            >
+            <a-checkbox :checked="!isFieldFiltered(header)" @change="toggleFieldFilter(header)">
               {{ header }}
-              <span v-if="state.headers[index]" style="color: #999; margin-left: 5px;">({{ state.headers[index] }})</span>
+              <span v-if="state.headers[index]" style="color: #999; margin-left: 5px"
+                >({{ state.headers[index] }})</span
+              >
             </a-checkbox>
           </div>
         </div>
@@ -546,61 +599,32 @@ const copySqlToClipboard = () => {
           <a-select
             v-model:value="state.batchUpdate.fieldName"
             placeholder="选择要修改的字段"
-            style="width: 200px; margin-right: 10px;"
+            style="width: 200px; margin-right: 10px"
           >
-            <a-select-option v-for="(header, index) in state.convertedHeaders" :key="index" :value="header">
+            <a-select-option
+              v-for="(header, index) in state.convertedHeaders"
+              :key="index"
+              :value="header"
+            >
               {{ header }}
-              <span v-if="state.headers[index]" style="color: #999; margin-left: 5px;">({{ state.headers[index] }})</span>
+              <span v-if="state.headers[index]" style="color: #999; margin-left: 5px"
+                >({{ state.headers[index] }})</span
+              >
             </a-select-option>
           </a-select>
-          <span style="margin-right: 10px;">=</span>
+          <span style="margin-right: 10px">=</span>
           <a-input
             v-model:value="state.batchUpdate.oldValue"
             placeholder="要匹配的旧值"
-            style="width: 150px; margin-right: 10px;"
+            style="width: 150px; margin-right: 10px"
           />
-          <span style="margin-right: 10px;">改为</span>
+          <span style="margin-right: 10px">改为</span>
           <a-input
             v-model:value="state.batchUpdate.newValue"
             placeholder="要替换的新值"
-            style="width: 150px; margin-right: 10px;"
+            style="width: 150px; margin-right: 10px"
           />
-          <a-button type="primary" @click="handleBatchUpdate">
-            批量修改
-          </a-button>
-        </div>
-      </div>
-
-      <!-- 数据编辑区域 -->
-      <div class="data-edit-section" v-if="state.rows.length > 0">
-        <div class="section-header">
-          <h3>数据编辑</h3>
-          <p>点击单元格可编辑数据，编辑后自动更新SQL语句</p>
-        </div>
-        <div class="data-table-container">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>行号</th>
-                <th v-for="(header, index) in state.convertedHeaders" :key="index">
-                  {{ header }}
-                  <span class="original-header" v-if="state.headers[index]">({{ state.headers[index] }})</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(row, rowIndex) in state.rows" :key="rowIndex">
-                <td class="row-number">{{ rowIndex + 1 }}</td>
-                <td v-for="(cell, colIndex) in row" :key="colIndex">
-                  <a-input
-                    v-model:value="state.rows[rowIndex][colIndex]"
-                    size="small"
-                    @change="handleCellChange(rowIndex, colIndex, $event.target.value)"
-                  />
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <a-button type="primary" @click="handleBatchUpdate"> 批量修改 </a-button>
         </div>
       </div>
 
@@ -699,94 +723,130 @@ const copySqlToClipboard = () => {
 }
 
 .section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-  }
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
 
-  .section-header h3 {
-    margin: 0;
-    font-size: 18px;
-  }
+.section-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
 
-  .section-header p {
-    margin: 0;
-    color: #666;
-    font-size: 14px;
-  }
+.section-header p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
 
-  .result-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-  }
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
 
 .result-header h3 {
   margin: 0;
 }
 
-  /* 数据编辑区域样式 */
-  .data-edit-section {
-    background-color: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    margin-bottom: 20px;
+/* 数据编辑区域样式 */
+.data-edit-section {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+.data-table-container {
+  overflow-x: auto;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  background-color: #fff;
+}
+
+.data-table th,
+.data-table td {
+  padding: 8px 12px;
+  border: 1px solid #e8e8e8;
+}
+
+.data-table th {
+  background-color: #fafafa;
+  font-weight: 600;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.data-table td {
+  padding: 4px;
+}
+
+.data-table .row-number {
+  width: 60px;
+  text-align: center;
+  background-color: #fafafa;
+  font-weight: 600;
+}
+
+.original-header {
+  font-size: 12px;
+  color: #666;
+  margin-left: 5px;
+}
+
+.ant-input {
+  margin: 0;
+  width: 100%;
+}
+
+a-textarea {
+  width: 100%;
+}
+
+/* DDL解析区域样式 */
+.field-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.field-tag {
+  display: inline-block;
+  padding: 4px 10px;
+  background-color: #e6f7ff;
+  border: 1px solid #91d5ff;
+  border-radius: 12px;
+  font-size: 12px;
+  color: #1890ff;
+  white-space: nowrap;
+}
+
+/* 响应式样式优化 */
+@media (max-width: 768px) {
+  .config-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
   }
 
-  .data-table-container {
-    overflow-x: auto;
-    max-height: 400px;
-    overflow-y: auto;
+  .dynamic-field-item {
+    flex-wrap: wrap;
   }
 
-  .data-table {
-    width: 100%;
-    border-collapse: collapse;
-    text-align: left;
-    background-color: #fff;
+  .filter-fields-container {
+    flex-direction: column;
   }
-
-  .data-table th,
-  .data-table td {
-    padding: 8px 12px;
-    border: 1px solid #e8e8e8;
-  }
-
-  .data-table th {
-    background-color: #fafafa;
-    font-weight: 600;
-    white-space: nowrap;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
-
-  .data-table td {
-    padding: 4px;
-  }
-
-  .data-table .row-number {
-    width: 60px;
-    text-align: center;
-    background-color: #fafafa;
-    font-weight: 600;
-  }
-
-  .original-header {
-    font-size: 12px;
-    color: #666;
-    margin-left: 5px;
-  }
-
-  .ant-input {
-    margin: 0;
-    width: 100%;
-  }
-
-  a-textarea {
-    width: 100%;
 }
 </style>
