@@ -20,7 +20,8 @@ export function useExcelParser() {
             return
           }
 
-          const headers = jsonData[0]
+          // 处理表头，将undefined值转换为空字符串
+          const headers = jsonData[0].map(header => header || '')
           const rows = jsonData.slice(1)
 
           // 确保所有数据行的长度与表头一致

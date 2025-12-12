@@ -11,7 +11,7 @@ export function useSqlGenerator() {
     return str.replace(/'/g, "''")
   }
 
-  // 解析DDL语句获取字段名
+  // 解析DDL语句获取字段名和注释
   const parseDdlForFields = (ddlStatement) => {
     // 检查输入有效性
     if (!ddlStatement) return []
@@ -54,21 +54,30 @@ export function useSqlGenerator() {
       // 提取字段定义部分
       const fieldsSection = ddlStatement.substring(leftParenIndex + 1, rightParenIndex - 1)
 
-      // 3. 使用正则表达式匹配字段名
-      // 匹配模式："字段名" 数据类型(参数) 其他属性
-      // 改进的正则表达式，支持包含括号的数据类型和换行符
-      const fieldRegex = /"([^"]+)"\s+\w+(?:\([^)]*\))?/gim
+      // 3. 使用正则表达式匹配字段名和注释
+      // 匹配模式："字段名" 数据类型(参数) 其他属性 [COMMENT '注释']
+      // 改进的正则表达式，支持包含括号的数据类型、换行符和注释
+      const fieldRegex = /"([^"]+)"\s+[^,]+?(?:COMMENT\s+'([^']+)'|COMMENT\s+"([^"]+)")?/gim
       const fields = []
       let match
 
       while ((match = fieldRegex.exec(fieldsSection)) !== null) {
         if (match[1]) {
-          fields.push(match[1])
+          const fieldName = match[1]
+          // 提取注释，支持单引号和双引号
+          const comment = match[2] || match[3] || ''
+          fields.push({ name: fieldName, comment: comment })
         }
       }
 
-      // 去重并返回字段名数组
-      return [...new Set(fields)]
+      // 去重并返回字段对象数组
+      // 使用Map去重，保留最后一个出现的字段
+      const uniqueFields = new Map()
+      fields.forEach(field => {
+        uniqueFields.set(field.name, field)
+      })
+      
+      return Array.from(uniqueFields.values())
     } catch (error) {
       console.error('DDL解析错误:', error)
       return []

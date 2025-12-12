@@ -68,9 +68,10 @@ const state = reactive({
   headers: [], // 存储解析后的表头
   convertedHeaders: [], // 存储转换后的表头（拼音首字母）
   rows: [], // 存储解析后的数据行
+  selectedRows: [], // 存储选中的行
   primaryKeyField: '', // 主键字段
 
-  dynamicFields: [], // 存储动态添加的字段，格式: [{name: '字段名', value: '字段值', function: '数据库函数', type: '字段类型', startNum: '起始数字', addQuotes: true}]
+  dynamicFields: [], // 存储动态添加的字段，格式: [{name: '字段名', value: '字段值', function: '数据库函数', type: '字段类型', startNum: '起始数字', addQuotes: true}],
   filteredFields: [], // 存储被过滤的字段名
   batchUpdate: {
     fieldName: '', // 要修改的字段名
@@ -78,7 +79,8 @@ const state = reactive({
     newValue: '', // 要替换的新值
   },
   ddlStatement: '', // 存储数据库表DDL语句
-  ddlFields: [], // 存储从DDL解析出的字段名
+  ddlFields: [], // 存储从DDL解析出的字段对象
+  fieldMappings: [], // 存储DDL字段与Excel列的映射关系
 })
 
 // 处理DDL解析
@@ -90,24 +92,40 @@ const handleDdlParse = () => {
 
   try {
     state.isLoading = true
-    // 解析DDL语句获取字段名
+    // 解析DDL语句获取字段名和注释
     const fields = parseDdlForFields(state.ddlStatement)
     state.ddlFields = fields
 
     if (fields.length > 0) {
       message.success(`成功解析出${fields.length}个字段`)
+
+      // 创建字段映射关系
+      state.fieldMappings = fields.map((field) => {
+        // 尝试自动匹配Excel列（忽略大小写）
+        const matchedExcelIndex = state.convertedHeaders.findIndex(
+          (header) => header && header.toLowerCase() === field.name.toLowerCase(),
+        )
+        return {
+          ddlField: field,
+          excelColumn: matchedExcelIndex !== -1 ? matchedExcelIndex : -1,
+        }
+      })
+
       // 如果有转换后的表头，更新过滤字段列表
       if (state.convertedHeaders.length > 0) {
         // 过滤掉不在DDL字段列表中的字段
+        const ddlFieldNames = fields.map((f) => f.name.toLowerCase())
         state.filteredFields = state.convertedHeaders.filter(
-          (header) => !fields.includes(header.toLowerCase()),
+          (header) => header && !ddlFieldNames.includes(header.toLowerCase()),
         )
       }
     } else {
       message.warning('未从DDL语句中解析出任何字段')
+      state.fieldMappings = []
     }
   } catch (error) {
     message.error('解析DDL语句失败: ' + (error.message || '未知错误'))
+    state.fieldMappings = []
   } finally {
     state.isLoading = false
   }
@@ -135,17 +153,16 @@ const handleFileUpload = async (file) => {
     state.headers = headers
     state.convertedHeaders = convertedHeaders
     state.rows = rows
+    state.selectedRows = new Array(rows.length).fill(false)
+
+    // 如果已有DDL字段，更新字段映射
+    if (state.ddlFields.length > 0) {
+      handleDdlParse() // 重新解析DDL以创建新的映射关系
+    }
 
     // 生成SQL语句
     if (state.tableName) {
-      state.generatedSql = generateInsertSql(
-        state.tableName,
-        convertedHeaders,
-        rows,
-        state.primaryKeyField,
-        state.dynamicFields,
-        state.filteredFields,
-      )
+      regenerateSql()
     }
 
     message.success('Excel文件解析成功')
@@ -173,6 +190,7 @@ const handlePrimaryKeyChange = (value) => {
 const fieldTypes = [
   { label: '普通值', value: 'normal' },
   { label: '数字递增', value: 'increment' },
+  { label: '字段拼接', value: 'concat' },
 ]
 
 // 添加动态字段
@@ -275,7 +293,7 @@ const isFieldFiltered = (fieldName) => {
   return state.filteredFields.includes(fieldName)
 }
 
-// 重新生成SQL（当表名变化时）
+// 重新生成SQL
 const regenerateSql = async () => {
   if (!state.uploadedFile) {
     message.warning('请先上传Excel文件')
@@ -290,13 +308,33 @@ const regenerateSql = async () => {
   state.isLoading = true
 
   try {
-    // 直接使用当前的状态数据，避免重新解析Excel文件覆盖用户编辑
+    // 确定要使用的字段列表和数据
+    let fieldsToUse = state.convertedHeaders
+    let rowsToUse = state.rows
+
+    // 如果有DDL字段映射，使用映射后的字段和数据
+    if (state.fieldMappings.length > 0) {
+      // 获取所有映射了Excel列的DDL字段
+      const mappedFields = state.fieldMappings.filter((mapping) => mapping.excelColumn !== -1)
+
+      if (mappedFields.length > 0) {
+        // 使用DDL字段名作为最终字段名
+        fieldsToUse = mappedFields.map((mapping) => mapping.ddlField.name)
+
+        // 重新组织数据行，只包含映射的列
+        rowsToUse = state.rows.map((row) => {
+          return mappedFields.map((mapping) => {
+            return row[mapping.excelColumn]
+          })
+        })
+      }
+    }
 
     // 生成SQL语句
     state.generatedSql = generateInsertSql(
       state.tableName,
-      state.convertedHeaders,
-      state.rows,
+      fieldsToUse,
+      rowsToUse,
       state.primaryKeyField,
       state.dynamicFields,
       state.filteredFields,
@@ -321,6 +359,92 @@ const handleCellChange = (rowIndex, colIndex, value) => {
       regenerateSql()
     }
   }
+}
+
+// 复制选中行
+const copySelectedRows = () => {
+  const selectedIndices = state.selectedRows.reduce((indices, isSelected, index) => {
+    if (isSelected) indices.push(index)
+    return indices
+  }, [])
+
+  if (selectedIndices.length === 0) {
+    message.warning('请先选择要复制的行')
+    return
+  }
+
+  copyRows(selectedIndices)
+}
+
+// 复制所有行
+const copyAllRows = () => {
+  if (state.rows.length === 0) {
+    message.warning('没有数据行可以复制')
+    return
+  }
+
+  const allIndices = Array.from({ length: state.rows.length }, (_, i) => i)
+  copyRows(allIndices)
+}
+
+// 复制指定行
+const copyRows = (rowIndices) => {
+  const rowsToCopy = rowIndices.map((index) => state.rows[index])
+  const newRows = [...state.rows]
+  const incrementFields = state.dynamicFields.filter((field) => field.type === 'increment')
+  const concatFields = state.dynamicFields.filter((field) => field.type === 'concat')
+
+  // 计算起始数字
+  const incrementStarts = {}
+  incrementFields.forEach((field) => {
+    incrementStarts[field.name] = field.startNum || 1
+  })
+
+  // 复制行并应用动态字段规则
+  rowsToCopy.forEach((originalRow, copyIndex) => {
+    const newRow = [...originalRow]
+
+    // 应用数字递增规则
+    incrementFields.forEach((field) => {
+      const fieldIndex = state.convertedHeaders.indexOf(field.name)
+      if (fieldIndex !== -1) {
+        newRow[fieldIndex] = String(incrementStarts[field.name] + copyIndex)
+      }
+    })
+
+    // 应用字段拼接规则
+    concatFields.forEach((field) => {
+      const fieldIndex = state.convertedHeaders.indexOf(field.name)
+      if (fieldIndex !== -1 && field.value) {
+        const concatValues = field.value.split('+').map((part) => {
+          part = part.trim()
+          // 检查是否是字段引用（格式：{字段名}）
+          if (part.startsWith('{') && part.endsWith('}')) {
+            const refField = part.slice(1, -1)
+            const refIndex = state.convertedHeaders.indexOf(refField)
+            return refIndex !== -1 ? originalRow[refIndex] : ''
+          }
+          return part
+        })
+        newRow[fieldIndex] = concatValues.join('')
+      }
+    })
+
+    newRows.push(newRow)
+  })
+
+  // 更新数字递增字段的起始数字，以便下次复制时继续递增
+  incrementFields.forEach((field) => {
+    const fieldIndex = state.dynamicFields.findIndex((f) => f.name === field.name)
+    if (fieldIndex !== -1) {
+      state.dynamicFields[fieldIndex].startNum = (field.startNum || 1) + rowsToCopy.length
+    }
+  })
+
+  state.rows = newRows
+  state.selectedRows = new Array(newRows.length).fill(false)
+  message.success(`成功复制 ${rowsToCopy.length} 行数据`)
+  regenerateSql()
 }
 
 // 批量修改字段值
@@ -411,6 +535,49 @@ const copySqlToClipboard = () => {
       message.error('复制失败，请手动复制')
     })
 }
+
+// 处理字段映射变化
+const updateFieldMapping = (ddlFieldName, excelColumnIndex) => {
+  const mappingIndex = state.fieldMappings.findIndex(
+    (mapping) => mapping.ddlField.name === ddlFieldName,
+  )
+  if (mappingIndex !== -1) {
+    state.fieldMappings[mappingIndex].excelColumn = excelColumnIndex
+  }
+}
+
+// 获取Excel列选项
+const getExcelColumnOptions = () => {
+  // 确保headers不是空数组
+  if (!state.headers || state.headers.length === 0) {
+    return [
+      {
+        label: 'NULL',
+        value: -1,
+      },
+    ]
+  }
+
+  // 生成有效选项，过滤掉可能的undefined值
+  const validOptions = state.headers
+    .map((header, index) => {
+      // 确保每个选项都有正确的结构
+      return {
+        label: `${state.convertedHeaders[index] || `列${index + 1}`} (${header || `列${index + 1}`})`,
+        value: index,
+      }
+    })
+    .filter(
+      (option) => option && typeof option === 'object' && 'value' in option && 'label' in option,
+    )
+
+  return validOptions.concat([
+    {
+      label: 'NULL',
+      value: -1,
+    },
+  ])
+}
 </script>
 
 <template>
@@ -493,11 +660,38 @@ const copySqlToClipboard = () => {
           </div>
         </div>
         <div class="config-item" v-if="state.ddlFields.length > 0">
-          <label>解析出的字段：</label>
-          <div class="field-list">
-            <span v-for="(field, index) in state.ddlFields" :key="index" class="field-tag">
-              {{ field }}
-            </span>
+          <label>解析出的字段及映射（从DDL获取）：</label>
+          <div
+            class="ddl-fields-container"
+            style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px"
+          >
+            <div
+              v-for="(mapping, index) in state.fieldMappings"
+              :key="index"
+              class="field-mapping-item"
+              style="display: flex; align-items: center; gap: 10px"
+            >
+              <div style="min-width: 150px">
+                <strong>{{ mapping.ddlField.name }}</strong>
+                <span v-if="mapping.ddlField.comment" style="color: #999; margin-left: 5px"
+                  >({{ mapping.ddlField.comment }})</span
+                >
+              </div>
+              <span style="margin-right: 10px">映射到Excel列：</span>
+              <a-select
+                v-model:value="mapping.excelColumn"
+                style="width: 250px"
+                @change="updateFieldMapping(mapping.ddlField.name, $event)"
+              >
+                <a-select-option
+                  v-for="option in getExcelColumnOptions()"
+                  :key="option?.value"
+                  :value="option?.value"
+                >
+                  {{ option?.label }}
+                </a-select-option>
+              </a-select>
+            </div>
           </div>
         </div>
       </div>
@@ -549,6 +743,16 @@ const copySqlToClipboard = () => {
             :min="1"
             style="width: 100px; margin-right: 10px"
             @change="updateDynamicFieldStartNum(index, $event)"
+          />
+          <span v-if="field.type === 'concat'" style="margin-right: 10px"
+            >拼接规则 (使用+连接，字段引用格式: {字段名}):</span
+          >
+          <a-input
+            v-if="field.type === 'concat'"
+            v-model:value="field.value"
+            placeholder="例如: {name}_{id}"
+            style="width: 250px; margin-right: 10px"
+            @change="updateDynamicFieldValue(index, $event.target.value)"
           />
           <a-checkbox
             v-model:checked="field.addQuotes"
@@ -625,6 +829,58 @@ const copySqlToClipboard = () => {
             style="width: 150px; margin-right: 10px"
           />
           <a-button type="primary" @click="handleBatchUpdate"> 批量修改 </a-button>
+        </div>
+      </div>
+
+      <!-- 数据编辑区域 -->
+      <div class="data-edit-section" v-if="state.rows.length > 0">
+        <div class="section-header">
+          <h3>数据编辑</h3>
+          <div>
+            <a-button type="default" @click="copySelectedRows" style="margin-right: 10px">
+              <template #icon>
+                <copy-outlined />
+              </template>
+              复制选中行
+            </a-button>
+            <a-button type="default" @click="copyAllRows">
+              <template #icon>
+                <copy-outlined />
+              </template>
+              复制所有行
+            </a-button>
+          </div>
+        </div>
+        <div class="data-table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>选择</th>
+                <th>行号</th>
+                <th v-for="(header, index) in state.convertedHeaders" :key="index">
+                  {{ header }}
+                  <span class="original-header" v-if="state.headers[index]"
+                    >({{ state.headers[index] }})</span
+                  >
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(row, rowIndex) in state.rows" :key="rowIndex">
+                <td>
+                  <a-checkbox v-model:checked="state.selectedRows[rowIndex]"></a-checkbox>
+                </td>
+                <td class="row-number">{{ rowIndex + 1 }}</td>
+                <td v-for="(cell, colIndex) in row" :key="colIndex">
+                  <a-input
+                    v-model:value="state.rows[rowIndex][colIndex]"
+                    size="small"
+                    @change="handleCellChange(rowIndex, colIndex, $event.target.value)"
+                  />
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
