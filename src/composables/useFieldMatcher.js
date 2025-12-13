@@ -1,0 +1,388 @@
+import { ref, computed } from 'vue'
+import { pinyin } from 'pinyin-pro'
+
+/**
+ * 智能字段匹配器
+ * 实现DDL字段与Excel列的智能匹配
+ */
+export function useFieldMatcher() {
+  const fieldMappings = ref([])
+  const matchingAlgorithm = ref('similarity') // similarity, pinyin, manual
+
+  /**
+   * 执行字段匹配
+   * @param {Array} ddlFields - DDL字段列表
+   * @param {Array} excelHeaders - Excel表头列表
+   * @param {string} algorithm - 匹配算法
+   * @returns {Array} 匹配结果
+   */
+  const matchFields = (ddlFields, excelHeaders, algorithm = 'similarity') => {
+    if (!ddlFields || !excelHeaders) {
+      throw new Error('DDL字段和Excel表头都不能为空')
+    }
+
+    matchingAlgorithm.value = algorithm
+    
+    let mappings = []
+
+    switch (algorithm) {
+      case 'similarity':
+        mappings = matchBySimilarity(ddlFields, excelHeaders)
+        break
+      case 'pinyin':
+        mappings = matchByPinyin(ddlFields, excelHeaders)
+        break
+      case 'manual':
+        mappings = createManualMappings(ddlFields, excelHeaders)
+        break
+      default:
+        mappings = matchBySimilarity(ddlFields, excelHeaders)
+    }
+
+    fieldMappings.value = mappings
+    return mappings
+  }
+
+  /**
+   * 基于名称相似度匹配（Levenshtein距离）
+   */
+  const matchBySimilarity = (ddlFields, excelHeaders) => {
+    const mappings = []
+    const usedExcelIndices = new Set()
+
+    // 为每个DDL字段找到最匹配的Excel列
+    ddlFields.forEach((ddlField, ddlIndex) => {
+      let bestMatch = null
+      let bestScore = -1
+
+      excelHeaders.forEach((excelHeader, excelIndex) => {
+        if (usedExcelIndices.has(excelIndex)) return
+
+        const similarity = calculateSimilarity(ddlField.name, excelHeader)
+        
+        if (similarity > bestScore) {
+          bestScore = similarity
+          bestMatch = {
+            ddlField,
+            excelHeader,
+            excelIndex,
+            similarity: bestScore,
+            confidence: getConfidenceLevel(bestScore)
+          }
+        }
+      })
+
+      if (bestMatch && bestScore > 0.3) { // 相似度阈值
+        mappings.push(bestMatch)
+        usedExcelIndices.add(bestMatch.excelIndex)
+      } else {
+        // 没有找到匹配项
+        mappings.push({
+          ddlField,
+          excelHeader: null,
+          excelIndex: -1,
+          similarity: 0,
+          confidence: 'low',
+          status: 'unmatched'
+        })
+      }
+    })
+
+    return mappings
+  }
+
+  /**
+   * 基于拼音匹配
+   */
+  const matchByPinyin = (ddlFields, excelHeaders) => {
+    const mappings = []
+    const usedExcelIndices = new Set()
+
+    // 转换为拼音首字母
+    const ddlPinyinMap = ddlFields.map(field => ({
+      field,
+      pinyin: convertToPinyinFirstLetter(field.name)
+    }))
+
+    const excelPinyinMap = excelHeaders.map((header, index) => ({
+      header,
+      index,
+      pinyin: convertToPinyinFirstLetter(header)
+    }))
+
+    // 基于拼音首字母匹配
+    ddlPinyinMap.forEach(ddlItem => {
+      let bestMatch = null
+      let bestScore = -1
+
+      excelPinyinMap.forEach(excelItem => {
+        if (usedExcelIndices.has(excelItem.index)) return
+
+        const similarity = calculateSimilarity(ddlItem.pinyin, excelItem.pinyin)
+        
+        if (similarity > bestScore) {
+          bestScore = similarity
+          bestMatch = {
+            ddlField: ddlItem.field,
+            excelHeader: excelItem.header,
+            excelIndex: excelItem.index,
+            similarity: bestScore,
+            confidence: getConfidenceLevel(bestScore),
+            pinyinMatch: true
+          }
+        }
+      })
+
+      if (bestMatch && bestScore > 0.5) { // 拼音匹配阈值较高
+        mappings.push(bestMatch)
+        usedExcelIndices.add(bestMatch.excelIndex)
+      } else {
+        mappings.push({
+          ddlField: ddlItem.field,
+          excelHeader: null,
+          excelIndex: -1,
+          similarity: 0,
+          confidence: 'low',
+          status: 'unmatched'
+        })
+      }
+    })
+
+    return mappings
+  }
+
+  /**
+   * 创建手动匹配模板
+   */
+  const createManualMappings = (ddlFields, excelHeaders) => {
+    return ddlFields.map(ddlField => ({
+      ddlField,
+      excelHeader: null,
+      excelIndex: -1,
+      similarity: 0,
+      confidence: 'manual',
+      status: 'pending'
+    }))
+  }
+
+  /**
+   * 计算字符串相似度（Levenshtein距离）
+   */
+  const calculateSimilarity = (str1, str2) => {
+    if (!str1 || !str2) return 0
+
+    const s1 = str1.toLowerCase().replace(/[^\w\u4e00-\u9fa5]/g, '')
+    const s2 = str2.toLowerCase().replace(/[^\w\u4e00-\u9fa5]/g, '')
+
+    if (s1 === s2) return 1.0
+
+    const len1 = s1.length
+    const len2 = s2.length
+    const maxLen = Math.max(len1, len2)
+
+    if (maxLen === 0) return 0
+
+    // 计算编辑距离
+    const distance = levenshteinDistance(s1, s2)
+    
+    // 转换为相似度（0-1）
+    return 1 - distance / maxLen
+  }
+
+  /**
+   * Levenshtein距离算法
+   */
+  const levenshteinDistance = (s1, s2) => {
+    const matrix = []
+
+    // 初始化矩阵
+    for (let i = 0; i <= s2.length; i++) {
+      matrix[i] = [i]
+    }
+
+    for (let j = 0; j <= s1.length; j++) {
+      matrix[0][j] = j
+    }
+
+    // 填充矩阵
+    for (let i = 1; i <= s2.length; i++) {
+      for (let j = 1; j <= s1.length; j++) {
+        if (s2.charAt(i - 1) === s1.charAt(j - 1)) {
+          matrix[i][j] = matrix[i - 1][j - 1]
+        } else {
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j - 1] + 1, // 替换
+            matrix[i][j - 1] + 1,     // 插入
+            matrix[i - 1][j] + 1      // 删除
+          )
+        }
+      }
+    }
+
+    return matrix[s2.length][s1.length]
+  }
+
+  /**
+   * 转换为拼音首字母
+   */
+  const convertToPinyinFirstLetter = (text) => {
+    if (!text) return ''
+    
+    const trimmedText = String(text).trim()
+    if (!trimmedText) return ''
+
+    try {
+      const firstLetters = pinyin(trimmedText, { 
+        pattern: 'first', 
+        toneType: 'none' 
+      })
+      
+      return firstLetters.replace(/\s+/g, '').toUpperCase()
+    } catch (error) {
+      console.warn('拼音转换失败:', error)
+      return ''
+    }
+  }
+
+  /**
+   * 获取置信度等级
+   */
+  const getConfidenceLevel = (similarity) => {
+    if (similarity >= 0.9) return 'very-high'
+    if (similarity >= 0.7) return 'high'
+    if (similarity >= 0.5) return 'medium'
+    if (similarity >= 0.3) return 'low'
+    return 'very-low'
+  }
+
+  /**
+   * 手动更新字段映射
+   */
+  const updateFieldMapping = (ddlFieldName, excelHeader, excelIndex) => {
+    const mappingIndex = fieldMappings.value.findIndex(
+      mapping => mapping.ddlField.name === ddlFieldName
+    )
+
+    if (mappingIndex !== -1) {
+      fieldMappings.value[mappingIndex] = {
+        ...fieldMappings.value[mappingIndex],
+        excelHeader,
+        excelIndex,
+        similarity: excelHeader ? calculateSimilarity(ddlFieldName, excelHeader) : 0,
+        confidence: excelHeader ? getConfidenceLevel(calculateSimilarity(ddlFieldName, excelHeader)) : 'manual',
+        status: excelHeader ? 'matched' : 'unmatched'
+      }
+    }
+  }
+
+  /**
+   * 获取匹配统计信息
+   */
+  const getMatchingStats = computed(() => {
+    const total = fieldMappings.value.length
+    const matched = fieldMappings.value.filter(m => m.excelHeader).length
+    const unmatched = total - matched
+    
+    const confidenceStats = {
+      'very-high': 0,
+      'high': 0,
+      'medium': 0,
+      'low': 0,
+      'very-low': 0,
+      'manual': 0
+    }
+
+    fieldMappings.value.forEach(mapping => {
+      confidenceStats[mapping.confidence]++
+    })
+
+    return {
+      total,
+      matched,
+      unmatched,
+      matchRate: total > 0 ? (matched / total) * 100 : 0,
+      confidenceStats
+    }
+  })
+
+  /**
+   * 验证映射完整性
+   */
+  const validateMappings = () => {
+    const errors = []
+    const usedExcelIndices = new Set()
+
+    fieldMappings.value.forEach((mapping, index) => {
+      if (mapping.excelHeader) {
+        if (usedExcelIndices.has(mapping.excelIndex)) {
+          errors.push(`Excel列"${mapping.excelHeader}"被重复映射`)
+        }
+        usedExcelIndices.add(mapping.excelIndex)
+      }
+
+      if (!mapping.excelHeader && mapping.ddlField.nullable === false) {
+        errors.push(`必填字段"${mapping.ddlField.name}"未映射到Excel列`)
+      }
+    })
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    }
+  }
+
+  /**
+   * 导出映射配置
+   */
+  const exportMappings = () => {
+    return fieldMappings.value.map(mapping => ({
+      ddlField: mapping.ddlField.name,
+      excelHeader: mapping.excelHeader,
+      excelIndex: mapping.excelIndex,
+      similarity: mapping.similarity,
+      confidence: mapping.confidence,
+      dataType: mapping.ddlField.type
+    }))
+  }
+
+  /**
+   * 导入映射配置
+   */
+  const importMappings = (mappingsConfig, ddlFields, excelHeaders) => {
+    const newMappings = mappingsConfig.map(config => {
+      const ddlField = ddlFields.find(f => f.name === config.ddlField)
+      const excelHeader = excelHeaders[config.excelIndex]
+      
+      return {
+        ddlField: ddlField || { name: config.ddlField, type: 'UNKNOWN' },
+        excelHeader: config.excelIndex >= 0 ? excelHeader : null,
+        excelIndex: config.excelIndex,
+        similarity: config.similarity || 0,
+        confidence: config.confidence || 'manual',
+        status: config.excelIndex >= 0 ? 'matched' : 'unmatched'
+      }
+    })
+
+    fieldMappings.value = newMappings
+  }
+
+  /**
+   * 重置映射
+   */
+  const resetMappings = () => {
+    fieldMappings.value = []
+  }
+
+  return {
+    fieldMappings: computed(() => fieldMappings.value),
+    matchingAlgorithm: computed(() => matchingAlgorithm.value),
+    matchingStats: getMatchingStats,
+    
+    matchFields,
+    updateFieldMapping,
+    validateMappings,
+    exportMappings,
+    importMappings,
+    resetMappings
+  }
+}

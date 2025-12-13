@@ -1,6 +1,26 @@
-// 由于node-sql-parser是CommonJS模块，需要使用默认导入方式
-import ParserModule from 'node-sql-parser'
-const { Parser } = ParserModule
+// 由于node-sql-parser是CommonJS模块，需要使用动态导入方式
+let Parser;
+
+// 初始化Parser的异步函数
+const initParser = async () => {
+  if (!Parser) {
+    try {
+      const parserModule = await import('node-sql-parser');
+      Parser = parserModule.Parser || parserModule.default?.Parser || parserModule.default;
+    } catch (error) {
+      console.error('Failed to import node-sql-parser:', error);
+      // 如果动态导入失败，尝试其他方式
+      try {
+        const parserModule = await import('node-sql-parser/build/mysql');
+        Parser = parserModule.Parser || parserModule.default?.Parser || parserModule.default;
+      } catch (fallbackError) {
+        console.error('Fallback import also failed:', fallbackError);
+      }
+    }
+  }
+};
+
+// 新增注释：该文件用于生成SQL语句，包括INSERT和UPDATE操作
 
 export function useSqlGenerator() {
   const escapeSqlString = (value) => {
@@ -12,11 +32,38 @@ export function useSqlGenerator() {
   }
 
   // 解析DDL语句获取字段名
-  const parseDdlForFields = (ddlStatement) => {
+  const parseDdlForFields = async (ddlStatement) => {
     // 检查输入有效性
     if (!ddlStatement) return []
 
     try {
+      // 初始化Parser
+      await initParser();
+
+      // 如果Parser初始化成功，使用node-sql-parser解析
+      if (Parser) {
+        try {
+          const parser = new Parser();
+          const ast = parser.parse(ddlStatement, { database: 'MySQL' });
+
+          // 从AST中提取字段名
+          const fields = [];
+
+          if (ast && ast.ast && ast.ast[0] && ast.ast[0].create_definitions) {
+            ast.ast[0].create_definitions.forEach(definition => {
+              if (definition.column && definition.column.column) {
+                fields.push(definition.column.column);
+              }
+            });
+          }
+
+          return fields;
+        } catch (parseError) {
+          console.warn('使用node-sql-parser解析失败，回退到正则表达式方法:', parseError);
+        }
+      }
+
+      // 如果Parser未初始化或解析失败，使用原来的正则表达式方法
       // 正则表达式方法解析达梦数据库DDL
       // 1. 首先提取CREATE TABLE语句中的字段定义部分
       // 使用更可靠的方法处理嵌套括号
@@ -75,345 +122,156 @@ export function useSqlGenerator() {
     }
   }
 
-  const generateInsertSql = (
-    tableName,
-    headers,
-    rows,
-    primaryKeyField = '',
-    dynamicFields = [],
-    filteredFields = [],
+  const generateInsertSql = async (
+    ddl,
+    data,
+    tableName
   ) => {
-    if (!tableName || !headers || !rows || rows.length === 0) {
+    if (!ddl || !data || !tableName) return ''
+
+    try {
+      // 解析表名，处理可能存在的模式名
+      const parsedTableName = tableName.includes('.') ? tableName.split('.').pop() : tableName
+
+      // 从DDL解析字段
+      const fields = await parseDdlForFields(ddl);
+
+      // 构建字段列表字符串
+      const fieldList = fields.map(field => `"${field}"`).join(', ')
+
+      // 为每行数据生成值列表
+      const valueRows = data.map(row => {
+        // 对每个字段值进行处理
+        const values = fields.map(field => {
+          const value = row[field]
+
+          // 处理NULL值
+          if (value === null || value === undefined) {
+            return 'NULL'
+          }
+
+          // 处理数值类型（整数和浮点数）
+          if (typeof value === 'number') {
+            return value.toString()
+          }
+
+          // 处理布尔类型
+          if (typeof value === 'boolean') {
+            return value ? '1' : '0'
+          }
+
+          // 处理字符串类型 - 进行SQL转义
+          return `'${escapeSqlString(value)}'`
+        })
+
+        return `(${values.join(', ')})`
+      })
+
+      // 组合最终的INSERT语句
+      return `INSERT INTO ${parsedTableName} (${fieldList}) VALUES ${valueRows.join(', ')};`
+    } catch (error) {
+      console.error('INSERT SQL生成错误:', error)
       return ''
     }
-
-    // 合并原始表头和动态字段
-    const allHeaders = [...headers]
-    const validDynamicFields = dynamicFields.filter((field) => field.name.trim() !== '')
-
-    validDynamicFields.forEach((field) => {
-      if (!allHeaders.includes(field.name)) {
-        allHeaders.push(field.name)
-      }
-    })
-
-    // 过滤掉不需要的字段
-    const filteredHeaders = allHeaders.filter((header) => !filteredFields.includes(header))
-    const validDynamicFieldsFiltered = validDynamicFields.filter(
-      (field) => !filteredFields.includes(field.name),
-    )
-
-    // 构建字段列表部分
-    const fields = filteredHeaders.map((header) => `${header}`).join(', ')
-
-    // 查找主键字段的索引（在过滤后的表头中）
-    const primaryKeyIndex = primaryKeyField ? filteredHeaders.indexOf(primaryKeyField) : -1
-
-    // 构建值列表部分
-    let allValues = []
-
-    // 为数字递增字段准备计数器
-    const incrementCounters = {}
-    validDynamicFields.forEach((field) => {
-      if (field.type === 'increment') {
-        incrementCounters[field.name] = field.startNum || 1
-      }
-    })
-
-    rows.forEach((row) => {
-      // 确保row是一个数组且长度与原始headers匹配
-      if (!Array.isArray(row) || row.length !== headers.length) {
-        console.error('Row does not match headers:', row)
-        return
-      }
-
-      // 处理一行数据，合并原始行数据和动态字段值，并应用过滤
-      const processRow = (originalRow) => {
-        // 首先创建包含所有字段的完整行
-        const fullRow = [...originalRow]
-
-        // 添加动态字段的值
-        validDynamicFields.forEach((field) => {
-          let fieldValue
-          let isFunction = false
-          let addQuotes = field.addQuotes !== false // 默认添加单引号
-
-          // 根据字段类型处理值
-          if (field.type === 'increment') {
-            // 数字递增类型
-            fieldValue = incrementCounters[field.name]
-            incrementCounters[field.name]++
-            // 允许用户选择是否添加单引号，使用field.addQuotes配置（默认为true）
-            addQuotes = field.addQuotes !== false
-          } else if (field.function) {
-            // 数据库函数
-            fieldValue = field.function
-            isFunction = true
-            addQuotes = false // 函数不添加单引号
-          } else {
-            // 普通值
-            fieldValue = field.value !== undefined ? field.value : ''
-          }
-
-          // 将值添加到行数据中，并标记相关属性
-          fullRow.push({
-            value: fieldValue,
-            isFunction: isFunction,
-            addQuotes: addQuotes,
-          })
-        })
-
-        // 然后根据过滤后的表头提取需要的字段值
-        const filteredRow = filteredHeaders.map((header) => {
-          const index = allHeaders.indexOf(header)
-          if (index >= 0) {
-            const value = fullRow[index]
-            // 如果是普通值（不是动态字段），转换为标准格式
-            if (
-              typeof value === 'string' ||
-              typeof value === 'number' ||
-              value === null ||
-              value === undefined
-            ) {
-              return {
-                value: value,
-                isFunction: false,
-                addQuotes: true, // 默认添加单引号
-              }
-            }
-            return value
-          }
-          return {
-            value: '',
-            isFunction: false,
-            addQuotes: true,
-          }
-        })
-
-        return filteredRow
-      }
-
-      // 正常生成一行记录
-      const processedRow = processRow(row)
-      const rowValues = processedRow
-        .map((cell) => {
-          if (cell.isFunction) {
-            // 数据库函数不需要引号包裹
-            return cell.value
-          } else {
-            // 根据addQuotes属性决定是否添加单引号
-            if (cell.addQuotes) {
-              return `'${escapeSqlString(cell.value)}'`
-            } else {
-              // 数字或其他不需要引号的值
-              return cell.value === null || cell.value === undefined || cell.value === ''
-                ? 'NULL'
-                : String(cell.value)
-            }
-          }
-        })
-        .join(', ')
-      allValues.push(`(${rowValues})`)
-    })
-
-    if (allValues.length === 0) {
-      return ''
-    }
-
-    // 构建完整的INSERT语句
-    const values = allValues.join(',\n')
-    const sql = `INSERT INTO ${tableName} (${fields}) VALUES
-${values};`
-
-    return sql
   }
 
-  const generateUpdateSql = (
+  const generateUpdateSql = async (
+    ddl,
+    data,
     tableName,
-    headers,
-    rows,
-    primaryKeyFields = [],
-    dynamicFields = [],
-    filteredFields = [],
-    updateFields = [],
+    primaryKeyFields = []
   ) => {
-    if (!tableName || !headers || !rows || rows.length === 0) {
+    if (!ddl || !data || !tableName || primaryKeyFields.length === 0) {
       return ''
     }
 
-    // 合并原始表头和动态字段
-    const allHeaders = [...headers]
-    const validDynamicFields = dynamicFields.filter((field) => field.name.trim() !== '')
+    try {
+      // 从DDL解析字段
+      const fields = await parseDdlForFields(ddl);
 
-    validDynamicFields.forEach((field) => {
-      if (!allHeaders.includes(field.name)) {
-        allHeaders.push(field.name)
-      }
-    })
+      // 存储所有生成的UPDATE语句
+      let updateStatements = []
 
-    // 过滤掉不需要的字段
-    const filteredHeaders = allHeaders.filter((header) => !filteredFields.includes(header))
-    const validDynamicFieldsFiltered = validDynamicFields.filter(
-      (field) => !filteredFields.includes(field.name),
-    )
-
-    // 为数字递增字段准备计数器
-    const incrementCounters = {}
-    validDynamicFields.forEach((field) => {
-      if (field.type === 'increment') {
-        incrementCounters[field.name] = field.startNum || 1
-      }
-    })
-
-    // 存储所有生成的UPDATE语句
-    let updateStatements = []
-
-    rows.forEach((row) => {
-      // 确保row是一个数组且长度与原始headers匹配
-      if (!Array.isArray(row) || row.length !== headers.length) {
-        console.error('Row does not match headers:', row)
-        return
-      }
-
-      // 处理一行数据，合并原始行数据和动态字段值，并应用过滤
-      const processRow = (originalRow) => {
-        // 首先创建包含所有字段的完整行
-        const fullRow = [...originalRow]
-
-        // 添加动态字段的值
-        validDynamicFields.forEach((field) => {
-          let fieldValue
-          let isFunction = false
-          let addQuotes = field.addQuotes !== false // 默认添加单引号
-
-          // 根据字段类型处理值
-          if (field.type === 'increment') {
-            // 数字递增类型
-            fieldValue = incrementCounters[field.name]
-            incrementCounters[field.name]++
-            addQuotes = field.addQuotes !== false
-          } else if (field.function) {
-            // 数据库函数
-            fieldValue = field.function
-            isFunction = true
-            addQuotes = false // 函数不添加单引号
-          } else {
-            // 普通值
-            fieldValue = field.value !== undefined ? field.value : ''
-          }
-
-          // 将值添加到行数据中，并标记相关属性
-          fullRow.push({
-            value: fieldValue,
-            isFunction: isFunction,
-            addQuotes: addQuotes,
-          })
+      data.forEach((row) => {
+        // 验证主键字段在当前行中是否存在且非空
+        const validPrimaryKeys = primaryKeyFields.filter((field) => {
+          return row[field] !== null && row[field] !== undefined && row[field] !== ''
         })
 
-        // 然后根据过滤后的表头提取需要的字段值
-        const filteredRow = {}
-        filteredHeaders.forEach((header) => {
-          const index = allHeaders.indexOf(header)
-          if (index >= 0) {
-            const value = fullRow[index]
-            // 如果是普通值（不是动态字段），转换为标准格式
-            if (
-              typeof value === 'string' ||
-              typeof value === 'number' ||
-              value === null ||
-              value === undefined
-            ) {
-              filteredRow[header] = {
-                value: value,
-                isFunction: false,
-                addQuotes: true, // 默认添加单引号
-              }
+        if (validPrimaryKeys.length === 0) {
+          // 没有有效的主键字段，跳过此行
+          return
+        }
+
+        // 构建SET子句
+        let setClauses = []
+        let whereClauses = []
+
+        // 为每个字段构建SET或WHERE子句
+        fields.forEach((field) => {
+          // 跳过主键字段，因为它们应该在WHERE子句中
+          if (primaryKeyFields.includes(field)) {
+            // 主键字段用于WHERE条件
+            const value = row[field]
+
+            // 处理不同类型的值
+            let formattedValue
+            if (value === null || value === undefined) {
+              formattedValue = 'NULL'
+            } else if (typeof value === 'number') {
+              formattedValue = value.toString()
+            } else if (typeof value === 'boolean') {
+              formattedValue = value ? '1' : '0'
             } else {
-              filteredRow[header] = value
+              // 字符串类型需要转义
+              formattedValue = `'${escapeSqlString(value)}'`
             }
+
+            whereClauses.push(`${field} = ${formattedValue}`)
           } else {
-            filteredRow[header] = {
-              value: '',
-              isFunction: false,
-              addQuotes: true,
+            // 非主键字段用于SET子句
+            const value = row[field]
+
+            // 处理不同类型的值
+            let formattedValue
+            if (value === null || value === undefined) {
+              formattedValue = 'NULL'
+            } else if (typeof value === 'number') {
+              formattedValue = value.toString()
+            } else if (typeof value === 'boolean') {
+              formattedValue = value ? '1' : '0'
+            } else {
+              // 字符串类型需要转义
+              formattedValue = `'${escapeSqlString(value)}'`
             }
+
+            setClauses.push(`${field} = ${formattedValue}`)
           }
         })
 
-        return filteredRow
-      }
+        // 如果没有要更新的字段，跳过此行
+        if (setClauses.length === 0) {
+          return
+        }
 
-      // 处理当前行
-      const processedRow = processRow(row)
+        // 构建UPDATE语句
+        const setClause = setClauses.join(', ')
+        const whereClause = whereClauses.join(' AND ')
 
-      const validPrimaryKeys = primaryKeyFields.filter((field) => {
-        return (
-          processedRow[field] &&
-          processedRow[field].value !== null &&
-          processedRow[field].value !== undefined &&
-          processedRow[field].value !== ''
-        )
+        const updateStatement = `UPDATE ${tableName} SET ${setClause} WHERE ${whereClause};`
+        updateStatements.push(updateStatement)
       })
 
-      if (validPrimaryKeys.length === 0) {
-        // 没有有效的主键字段，跳过此行
-        return
+      if (updateStatements.length === 0) {
+        return ''
       }
 
-      // 构建SET子句
-      let setClauses = []
-      let whereClauses = []
-
-      // 添加设置字段和条件字段
-      Object.keys(processedRow).forEach((field) => {
-        const cell = processedRow[field]
-        let formattedValue
-
-        if (cell.isFunction) {
-          // 数据库函数不需要引号包裹
-          formattedValue = cell.value
-        } else {
-          // 根据addQuotes属性决定是否添加单引号
-          if (cell.addQuotes) {
-            formattedValue = `'${escapeSqlString(cell.value)}'`
-          } else {
-            // 数字或其他不需要引号的值
-            formattedValue =
-              cell.value === null || cell.value === undefined || cell.value === ''
-                ? 'NULL'
-                : String(cell.value)
-          }
-        }
-
-        // 判断是否为主键字段，作为WHERE条件
-        if (primaryKeyFields.includes(field)) {
-          whereClauses.push(`${field} = ${formattedValue}`)
-        }
-        // 如果指定了要更新的字段列表，则只更新列表中的字段
-        else if (updateFields.length === 0 || updateFields.includes(field)) {
-          setClauses.push(`${field} = ${formattedValue}`)
-        }
-      })
-
-      // 如果没有要更新的字段，跳过此行
-      if (setClauses.length === 0) {
-        return
-      }
-
-      // 构建UPDATE语句
-      const setClause = setClauses.join(', ')
-      const whereClause = whereClauses.join(' AND ')
-
-      const updateStatement = `UPDATE ${tableName} SET ${setClause} WHERE ${whereClause};`
-      updateStatements.push(updateStatement)
-    })
-
-    if (updateStatements.length === 0) {
+      // 合并所有UPDATE语句
+      return updateStatements.join('\n\n')
+    } catch (error) {
+      console.error('UPDATE SQL生成错误:', error)
       return ''
     }
-
-    // 合并所有UPDATE语句
-    return updateStatements.join('\n\n')
   }
 
   return { generateInsertSql, generateUpdateSql, parseDdlForFields }
