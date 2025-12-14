@@ -16,6 +16,11 @@ const routes = [
     name: 'update',
     component: () => import('../views/UpdatePage.vue'),
   },
+  {
+    path: '/ddl',
+    name: 'ddl',
+    component: () => import('../views/DdlPage.vue'),
+  },
 ]
 
 const router = createRouter({

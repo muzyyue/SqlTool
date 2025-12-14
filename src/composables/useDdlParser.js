@@ -1,11 +1,34 @@
 import { ref } from 'vue'
+import { StrategyManager } from './useDatabaseStrategy.js'
+import { MySqlStrategy } from './strategies/MySqlStrategy.js'
+import { PostgreSqlStrategy } from './strategies/PostgreSqlStrategy.js'
+import { OracleStrategy } from './strategies/OracleStrategy.js'
+import { SqlServerStrategy } from './strategies/SqlServerStrategy.js'
+import { DmDatabaseStrategy } from './strategies/DmDatabaseStrategy.js'
 
 /**
  * 增强版DDL解析器
  * 支持多种数据库语法，提供更准确的字段信息提取
+ * 集成多数据库策略框架
  */
 export function useDdlParser() {
   const parserCache = ref(new Map())
+  const strategyManager = new StrategyManager()
+
+  // 手动注册所有数据库策略
+  const mysqlStrategy = new MySqlStrategy()
+  const postgresqlStrategy = new PostgreSqlStrategy()
+  const oracleStrategy = new OracleStrategy()
+  const sqlserverStrategy = new SqlServerStrategy()
+  const dmStrategy = new DmDatabaseStrategy()
+
+  strategyManager.registerStrategy('mysql', mysqlStrategy)
+  strategyManager.registerStrategy('postgresql', postgresqlStrategy)
+  strategyManager.registerStrategy('oracle', oracleStrategy)
+  strategyManager.registerStrategy('sqlserver', sqlserverStrategy)
+  strategyManager.registerStrategy('dm', dmStrategy)
+
+  console.log('DDL解析器已初始化，已注册策略:', strategyManager.getRegisteredStrategies())
 
   /**
    * 解析DDL语句，提取表结构信息
@@ -30,7 +53,7 @@ export function useDdlParser() {
       const cachedResult = parserCache.value.get(cacheKey)
       console.log('使用缓存结果')
       console.log('缓存中的字段数量:', cachedResult.fields?.length || 0)
-      console.log('缓存中的字段列表:', cachedResult.fields?.map(f => f.name) || [])
+      console.log('缓存中的字段列表:', cachedResult.fields?.map((f) => f.name) || [])
       return cachedResult
     }
 
@@ -39,7 +62,7 @@ export function useDdlParser() {
 
       console.log('最终解析结果:', result)
       console.log('解析出的字段数量:', result.fields?.length || 0)
-      console.log('字段名称列表:', result.fields?.map(f => f.name) || [])
+      console.log('字段名称列表:', result.fields?.map((f) => f.name) || [])
 
       // 缓存结果
       parserCache.value.set(cacheKey, result)
@@ -63,7 +86,7 @@ export function useDdlParser() {
     // 1. 标准化换行符和空格
     processed = processed
       .replace(/\r\n|\r|\n/g, ' ') // 替换所有换行符为空格
-      .replace(/\s+/g, ' ')        // 合并多个连续空格
+      .replace(/\s+/g, ' ') // 合并多个连续空格
       .trim()
 
     // 2. 处理达梦数据库特有的语法
@@ -76,11 +99,11 @@ export function useDdlParser() {
     // 3. 处理注释（改进版）
     // 先处理多行注释，再处理单行注释
     processed = processed
-      .replace(/\/\*[^*]*\*+(?:[^/*][^*]*\*+)*\//g, '')  // 移除多行注释
-      .replace(/--[^\n]*/g, '')  // 移除单行注释
+      .replace(/\/\*[^*]*\*+(?:[^/*][^*]*\*+)*\//g, '') // 移除多行注释
+      .replace(/--[^\n]*/g, '') // 移除单行注释
 
     // 4. 处理特殊字符和引号
-    processed = processed.replace(/[`\[\]]/g, '"')  // 统一引号格式
+    processed = processed.replace(/[`\[\]]/g, '"') // 统一引号格式
 
     // 5. 移除可能导致node-sql-parser解析失败的字符
     // 移除行首的空白字符，避免"Expected \"#\", \"--\", \".\", \"/*\", or [ \\t\\n\\r] but \"i\" found"错误
@@ -97,7 +120,12 @@ export function useDdlParser() {
       }
     }
 
-    // 7. 移除语句末尾的分号和其他可能干扰解析的字符
+    // 7. 保留PostgreSQL特定语法（IDENTITY、COLLATE等）
+    // 不移除这些语法，而是简化它们以提高解析成功率
+    processed = processed.replace(/GENERATED\s+ALWAYS\s+AS\s+IDENTITY/gi, 'IDENTITY')
+    processed = processed.replace(/COLLATE\s+"[^"]+"/gi, 'COLLATE')
+
+    // 8. 移除语句末尾的分号和其他可能干扰解析的字符
     processed = processed.replace(/;\s*$/, '') // 移除末尾分号
     processed = processed.replace(/[^\x20-\x7E\n\r]/g, '') // 移除非ASCII字符
 
@@ -108,30 +136,218 @@ export function useDdlParser() {
 
   /**
    * 使用多种策略解析DDL语句
+   * 优先使用新的多数据库策略框架，回退到原有策略
    */
   const parseDdlWithMultipleStrategies = async (ddlStatement) => {
     // 预处理DDL语句，提高解析成功率
     const preprocessedDdl = preprocessDdlStatement(ddlStatement)
 
+    // 策略优先级：新策略框架 > 原有策略
     const strategies = [
+      // 1. 首先尝试使用新的多数据库策略框架
+      async (ddl) => {
+        try {
+          console.log('=== 尝试使用多数据库策略框架 ===')
+          const databaseType = strategyManager.detectDatabaseType(ddl)
+          console.log('检测到的数据库类型:', databaseType)
+
+          if (databaseType !== 'unknown') {
+            const strategy = strategyManager.getStrategy(databaseType)
+            if (strategy) {
+              console.log(`使用数据库策略: ${databaseType}`)
+              const result = await strategy.parseDdl(ddl)
+              if (result && result.tableName && result.fields.length > 0) {
+                result.databaseType = databaseType
+                return result
+              }
+            }
+          }
+          throw new Error(`未找到合适的数据库策略或策略解析失败`)
+        } catch (error) {
+          console.warn('多数据库策略框架解析失败:', error.message)
+          throw error
+        }
+      },
+      // 2. 回退到原有策略
       parseWithNodeSqlParser,
-      parseWithDmDatabaseRegex,  // 新增达梦数据库专用解析策略
-      parseWithRegexAdvanced
+      parseWithRegexAdvanced, // 通用正则解析策略
+      parseWithDmDatabaseRegex, // 达梦数据库专用解析策略
     ]
 
     for (const strategy of strategies) {
       try {
         const result = await strategy(preprocessedDdl)
         if (result && result.tableName && result.fields.length > 0) {
-          console.log(`使用策略 ${strategy.name} 解析成功`)
+          console.log(`使用策略 ${strategy.name || '多数据库策略框架'} 解析成功`)
           return result
         }
       } catch (error) {
-        console.warn(`策略 ${strategy.name} 失败:`, error.message)
+        console.warn(`策略 ${strategy.name || '多数据库策略框架'} 失败:`, error.message)
       }
     }
 
     throw new Error('所有解析策略均失败，请检查DDL语句格式')
+  }
+
+  /**
+   * 提取单个字段的完整信息
+   * @param {string} ddlStatement - DDL语句
+   * @param {string} fieldName - 要提取的字段名（可选，如果不提供则选择第一个字段）
+   * @returns {Object} 字段的完整信息
+   */
+  const extractSingleFieldInfo = async (ddlStatement, fieldName = null) => {
+    console.log('=== 开始提取单个字段信息 ===')
+    console.log('目标字段名:', fieldName || '第一个字段')
+
+    try {
+      // 使用PostgreSQL策略解析DDL
+      const parsedResult = await postgresqlStrategy.parseDdl(ddlStatement)
+
+      if (!parsedResult.fields || parsedResult.fields.length === 0) {
+        throw new Error('未找到任何字段定义')
+      }
+
+      // 选择目标字段
+      let targetField = null
+      if (fieldName) {
+        targetField = parsedResult.fields.find(
+          (field) => field.name.toLowerCase() === fieldName.toLowerCase(),
+        )
+        if (!targetField) {
+          throw new Error(`未找到名为"${fieldName}"的字段`)
+        }
+      } else {
+        targetField = parsedResult.fields[0]
+      }
+
+      // 获取字段的完整定义（从原始DDL中提取）
+      const fullFieldDefinition = extractFullFieldDefinition(ddlStatement, targetField.name)
+
+      // 构建完整的字段信息
+      const fieldInfo = {
+        // 基本信息
+        fieldName: targetField.name,
+        dataType: targetField.type,
+        nullable: targetField.nullable,
+        defaultValue: targetField.defaultValue,
+        isIdentity: targetField.isIdentity,
+        comment: targetField.comment,
+
+        // 完整定义
+        fullDefinition: fullFieldDefinition,
+
+        // 约束信息
+        constraints: extractFieldConstraints(parsedResult.constraints, targetField.name),
+
+        // 索引信息
+        indexes: extractFieldIndexes(parsedResult.indexes, targetField.name),
+
+        // 表信息
+        tableName: parsedResult.tableName,
+        databaseType: parsedResult.databaseType,
+
+        // 字段位置信息
+        fieldPosition: parsedResult.fields.findIndex((f) => f.name === targetField.name) + 1,
+        totalFields: parsedResult.fields.length,
+      }
+
+      console.log('字段信息提取成功:', fieldInfo)
+      return fieldInfo
+    } catch (error) {
+      console.error('字段信息提取失败:', error)
+      throw new Error(`字段信息提取失败: ${error.message}`)
+    }
+  }
+
+  /**
+   * 从原始DDL中提取字段的完整定义
+   */
+  const extractFullFieldDefinition = (ddlStatement, fieldName) => {
+    const fieldSectionMatch = ddlStatement.match(/CREATE\s+TABLE[^(]*\(([\s\S]*?)\)/i)
+    if (!fieldSectionMatch) return ''
+
+    const fieldSection = fieldSectionMatch[1]
+    const fieldDefinitions = splitFieldDefinitions(fieldSection)
+
+    for (const fieldDef of fieldDefinitions) {
+      if (fieldDef.toLowerCase().includes(fieldName.toLowerCase())) {
+        return fieldDef.trim()
+      }
+    }
+
+    return ''
+  }
+
+  /**
+   * 提取字段相关的约束信息
+   */
+  const extractFieldConstraints = (constraints, fieldName) => {
+    const fieldConstraints = []
+
+    for (const constraint of constraints) {
+      if (constraint.columns && constraint.columns.includes(fieldName)) {
+        fieldConstraints.push({
+          type: constraint.type,
+          name: constraint.name || '',
+          columns: constraint.columns,
+        })
+      }
+    }
+
+    return fieldConstraints
+  }
+
+  /**
+   * 提取字段相关的索引信息
+   */
+  const extractFieldIndexes = (indexes, fieldName) => {
+    const fieldIndexes = []
+
+    for (const index of indexes) {
+      if (index.columns && index.columns.includes(fieldName)) {
+        fieldIndexes.push({
+          name: index.name,
+          columns: index.columns,
+          unique: index.unique,
+        })
+      }
+    }
+
+    return fieldIndexes
+  }
+
+  /**
+   * 分割字段定义（复制自PostgreSqlStrategy）
+   */
+  const splitFieldDefinitions = (fieldSection) => {
+    const definitions = []
+    let currentDef = ''
+    let parenDepth = 0
+
+    for (let i = 0; i < fieldSection.length; i++) {
+      const char = fieldSection[i]
+
+      if (char === '(') {
+        parenDepth++
+      } else if (char === ')') {
+        parenDepth--
+      }
+
+      if (char === ',' && parenDepth === 0) {
+        if (currentDef.trim()) {
+          definitions.push(currentDef.trim())
+        }
+        currentDef = ''
+      } else {
+        currentDef += char
+      }
+    }
+
+    if (currentDef.trim()) {
+      definitions.push(currentDef.trim())
+    }
+
+    return definitions
   }
 
   /**
@@ -144,7 +360,7 @@ export function useDdlParser() {
     const result = {
       tableName: '',
       fields: [],
-      databaseType: '达梦数据库'
+      databaseType: detectDatabaseType(ddlStatement), // 根据实际内容检测数据库类型
     }
 
     try {
@@ -190,7 +406,9 @@ export function useDdlParser() {
       console.log('提取的字段定义部分:', fieldsSection)
 
       // 2. 提取表名
-      const tableNameMatch = ddlStatement.match(/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([\w\.\"\`\[\]]+)/i)
+      const tableNameMatch = ddlStatement.match(
+        /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([\w\.\"\`\[\]]+)/i,
+      )
       if (tableNameMatch && tableNameMatch[1]) {
         result.tableName = tableNameMatch[1].replace(/["`\[\]]/g, '')
         console.log('提取的表名:', result.tableName)
@@ -226,14 +444,14 @@ export function useDdlParser() {
             type: type,
             nullable: nullable,
             defaultValue: defaultValue,
-            comment: comment
+            comment: comment,
           })
         }
       }
 
       // 去重并返回字段对象数组
       const uniqueFields = new Map()
-      fields.forEach(field => {
+      fields.forEach((field) => {
         uniqueFields.set(field.name, field)
       })
 
@@ -299,7 +517,7 @@ export function useDdlParser() {
     const result = {
       tableName: '',
       fields: [],
-      databaseType: 'unknown'
+      databaseType: 'unknown',
     }
 
     // 提取表名
@@ -310,12 +528,12 @@ export function useDdlParser() {
     // 提取字段信息
     if (astNode.create_definitions && Array.isArray(astNode.create_definitions)) {
       result.fields = astNode.create_definitions
-        .filter(def => def.column && def.column.column)
-        .map(def => ({
+        .filter((def) => def.column && def.column.column)
+        .map((def) => ({
           name: def.column.column,
           type: def.definition && def.definition.dataType ? def.definition.dataType : 'VARCHAR',
           nullable: !(def.definition && def.definition.nullable === false),
-          defaultValue: def.definition && def.definition.default || null
+          defaultValue: (def.definition && def.definition.default) || null,
         }))
     }
 
@@ -329,7 +547,8 @@ export function useDdlParser() {
     const result = {
       tableName: '',
       fields: [],
-      databaseType: 'unknown'
+      constraints: [], // 新增：约束信息
+      databaseType: 'unknown',
     }
 
     console.log('=== 增强正则表达式解析开始 ===')
@@ -343,19 +562,25 @@ export function useDdlParser() {
       // 标准化DDL语句
       const normalizedDdl = ddlStatement
         .replace(/\r\n|\r|\n/g, ' ') // 替换换行符
-        .replace(/\s+/g, ' ')        // 合并多个空格
+        .replace(/\s+/g, ' ') // 合并多个空格
         .trim()
 
       console.log('标准化后DDL:', normalizedDdl)
 
       // 提取表名（支持多种表名格式）
-      const tableNameMatch = normalizedDdl.match(/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([\w\.\"\`\[\]]+)/i)
+      const tableNameMatch = normalizedDdl.match(
+        /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([\w\.\"\`\[\]]+)/i,
+      )
       if (tableNameMatch && tableNameMatch[1]) {
         result.tableName = tableNameMatch[1].replace(/["`\[\]]/g, '')
         console.log('提取的表名:', result.tableName)
       } else {
         console.warn('无法提取表名')
       }
+
+      // 提取约束信息
+      result.constraints = extractConstraintsFromDdl(normalizedDdl)
+      console.log('提取的约束信息:', result.constraints)
 
       // 提取字段定义部分（改进的括号匹配）
       const fieldSectionMatch = extractFieldSection(normalizedDdl)
@@ -372,8 +597,12 @@ export function useDdlParser() {
       console.log('字段定义详情:', fieldDefinitions)
 
       // 解析每个字段定义
-      result.fields = fieldDefinitions.map(parseFieldDefinitionEnhanced)
-        .filter(field => field && field.name)
+      result.fields = fieldDefinitions
+        .map(parseFieldDefinitionEnhanced)
+        .filter((field) => field && field.name)
+
+      // 关联约束信息到字段（设置主键标识）
+      associateConstraintsWithFields(result.fields, result.constraints)
 
       console.log('解析后的字段数量:', result.fields.length)
       console.log('解析后的字段详情:', result.fields)
@@ -388,6 +617,81 @@ export function useDdlParser() {
     } catch (error) {
       console.error('增强正则表达式解析失败:', error)
       throw new Error(`正则表达式解析失败: ${error.message}`)
+    }
+  }
+
+  /**
+   * 从DDL语句中提取约束信息
+   */
+  const extractConstraintsFromDdl = (ddlStatement) => {
+    const constraints = []
+
+    // 提取主键约束（支持多种语法）
+    const primaryKeyPatterns = [
+      /PRIMARY\s+KEY\s*\(([^)]+)\)/i, // 标准语法
+      /CONSTRAINT\s+[\w"]+\s+PRIMARY\s+KEY\s*\(([^)]+)\)/i, // 带约束名语法
+      /,\s*PRIMARY\s+KEY\s*\(([^)]+)\)/i, // 逗号分隔语法
+    ]
+
+    for (const pattern of primaryKeyPatterns) {
+      const primaryKeyMatch = ddlStatement.match(pattern)
+      if (primaryKeyMatch) {
+        constraints.push({
+          type: 'PRIMARY KEY',
+          columns: primaryKeyMatch[1].split(',').map((col) => col.trim().replace(/"/g, '')),
+        })
+        break // 只匹配第一个有效的主键约束
+      }
+    }
+
+    // 提取外键约束
+    const foreignKeyRegex =
+      /CONSTRAINT\s+([\w"]+)\s+FOREIGN\s+KEY\s*\(([^)]+)\)\s+REFERENCES\s+([\w"]+)\s*\(([^)]+)\)/gi
+    let fkMatch
+
+    while ((fkMatch = foreignKeyRegex.exec(ddlStatement)) !== null) {
+      constraints.push({
+        type: 'FOREIGN KEY',
+        name: fkMatch[1].replace(/"/g, ''),
+        columns: fkMatch[2].split(',').map((col) => col.trim().replace(/"/g, '')),
+        referenceTable: fkMatch[3].replace(/"/g, ''),
+        referenceColumns: fkMatch[4].split(',').map((col) => col.trim().replace(/"/g, '')),
+      })
+    }
+
+    // 提取唯一约束
+    const uniqueRegex = /CONSTRAINT\s+([\w"]+)\s+UNIQUE\s*\(([^)]+)\)/gi
+    let uniqueMatch
+
+    while ((uniqueMatch = uniqueRegex.exec(ddlStatement)) !== null) {
+      constraints.push({
+        type: 'UNIQUE',
+        name: uniqueMatch[1].replace(/"/g, ''),
+        columns: uniqueMatch[2].split(',').map((col) => col.trim().replace(/"/g, '')),
+      })
+    }
+
+    return constraints
+  }
+
+  /**
+   * 关联约束信息到字段，设置主键标识
+   */
+  const associateConstraintsWithFields = (fields, constraints) => {
+    // 查找主键约束
+    const primaryKeyConstraint = constraints.find((constraint) => constraint.type === 'PRIMARY KEY')
+
+    if (primaryKeyConstraint && primaryKeyConstraint.columns) {
+      // 遍历主键约束中的字段名
+      primaryKeyConstraint.columns.forEach((columnName) => {
+        // 查找对应的字段
+        const field = fields.find((f) => f.name.toLowerCase() === columnName.toLowerCase())
+        if (field) {
+          // 设置主键标识
+          field.primaryKey = true
+          console.log(`字段 ${field.name} 被标识为主键`)
+        }
+      })
     }
   }
 
@@ -425,60 +729,80 @@ export function useDdlParser() {
   }
 
   /**
-   * 增强的字段定义解析
+   * 增强的字段定义解析（支持多种数据库的自增主键识别）
    */
   const parseFieldDefinitionEnhanced = (definition) => {
     if (!definition || !definition.trim()) return null
 
     // 多种字段定义模式匹配
     const patterns = [
-      // 模式1：标准格式 "字段名" 数据类型(参数) [NOT NULL] [DEFAULT 值] [COMMENT '注释']
+      // 模式1：PostgreSQL格式 "字段名" 数据类型(参数) [NOT NULL] [DEFAULT 值] [IDENTITY] [COLLATE]
+      /^\s*["']?([^"',\s]+)["']?\s+(\w+)(?:\([^)]*\))?\s*(NOT\s+NULL)?\s*(DEFAULT\s+([^,\s]+))?\s*(IDENTITY)?\s*(COLLATE)?/i,
+
+      // 模式2：标准格式 "字段名" 数据类型(参数) [NOT NULL] [DEFAULT 值] [COMMENT '注释']
       /^\s*["']?([^"',\s]+)["']?\s+(\w+)(?:\([^)]*\))?\s*(NOT\s+NULL)?\s*(DEFAULT\s+([^,\s]+))?\s*(COMMENT\s+['"]([^'"]*)['"])?/i,
 
-      // 模式2：简写格式 字段名 数据类型(参数)
+      // 模式3：简写格式 字段名 数据类型(参数)
       /^\s*(\w+)\s+(\w+)(?:\([^)]*\))?/i,
 
-      // 模式3：达梦数据库格式 "字段名" 数据类型(参数) COMMENT '注释'
-      /^\s*["']([^"']+)["']\s+(\w+)(?:\([^)]*\))?\s*(?:COMMENT\s+['"]([^'"]*)['"])?/i
+      // 模式4：达梦数据库格式 "字段名" 数据类型(参数) COMMENT '注释'
+      /^\s*["']([^"']+)["']\s+(\w+)(?:\([^)]*\))?\s*(?:COMMENT\s+['"]([^'"]*)['"])?/i,
     ]
 
     for (const pattern of patterns) {
       const match = definition.match(pattern)
       if (match) {
-        let name, type, nullable, defaultValue, comment
+        let name, type, nullable, defaultValue, comment, isIdentity
 
         if (pattern === patterns[0]) {
+          // PostgreSQL格式
+          name = match[1]
+          type = match[2]?.toUpperCase() || 'VARCHAR'
+          nullable = !match[3] // NOT NULL存在则nullable=false
+          defaultValue = match[5] || null
+          isIdentity = detectIdentityField(definition, type) // 增强的自增字段检测
+        } else if (pattern === patterns[1]) {
           // 标准格式
           name = match[1]
           type = match[2]?.toUpperCase() || 'VARCHAR'
           nullable = !match[3] // NOT NULL存在则nullable=false
           defaultValue = match[5] || null
           comment = match[7] || null
-        } else if (pattern === patterns[1]) {
+          isIdentity = detectIdentityField(definition, type) // 增强的自增字段检测
+        } else if (pattern === patterns[2]) {
           // 简写格式
           name = match[1]
           type = match[2]?.toUpperCase() || 'VARCHAR'
           nullable = true
           defaultValue = null
           comment = null
-        } else if (pattern === patterns[2]) {
+          isIdentity = detectIdentityField(definition, type) // 增强的自增字段检测
+        } else if (pattern === patterns[3]) {
           // 达梦数据库格式
           name = match[1]
           type = match[2]?.toUpperCase() || 'VARCHAR'
           nullable = true
           defaultValue = null
           comment = match[3] || null
+          isIdentity = detectIdentityField(definition, type) // 增强的自增字段检测
         }
 
         // 清理字段名中的引号
         name = name.replace(/["']/g, '')
+
+        // 处理IDENTITY字段（PostgreSQL自增字段）
+        if (isIdentity) {
+          type = 'SERIAL' // PostgreSQL自增字段类型
+        }
 
         return {
           name,
           type,
           nullable,
           defaultValue,
-          comment
+          comment,
+          isIdentity: !!isIdentity,
+          primaryKey: false, // 新增：主键标识，初始为false，后续通过约束关联设置
         }
       }
     }
@@ -488,32 +812,37 @@ export function useDdlParser() {
   }
 
   /**
-   * 智能分割字段定义
+   * 检测自增主键字段（支持多种数据库类型）
    */
-  const splitFieldDefinitions = (fieldSection) => {
-    const definitions = []
-    let current = ''
-    let depth = 0
+  const detectIdentityField = (fieldDefinition, dataType) => {
+    const upperDef = fieldDefinition.toUpperCase()
 
-    for (let i = 0; i < fieldSection.length; i++) {
-      const char = fieldSection[i]
-
-      if (char === '(') depth++
-      if (char === ')') depth--
-
-      if (char === ',' && depth === 0) {
-        definitions.push(current.trim())
-        current = ''
-      } else {
-        current += char
-      }
+    // MySQL: AUTO_INCREMENT
+    if (upperDef.includes('AUTO_INCREMENT')) {
+      return true
     }
 
-    if (current.trim()) {
-      definitions.push(current.trim())
+    // PostgreSQL: SERIAL类型或IDENTITY语法
+    if (dataType.includes('SERIAL') || upperDef.includes('IDENTITY')) {
+      return true
     }
 
-    return definitions
+    // SQL Server: IDENTITY关键字
+    if (upperDef.includes('IDENTITY')) {
+      return true
+    }
+
+    // Oracle: GENERATED ALWAYS AS IDENTITY
+    if (upperDef.includes('GENERATED ALWAYS AS IDENTITY')) {
+      return true
+    }
+
+    // 达梦数据库: IDENTITY关键字
+    if (upperDef.includes('IDENTITY')) {
+      return true
+    }
+
+    return false
   }
 
   /**
@@ -542,7 +871,7 @@ export function useDdlParser() {
       name,
       type,
       nullable,
-      defaultValue
+      defaultValue,
     }
   }
 
@@ -563,7 +892,9 @@ export function useDdlParser() {
     }
 
     // 检查表名
-    const tableNameMatch = ddlStatement.match(/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([\w\.\"\`\[\]]+)/i)
+    const tableNameMatch = ddlStatement.match(
+      /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([\w\.\"\`\[\]]+)/i,
+    )
     if (!tableNameMatch) {
       errors.push('无法识别表名')
     }
@@ -582,10 +913,21 @@ export function useDdlParser() {
   const getSupportedDatabases = () => {
     return [
       { name: 'MySQL', keywords: ['ENGINE', 'CHARSET', 'COLLATE'] },
-      { name: 'PostgreSQL', keywords: ['WITH', 'TABLESPACE'] },
+      {
+        name: 'PostgreSQL',
+        keywords: [
+          'WITH',
+          'TABLESPACE',
+          'IDENTITY',
+          'COLLATE',
+          'OWNER TO',
+          'USING btree',
+          'GENERATED ALWAYS AS IDENTITY',
+        ],
+      },
       { name: 'SQL Server', keywords: ['ON', 'TEXTIMAGE_ON'] },
       { name: 'Oracle', keywords: ['TABLESPACE', 'STORAGE'] },
-      { name: '达梦数据库', keywords: ['STORAGE', 'COMPRESS'] }
+      { name: '达梦数据库', keywords: ['STORAGE', 'COMPRESS'] },
     ]
   }
 
@@ -595,7 +937,16 @@ export function useDdlParser() {
   const detectDatabaseType = (ddlStatement) => {
     const databases = getSupportedDatabases()
 
-    for (const db of databases) {
+    // 优先检测PostgreSQL（更具体的语法）
+    const postgresqlKeywords = databases.find((db) => db.name === 'PostgreSQL').keywords
+    for (const keyword of postgresqlKeywords) {
+      if (new RegExp(`\\b${keyword}\\b`, 'i').test(ddlStatement)) {
+        return 'PostgreSQL'
+      }
+    }
+
+    // 然后检测其他数据库
+    for (const db of databases.filter((db) => db.name !== 'PostgreSQL')) {
       for (const keyword of db.keywords) {
         if (new RegExp(`\\b${keyword}\\b`, 'i').test(ddlStatement)) {
           return db.name
@@ -615,9 +966,10 @@ export function useDdlParser() {
 
   return {
     parseDdl,
+    extractSingleFieldInfo,
     validateDdl,
     detectDatabaseType,
     clearCache,
-    getSupportedDatabases
+    getSupportedDatabases,
   }
 }

@@ -37,12 +37,7 @@
           />
           <div class="card-footer">
             <a-space>
-              <a-button
-                type="link"
-                size="small"
-                @click="parseDdl(false)"
-                :loading="parsingDdl"
-              >
+              <a-button type="link" size="small" @click="parseDdl(false)" :loading="parsingDdl">
                 解析DDL
               </a-button>
               <a-button
@@ -93,7 +88,11 @@
           <div v-if="uploadedFile" class="file-info">
             <a-alert
               :message="uploadedFile.name"
-              :description="excelData && excelData.length > 0 ? `文件解析完成，共 ${excelData.length} 行数据` : '文件上传成功，正在解析数据...'"
+              :description="
+                excelData && excelData.length > 0
+                  ? `文件解析完成，共 ${excelData.length} 行数据`
+                  : '文件上传成功，正在解析数据...'
+              "
               :type="excelData && excelData.length > 0 ? 'success' : 'info'"
               show-icon
               closable
@@ -111,9 +110,7 @@
                   size="small"
                   :scroll="{ x: true }"
                 />
-                <div class="preview-footer">
-                  显示前10行，共 {{ excelData.length }} 行数据
-                </div>
+                <div class="preview-footer">显示前10行，共 {{ excelData.length }} 行数据</div>
               </a-collapse-panel>
             </a-collapse>
           </div>
@@ -158,13 +155,7 @@
                 <div>
                   <strong>{{ record.ddlField.name }}</strong>
                   <div class="field-type">{{ record.ddlField.type }}</div>
-                  <a-tag
-                    v-if="!record.ddlField.nullable"
-                    color="red"
-                    size="small"
-                  >
-                    必填
-                  </a-tag>
+                  <a-tag v-if="!record.ddlField.nullable" color="red" size="small"> 必填 </a-tag>
                 </div>
               </template>
 
@@ -178,20 +169,17 @@
                 >
                   <a-select-option :value="-1">未匹配</a-select-option>
                   <a-select-option
-                    v-for="(header, idx) in (excelHeaders || [])"
+                    v-for="(header, idx) in excelHeaders || []"
                     :key="idx"
                     :value="idx"
                     :disabled="isColumnUsed(idx)"
                   >
-                    {{ header }} (列{{ idx + 1}})
+                    {{ header }} (列{{ idx + 1 }})
                   </a-select-option>
                 </a-select>
                 <span v-else>
                   {{ record.excelHeader }}
-                  <a-tag
-                    :color="getConfidenceColor(record.confidence)"
-                    size="small"
-                  >
+                  <a-tag :color="getConfidenceColor(record.confidence)" size="small">
                     {{ getConfidenceText(record.confidence) }}
                   </a-tag>
                 </span>
@@ -208,11 +196,7 @@
 
               <template v-if="column.key === 'actions'">
                 <a-space>
-                  <a-button
-                    type="link"
-                    size="small"
-                    @click="clearMapping(record.ddlField.name)"
-                  >
+                  <a-button type="link" size="small" @click="clearMapping(record.ddlField.name)">
                     清除
                   </a-button>
                 </a-space>
@@ -224,6 +208,19 @@
             <a-button @click="autoMatchFields">自动匹配</a-button>
             <a-button @click="clearAllMappings">清除所有</a-button>
             <a-button type="primary" @click="validateMappings">验证映射</a-button>
+          </div>
+
+          <!-- 数据库类型选择 -->
+          <div class="database-type-section">
+            <h4>数据库类型</h4>
+            <a-radio-group v-model:value="databaseType" button-style="solid">
+              <a-radio-button value="mysql">MySQL</a-radio-button>
+              <a-radio-button value="postgresql">PostgreSQL</a-radio-button>
+              <a-radio-button value="sqlserver">SQL Server</a-radio-button>
+            </a-radio-group>
+            <div class="database-type-hint">
+              <small>选择目标数据库类型，确保生成的SQL符合对应语法规范</small>
+            </div>
           </div>
         </div>
       </div>
@@ -264,7 +261,7 @@
                   v-model:value="beautifyOptions.indentSpaces"
                   :min="1"
                   :max="8"
-                  :marks="{1: '1', 2: '2', 4: '4', 8: '8'}"
+                  :marks="{ 1: '1', 2: '2', 4: '4', 8: '8' }"
                   style="width: 200px"
                 />
                 <span class="option-value">{{ beautifyOptions.indentSpaces }}</span>
@@ -292,7 +289,7 @@
                   v-model:value="beautifyOptions.maxLineLength"
                   :min="40"
                   :max="200"
-                  :marks="{40: '40', 80: '80', 120: '120', 200: '200'}"
+                  :marks="{ 40: '40', 80: '80', 120: '120', 200: '200' }"
                   style="width: 200px"
                 />
                 <span class="option-value">{{ beautifyOptions.maxLineLength }}</span>
@@ -310,7 +307,9 @@
 
               <div class="option-actions">
                 <a-button @click="resetBeautifyOptions" size="small">重置默认</a-button>
-                <a-button @click="applyBeautifyOptions" type="primary" size="small">应用美化</a-button>
+                <a-button @click="applyBeautifyOptions" type="primary" size="small"
+                  >应用美化</a-button
+                >
               </div>
             </a-space>
           </div>
@@ -357,12 +356,7 @@
     </div>
 
     <!-- 错误提示 -->
-    <a-modal
-      v-model:open="errorModalVisible"
-      title="错误信息"
-      width="600px"
-      :footer="null"
-    >
+    <a-modal v-model:open="errorModalVisible" title="错误信息" width="600px" :footer="null">
       <a-alert
         v-for="error in currentErrors"
         :key="error.id"
@@ -388,7 +382,7 @@ import {
   CopyOutlined,
   DownloadOutlined,
   ClockCircleOutlined,
-  SettingOutlined
+  SettingOutlined,
 } from '@ant-design/icons-vue'
 
 // 导入核心功能模块
@@ -409,14 +403,14 @@ const {
   matchFields,
   updateFieldMapping,
   validateMappings: validateFieldMappings,
-  matchingStats
+  matchingStats,
 } = useFieldMatcher()
 const {
   generateInsertSql,
   previewSql,
   beautifyOptions: defaultBeautifyOptions,
   setBeautifyOptions,
-  resetBeautifyOptions: resetDefaultBeautifyOptions
+  resetBeautifyOptions: resetDefaultBeautifyOptions,
 } = useSqlGeneratorEnhanced()
 const { logError, logInfo, logWarning, errorLogs } = useErrorHandler()
 
@@ -430,6 +424,7 @@ const excelHeaders = ref([])
 const generatedSql = ref('')
 const operationLogs = ref([])
 const includeComments = ref(true) // 控制是否包含SQL注释
+const databaseType = ref('mysql') // 数据库类型：mysql, postgresql, sqlserver
 
 // SQL美化相关数据
 const showBeautifyOptions = ref(false)
@@ -438,7 +433,7 @@ const beautifyOptions = ref({
   formatStyle: 'expanded',
   keywordCase: 'upper',
   maxLineLength: 80,
-  alignValues: true
+  alignValues: true,
 })
 
 // 状态标志
@@ -469,7 +464,7 @@ const previewData = computed(() => {
 
   const data = excelData.value.slice(0, 10).map((row, index) => ({
     key: index,
-    ...row
+    ...row,
   }))
 
   console.log('预览数据行数:', data.length)
@@ -490,7 +485,7 @@ const previewColumns = computed(() => {
     title: `${header} (列${index + 1})`,
     dataIndex: index,
     key: index,
-    ellipsis: true
+    ellipsis: true,
   }))
 
   console.log('生成的列配置:', columns)
@@ -502,13 +497,13 @@ const sqlStats = computed(() => {
     return { statementCount: 0, affectedRows: 0, generationTime: 0 }
   }
 
-  const statements = generatedSql.value.split(';').filter(s => s.trim())
+  const statements = generatedSql.value.split(';').filter((s) => s.trim())
   const affectedRows = excelData.value.length
 
   return {
     statementCount: statements.length,
     affectedRows,
-    generationTime: 0 // 实际应该从生成过程中获取
+    generationTime: 0, // 实际应该从生成过程中获取
   }
 })
 
@@ -517,23 +512,23 @@ const mappingColumns = [
   {
     title: 'DDL字段',
     key: 'ddlField',
-    width: '30%'
+    width: '30%',
   },
   {
     title: 'Excel列',
     key: 'excelHeader',
-    width: '40%'
+    width: '40%',
   },
   {
     title: '相似度',
     key: 'similarity',
-    width: '20%'
+    width: '20%',
   },
   {
     title: '操作',
     key: 'actions',
-    width: '10%'
-  }
+    width: '10%',
+  },
 ]
 
 // 方法
@@ -564,7 +559,7 @@ const parseDdl = async (forceRefresh = false) => {
   } catch (error) {
     const friendlyError = logError(error, 'parsing', {
       operation: 'parseDdl',
-      ddlLength: ddlStatement.value.length
+      ddlLength: ddlStatement.value.length,
     })
     message.error(friendlyError)
   } finally {
@@ -573,9 +568,7 @@ const parseDdl = async (forceRefresh = false) => {
 }
 
 const beforeUpload = (file) => {
-  const isValidType = ['xlsx', 'xls', 'csv'].some(ext =>
-    file.name.toLowerCase().endsWith(ext)
-  )
+  const isValidType = ['xlsx', 'xls', 'csv'].some((ext) => file.name.toLowerCase().endsWith(ext))
 
   if (!isValidType) {
     message.error('只支持.xlsx、.xls、.csv格式的文件')
@@ -637,7 +630,7 @@ const handleUpload = async (options) => {
     const friendlyError = logError(error, 'file', {
       operation: 'parseExcel',
       fileName: file.name,
-      fileSize: file.size
+      fileSize: file.size,
     })
     onError(friendlyError)
     message.error(friendlyError)
@@ -679,7 +672,7 @@ const autoMatchFields = () => {
     const friendlyError = logError(error, 'matching', {
       operation: 'autoMatchFields',
       ddlFieldsCount: parsedFields.value.length,
-      excelHeadersCount: excelHeaders.value.length
+      excelHeadersCount: excelHeaders.value.length,
     })
     message.error(friendlyError)
   }
@@ -697,7 +690,7 @@ const clearMapping = (ddlFieldName) => {
 }
 
 const clearAllMappings = () => {
-  parsedFields.value.forEach(field => {
+  parsedFields.value.forEach((field) => {
     updateFieldMapping(field.name, null, -1)
   })
   logInfo('清除所有字段映射')
@@ -711,17 +704,17 @@ const handleClearCache = () => {
 }
 
 const isColumnUsed = (columnIndex) => {
-  return fieldMappings.value.some(mapping => mapping.excelIndex === columnIndex)
+  return fieldMappings.value.some((mapping) => mapping.excelIndex === columnIndex)
 }
 
 const getConfidenceColor = (confidence) => {
   const colors = {
     'very-high': 'green',
-    'high': 'blue',
-    'medium': 'orange',
-    'low': 'red',
+    high: 'blue',
+    medium: 'orange',
+    low: 'red',
     'very-low': 'gray',
-    'manual': 'purple'
+    manual: 'purple',
   }
   return colors[confidence] || 'gray'
 }
@@ -729,11 +722,11 @@ const getConfidenceColor = (confidence) => {
 const getConfidenceText = (confidence) => {
   const texts = {
     'very-high': '极高',
-    'high': '高',
-    'medium': '中',
-    'low': '低',
+    high: '高',
+    medium: '中',
+    low: '低',
     'very-low': '极低',
-    'manual': '手动'
+    manual: '手动',
   }
   return texts[confidence] || '未知'
 }
@@ -745,10 +738,10 @@ const validateMappings = () => {
     message.success('字段映射验证通过')
     logInfo('字段映射验证通过')
   } else {
-    currentErrors.value = validation.errors.map(error => ({
+    currentErrors.value = validation.errors.map((error) => ({
       id: Date.now() + Math.random(),
       message: '映射验证失败',
-      context: error
+      context: error,
     }))
     errorModalVisible.value = true
     logWarning('字段映射验证失败', 'validation', { errors: validation.errors })
@@ -763,7 +756,7 @@ const toggleBeautifyOptions = () => {
   logInfo(`SQL美化选项面板${newState ? '显示' : '隐藏'}`, 'beautify', {
     operation: 'toggleBeautifyOptions',
     operationType: 'beautify',
-    isVisible: newState
+    isVisible: newState,
   })
 }
 
@@ -778,18 +771,13 @@ const applyBeautifyOptions = async () => {
     // 如果已有生成的SQL，重新应用美化
     if (generatedSql.value) {
       const tableName = extractTableName(ddlStatement.value)
-      const sql = generateInsertSql(
-        tableName,
-        fieldMappings.value,
-        excelData.value,
-        {
-          dbType: 'mysql',
-          format: 'formatted',
-          batch: 100,
-          comments: includeComments.value,
-          beautifyOptions: beautifyOptions.value
-        }
-      )
+      const sql = generateInsertSql(tableName, fieldMappings.value, excelData.value, {
+        dbType: databaseType.value,
+        format: 'formatted',
+        batch: 100,
+        comments: includeComments.value,
+        beautifyOptions: beautifyOptions.value,
+      })
       generatedSql.value = sql
     }
 
@@ -801,14 +789,14 @@ const applyBeautifyOptions = async () => {
       options: beautifyOptions.value,
       changes: optionChanges,
       hasSql: !!generatedSql.value,
-      sqlLength: generatedSql.value ? generatedSql.value.length : 0
+      sqlLength: generatedSql.value ? generatedSql.value.length : 0,
     })
     message.success('美化选项已应用')
   } catch (error) {
     const friendlyError = logError(error, 'beautify', {
       operation: 'applyBeautifyOptions',
       operationType: 'beautify',
-      options: beautifyOptions.value
+      options: beautifyOptions.value,
     })
     message.error(friendlyError)
   }
@@ -822,7 +810,7 @@ const resetBeautifyOptions = () => {
     formatStyle: 'expanded',
     keywordCase: 'upper',
     maxLineLength: 80,
-    alignValues: true
+    alignValues: true,
   }
   resetDefaultBeautifyOptions()
 
@@ -833,7 +821,7 @@ const resetBeautifyOptions = () => {
     operationType: 'beautify',
     previousOptions: previousOptions,
     newOptions: beautifyOptions.value,
-    changes: optionChanges
+    changes: optionChanges,
   })
   message.info('美化选项已重置')
 }
@@ -859,7 +847,9 @@ const getOptionChanges = (previous, current) => {
   }
 
   if (previous.alignValues !== current.alignValues) {
-    changes.push(`垂直对齐: ${previous.alignValues ? '开启' : '关闭'} → ${current.alignValues ? '开启' : '关闭'}`)
+    changes.push(
+      `垂直对齐: ${previous.alignValues ? '开启' : '关闭'} → ${current.alignValues ? '开启' : '关闭'}`,
+    )
   }
 
   return changes.length > 0 ? changes : ['无变更']
@@ -869,7 +859,7 @@ const handleSqlCopy = () => {
   const beautifyStatus = showBeautifyOptions.value ? '应用美化' : '未美化'
   logInfo(`INSERT SQL语句已复制到剪贴板（${beautifyStatus}）`, 'copy', {
     beautifyOptions: beautifyOptions.value,
-    includeComments: includeComments.value
+    includeComments: includeComments.value,
   })
 }
 
@@ -877,7 +867,7 @@ const handleSqlDownload = () => {
   const beautifyStatus = showBeautifyOptions.value ? '应用美化' : '未美化'
   logInfo(`INSERT SQL语句已下载（${beautifyStatus}）`, 'download', {
     beautifyOptions: beautifyOptions.value,
-    includeComments: includeComments.value
+    includeComments: includeComments.value,
   })
 }
 
@@ -904,32 +894,31 @@ const generateSql = async () => {
     // 提取表名（简化处理，实际应该从DDL解析结果中获取）
     const tableName = extractTableName(ddlStatement.value)
 
-    const sql = generateInsertSql(
-      tableName,
-      fieldMappings.value,
-      excelData.value,
-      {
-        dbType: 'mysql',
-        format: 'formatted',
-        batch: 100,
-        comments: includeComments.value,
-        beautifyOptions: beautifyOptions.value
-      }
-    )
+    const sql = generateInsertSql(tableName, fieldMappings.value, excelData.value, {
+      dbType: databaseType.value,
+      format: 'formatted',
+      batch: 100,
+      comments: includeComments.value,
+      beautifyOptions: beautifyOptions.value,
+    })
 
     generatedSql.value = sql
 
     const beautifyStatus = showBeautifyOptions.value ? '应用美化' : '未美化'
-    logInfo(`SQL生成成功（${includeComments.value ? '包含注释' : '纯SQL'}，${beautifyStatus}）`, 'generation', {
-      beautifyOptions: beautifyOptions.value,
-      includeComments: includeComments.value
-    })
+    logInfo(
+      `SQL生成成功（${includeComments.value ? '包含注释' : '纯SQL'}，${beautifyStatus}）`,
+      'generation',
+      {
+        beautifyOptions: beautifyOptions.value,
+        includeComments: includeComments.value,
+      },
+    )
     message.success('SQL生成成功')
   } catch (error) {
     const friendlyError = logError(error, 'generation', {
       operation: 'generateInsertSql',
       tableName: extractTableName(ddlStatement.value),
-      dataRows: excelData.value ? excelData.value.length : 0
+      dataRows: excelData.value ? excelData.value.length : 0,
     })
     message.error(friendlyError)
   } finally {
@@ -938,8 +927,23 @@ const generateSql = async () => {
 }
 
 const extractTableName = (ddl) => {
-  const match = ddl.match(/CREATE TABLE\s+(?:IF NOT EXISTS\s+)?`?([^`\s(]+)`?/i)
-  return match ? match[1] : 'unknown_table'
+  // 支持多种DDL语句格式
+  const patterns = [
+    /CREATE TABLE\s+(?:IF NOT EXISTS\s+)?`?([^`\s(]+)`?/i,
+    /CREATE TABLE\s+(?:IF NOT EXISTS\s+)?"?([^"\s(]+)"?/i,
+    /CREATE TABLE\s+(?:IF NOT EXISTS\s+)?\[?([^\[\s(]+)\]?/i,
+  ]
+
+  for (const pattern of patterns) {
+    const match = ddl.match(pattern)
+    if (match) {
+      // 移除可能的schema前缀（如public.）
+      const tableName = match[1].replace(/^[^.]+\./, '')
+      return tableName
+    }
+  }
+
+  return 'unknown_table'
 }
 
 const copySql = async () => {
@@ -974,7 +978,7 @@ const getLogColor = (level, operationType) => {
   const colors = {
     info: 'blue',
     warning: 'orange',
-    error: 'red'
+    error: 'red',
   }
   return colors[level] || 'gray'
 }
@@ -1028,7 +1032,7 @@ const clearLogs = () => {
 const handleSqlValidation = (validationResult) => {
   if (validationResult.hasErrors) {
     logWarning('SQL语法验证发现错误', 'validation', {
-      errors: validationResult.errors
+      errors: validationResult.errors,
     })
   } else {
     logInfo('SQL语法验证通过')
@@ -1056,9 +1060,9 @@ const resetAll = () => {
 
 // 初始化操作日志（从错误处理器中获取）
 const updateOperationLogs = () => {
-  operationLogs.value = [
-    ...errorLogs.value.map(log => ({ ...log, level: 'error' }))
-  ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+  operationLogs.value = [...errorLogs.value.map((log) => ({ ...log, level: 'error' }))].sort(
+    (a, b) => new Date(b.timestamp) - new Date(a.timestamp),
+  )
 }
 
 // 监听错误日志变化
@@ -1181,6 +1185,27 @@ onMounted(() => {
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid #f0f0f0;
+}
+
+.database-type-section {
+  margin-top: 16px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
+.database-type-section h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #495057;
+}
+
+.database-type-hint {
+  margin-top: 8px;
+  color: #6c757d;
+  font-size: 12px;
 }
 
 .field-type {

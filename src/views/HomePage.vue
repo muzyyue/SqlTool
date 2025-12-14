@@ -4,9 +4,7 @@
     <div class="hero-section">
       <div class="hero-content">
         <h1 class="hero-title">SQL生成工具</h1>
-        <p class="hero-subtitle">
-          基于DDL语句和Excel数据，快速生成规范的INSERT和UPDATE SQL语句
-        </p>
+        <p class="hero-subtitle">基于DDL语句和Excel数据，快速生成规范的INSERT和UPDATE SQL语句</p>
         <div class="hero-actions">
           <a-button type="primary" size="large" @click="navigateToInsert">
             <template #icon><PlusCircleOutlined /></template>
@@ -168,6 +166,24 @@
             <a-button type="primary" block>开始使用</a-button>
           </div>
         </div>
+
+        <div class="start-card ddl-card" @click="navigateToDdl">
+          <div class="card-header">
+            <TableOutlined class="card-icon" />
+            <h3>DDL语句生成</h3>
+          </div>
+          <div class="card-content">
+            <p>适用于数据库表结构管理</p>
+            <ul>
+              <li>支持多种DDL语句类型</li>
+              <li>多数据库语法兼容</li>
+              <li>可视化表结构设计</li>
+            </ul>
+          </div>
+          <div class="card-footer">
+            <a-button type="primary" block>开始使用</a-button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -202,7 +218,8 @@ import {
   LinkOutlined,
   CodeOutlined,
   SafetyCertificateOutlined,
-  DownloadOutlined
+  DownloadOutlined,
+  TableOutlined,
 } from '@ant-design/icons-vue'
 
 const router = useRouter()
@@ -226,7 +243,7 @@ const stats = ref({
   filesProcessed: 1234,
   statementsGenerated: 56789,
   userSatisfaction: 98.5,
-  avgProcessingTime: 250
+  avgProcessingTime: 250,
 })
 
 // 导航方法
@@ -236,6 +253,10 @@ const navigateToInsert = () => {
 
 const navigateToUpdate = () => {
   router.push('/update')
+}
+
+const navigateToDdl = () => {
+  router.push('/ddl')
 }
 
 // 生命周期
@@ -345,7 +366,9 @@ onMounted(() => {
   border-radius: 12px;
   padding: 30px;
   text-align: center;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .feature-card:hover {
@@ -457,6 +480,10 @@ onMounted(() => {
   border-color: #faad14;
 }
 
+.ddl-card:hover {
+  border-color: #722ed1;
+}
+
 .card-header {
   background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
   color: white;
@@ -470,6 +497,10 @@ onMounted(() => {
 
 .update-card .card-header {
   background: linear-gradient(135deg, #faad14 0%, #d48806 100%);
+}
+
+.ddl-card .card-header {
+  background: linear-gradient(135deg, #722ed1 0%, #531dab 100%);
 }
 
 .card-icon {

@@ -14,13 +14,13 @@ export function useSqlGeneratorEnhanced() {
   const beautifyOptions = ref({
     indentSpaces: 4,
     formatStyle: 'expanded', // 'compact' or 'expanded'
-    keywordCase: 'upper',     // 'upper' or 'preserve'
+    keywordCase: 'upper', // 'upper' or 'preserve'
     maxLineLength: 80,
-    alignValues: true
+    alignValues: true,
   })
 
   /**
-   * 生成INSERT语句
+   * 生成INSERT语句（自动排除自增主键字段）
    */
   const generateInsertSql = (tableName, fieldMappings, excelData, options = {}) => {
     validateInputs(tableName, fieldMappings, excelData)
@@ -30,7 +30,7 @@ export function useSqlGeneratorEnhanced() {
       format = sqlFormat.value,
       batch = batchSize.value,
       comments = includeComments.value,
-      beautifyOptions = {}
+      beautifyOptions = {},
     } = options
 
     const sqlStatements = []
@@ -41,10 +41,17 @@ export function useSqlGeneratorEnhanced() {
     }
 
     // 分批处理数据
-    for (let i = 0; i < excelData.length; i += batch) {
-      const batchData = excelData.slice(i, i + batch)
-      const batchSql = generateBatchInsertSql(tableName, fieldMappings, batchData, dbType)
+    // 如果数据行数小于等于批量大小，生成单个INSERT语句
+    if (excelData.length <= batch) {
+      const batchSql = generateBatchInsertSql(tableName, fieldMappings, excelData, dbType)
       sqlStatements.push(batchSql)
+    } else {
+      // 否则按原逻辑分批处理
+      for (let i = 0; i < excelData.length; i += batch) {
+        const batchData = excelData.slice(i, i + batch)
+        const batchSql = generateBatchInsertSql(tableName, fieldMappings, batchData, dbType)
+        sqlStatements.push(batchSql)
+      }
     }
 
     // 格式化输出
@@ -61,7 +68,7 @@ export function useSqlGeneratorEnhanced() {
       dbType = databaseType.value,
       format = sqlFormat.value,
       comments = includeComments.value,
-      beautifyOptions = {}
+      beautifyOptions = {},
     } = options
 
     const sqlStatements = []
@@ -84,23 +91,25 @@ export function useSqlGeneratorEnhanced() {
   }
 
   /**
-   * 生成批量INSERT语句
+   * 生成批量INSERT语句（自动排除自增主键字段和主键字段）
    */
   const generateBatchInsertSql = (tableName, fieldMappings, batchData, dbType) => {
+    // 过滤掉自增主键字段和主键字段
     const mappedFields = fieldMappings
-      .filter(mapping => mapping.excelHeader && mapping.excelIndex >= 0)
+      .filter((mapping) => mapping.excelHeader && mapping.excelIndex >= 0)
+      .filter((mapping) => !mapping.ddlField.isIdentity && !mapping.ddlField.primaryKey) // 排除自增字段和主键字段
       .sort((a, b) => a.excelIndex - b.excelIndex)
 
     if (mappedFields.length === 0) {
-      throw new Error('没有有效的字段映射关系')
+      throw new Error('没有有效的字段映射关系（所有字段都是自增主键、主键字段或未映射）')
     }
 
-    const fieldNames = mappedFields.map(mapping => escapeFieldName(mapping.ddlField.name, dbType))
+    const fieldNames = mappedFields.map((mapping) => escapeFieldName(mapping.ddlField.name, dbType))
     const valuesList = []
 
     // 处理每行数据
-    batchData.forEach(row => {
-      const values = mappedFields.map(mapping => {
+    batchData.forEach((row) => {
+      const values = mappedFields.map((mapping) => {
         const value = row[mapping.excelIndex]
         return formatValue(value, mapping.ddlField.type, dbType)
       })
@@ -108,29 +117,31 @@ export function useSqlGeneratorEnhanced() {
     })
 
     // 确保VALUES子句格式正确，每行单独处理
-    const valuesClause = valuesList.length > 1
-      ? `VALUES\n  ${valuesList.join(',\n  ')}`
-      : `VALUES ${valuesList[0]}`
+    const valuesClause =
+      valuesList.length > 1 ? `VALUES\n  ${valuesList.join(',\n  ')}` : `VALUES ${valuesList[0]}`
 
     return `INSERT INTO ${escapeFieldName(tableName, dbType)} (${fieldNames.join(', ')})\n${valuesClause};`
   }
 
   /**
-   * 生成单条UPDATE语句
+   * 生成单条UPDATE语句（自动排除自增主键字段和主键字段）
    */
   const generateSingleUpdateSql = (tableName, fieldMappings, row, whereFields, dbType) => {
     const setClauses = []
     const whereClauses = []
 
-    fieldMappings.forEach(mapping => {
+    fieldMappings.forEach((mapping) => {
       if (!mapping.excelHeader || mapping.excelIndex < 0) return
+
+      // 排除自增主键字段和主键字段（除非它们是WHERE条件字段）
+      const isWhereField = whereFields && whereFields.includes(mapping.ddlField.name)
+      if (!isWhereField && (mapping.ddlField.isIdentity || mapping.ddlField.primaryKey)) {
+        return // 跳过自增主键字段和主键字段
+      }
 
       const value = row[mapping.excelIndex]
       const fieldName = escapeFieldName(mapping.ddlField.name, dbType)
       const formattedValue = formatValue(value, mapping.ddlField.type, dbType)
-
-      // 检查是否为WHERE条件字段
-      const isWhereField = whereFields && whereFields.includes(mapping.ddlField.name)
 
       if (isWhereField) {
         whereClauses.push(`${fieldName} = ${formattedValue}`)
@@ -168,9 +179,34 @@ export function useSqlGeneratorEnhanced() {
       throw new Error('Excel数据不能为空')
     }
 
-    // 验证表名格式
-    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(tableName)) {
-      throw new Error('表名格式不正确')
+    // 验证表名格式（支持更灵活的表名格式）
+    // 允许：字母、数字、下划线、中文字符、点号、连字符、空格、双引号（用于PostgreSQL模式）
+    // 禁止：特殊字符和SQL关键字
+    const invalidChars = /[<>\/\\;'\|\*\?\$\^\[\]\{\}\(\)\+\=]/i
+    const sqlKeywords = /\b(SELECT|INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|TRUNCATE)\b/i
+
+    // 检查是否包含不允许的特殊字符（排除双引号，因为PostgreSQL支持带引号的表名）
+    if (invalidChars.test(tableName)) {
+      throw new Error('表名包含不允许的特殊字符')
+    }
+
+    if (sqlKeywords.test(tableName)) {
+      throw new Error('表名不能是SQL关键字')
+    }
+
+    // 检查双引号是否成对出现（PostgreSQL要求引号成对）
+    const quoteCount = (tableName.match(/"/g) || []).length
+    if (quoteCount > 0 && quoteCount % 2 !== 0) {
+      throw new Error('表名中的双引号必须成对出现')
+    }
+
+    // 检查表名长度
+    if (tableName.trim().length === 0) {
+      throw new Error('表名不能为空')
+    }
+
+    if (tableName.trim().length > 128) {
+      throw new Error('表名长度不能超过128个字符')
     }
   }
 
@@ -180,11 +216,26 @@ export function useSqlGeneratorEnhanced() {
   const escapeFieldName = (fieldName, dbType) => {
     const name = String(fieldName).trim()
 
+    // 检查字段名是否已经包含引号
+    const hasQuotes =
+      (name.startsWith('"') && name.endsWith('"')) ||
+      (name.startsWith('`') && name.endsWith('`')) ||
+      (name.startsWith('[') && name.endsWith(']'))
+
+    // 如果已经包含引号，直接返回原字段名
+    if (hasQuotes) {
+      return name
+    }
+
     switch (dbType) {
       case 'mysql':
         return `\`${name}\``
       case 'postgresql':
-        return `"${name}"`
+        // PostgreSQL: 仅对包含特殊字符或关键字的字段名使用双引号
+        const needsQuotes =
+          /[^a-zA-Z0-9_]/.test(name) ||
+          /^(SELECT|INSERT|UPDATE|DELETE|FROM|WHERE|AND|OR|NOT|NULL|TRUE|FALSE)$/i.test(name)
+        return needsQuotes ? `"${name}"` : name
       case 'sqlserver':
         return `[${name}]`
       default:
@@ -276,12 +327,26 @@ export function useSqlGeneratorEnhanced() {
    * 判断是否为数值类型
    */
   const isNumericType = (dataType) => {
+    // 首先排除明确的字符串类型
+    const stringTypes = ['char', 'varchar', 'text', 'string', 'clob', 'blob', 'bytea']
+    if (stringTypes.some((type) => dataType.toLowerCase().includes(type))) {
+      return false
+    }
+
     const numericTypes = [
-      'int', 'integer', 'smallint', 'bigint', 'tinyint',
-      'decimal', 'numeric', 'float', 'double', 'real',
-      'number'
+      'int',
+      'integer',
+      'smallint',
+      'bigint',
+      'tinyint',
+      'decimal',
+      'numeric',
+      'float',
+      'double',
+      'real',
+      'number',
     ]
-    return numericTypes.some(type => dataType.toLowerCase().includes(type))
+    return numericTypes.some((type) => dataType.toLowerCase().includes(type))
   }
 
   /**
@@ -289,7 +354,7 @@ export function useSqlGeneratorEnhanced() {
    */
   const isBooleanType = (dataType) => {
     const booleanTypes = ['bool', 'boolean', 'bit']
-    return booleanTypes.some(type => dataType.toLowerCase().includes(type))
+    return booleanTypes.some((type) => dataType.toLowerCase().includes(type))
   }
 
   /**
@@ -297,10 +362,15 @@ export function useSqlGeneratorEnhanced() {
    */
   const isDateTimeType = (dataType) => {
     const dateTimeTypes = [
-      'date', 'time', 'datetime', 'timestamp',
-      'year', 'datetime2', 'smalldatetime'
+      'date',
+      'time',
+      'datetime',
+      'timestamp',
+      'year',
+      'datetime2',
+      'smalldatetime',
     ]
-    return dateTimeTypes.some(type => dataType.toLowerCase().includes(type))
+    return dateTimeTypes.some((type) => dataType.toLowerCase().includes(type))
   }
 
   /**
@@ -313,7 +383,7 @@ export function useSqlGeneratorEnhanced() {
       'YYYY/MM/DD',
       'YYYY/MM/DD HH:mm:ss',
       'MM/DD/YYYY',
-      'MM/DD/YYYY HH:mm:ss'
+      'MM/DD/YYYY HH:mm:ss',
     ]
 
     for (const format of formats) {
@@ -331,8 +401,11 @@ export function useSqlGeneratorEnhanced() {
    */
   const generateHeaderComment = (tableName, fieldMappings, dbType, operation = 'INSERT') => {
     const timestamp = new Date().toLocaleString('zh-CN')
-    const mappedCount = fieldMappings.filter(m => m.excelHeader).length
-    const totalCount = fieldMappings.length
+
+    // 过滤掉自增主键字段（与INSERT语句保持一致）
+    const filteredMappings = fieldMappings.filter((mapping) => !mapping.ddlField.isIdentity)
+    const mappedCount = filteredMappings.filter((m) => m.excelHeader).length
+    const totalCount = filteredMappings.length
 
     let comment = `-- ${operation}语句生成报告\n`
     comment += `-- 生成时间: ${timestamp}\n`
@@ -342,9 +415,9 @@ export function useSqlGeneratorEnhanced() {
     comment += `-- 操作类型: ${operation}\n`
     comment += '--\n'
 
-    // 添加字段映射详情
+    // 添加字段映射详情（排除自增字段）
     comment += '-- 字段映射详情:\n'
-    fieldMappings.forEach(mapping => {
+    filteredMappings.forEach((mapping) => {
       const status = mapping.excelHeader ? '✓' : '✗'
       const excelInfo = mapping.excelHeader ? ` -> "${mapping.excelHeader}"` : ''
       comment += `--   ${status} ${mapping.ddlField.name} (${mapping.ddlField.type})${excelInfo}\n`
@@ -360,24 +433,27 @@ export function useSqlGeneratorEnhanced() {
     const {
       indentSpaces = 4,
       formatStyle = 'expanded', // 'compact' or 'expanded'
-      keywordCase = 'upper',     // 'upper' or 'preserve'
+      keywordCase = 'upper', // 'upper' or 'preserve'
       maxLineLength = 80,
-      alignValues = true
+      alignValues = true,
     } = options
 
     let beautified = sql
 
     // 1. 统一SQL关键字大小写
     if (keywordCase === 'upper') {
-      beautified = beautified.replace(/\b(SELECT|INSERT|INTO|VALUES|UPDATE|SET|FROM|WHERE|AND|OR|NOT|NULL|TRUE|FALSE|AS|ON|JOIN|LEFT|RIGHT|INNER|OUTER|GROUP BY|ORDER BY|HAVING|LIMIT|OFFSET|DISTINCT)\b/gi, match => match.toUpperCase())
+      beautified = beautified.replace(
+        /\b(SELECT|INSERT|INTO|VALUES|UPDATE|SET|FROM|WHERE|AND|OR|NOT|NULL|TRUE|FALSE|AS|ON|JOIN|LEFT|RIGHT|INNER|OUTER|GROUP BY|ORDER BY|HAVING|LIMIT|OFFSET|DISTINCT)\b/gi,
+        (match) => match.toUpperCase(),
+      )
     }
 
     // 2. 智能缩进和换行
     beautified = applySmartFormatting(beautified, indentSpaces, formatStyle, maxLineLength)
 
-    // 3. 垂直对齐VALUES子句
+    // 3. 垂直对齐VALUES子句（简化版本，避免复杂逻辑）
     if (alignValues && beautified.toUpperCase().includes('VALUES')) {
-      beautified = alignValuesClause(beautified, indentSpaces)
+      beautified = alignValuesClauseSimple(beautified, indentSpaces)
     }
 
     return beautified
@@ -447,79 +523,57 @@ export function useSqlGeneratorEnhanced() {
   }
 
   /**
-   * 垂直对齐VALUES子句
+   * 简化版VALUES子句对齐
    */
-  const alignValuesClause = (sql, indentSpaces) => {
+  const alignValuesClauseSimple = (sql, indentSpaces) => {
     const lines = sql.split('\n')
-    const valuesIndex = lines.findIndex(line => line.trim().toUpperCase().startsWith('VALUES'))
+    const valuesIndex = lines.findIndex((line) => line.trim().toUpperCase().startsWith('VALUES'))
 
     if (valuesIndex === -1) return sql
 
-    // 找到VALUES子句开始和结束位置
+    // 找到VALUES子句开始位置
     let valuesStart = valuesIndex + 1
-    let valuesEnd = valuesIndex + 1
 
-    // 查找VALUES子句的结束位置，确保括号正确闭合
+    // 简化处理：只处理VALUES后面的几行
+    const result = []
+
+    // 添加VALUES行之前的内容
+    for (let i = 0; i <= valuesIndex; i++) {
+      result.push(lines[i])
+    }
+
+    // 处理VALUES子句内容
+    let inValues = false
     let openParens = 0
+
     for (let i = valuesStart; i < lines.length; i++) {
       const line = lines[i].trim()
-      openParens += (line.match(/\\(/g) || []).length
-      openParens -= (line.match(/\\)/g) || []).length
 
-      if (openParens === 0 && (line.endsWith(';') || i === lines.length - 1)) {
-        valuesEnd = i + 1
-        break
+      // 检查是否进入VALUES子句
+      if (!inValues && line.includes('(')) {
+        inValues = true
+        openParens = (line.match(/\(/g) || []).length
+      }
+
+      if (inValues) {
+        // 更新括号计数
+        openParens += (line.match(/\(/g) || []).length
+        openParens -= (line.match(/\)/g) || []).length
+
+        // 简单缩进处理
+        const indentedLine = ' '.repeat(indentSpaces) + line
+        result.push(indentedLine)
+
+        // 检查是否结束VALUES子句
+        if (openParens <= 0 && line.includes(')')) {
+          inValues = false
+        }
+      } else {
+        result.push(line)
       }
     }
 
-    // 提取VALUES行数据
-    const valuesLines = lines.slice(valuesStart, valuesEnd)
-    const alignedValues = alignValuesRows(valuesLines, indentSpaces)
-
-    // 重建SQL
-    const result = [...lines.slice(0, valuesStart), ...alignedValues, ...lines.slice(valuesEnd)]
     return result.join('\n')
-  }
-
-  /**
-   * 对齐VALUES行
-   */
-  const alignValuesRows = (valuesLines, indentSpaces) => {
-    if (valuesLines.length <= 1) return valuesLines
-
-    // 分析每行的字段位置
-    const fieldPositions = []
-    valuesLines.forEach(line => {
-      const fields = line.trim().match(/\([^)]+\)/g)
-      if (fields) {
-        const fieldValues = fields[0].slice(1, -1).split(',').map(f => f.trim())
-        fieldValues.forEach((value, index) => {
-          if (!fieldPositions[index]) fieldPositions[index] = []
-          fieldPositions[index].push(value.length)
-        })
-      }
-    })
-
-    // 计算每列的最大宽度
-    const maxWidths = fieldPositions.map(positions => Math.max(...positions))
-
-    // 重新格式化每行
-    return valuesLines.map(line => {
-      const fields = line.trim().match(/\([^)]+\)/g)
-      if (!fields) return line
-
-      const fieldValues = fields[0].slice(1, -1).split(',').map(f => f.trim())
-      const alignedFields = fieldValues.map((value, index) => {
-        return value.padEnd(maxWidths[index])
-      })
-
-      // 确保每行正确闭合，并处理逗号分隔
-      const formattedLine = ' '.repeat(indentSpaces) + '(' + alignedFields.join(', ') + ')'
-
-      // 如果是最后一行，确保没有多余的逗号
-      const isLastLine = valuesLines.indexOf(line) === valuesLines.length - 1
-      return isLastLine ? formattedLine : formattedLine + ','
-    })
   }
 
   /**
@@ -538,8 +592,8 @@ export function useSqlGeneratorEnhanced() {
     // 基础格式化（兼容旧版本）
     return sql
       .replace(/\n\s*\n/g, '\n\n') // 压缩空行
-      .replace(/\s+/g, ' ')        // 压缩连续空格
-      .replace(/;\s*/g, ';\n\n')   // 语句间添加空行
+      .replace(/\s+/g, ' ') // 压缩连续空格
+      .replace(/;\s*/g, ';\n\n') // 语句间添加空行
   }
 
   /**
@@ -551,7 +605,7 @@ export function useSqlGeneratorEnhanced() {
       formatted: formatSql(sql, 'formatted'),
       minified: formatSql(sql, 'minified'),
       lineCount: sql.split('\n').length,
-      charCount: sql.length
+      charCount: sql.length,
     }
   }
 
@@ -581,19 +635,21 @@ export function useSqlGeneratorEnhanced() {
         statementCount++
         const stmt = currentStatement.trim()
 
+        // 检查语句类型
+        const upperStmt = stmt.toUpperCase()
+
         // 检查INSERT语句格式
-        if (stmt.toUpperCase().includes('INSERT')) {
-          if (!stmt.toUpperCase().includes('VALUES')) {
+        if (upperStmt.startsWith('INSERT')) {
+          if (!upperStmt.includes('VALUES')) {
             errors.push(`第${statementCount}条INSERT语句（第${lineIndex + 1}行）缺少VALUES关键字`)
           }
         }
-
         // 检查UPDATE语句格式
-        if (stmt.toUpperCase().includes('UPDATE')) {
-          if (!stmt.toUpperCase().includes('SET')) {
+        else if (upperStmt.startsWith('UPDATE')) {
+          if (!upperStmt.includes('SET')) {
             errors.push(`第${statementCount}条UPDATE语句（第${lineIndex + 1}行）缺少SET关键字`)
           }
-          if (!stmt.toUpperCase().includes('WHERE')) {
+          if (!upperStmt.includes('WHERE')) {
             errors.push(`第${statementCount}条UPDATE语句（第${lineIndex + 1}行）缺少WHERE条件`)
           }
         }
@@ -604,24 +660,29 @@ export function useSqlGeneratorEnhanced() {
 
     // 检查是否有未以分号结尾的语句
     if (currentStatement.trim()) {
-      errors.push(`存在未以分号结尾的语句（共${statementCount + 1}条语句，第${statementCount + 1}条未正确结尾）`)
+      errors.push(
+        `存在未以分号结尾的语句（共${statementCount + 1}条语句，第${statementCount + 1}条未正确结尾）`,
+      )
     }
 
     // 检查VALUES子句括号闭合
-    const valuesMatches = sql.match(/VALUES\s*\([^)]+/g)
+    const valuesRegex = /VALUES\s*\([^)]*\)/g
+    const valuesMatches = sql.match(valuesRegex)
     if (valuesMatches) {
       valuesMatches.forEach((match, index) => {
-        const openParens = (match.match(/\\(/g) || []).length
-        const closeParens = (match.match(/\\)/g) || []).length
-        if (openParens > closeParens) {
-          errors.push(`第${index + 1}个VALUES子句括号未正确闭合`)
+        const openParens = (match.match(/\(/g) || []).length
+        const closeParens = (match.match(/\)/g) || []).length
+        if (openParens !== closeParens) {
+          errors.push(
+            `第${index + 1}个VALUES子句括号未正确闭合（开括号: ${openParens}, 闭括号: ${closeParens}）`,
+          )
         }
       })
     }
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     }
   }
 
@@ -715,7 +776,7 @@ export function useSqlGeneratorEnhanced() {
       formatStyle: 'expanded',
       keywordCase: 'upper',
       maxLineLength: 80,
-      alignValues: true
+      alignValues: true,
     }
   }
 
@@ -736,6 +797,6 @@ export function useSqlGeneratorEnhanced() {
     setSqlFormat,
     setBatchSize,
     setBeautifyOptions,
-    resetBeautifyOptions
+    resetBeautifyOptions,
   }
 }
