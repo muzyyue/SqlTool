@@ -536,3 +536,45 @@ ${values};`
 
   return { generateInsertSql, generateUpdateSql, parseDdlForFields }
 }
+
+ 
+// Test.xlsl 的ddl  postgresql
+CREATE TABLE "public"."file_info" (
+  "file_id" int8 NOT NULL GENERATED ALWAYS AS IDENTITY (
+INCREMENT 1
+MINVALUE  1
+MAXVALUE 9223372036854775807
+START 1
+CACHE 1
+),
+  "file_name" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
+  "file_path" text COLLATE "pg_catalog"."default" NOT NULL,
+  "file_size" int8 DEFAULT 0,
+  "file_type" varchar(100) COLLATE "pg_catalog"."default",
+  "file_suffix" varchar(50) COLLATE "pg_catalog"."default",
+  "upload_user_id" int8,
+  "storage_bucket" varchar(100) COLLATE "pg_catalog"."default" DEFAULT 'default'::character varying,
+  "file_status" int2 DEFAULT 1,
+  "create_time" timestamptz(6) DEFAULT CURRENT_TIMESTAMP,
+  "update_time" timestamptz(6) DEFAULT CURRENT_TIMESTAMP,
+  "remark" text COLLATE "pg_catalog"."default",
+  CONSTRAINT "file_info_pkey" PRIMARY KEY ("file_id"),
+  CONSTRAINT "file_info_file_status_check" CHECK (file_status = ANY (ARRAY[0, 1, 2]))
+)
+;
+
+ALTER TABLE "public"."file_info" 
+  OWNER TO "postgres";
+
+CREATE INDEX "idx_file_info_name" ON "public"."file_info" USING btree (
+  "file_name" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST
+);
+
+CREATE INDEX "idx_file_info_status_create" ON "public"."file_info" USING btree (
+  "file_status" "pg_catalog"."int2_ops" ASC NULLS LAST,
+  "create_time" "pg_catalog"."timestamptz_ops" ASC NULLS LAST
+);
+
+CREATE INDEX "idx_file_info_user" ON "public"."file_info" USING btree (
+  "upload_user_id" "pg_catalog"."int8_ops" ASC NULLS LAST
+);
