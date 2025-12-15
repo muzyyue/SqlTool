@@ -32,10 +32,10 @@
         class="sql-code"
         :class="{
           'syntax-highlight': syntaxHighlight,
-          'compressed': previewMode === 'compressed'
+          compressed: previewMode === 'compressed',
         }"
       >
-        <code>{{ formattedSql }}</code>
+        <code v-html="highlightedSql"></code>
       </pre>
     </div>
 
@@ -62,28 +62,17 @@
     <!-- 操作按钮 -->
     <div class="action-buttons">
       <a-space>
-        <a-button
-          type="primary"
-          @click="copySql"
-          :disabled="!sql"
-          :loading="copying"
-        >
+        <a-button type="primary" @click="copySql" :disabled="!sql" :loading="copying">
           <template #icon><CopyOutlined /></template>
           复制SQL
         </a-button>
 
-        <a-button
-          @click="downloadSql"
-          :disabled="!sql"
-        >
+        <a-button @click="downloadSql" :disabled="!sql">
           <template #icon><DownloadOutlined /></template>
           下载文件
         </a-button>
 
-        <a-button
-          @click="previewInNewWindow"
-          :disabled="!sql"
-        >
+        <a-button @click="previewInNewWindow" :disabled="!sql">
           <template #icon><EyeOutlined /></template>
           新窗口预览
         </a-button>
@@ -91,19 +80,11 @@
         <a-dropdown :disabled="!sql">
           <template #overlay>
             <a-menu @click="handleExportMenuClick">
-              <a-menu-item key="copy">
-                <CopyOutlined /> 复制到剪贴板
-              </a-menu-item>
-              <a-menu-item key="download">
-                <DownloadOutlined /> 下载SQL文件
-              </a-menu-item>
-              <a-menu-item key="preview">
-                <EyeOutlined /> 新窗口预览
-              </a-menu-item>
+              <a-menu-item key="copy"> <CopyOutlined /> 复制到剪贴板 </a-menu-item>
+              <a-menu-item key="download"> <DownloadOutlined /> 下载SQL文件 </a-menu-item>
+              <a-menu-item key="preview"> <EyeOutlined /> 新窗口预览 </a-menu-item>
               <a-menu-divider />
-              <a-menu-item key="validate">
-                <SafetyOutlined /> 语法验证
-              </a-menu-item>
+              <a-menu-item key="validate"> <SafetyOutlined /> 语法验证 </a-menu-item>
             </a-menu>
           </template>
           <a-button>
@@ -122,11 +103,7 @@
       </div>
       <div class="validation-content" :class="{ 'has-errors': validationResult.hasErrors }">
         <div v-if="validationResult.hasErrors">
-          <a-alert
-            message="发现语法错误"
-            type="error"
-            show-icon
-          >
+          <a-alert message="发现语法错误" type="error" show-icon>
             <template #description>
               <ul class="error-list">
                 <li v-for="error in validationResult.errors" :key="error.line">
@@ -137,11 +114,7 @@
           </a-alert>
         </div>
         <div v-else>
-          <a-alert
-            message="语法验证通过"
-            type="success"
-            show-icon
-          />
+          <a-alert message="语法验证通过" type="success" show-icon />
         </div>
       </div>
     </div>
@@ -156,14 +129,16 @@ import {
   DownloadOutlined,
   EyeOutlined,
   MoreOutlined,
-  SafetyOutlined
+  SafetyOutlined,
 } from '@ant-design/icons-vue'
 import { useErrorHandler } from '@/composables/useErrorHandler'
+import { useSqlGeneratorEnhanced } from '@/composables/useSqlGeneratorEnhanced'
+import { sqlHighlighter } from '@/utils/sqlSyntaxHighlighter'
 
 const props = defineProps({
   sql: {
     type: String,
-    default: ''
+    default: '',
   },
   stats: {
     type: Object,
@@ -171,18 +146,19 @@ const props = defineProps({
       statementCount: 0,
       affectedRows: 0,
       generationTime: 0,
-      fileSize: 0
-    })
+      fileSize: 0,
+    }),
   },
   autoValidate: {
     type: Boolean,
-    default: true
-  }
+    default: true,
+  },
 })
 
 const emit = defineEmits(['copy', 'download', 'validate'])
 
 const { logError, logInfo, logWarning } = useErrorHandler()
+const sqlGenerator = useSqlGeneratorEnhanced()
 
 // 响应式数据
 const previewMode = ref('formatted')
@@ -191,20 +167,82 @@ const showLineNumbers = ref(true)
 const copying = ref(false)
 const validationResult = ref(null)
 
+// SQL美化设置
+const beautifySettings = ref({
+  indentSpaces: 4,
+  formatStyle: 'expanded',
+  keywordCase: 'upper',
+  maxLineLength: 80,
+  alignValues: true,
+})
+
+// 缓存机制
+const cacheKey = computed(() => {
+  return `${props.sql}-${previewMode.value}-${JSON.stringify(beautifySettings.value)}-${syntaxHighlight.value}`
+})
+
+const sqlCache = ref(new Map())
+
 // 计算属性
 const formattedSql = computed(() => {
   if (!props.sql) return ''
 
-  if (previewMode.value === 'compressed') {
-    // 压缩模式：移除多余空格和换行
-    return props.sql
-      .replace(/\s+/g, ' ')
-      .replace(/;\s*/g, ';\n')
-      .trim()
+  // 检查缓存
+  const cacheData = sqlCache.value.get(cacheKey.value)
+  if (cacheData && cacheData.formattedSql !== undefined) {
+    return cacheData.formattedSql
   }
 
-  // 格式化模式：保持原样
-  return props.sql
+  let formatted = ''
+
+  if (previewMode.value === 'compressed') {
+    // 压缩模式：使用SQL生成器的美化功能
+    formatted = sqlGenerator.formatSql(props.sql, 'minified')
+  } else if (previewMode.value === 'formatted') {
+    // 格式化模式：使用完整的美化功能
+    formatted = sqlGenerator.beautifySql(props.sql, beautifySettings.value)
+  } else {
+    // 原始模式
+    formatted = props.sql
+  }
+
+  // 更新缓存
+  const cacheEntry = sqlCache.value.get(cacheKey.value) || {}
+  cacheEntry.formattedSql = formatted
+  sqlCache.value.set(cacheKey.value, cacheEntry)
+
+  return formatted
+})
+
+const highlightedSql = computed(() => {
+  if (!props.sql) return ''
+
+  // 检查缓存
+  const cacheData = sqlCache.value.get(cacheKey.value)
+  if (cacheData && cacheData.highlightedSql !== undefined) {
+    return cacheData.highlightedSql
+  }
+
+  let highlighted = ''
+
+  if (syntaxHighlight.value) {
+    try {
+      // 对美化后的SQL进行语法高亮
+      highlighted = sqlHighlighter.highlight(formattedSql.value)
+    } catch (error) {
+      console.error('语法高亮处理失败:', error)
+      highlighted = formattedSql.value
+    }
+  } else {
+    highlighted = formattedSql.value
+  }
+
+  // 更新缓存
+  const cacheEntry = sqlCache.value.get(cacheKey.value) || {}
+  cacheEntry.highlightedSql = highlighted
+  sqlCache.value.set(cacheKey.value, cacheEntry)
+
+  return highlighted
 })
 
 const lineCount = computed(() => {
@@ -216,11 +254,15 @@ const sqlStats = computed(() => {
     statementCount: props.stats.statementCount || 0,
     affectedRows: props.stats.affectedRows || 0,
     generationTime: props.stats.generationTime || 0,
-    fileSize: props.stats.fileSize || new Blob([props.sql]).size
+    fileSize: props.stats.fileSize || new Blob([props.sql]).size,
   }
 })
 
 // 方法
+const clearCache = () => {
+  sqlCache.value.clear()
+}
+
 const formatFileSize = (bytes) => {
   if (bytes === 0) return '0 B'
 
@@ -330,30 +372,36 @@ const validateSqlSyntax = async () => {
         if (!trimmedLine.startsWith('/*') && !trimmedLine.endsWith('*/')) {
           errors.push({
             line: lineNumber,
-            message: '语句缺少分号结尾'
+            message: '语句缺少分号结尾',
           })
         }
       }
 
       // 检查常见的语法错误
-      if (trimmedLine.toLowerCase().includes('insert') && !trimmedLine.toLowerCase().includes('values')) {
+      if (
+        trimmedLine.toLowerCase().includes('insert') &&
+        !trimmedLine.toLowerCase().includes('values')
+      ) {
         errors.push({
           line: lineNumber,
-          message: 'INSERT语句缺少VALUES关键字'
+          message: 'INSERT语句缺少VALUES关键字',
         })
       }
 
-      if (trimmedLine.toLowerCase().includes('update') && !trimmedLine.toLowerCase().includes('set')) {
+      if (
+        trimmedLine.toLowerCase().includes('update') &&
+        !trimmedLine.toLowerCase().includes('set')
+      ) {
         errors.push({
           line: lineNumber,
-          message: 'UPDATE语句缺少SET关键字'
+          message: 'UPDATE语句缺少SET关键字',
         })
       }
     })
 
     validationResult.value = {
       hasErrors: errors.length > 0,
-      errors: errors
+      errors: errors,
     }
 
     emit('validate', validationResult.value)
@@ -387,18 +435,23 @@ const handleExportMenuClick = ({ key }) => {
 }
 
 // 监听SQL变化，自动验证
-watch(() => props.sql, (newSql, oldSql) => {
-  if (newSql && newSql !== oldSql && props.autoValidate) {
-    validateSqlSyntax()
-  }
-}, { immediate: true })
+watch(
+  () => props.sql,
+  (newSql, oldSql) => {
+    if (newSql && newSql !== oldSql && props.autoValidate) {
+      validateSqlSyntax()
+    }
+  },
+  { immediate: true },
+)
 
 // 暴露方法给父组件
 defineExpose({
   copySql,
   downloadSql,
   validateSqlSyntax,
-  previewInNewWindow
+  previewInNewWindow,
+  clearCache,
 })
 </script>
 
@@ -479,37 +532,122 @@ defineExpose({
 }
 
 .sql-code.syntax-highlight code {
-  /* SQL关键字 */
+  /* SQL关键字 - 使用更醒目的红色 */
   :global(.sql-keyword) {
     color: #d73a49;
-    font-weight: bold;
+    font-weight: 600;
+    background: rgba(215, 58, 73, 0.05);
+    padding: 0 2px;
+    border-radius: 2px;
   }
 
-  /* 字符串 */
+  /* 字符串 - 使用深蓝色 */
   :global(.sql-string) {
     color: #032f62;
+    background: rgba(3, 47, 98, 0.05);
+    padding: 0 2px;
+    border-radius: 2px;
   }
 
-  /* 数字 */
+  /* 数字 - 使用明亮的蓝色 */
   :global(.sql-number) {
     color: #005cc5;
+    background: rgba(0, 92, 197, 0.05);
+    padding: 0 2px;
+    border-radius: 2px;
   }
 
-  /* 注释 */
+  /* 注释 - 使用中性灰色 */
   :global(.sql-comment) {
     color: #6a737d;
     font-style: italic;
+    background: rgba(106, 115, 125, 0.05);
+    padding: 0 2px;
+    border-radius: 2px;
   }
 
-  /* 表名 */
+  /* 表名 - 使用绿色 */
   :global(.sql-table) {
     color: #22863a;
+    background: rgba(34, 134, 58, 0.05);
+    padding: 0 2px;
+    border-radius: 2px;
   }
 
-  /* 字段名 */
+  /* 字段名 - 使用紫色 */
   :global(.sql-column) {
     color: #6f42c1;
+    background: rgba(111, 66, 193, 0.05);
+    padding: 0 2px;
+    border-radius: 2px;
   }
+}
+
+/* 暗色主题支持 */
+[data-theme='dark'] .sql-code.syntax-highlight {
+  color: #e1e4e8;
+}
+
+[data-theme='dark'] .sql-code.syntax-highlight code :global(.sql-keyword) {
+  color: #f97583;
+  background: rgba(249, 117, 131, 0.1);
+}
+
+[data-theme='dark'] .sql-code.syntax-highlight code :global(.sql-string) {
+  color: #79b8ff;
+  background: rgba(121, 184, 255, 0.1);
+}
+
+[data-theme='dark'] .sql-code.syntax-highlight code :global(.sql-number) {
+  color: #79b8ff;
+  background: rgba(121, 184, 255, 0.1);
+}
+
+[data-theme='dark'] .sql-code.syntax-highlight code :global(.sql-comment) {
+  color: #8b949e;
+  background: rgba(139, 148, 158, 0.1);
+}
+
+[data-theme='dark'] .sql-code.syntax-highlight code :global(.sql-table) {
+  color: #7ee787;
+  background: rgba(126, 231, 135, 0.1);
+}
+
+[data-theme='dark'] .sql-code.syntax-highlight code :global(.sql-column) {
+  color: #d2a8ff;
+  background: rgba(210, 168, 255, 0.1);
+}
+
+/* 滚动条样式优化 */
+.sql-preview-area::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.sql-preview-area::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.sql-preview-area::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.sql-preview-area::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+[data-theme='dark'] .sql-preview-area::-webkit-scrollbar-track {
+  background: #2d2d30;
+}
+
+[data-theme='dark'] .sql-preview-area::-webkit-scrollbar-thumb {
+  background: #464647;
+}
+
+[data-theme='dark'] .sql-preview-area::-webkit-scrollbar-thumb:hover {
+  background: #5a5a5c;
 }
 
 .sql-stats {

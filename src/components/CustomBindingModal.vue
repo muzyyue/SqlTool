@@ -15,7 +15,9 @@
           un-checked-children="禁用自定义绑定"
           @change="handleToggleChange"
         />
-        <span class="toggle-description"> 启用后，自定义绑定将优先于自动匹配结果 </span>
+        <span class="toggle-description">
+          启用后，自定义绑定将优先于自动匹配结果
+        </span>
       </div>
 
       <!-- 自定义绑定配置 -->
@@ -31,7 +33,7 @@
                   添加绑定
                 </a-button>
               </div>
-
+              
               <a-table
                 :data-source="singleBindings"
                 :columns="singleBindingColumns"
@@ -56,7 +58,7 @@
                       </a-select-option>
                     </a-select>
                   </template>
-
+                  
                   <template v-if="column.key === 'excelColumn'">
                     <a-select
                       v-model:value="record.excelIndex"
@@ -75,7 +77,7 @@
                       </a-select-option>
                     </a-select>
                   </template>
-
+                  
                   <template v-if="column.key === 'actions'">
                     <a-space>
                       <a-button
@@ -103,7 +105,7 @@
                   添加拼接规则
                 </a-button>
               </div>
-
+              
               <a-table
                 :data-source="concatenationRules"
                 :columns="concatenationColumns"
@@ -128,7 +130,7 @@
                       </a-select-option>
                     </a-select>
                   </template>
-
+                  
                   <template v-if="column.key === 'sourceColumns'">
                     <a-select
                       v-model:value="record.sourceColumns"
@@ -146,7 +148,7 @@
                       </a-select-option>
                     </a-select>
                   </template>
-
+                  
                   <template v-if="column.key === 'separator'">
                     <a-input
                       v-model:value="record.separator"
@@ -154,7 +156,7 @@
                       @change="handleConcatenationChange(record)"
                     />
                   </template>
-
+                  
                   <template v-if="column.key === 'format'">
                     <a-input
                       v-model:value="record.format"
@@ -162,13 +164,13 @@
                       @change="handleConcatenationChange(record)"
                     />
                   </template>
-
+                  
                   <template v-if="column.key === 'preview'">
                     <div class="preview-value">
                       {{ getConcatenationPreview(record) }}
                     </div>
                   </template>
-
+                  
                   <template v-if="column.key === 'actions'">
                     <a-space>
                       <a-button
@@ -220,20 +222,20 @@ import { message } from 'ant-design-vue'
 const props = defineProps({
   visible: {
     type: Boolean,
-    default: false,
+    default: false
   },
   ddlFields: {
     type: Array,
-    default: () => [],
+    default: () => []
   },
   excelHeaders: {
     type: Array,
-    default: () => [],
+    default: () => []
   },
   customBindingManager: {
     type: Object,
-    required: true,
-  },
+    required: true
+  }
 })
 
 // Emits
@@ -250,18 +252,18 @@ const singleBindingColumns = [
   {
     title: 'DDL字段',
     key: 'ddlField',
-    width: '30%',
+    width: '30%'
   },
   {
     title: 'Excel列',
     key: 'excelColumn',
-    width: '40%',
+    width: '40%'
   },
   {
     title: '操作',
     key: 'actions',
-    width: '30%',
-  },
+    width: '30%'
+  }
 ]
 
 // 字段拼接数据
@@ -270,79 +272,74 @@ const concatenationColumns = [
   {
     title: '目标DDL字段',
     key: 'ddlField',
-    width: '20%',
+    width: '20%'
   },
   {
     title: '源Excel列',
     key: 'sourceColumns',
-    width: '25%',
+    width: '25%'
   },
   {
     title: '分隔符',
     key: 'separator',
-    width: '15%',
+    width: '15%'
   },
   {
     title: '格式化模板',
     key: 'format',
-    width: '20%',
+    width: '20%'
   },
   {
     title: '预览',
     key: 'preview',
-    width: '10%',
+    width: '10%'
   },
   {
     title: '操作',
     key: 'actions',
-    width: '10%',
-  },
+    width: '10%'
+  }
 ]
 
 // 计算属性
 const availableDdlFields = computed(() => props.ddlFields)
-const totalCustomBindings = computed(
-  () => singleBindings.value.length + concatenationRules.value.length,
+const totalCustomBindings = computed(() => 
+  singleBindings.value.length + concatenationRules.value.length
 )
 
 // 监听器
-watch(
-  () => props.visible,
-  (newVal) => {
-    visible.value = newVal
-    if (newVal) {
-      // 模态框打开时加载数据
-      loadBindings()
-    }
-  },
-)
+watch(() => props.visible, (newVal) => {
+  visible.value = newVal
+  if (newVal) {
+    // 模态框打开时加载数据
+    loadBindings()
+  }
+})
 
-watch(
-  () => props.customBindingManager.enableCustomBinding,
-  (newVal) => {
-    enableCustomBinding.value = newVal
-  },
-)
+watch(() => props.customBindingManager.enableCustomBinding, (newVal) => {
+  enableCustomBinding.value = newVal
+})
 
 // 方法
 const loadBindings = () => {
   // 加载单列绑定
   singleBindings.value = props.customBindingManager.customBindings
-    .filter((binding) => binding.bindingType === 'single')
-    .map((binding) => ({
+    .filter(binding => binding.bindingType === 'single')
+    .map(binding => ({
       id: binding.id,
       ddlFieldName: binding.ddlFieldName,
-      excelIndex: binding.excelIndex,
+      excelIndex: binding.excelIndex
     }))
-
+  
   // 加载字段拼接规则
-  concatenationRules.value = props.customBindingManager.fieldConcatenationRules.map((rule) => ({
-    id: rule.id,
-    ddlFieldName: rule.ddlFieldName,
-    sourceColumns: rule.sourceColumns,
-    separator: rule.separator || '',
-    format: rule.format || '',
-  }))
+  concatenationRules.value = props.customBindingManager.fieldConcatenationRules
+    .map(rule => ({
+      id: rule.id,
+      ddlFieldName: rule.ddlFieldName,
+      sourceColumns: rule.sourceColumns,
+      separator: rule.separator || '',
+      format: rule.format || ''
+    }))
 }
 
 const handleToggleChange = (checked) => {
@@ -354,12 +351,12 @@ const addSingleBinding = () => {
   singleBindings.value.push({
     id: generateId(),
     ddlFieldName: '',
-    excelIndex: -1,
+    excelIndex: -1
   })
 }
 
 const removeSingleBinding = (id) => {
-  const index = singleBindings.value.findIndex((binding) => binding.id === id)
+  const index = singleBindings.value.findIndex(binding => binding.id === id)
   if (index >= 0) {
     singleBindings.value.splice(index, 1)
   }
@@ -367,7 +364,11 @@ const removeSingleBinding = (id) => {
 
 const handleSingleBindingChange = (record) => {
   if (record.ddlFieldName && record.excelIndex >= 0) {
-    props.customBindingManager.addCustomBinding(record.ddlFieldName, record.excelIndex, 'single')
+    props.customBindingManager.addCustomBinding(
+      record.ddlFieldName,
+      record.excelIndex,
+      'single'
+    )
   }
 }
 
@@ -377,12 +378,12 @@ const addConcatenationRule = () => {
     ddlFieldName: '',
     sourceColumns: [],
     separator: '',
-    format: '',
+    format: ''
   })
 }
 
 const removeConcatenationRule = (id) => {
-  const index = concatenationRules.value.findIndex((rule) => rule.id === id)
+  const index = concatenationRules.value.findIndex(rule => rule.id === id)
   if (index >= 0) {
     concatenationRules.value.splice(index, 1)
     // 从管理器中也移除
@@ -399,21 +400,19 @@ const handleConcatenationChange = (record) => {
       record.ddlFieldName,
       record.sourceColumns,
       record.separator,
-      record.format,
+      record.format
     )
   }
 }
 
 const isFieldBound = (fieldName) => {
-  return (
-    singleBindings.value.some((binding) => binding.ddlFieldName === fieldName) ||
-    concatenationRules.value.some((rule) => rule.ddlFieldName === fieldName)
-  )
+  return singleBindings.value.some(binding => binding.ddlFieldName === fieldName) ||
+         concatenationRules.value.some(rule => rule.ddlFieldName === fieldName)
 }
 
 const isColumnUsed = (columnIndex, currentBindingId) => {
-  return singleBindings.value.some(
-    (binding) => binding.id !== currentBindingId && binding.excelIndex === columnIndex,
+  return singleBindings.value.some(binding => 
+    binding.id !== currentBindingId && binding.excelIndex === columnIndex
   )
 }
 
@@ -421,21 +420,23 @@ const getConcatenationPreview = (rule) => {
   if (!rule.ddlFieldName || rule.sourceColumns.length === 0) {
     return '请配置规则'
   }
-
-  const sampleValues = rule.sourceColumns.map((colIndex, idx) => `值${idx + 1}`)
-
+  
+  const sampleValues = rule.sourceColumns.map((colIndex, idx) => 
+    `值${idx + 1}`
+  )
+  
   let result = sampleValues.join(rule.separator || '')
-
+  
   if (rule.format) {
     result = rule.format.replace(/{value}/g, result)
   }
-
+  
   return result.length > 20 ? result.substring(0, 20) + '...' : result
 }
 
 const validateBindings = () => {
   const validation = props.customBindingManager.validateBindings()
-
+  
   if (validation.isValid) {
     message.success('自定义绑定配置验证通过')
   } else {
@@ -453,18 +454,18 @@ const resetBindings = () => {
 const saveBindings = () => {
   // 验证配置
   const validation = props.customBindingManager.validateBindings()
-
+  
   if (!validation.isValid) {
     message.error(`保存失败: ${validation.errors.join('; ')}`)
     return
   }
-
+  
   emit('save', {
     customBindings: props.customBindingManager.customBindings,
     fieldConcatenationRules: props.customBindingManager.fieldConcatenationRules,
-    enableCustomBinding: enableCustomBinding.value,
+    enableCustomBinding: enableCustomBinding.value
   })
-
+  
   message.success('自定义绑定配置已保存')
   closeModal()
 }
