@@ -165,7 +165,7 @@
             :pagination="false"
             size="small"
           >
-            <template #bodyCell="{ column, record, index }">
+            <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'ddlField'">
                 <div>
                   <strong>{{ record.ddlField.name }}</strong>
@@ -422,8 +422,6 @@ import {
   PlayCircleOutlined,
   QuestionCircleOutlined,
   UploadOutlined,
-  CopyOutlined,
-  DownloadOutlined,
   ClockCircleOutlined,
   SettingOutlined,
 } from '@ant-design/icons-vue'
@@ -437,7 +435,6 @@ import { useErrorHandler } from '@/composables/useErrorHandler'
 
 // 导入SQL预览组件
 import SqlPreview from '@/components/SqlPreview/SqlPreview.vue'
-import CustomBindingModal from '@/components/CustomBindingModal.vue'
 
 // 初始化核心功能模块
 const { parseDdl: parseDdlWithParser, clearCache } = useDdlParser()
@@ -449,15 +446,16 @@ const {
   validateMappings: validateFieldMappings,
   matchingStats,
   customBindingManager,
+  enhancedMatchFields,
+  processDataWithConcatenation,
+  validateEnhancedMappings,
 } = useFieldMatcher()
 const {
   generateInsertSql,
-  previewSql,
-  beautifyOptions: defaultBeautifyOptions,
   setBeautifyOptions,
   resetBeautifyOptions: resetDefaultBeautifyOptions,
 } = useSqlGeneratorEnhanced()
-const { logError, logInfo, logWarning, errorLogs } = useErrorHandler()
+const { logError, logInfo, logWarning } = useErrorHandler()
 
 // 响应式数据
 const ddlStatement = ref('')
@@ -810,28 +808,6 @@ const openCustomBindingModal = () => {
   })
 }
 
-const handleCustomBindingSave = (config) => {
-  logInfo('保存自定义绑定配置', 'custom-binding', {
-    operation: 'saveCustomBindingConfig',
-    customBindings: config.customBindings.length,
-    concatenationRules: config.concatenationRules.length,
-  })
-
-  // 应用配置后重新执行字段匹配
-  if (parsedFields.value.length > 0 && excelHeaders.value.length > 0) {
-    enhancedMatchFields(parsedFields.value, excelHeaders.value)
-  }
-
-  message.success('自定义绑定配置已保存')
-}
-
-const handleCustomBindingCancel = () => {
-  logInfo('取消自定义绑定配置', 'custom-binding', {
-    operation: 'cancelCustomBindingConfig',
-  })
-  message.info('已取消配置')
-}
-
 const handleClearCache = () => {
   clearCache()
   logInfo('DDL解析缓存已清除')
@@ -864,23 +840,6 @@ const getConfidenceText = (confidence) => {
     manual: '手动',
   }
   return texts[confidence] || '未知'
-}
-
-const validateMappings = () => {
-  const validation = validateFieldMappings()
-
-  if (validation.isValid) {
-    message.success('字段映射验证通过')
-    logInfo('字段映射验证通过')
-  } else {
-    currentErrors.value = validation.errors.map((error) => ({
-      id: Date.now() + Math.random(),
-      message: '映射验证失败',
-      context: error,
-    }))
-    errorModalVisible.value = true
-    logWarning('字段映射验证失败', 'validation', { errors: validation.errors })
-  }
 }
 
 // SQL美化相关方法
@@ -1090,7 +1049,7 @@ const extractTableName = (ddl) => {
   const patterns = [
     /CREATE TABLE\s+(?:IF NOT EXISTS\s+)?`?([^`\s(]+)`?/i,
     /CREATE TABLE\s+(?:IF NOT EXISTS\s+)?"?([^"\s(]+)"?/i,
-    /CREATE TABLE\s+(?:IF NOT EXISTS\s+)?\[?([^\[\s(]+)\]?/i,
+    /CREATE TABLE\s+(?:IF NOT EXISTS\s+)?\[?([^[^\s(]+)\]?/i,
   ]
 
   for (const pattern of patterns) {
@@ -1103,29 +1062,6 @@ const extractTableName = (ddl) => {
   }
 
   return 'unknown_table'
-}
-
-const copySql = async () => {
-  try {
-    await navigator.clipboard.writeText(generatedSql.value)
-    message.success('SQL已复制到剪贴板')
-    logInfo('SQL语句已复制到剪贴板')
-  } catch (error) {
-    message.error('复制失败')
-    logError(error, 'system', { operation: 'copySql' })
-  }
-}
-
-const downloadSql = () => {
-  const blob = new Blob([generatedSql.value], { type: 'text/plain' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = 'generated_insert.sql'
-  a.click()
-  URL.revokeObjectURL(url)
-  logInfo('SQL语句已下载')
-  message.success('SQL文件下载成功')
 }
 
 const getLogColor = (level, operationType) => {
@@ -1152,22 +1088,26 @@ const formatLogMessage = (log) => {
   // 美化操作的特殊格式化
   if (log.context && log.context.operationType === 'beautify') {
     const operation = log.context.operation || 'unknown'
+    let isVisible = ''
+    let changes = []
 
     switch (operation) {
       case 'toggleBeautifyOptions':
-        const isVisible = log.context.isVisible ? '显示' : '隐藏'
+        isVisible = log.context.isVisible ? '显示' : '隐藏'
         message += ` (${isVisible}美化选项面板)`
         break
 
       case 'applyBeautifyOptions':
         if (log.context.changes && log.context.changes.length > 0) {
-          message += ` (变更: ${log.context.changes.join(', ')})`
+          changes = log.context.changes
+          message += ` (变更: ${changes.join(', ')})`
         }
         break
 
       case 'resetBeautifyOptions':
         if (log.context.changes && log.context.changes.length > 0) {
-          message += ` (重置项: ${log.context.changes.join(', ')})`
+          changes = log.context.changes
+          message += ` (重置项: ${changes.join(', ')})`
         }
         break
     }
@@ -1215,13 +1155,6 @@ const resetAll = () => {
 
   logInfo('所有数据已重置')
   message.success('重置成功')
-}
-
-// 初始化操作日志（从错误处理器中获取）
-const updateOperationLogs = () => {
-  operationLogs.value = [...errorLogs.value.map((log) => ({ ...log, level: 'error' }))].sort(
-    (a, b) => new Date(b.timestamp) - new Date(a.timestamp),
-  )
 }
 
 // 监听错误日志变化

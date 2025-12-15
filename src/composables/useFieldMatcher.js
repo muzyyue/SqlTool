@@ -56,7 +56,7 @@ export function useFieldMatcher() {
     const usedExcelIndices = new Set()
 
     // 为每个DDL字段找到最匹配的Excel列
-    ddlFields.forEach((ddlField, ddlIndex) => {
+    ddlFields.forEach((ddlField) => {
       let bestMatch = null
       let bestScore = -1
 
@@ -161,7 +161,7 @@ export function useFieldMatcher() {
   /**
    * 创建手动匹配模板
    */
-  const createManualMappings = (ddlFields, excelHeaders) => {
+  const createManualMappings = (ddlFields) => {
     return ddlFields.map((ddlField) => ({
       ddlField,
       excelHeader: null,
@@ -321,7 +321,7 @@ export function useFieldMatcher() {
     const errors = []
     const usedExcelIndices = new Set()
 
-    fieldMappings.value.forEach((mapping, index) => {
+    fieldMappings.value.forEach((mapping) => {
       if (mapping.excelHeader) {
         if (usedExcelIndices.has(mapping.excelIndex)) {
           errors.push(`Excel列"${mapping.excelHeader}"被重复映射`)

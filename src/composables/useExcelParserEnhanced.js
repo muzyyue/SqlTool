@@ -32,7 +32,7 @@ export function useExcelParserEnhanced() {
       maxRows: 10000, // 最大处理行数
       chunkSize: 1000, // 分块大小
       onProgress: null, // 进度回调
-      onWorksheetChange: null // 工作表切换回调
+      onWorksheetChange: null, // 工作表切换回调
     }
 
     const finalOptions = { ...defaultOptions, ...options }
@@ -44,10 +44,7 @@ export function useExcelParserEnhanced() {
       })
 
       // 读取文件
-      const workbook = await Promise.race([
-        readWorkbook(file),
-        timeoutPromise
-      ])
+      const workbook = await Promise.race([readWorkbook(file), timeoutPromise])
 
       // 获取工作表信息
       const worksheetInfo = getWorksheetInfo(workbook)
@@ -107,7 +104,7 @@ export function useExcelParserEnhanced() {
     if (!supportedFormats.includes(fileExtension)) {
       return {
         valid: false,
-        error: `不支持的文件格式: .${fileExtension}。支持的格式: ${supportedFormats.join(', ')}`
+        error: `不支持的文件格式: .${fileExtension}。支持的格式: ${supportedFormats.join(', ')}`,
       }
     }
 
@@ -116,7 +113,7 @@ export function useExcelParserEnhanced() {
     if (file.size > maxSize) {
       return {
         valid: false,
-        error: `文件大小超过限制: ${(file.size / 1024 / 1024).toFixed(2)}MB > 50MB`
+        error: `文件大小超过限制: ${(file.size / 1024 / 1024).toFixed(2)}MB > 50MB`,
       }
     }
 
@@ -139,7 +136,7 @@ export function useExcelParserEnhanced() {
             cellDates: true,
             cellNF: false,
             cellText: false,
-            dense: true // 使用密集模式提高性能
+            dense: true, // 使用密集模式提高性能
           }
 
           const workbook = XLSX.read(data, readOptions)
@@ -178,9 +175,9 @@ export function useExcelParserEnhanced() {
         index,
         rowCount: range ? range.e.r + 1 : 0,
         columnCount: range ? range.e.c + 1 : 0,
-        hasData: worksheet && Object.keys(worksheet).length > 1
+        hasData: worksheet && Object.keys(worksheet).length > 1,
       }
-    }).filter(sheet => sheet.hasData)
+    }).filter((sheet) => sheet.hasData)
   }
 
   /**
@@ -195,7 +192,7 @@ export function useExcelParserEnhanced() {
 
     return {
       ...selectedSheet,
-      worksheet: workbook.Sheets[selectedSheet.name]
+      worksheet: workbook.Sheets[selectedSheet.name],
     }
   }
 
@@ -225,13 +222,13 @@ export function useExcelParserEnhanced() {
   /**
    * 直接解析工作表（小型文件）
    */
-  const parseWorksheetDirect = async (worksheet, options) => {
+  const parseWorksheetDirect = async (worksheet) => {
     const parseOptions = {
       header: 1,
       defval: '',
       raw: true,
       rawNumbers: true,
-      blankrows: false // 跳过空行
+      blankrows: false, // 跳过空行
     }
 
     const jsonData = XLSX.utils.sheet_to_json(worksheet, parseOptions)
@@ -253,8 +250,7 @@ export function useExcelParserEnhanced() {
   /**
    * 分块解析工作表（大型文件）
    */
-  const parseWorksheetChunked = async (worksheet, totalRows, options) => {
-    const chunkSize = options.chunkSize
+  const parseWorksheetChunked = async (worksheet, totalRows, chunkSize) => {
     const headers = extractHeaders(worksheet)
     const allRows = []
 
@@ -271,12 +267,8 @@ export function useExcelParserEnhanced() {
       processedRows.value = endRow - 1
       processingProgress.value = Math.round((endRow / totalRows) * 100)
 
-      if (options.onProgress) {
-        options.onProgress(processingProgress.value)
-      }
-
       // 短暂延迟以避免阻塞UI
-      await new Promise(resolve => setTimeout(resolve, 0))
+      await new Promise((resolve) => setTimeout(resolve, 0))
     }
 
     return processExcelData(allRows)
@@ -361,7 +353,7 @@ export function useExcelParserEnhanced() {
       headers,
       rows: processedRows,
       totalRows: processedRows.length,
-      totalColumns: headers.length
+      totalColumns: headers.length,
     }
   }
 
@@ -399,11 +391,11 @@ export function useExcelParserEnhanced() {
       const previousRow = processedRows[i - 1]
 
       // 检查是否为真正的一对多关系行
-      const hasAnyValue = currentRow.some(value =>
-        value !== '' && value !== null && value !== undefined
+      const hasAnyValue = currentRow.some(
+        (value) => value !== '' && value !== null && value !== undefined,
       )
-      const hasAnyEmpty = currentRow.some(value =>
-        value === '' || value === null || value === undefined
+      const hasAnyEmpty = currentRow.some(
+        (value) => value === '' || value === null || value === undefined,
       )
 
       // 如果是真正的一对多关系行，继承上一行的非空值
@@ -445,13 +437,13 @@ export function useExcelParserEnhanced() {
       progress: processingProgress.value,
       currentWorksheet: currentWorksheet.value,
       totalRows: totalRows.value,
-      processedRows: processedRows.value
+      processedRows: processedRows.value,
     }
   }
 
   return {
     parseExcel,
     getProgress,
-    resetProgress
+    resetProgress,
   }
 }

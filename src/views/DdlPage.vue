@@ -333,7 +333,6 @@ import {
   PlayCircleOutlined,
   QuestionCircleOutlined,
   PlusOutlined,
-  CheckCircleOutlined,
   CopyOutlined,
   DownloadOutlined,
 } from '@ant-design/icons-vue'
@@ -472,8 +471,6 @@ const resetDdlInputs = () => {
   tableComment.value = ''
   fields.value = []
   constraints.value = []
-  alterAction.value = 'add'
-  dropIfExists.value = true
 }
 
 const generateSql = async () => {
@@ -551,22 +548,22 @@ const validateDdlSql = async (sql, dbType) => {
   // 使用DDL类型解析器进行语法验证
   try {
     const parseResult = await parseDdlType(sql)
-    
+
     if (parseResult.success) {
       return {
         valid: true,
-        message: `SQL语句语法正确，检测到${parseResult.statementType}类型语句，符合${getDatabaseInfo(dbType).name}语法规范`
+        message: `SQL语句语法正确，检测到${parseResult.statementType}类型语句，符合${getDatabaseInfo(dbType).name}语法规范`,
       }
     } else {
       return {
         valid: false,
-        message: `语法验证失败: ${parseResult.error}`
+        message: `语法验证失败: ${parseResult.error}`,
       }
     }
-  } catch (error) {
+  } catch {
     return {
       valid: false,
-      message: `语法验证异常: ${error.message}`
+      message: '语法验证异常',
     }
   }
 }
@@ -575,7 +572,7 @@ const copySql = async () => {
   try {
     await navigator.clipboard.writeText(generatedSql.value)
     message.success('SQL已复制到剪贴板')
-  } catch (error) {
+  } catch {
     message.error('复制失败')
   }
 }

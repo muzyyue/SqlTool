@@ -120,61 +120,57 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { 
-  DatabaseOutlined, 
+import {
+  DatabaseOutlined,
   CheckCircleOutlined,
   FileTextOutlined,
   TableOutlined,
   CodeOutlined,
   ExportOutlined,
-  SettingOutlined
+  SettingOutlined,
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 
 // 定义事件
-const emit = defineEmits(['close'])
+// const emit = defineEmits(['close']) // 暂时注释掉，如果需要使用可以取消注释
 
 // 响应式数据
 const features = ref([
   {
     title: '智能字段映射',
     description: '基于名称相似度和拼音匹配算法，自动建立DDL字段与Excel列的映射关系',
-    icon: TableOutlined
+    icon: TableOutlined,
   },
   {
     title: '多数据库支持',
     description: '支持MySQL、PostgreSQL、SQL Server等多种数据库语法',
-    icon: DatabaseOutlined
+    icon: DatabaseOutlined,
   },
   {
     title: '批量SQL生成',
     description: '支持大型Excel文件处理，智能分块生成高效的SQL语句',
-    icon: FileTextOutlined
+    icon: FileTextOutlined,
   },
   {
     title: '实时预览',
     description: '语法高亮显示，支持格式化和压缩两种显示模式',
-    icon: CodeOutlined
+    icon: CodeOutlined,
   },
   {
     title: '多种导出方式',
     description: '支持SQL文件下载、剪贴板复制、直接导出到数据库',
-    icon: ExportOutlined
+    icon: ExportOutlined,
   },
   {
     title: '个性化设置',
     description: '丰富的配置选项，满足不同用户的个性化需求',
-    icon: SettingOutlined
-  }
+    icon: SettingOutlined,
+  },
 ])
 
-const frontendTechs = ref([
-  'Vue 3', 'Ant Design Vue', 'Vite', 'ES6+', 'CSS3'
-])
+const frontendTechs = ref(['Vue 3', 'Ant Design Vue', 'Vite', 'ES6+', 'CSS3'])
 
-const backendTechs = ref([
-  'Node.js', 'Express', 'SQL Parser', 'XLSX', 'Pinyin'
-])
+const backendTechs = ref(['Node.js', 'Express', 'SQL Parser', 'XLSX', 'Pinyin'])
 
 const userAgent = ref('')
 const screenResolution = ref('')
@@ -326,17 +322,17 @@ onMounted(() => {
   .about-panel {
     max-height: 60vh;
   }
-  
+
   .about-header {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .app-icon {
     margin-right: 0;
     margin-bottom: 12px;
   }
-  
+
   .tech-stack {
     text-align: center;
   }
@@ -348,7 +344,8 @@ onMounted(() => {
 }
 
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {

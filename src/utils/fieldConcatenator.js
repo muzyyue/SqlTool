@@ -161,14 +161,14 @@ export class FieldConcatenator {
 
       // 替换索引占位符
       values.forEach((value, index) => {
-        const placeholder = `\$\{${index}\}`
+        const placeholder = `$(${index})`
         result = result.replace(new RegExp(placeholder, 'g'), value)
       })
 
       // 替换字段名占位符（需要额外的字段名映射）
       if (this.config.fieldMapping) {
         Object.entries(this.config.fieldMapping).forEach(([fieldName, fieldIndex]) => {
-          const placeholder = `\$\{${fieldName}\}`
+          const placeholder = `$(${fieldName})`
           const value = values[fieldIndex] || ''
           result = result.replace(new RegExp(placeholder, 'g'), value)
         })

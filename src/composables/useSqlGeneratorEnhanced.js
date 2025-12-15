@@ -79,7 +79,7 @@ export function useSqlGeneratorEnhanced() {
     }
 
     // 生成每条记录的UPDATE语句
-    excelData.forEach((row, index) => {
+    excelData.forEach((row) => {
       const updateSql = generateSingleUpdateSql(tableName, fieldMappings, row, whereFields, dbType)
       if (updateSql) {
         sqlStatements.push(updateSql)
@@ -182,7 +182,7 @@ export function useSqlGeneratorEnhanced() {
     // 验证表名格式（支持更灵活的表名格式）
     // 允许：字母、数字、下划线、中文字符、点号、连字符、空格、双引号（用于PostgreSQL模式）
     // 禁止：特殊字符和SQL关键字
-    const invalidChars = /[<>\/\\;'\|\*\?\$\^\[\]\{\}\(\)\+\=]/i
+    const invalidChars = /[<>/\\;'|*?$^[\]{}() +=]/i
     const sqlKeywords = /\b(SELECT|INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|TRUNCATE)\b/i
 
     // 检查是否包含不允许的特殊字符（排除双引号，因为PostgreSQL支持带引号的表名）
@@ -230,12 +230,13 @@ export function useSqlGeneratorEnhanced() {
     switch (dbType) {
       case 'mysql':
         return `\`${name}\``
-      case 'postgresql':
+      case 'postgresql': {
         // PostgreSQL: 仅对包含特殊字符或关键字的字段名使用双引号
         const needsQuotes =
           /[^a-zA-Z0-9_]/.test(name) ||
           /^(SELECT|INSERT|UPDATE|DELETE|FROM|WHERE|AND|OR|NOT|NULL|TRUE|FALSE)$/i.test(name)
         return needsQuotes ? `"${name}"` : name
+      }
       case 'sqlserver':
         return `[${name}]`
       default:
@@ -386,7 +387,7 @@ export function useSqlGeneratorEnhanced() {
       'MM/DD/YYYY HH:mm:ss',
     ]
 
-    for (const format of formats) {
+    for (let i = 0; i < formats.length; i++) {
       const date = new Date(dateTimeStr)
       if (!isNaN(date.getTime())) {
         return date

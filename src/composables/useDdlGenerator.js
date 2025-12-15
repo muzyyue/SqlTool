@@ -14,7 +14,7 @@ export const DatabaseType = {
   ORACLE: 'oracle',
   SQLSERVER: 'sqlserver',
   DM: 'dm',
-  UNKNOWN: 'unknown'
+  UNKNOWN: 'unknown',
 }
 
 /**
@@ -48,17 +48,17 @@ export class DdlGenerator {
         identityKeyword: 'AUTO_INCREMENT',
         defaultSchema: '',
         dataTypes: {
-          'VARCHAR': 'VARCHAR',
-          'CHAR': 'CHAR',
-          'TEXT': 'TEXT',
-          'INT': 'INT',
-          'BIGINT': 'BIGINT',
-          'DECIMAL': 'DECIMAL',
-          'DATE': 'DATE',
-          'DATETIME': 'DATETIME',
-          'TIMESTAMP': 'TIMESTAMP',
-          'BOOLEAN': 'BOOLEAN'
-        }
+          VARCHAR: 'VARCHAR',
+          CHAR: 'CHAR',
+          TEXT: 'TEXT',
+          INT: 'INT',
+          BIGINT: 'BIGINT',
+          DECIMAL: 'DECIMAL',
+          DATE: 'DATE',
+          DATETIME: 'DATETIME',
+          TIMESTAMP: 'TIMESTAMP',
+          BOOLEAN: 'BOOLEAN',
+        },
       },
       [DatabaseType.POSTGRESQL]: {
         quoteChar: '"',
@@ -68,17 +68,17 @@ export class DdlGenerator {
         identityKeyword: 'GENERATED ALWAYS AS IDENTITY',
         defaultSchema: 'public',
         dataTypes: {
-          'VARCHAR': 'VARCHAR',
-          'CHAR': 'CHAR',
-          'TEXT': 'TEXT',
-          'INT': 'INTEGER',
-          'BIGINT': 'BIGINT',
-          'DECIMAL': 'DECIMAL',
-          'DATE': 'DATE',
-          'DATETIME': 'TIMESTAMP',
-          'TIMESTAMP': 'TIMESTAMP',
-          'BOOLEAN': 'BOOLEAN'
-        }
+          VARCHAR: 'VARCHAR',
+          CHAR: 'CHAR',
+          TEXT: 'TEXT',
+          INT: 'INTEGER',
+          BIGINT: 'BIGINT',
+          DECIMAL: 'DECIMAL',
+          DATE: 'DATE',
+          DATETIME: 'TIMESTAMP',
+          TIMESTAMP: 'TIMESTAMP',
+          BOOLEAN: 'BOOLEAN',
+        },
       },
       [DatabaseType.ORACLE]: {
         quoteChar: '"',
@@ -88,17 +88,17 @@ export class DdlGenerator {
         identityKeyword: 'GENERATED ALWAYS AS IDENTITY',
         defaultSchema: '',
         dataTypes: {
-          'VARCHAR': 'VARCHAR2',
-          'CHAR': 'CHAR',
-          'TEXT': 'CLOB',
-          'INT': 'NUMBER',
-          'BIGINT': 'NUMBER',
-          'DECIMAL': 'NUMBER',
-          'DATE': 'DATE',
-          'DATETIME': 'TIMESTAMP',
-          'TIMESTAMP': 'TIMESTAMP',
-          'BOOLEAN': 'NUMBER(1)'
-        }
+          VARCHAR: 'VARCHAR2',
+          CHAR: 'CHAR',
+          TEXT: 'CLOB',
+          INT: 'NUMBER',
+          BIGINT: 'NUMBER',
+          DECIMAL: 'NUMBER',
+          DATE: 'DATE',
+          DATETIME: 'TIMESTAMP',
+          TIMESTAMP: 'TIMESTAMP',
+          BOOLEAN: 'NUMBER(1)',
+        },
       },
       [DatabaseType.SQLSERVER]: {
         quoteChar: '[',
@@ -108,17 +108,17 @@ export class DdlGenerator {
         identityKeyword: 'IDENTITY',
         defaultSchema: 'dbo',
         dataTypes: {
-          'VARCHAR': 'VARCHAR',
-          'CHAR': 'CHAR',
-          'TEXT': 'TEXT',
-          'INT': 'INT',
-          'BIGINT': 'BIGINT',
-          'DECIMAL': 'DECIMAL',
-          'DATE': 'DATE',
-          'DATETIME': 'DATETIME',
-          'TIMESTAMP': 'DATETIME2',
-          'BOOLEAN': 'BIT'
-        }
+          VARCHAR: 'VARCHAR',
+          CHAR: 'CHAR',
+          TEXT: 'TEXT',
+          INT: 'INT',
+          BIGINT: 'BIGINT',
+          DECIMAL: 'DECIMAL',
+          DATE: 'DATE',
+          DATETIME: 'DATETIME',
+          TIMESTAMP: 'DATETIME2',
+          BOOLEAN: 'BIT',
+        },
       },
       [DatabaseType.DM]: {
         quoteChar: '"',
@@ -128,18 +128,18 @@ export class DdlGenerator {
         identityKeyword: 'IDENTITY',
         defaultSchema: '',
         dataTypes: {
-          'VARCHAR': 'VARCHAR',
-          'CHAR': 'CHAR',
-          'TEXT': 'CLOB',
-          'INT': 'INT',
-          'BIGINT': 'BIGINT',
-          'DECIMAL': 'DECIMAL',
-          'DATE': 'DATE',
-          'DATETIME': 'DATETIME',
-          'TIMESTAMP': 'TIMESTAMP',
-          'BOOLEAN': 'BOOLEAN'
-        }
-      }
+          VARCHAR: 'VARCHAR',
+          CHAR: 'CHAR',
+          TEXT: 'CLOB',
+          INT: 'INT',
+          BIGINT: 'BIGINT',
+          DECIMAL: 'DECIMAL',
+          DATE: 'DATE',
+          DATETIME: 'DATETIME',
+          TIMESTAMP: 'TIMESTAMP',
+          BOOLEAN: 'BOOLEAN',
+        },
+      },
     }
   }
 
@@ -156,7 +156,7 @@ export class DdlGenerator {
     }
 
     const syntax = this.databaseSyntax[targetDatabase]
-    
+
     try {
       switch (ddlParseResult.type) {
         case DdlStatementType.CREATE_TABLE:
@@ -188,51 +188,51 @@ export class DdlGenerator {
    */
   generateCreateTable(parseResult, syntax, options) {
     const { tableName, details } = parseResult
-    const { fields = [], constraints = [], indexes = [] } = details
-    
+    const { fields = [], constraints = [] } = details
+
     if (!tableName) {
       throw new Error('缺少表名')
     }
 
     let sql = 'CREATE TABLE '
-    
+
     // IF NOT EXISTS
     if (options.ifNotExists) {
       sql += 'IF NOT EXISTS '
     }
-    
+
     // 表名
     sql += this.quoteIdentifier(tableName, syntax)
     sql += ' (\n'
-    
+
     // 字段定义
-    const fieldDefinitions = fields.map(field => {
+    const fieldDefinitions = fields.map((field) => {
       return this.generateFieldDefinition(field, syntax, options)
     })
-    
+
     // 约束定义
-    const constraintDefinitions = constraints.map(constraint => {
+    const constraintDefinitions = constraints.map((constraint) => {
       return this.generateConstraintDefinition(constraint, syntax)
     })
-    
+
     // 合并所有定义
     const allDefinitions = [...fieldDefinitions, ...constraintDefinitions]
-    
+
     // 格式化SQL
     if (options.formatSql) {
       const indent = ' '.repeat(options.indentSpaces)
-      sql += allDefinitions.map(def => indent + def).join(',\n')
+      sql += allDefinitions.map((def) => indent + def).join(',\n')
     } else {
       sql += allDefinitions.join(', ')
     }
-    
+
     sql += '\n)'
-    
+
     // 添加表注释
     if (options.includeComments && parseResult.details.tableComment) {
       sql += `;\n${this.generateTableComment(tableName, parseResult.details.tableComment, syntax)}`
     }
-    
+
     return sql
   }
 
@@ -241,45 +241,45 @@ export class DdlGenerator {
    */
   generateAlterTable(parseResult, syntax, options) {
     const { tableName, details } = parseResult
-    
+
     if (!tableName) {
       throw new Error('缺少表名')
     }
 
     let sql = `ALTER TABLE ${this.quoteIdentifier(tableName, syntax)}`
-    
+
     const { operationType, columns = [], constraints = [] } = details
-    
+
     switch (operationType) {
       case 'ADD_COLUMN':
-        columns.forEach(column => {
+        columns.forEach((column) => {
           sql += ` ADD ${this.generateFieldDefinition(column, syntax, options)}`
         })
         break
       case 'DROP_COLUMN':
-        columns.forEach(column => {
+        columns.forEach((column) => {
           sql += ` DROP COLUMN ${this.quoteIdentifier(column, syntax)}`
         })
         break
       case 'MODIFY_COLUMN':
-        columns.forEach(column => {
+        columns.forEach((column) => {
           sql += ` MODIFY ${this.generateFieldDefinition(column, syntax, options)}`
         })
         break
       case 'ADD_CONSTRAINT':
-        constraints.forEach(constraint => {
+        constraints.forEach((constraint) => {
           sql += ` ADD ${this.generateConstraintDefinition(constraint, syntax)}`
         })
         break
       case 'DROP_CONSTRAINT':
-        constraints.forEach(constraint => {
+        constraints.forEach((constraint) => {
           sql += ` DROP CONSTRAINT ${this.quoteIdentifier(constraint, syntax)}`
         })
         break
       default:
         throw new Error(`不支持的ALTER TABLE操作类型: ${operationType}`)
     }
-    
+
     return sql
   }
 
@@ -287,29 +287,29 @@ export class DdlGenerator {
    * 生成DROP TABLE语句
    */
   generateDropTable(parseResult, syntax, options) {
-    const { tableName, details } = parseResult
-    
+    const { tableName } = parseResult
+
     if (!tableName) {
       throw new Error('缺少表名')
     }
 
     let sql = 'DROP TABLE '
-    
+
     // IF EXISTS
     if (options.ifExists) {
       sql += 'IF EXISTS '
     }
-    
+
     // 表名
     sql += this.quoteIdentifier(tableName, syntax)
-    
+
     // CASCADE/RESTRICT
     if (options.cascade) {
       sql += ' CASCADE'
     } else if (options.restrict) {
       sql += ' RESTRICT'
     }
-    
+
     return sql
   }
 
@@ -317,52 +317,52 @@ export class DdlGenerator {
    * 生成TRUNCATE TABLE语句
    */
   generateTruncateTable(parseResult, syntax, options) {
-    const { tableName, details } = parseResult
-    
+    const { tableName } = parseResult
+
     if (!tableName) {
       throw new Error('缺少表名')
     }
 
     let sql = 'TRUNCATE TABLE '
     sql += this.quoteIdentifier(tableName, syntax)
-    
+
     // RESTART IDENTITY/CONTINUE IDENTITY
     if (options.restartIdentity) {
       sql += ' RESTART IDENTITY'
     } else if (options.continueIdentity) {
       sql += ' CONTINUE IDENTITY'
     }
-    
+
     // CASCADE
     if (options.cascade) {
       sql += ' CASCADE'
     }
-    
+
     return sql
   }
 
   /**
    * 生成CREATE INDEX语句
    */
-  generateCreateIndex(parseResult, syntax, options) {
+  generateCreateIndex(parseResult, syntax) {
     const { tableName, details } = parseResult
     const { indexName, unique, columns = [] } = details
-    
+
     if (!tableName || !indexName) {
       throw new Error('缺少表名或索引名')
     }
 
     let sql = 'CREATE '
-    
+
     // UNIQUE
     if (unique) {
       sql += 'UNIQUE '
     }
-    
+
     sql += `INDEX ${this.quoteIdentifier(indexName, syntax)} `
     sql += `ON ${this.quoteIdentifier(tableName, syntax)} `
-    sql += `(${columns.map(col => this.quoteIdentifier(col, syntax)).join(', ')})`
-    
+    sql += `(${columns.map((col) => this.quoteIdentifier(col, syntax)).join(', ')})`
+
     return sql
   }
 
@@ -372,59 +372,60 @@ export class DdlGenerator {
   generateDropIndex(parseResult, syntax, options) {
     const { tableName, details } = parseResult
     const { indexName } = details
-    
+
     if (!indexName) {
       throw new Error('缺少索引名')
     }
 
     let sql = 'DROP INDEX '
-    
+
     // IF EXISTS
     if (options.ifExists) {
       sql += 'IF EXISTS '
     }
-    
+
     sql += this.quoteIdentifier(indexName, syntax)
-    
+
     // 某些数据库需要指定表名
-    if (tableName && syntax.quoteChar === '[') { // SQL Server
+    if (tableName && syntax.quoteChar === '[') {
+      // SQL Server
       sql += ` ON ${this.quoteIdentifier(tableName, syntax)}`
     }
-    
+
     // CASCADE
     if (options.cascade) {
       sql += ' CASCADE'
     }
-    
+
     return sql
   }
 
   /**
    * 生成CREATE VIEW语句
    */
-  generateCreateView(parseResult, syntax, options) {
+  generateCreateView(parseResult, syntax) {
     const { tableName, details } = parseResult
     const { materialized, replace } = details
-    
+
     if (!tableName) {
       throw new Error('缺少视图名')
     }
 
     let sql = 'CREATE '
-    
+
     // OR REPLACE
     if (replace) {
       sql += 'OR REPLACE '
     }
-    
+
     // MATERIALIZED
     if (materialized) {
       sql += 'MATERIALIZED '
     }
-    
+
     sql += `VIEW ${this.quoteIdentifier(tableName, syntax)} `
     sql += 'AS <select_statement>' // 这里需要实际的SELECT语句
-    
+
     return sql
   }
 
@@ -434,32 +435,32 @@ export class DdlGenerator {
   generateDropView(parseResult, syntax, options) {
     const { tableName, details } = parseResult
     const { materialized } = details
-    
+
     if (!tableName) {
       throw new Error('缺少视图名')
     }
 
     let sql = 'DROP '
-    
+
     // MATERIALIZED
     if (materialized) {
       sql += 'MATERIALIZED '
     }
-    
+
     sql += 'VIEW '
-    
+
     // IF EXISTS
     if (options.ifExists) {
       sql += 'IF EXISTS '
     }
-    
+
     sql += this.quoteIdentifier(tableName, syntax)
-    
+
     // CASCADE
     if (options.cascade) {
       sql += ' CASCADE'
     }
-    
+
     return sql
   }
 
@@ -468,11 +469,11 @@ export class DdlGenerator {
    */
   generateFieldDefinition(field, syntax, options) {
     let definition = this.quoteIdentifier(field.name, syntax)
-    
+
     // 数据类型
     const dataType = this.mapDataType(field.type, syntax)
     definition += ` ${dataType}`
-    
+
     // 数据长度/精度（如果适用）
     if (field.length) {
       definition += `(${field.length}`
@@ -481,39 +482,39 @@ export class DdlGenerator {
       }
       definition += ')'
     }
-    
+
     // NOT NULL
     if (!field.nullable) {
       definition += ' NOT NULL'
     }
-    
+
     // DEFAULT值
     if (field.defaultValue) {
       definition += ` DEFAULT ${this.quoteValue(field.defaultValue, syntax)}`
     }
-    
+
     // AUTO_INCREMENT/IDENTITY
     if (field.autoIncrement) {
       if (syntax.autoIncrementKeyword) {
         definition += ` ${syntax.autoIncrementKeyword}`
       }
     }
-    
+
     // PRIMARY KEY
     if (field.primaryKey) {
       definition += ' PRIMARY KEY'
     }
-    
+
     // UNIQUE
     if (field.unique) {
       definition += ' UNIQUE'
     }
-    
+
     // 注释
     if (options.includeComments && field.comment) {
       definition += ` ${this.generateFieldComment(field.name, field.comment, syntax)}`
     }
-    
+
     return definition
   }
 
@@ -522,28 +523,28 @@ export class DdlGenerator {
    */
   generateConstraintDefinition(constraint, syntax) {
     let definition = ''
-    
+
     switch (constraint.type) {
       case 'PRIMARY_KEY':
-        definition = `PRIMARY KEY (${constraint.columns.map(col => this.quoteIdentifier(col, syntax)).join(', ')})`
+        definition = `PRIMARY KEY (${constraint.columns.map((col) => this.quoteIdentifier(col, syntax)).join(', ')})`
         break
       case 'UNIQUE':
-        definition = `UNIQUE (${constraint.columns.map(col => this.quoteIdentifier(col, syntax)).join(', ')})`
+        definition = `UNIQUE (${constraint.columns.map((col) => this.quoteIdentifier(col, syntax)).join(', ')})`
         break
       case 'FOREIGN_KEY':
-        definition = `FOREIGN KEY (${constraint.columns.map(col => this.quoteIdentifier(col, syntax)).join(', ')}) `
+        definition = `FOREIGN KEY (${constraint.columns.map((col) => this.quoteIdentifier(col, syntax)).join(', ')}) `
         definition += `REFERENCES ${this.quoteIdentifier(constraint.referencedTable, syntax)} `
-        definition += `(${constraint.referencedColumns.map(col => this.quoteIdentifier(col, syntax)).join(', ')})`
+        definition += `(${constraint.referencedColumns.map((col) => this.quoteIdentifier(col, syntax)).join(', ')})`
         break
       default:
         throw new Error(`不支持的约束类型: ${constraint.type}`)
     }
-    
+
     // 约束名
     if (constraint.name) {
       definition = `CONSTRAINT ${this.quoteIdentifier(constraint.name, syntax)} ${definition}`
     }
-    
+
     return definition
   }
 
@@ -552,7 +553,7 @@ export class DdlGenerator {
    */
   generateFieldComment(fieldName, comment, syntax) {
     if (!syntax.commentSyntax) return ''
-    
+
     return `${syntax.commentSyntax} ON COLUMN ${this.quoteIdentifier(fieldName, syntax)} IS ${syntax.stringQuote}${comment}${syntax.stringQuote}`
   }
 
@@ -561,7 +562,7 @@ export class DdlGenerator {
    */
   generateTableComment(tableName, comment, syntax) {
     if (!syntax.commentSyntax) return ''
-    
+
     return `${syntax.commentSyntax} ON TABLE ${this.quoteIdentifier(tableName, syntax)} IS ${syntax.stringQuote}${comment}${syntax.stringQuote}`
   }
 
@@ -578,12 +579,12 @@ export class DdlGenerator {
    */
   quoteIdentifier(identifier, syntax) {
     if (!identifier) return ''
-    
+
     // 处理SQL Server的特殊情况
     if (syntax.quoteChar === '[') {
       return `[${identifier}]`
     }
-    
+
     return `${syntax.quoteChar}${identifier}${syntax.quoteChar}`
   }
 
@@ -594,7 +595,7 @@ export class DdlGenerator {
     if (typeof value === 'number') {
       return value.toString()
     }
-    
+
     return `${syntax.stringQuote}${value}${syntax.stringQuote}`
   }
 
@@ -602,7 +603,7 @@ export class DdlGenerator {
    * 获取支持的数据库列表
    */
   getSupportedDatabases() {
-    return Object.values(DatabaseType).filter(type => type !== DatabaseType.UNKNOWN)
+    return Object.values(DatabaseType).filter((type) => type !== DatabaseType.UNKNOWN)
   }
 }
 
@@ -639,6 +640,6 @@ export function useDdlGenerator() {
     getSupportedDatabases,
     validateDatabaseType,
     DatabaseType,
-    DdlGenerationOptions
+    DdlGenerationOptions,
   }
 }

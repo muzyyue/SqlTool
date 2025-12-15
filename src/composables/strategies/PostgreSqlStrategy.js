@@ -137,7 +137,7 @@ export class PostgreSqlStrategy extends DatabaseStrategy {
   }
 
   extractTableName(ddlStatement) {
-    const tableNameRegex = /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([\w\."]+)/i
+    const tableNameRegex = /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([\w."]+)/i
     const match = ddlStatement.match(tableNameRegex)
 
     if (match && match[1]) {

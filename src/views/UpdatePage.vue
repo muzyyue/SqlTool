@@ -36,12 +36,7 @@
             @change="handleDdlChange"
           />
           <div class="card-footer">
-            <a-button
-              type="link"
-              size="small"
-              @click="parseDdl"
-              :loading="parsingDdl"
-            >
+            <a-button type="link" size="small" @click="parseDdl" :loading="parsingDdl">
               解析DDL
             </a-button>
             <span v-if="parsedFields.length > 0" class="field-count">
@@ -94,7 +89,7 @@
                 <a-select-option value="LIKE">模糊匹配 (LIKE)</a-select-option>
                 <a-select-option value="IN">包含 (IN)</a-select-option>
                 <a-select-option value=">">大于 (>)</a-select-option>
-                <a-select-option value="<">小于 (<)</a-select-option>
+                <a-select-option value="&lt;">小于 (&lt;)</a-select-option>
               </a-select>
             </div>
           </div>
@@ -124,7 +119,11 @@
           <div v-if="uploadedFile" class="file-info">
             <a-alert
               :message="uploadedFile.name"
-              :description="excelData && excelData.length > 0 ? `文件解析完成，共 ${excelData.length} 行数据` : '文件上传成功，正在解析数据...'"
+              :description="
+                excelData && excelData.length > 0
+                  ? `文件解析完成，共 ${excelData.length} 行数据`
+                  : '文件上传成功，正在解析数据...'
+              "
               :type="excelData && excelData.length > 0 ? 'success' : 'info'"
               show-icon
               closable
@@ -142,9 +141,7 @@
                   size="small"
                   :scroll="{ x: true }"
                 />
-                <div class="preview-footer">
-                  显示前10行，共 {{ excelData.length }} 行数据
-                </div>
+                <div class="preview-footer">显示前10行，共 {{ excelData.length }} 行数据</div>
               </a-collapse-panel>
             </a-collapse>
           </div>
@@ -184,18 +181,12 @@
             :pagination="false"
             size="small"
           >
-            <template #bodyCell="{ column, record, index }">
+            <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'ddlField'">
                 <div>
                   <strong>{{ record.ddlField.name }}</strong>
                   <div class="field-type">{{ record.ddlField.type }}</div>
-                  <a-tag
-                    v-if="!record.ddlField.nullable"
-                    color="red"
-                    size="small"
-                  >
-                    必填
-                  </a-tag>
+                  <a-tag v-if="!record.ddlField.nullable" color="red" size="small"> 必填 </a-tag>
                   <a-tag
                     v-if="conditionFields.includes(record.ddlField.name)"
                     color="blue"
@@ -221,15 +212,12 @@
                     :value="idx"
                     :disabled="isColumnUsed(idx)"
                   >
-                    {{ header }} (列{{ idx + 1}})
+                    {{ header }} (列{{ idx + 1 }})
                   </a-select-option>
                 </a-select>
                 <span v-else>
                   {{ record.excelHeader }}
-                  <a-tag
-                    :color="getConfidenceColor(record.confidence)"
-                    size="small"
-                  >
+                  <a-tag :color="getConfidenceColor(record.confidence)" size="small">
                     {{ getConfidenceText(record.confidence) }}
                   </a-tag>
                 </span>
@@ -246,11 +234,7 @@
 
               <template v-if="column.key === 'actions'">
                 <a-space>
-                  <a-button
-                    type="link"
-                    size="small"
-                    @click="clearMapping(record.ddlField.name)"
-                  >
+                  <a-button type="link" size="small" @click="clearMapping(record.ddlField.name)">
                     清除
                   </a-button>
                 </a-space>
@@ -350,12 +334,7 @@
     </div>
 
     <!-- 错误提示 -->
-    <a-modal
-      v-model:open="errorModalVisible"
-      title="错误信息"
-      width="600px"
-      :footer="null"
-    >
+    <a-modal v-model:open="errorModalVisible" title="错误信息" width="600px" :footer="null">
       <a-alert
         v-for="error in currentErrors"
         :key="error.id"
@@ -378,9 +357,7 @@ import {
   PlayCircleOutlined,
   QuestionCircleOutlined,
   UploadOutlined,
-  CopyOutlined,
-  DownloadOutlined,
-  ClockCircleOutlined
+  ClockCircleOutlined,
 } from '@ant-design/icons-vue'
 
 // 导入核心功能模块
@@ -401,10 +378,10 @@ const {
   matchFields,
   updateFieldMapping,
   validateMappings: validateFieldMappings,
-  matchingStats
+  matchingStats,
 } = useFieldMatcher()
 const { generateUpdateSql } = useSqlGeneratorEnhanced()
-const { logError, logInfo, logWarning, errorLogs } = useErrorHandler()
+const { logError, logInfo, logWarning } = useErrorHandler()
 
 // 响应式数据
 const ddlStatement = ref('')
@@ -440,7 +417,7 @@ const previewColumns = computed(() => {
     title: `${header} (列${index + 1})`,
     dataIndex: index,
     key: index,
-    ellipsis: true
+    ellipsis: true,
   }))
 })
 
@@ -449,13 +426,13 @@ const sqlStats = computed(() => {
     return { statementCount: 0, affectedRows: 0, generationTime: 0 }
   }
 
-  const statements = generatedSql.value.split(';').filter(s => s.trim())
+  const statements = generatedSql.value.split(';').filter((s) => s.trim())
   const affectedRows = excelData.value.length
 
   return {
     statementCount: statements.length,
     affectedRows,
-    generationTime: 0 // 实际应该从生成过程中获取
+    generationTime: 0, // 实际应该从生成过程中获取
   }
 })
 
@@ -464,7 +441,7 @@ const conditionPreview = computed(() => {
     return '请先选择条件字段'
   }
 
-  const conditions = conditionFields.value.map(field => {
+  const conditions = conditionFields.value.map((field) => {
     return `${field} ${conditionOperator.value} ?`
   })
 
@@ -484,23 +461,23 @@ const mappingColumns = [
   {
     title: 'DDL字段',
     key: 'ddlField',
-    width: '30%'
+    width: '30%',
   },
   {
     title: 'Excel列',
     key: 'excelHeader',
-    width: '40%'
+    width: '40%',
   },
   {
     title: '相似度',
     key: 'similarity',
-    width: '20%'
+    width: '20%',
   },
   {
     title: '操作',
     key: 'actions',
-    width: '10%'
-  }
+    width: '10%',
+  },
 ]
 
 // 方法
@@ -523,14 +500,15 @@ const parseDdl = async () => {
     parsedFields.value = result.fields
 
     // 自动选择可能的主键字段作为条件字段
-    const primaryKeyFields = result.fields.filter(field =>
-      field.name.toLowerCase().includes('id') ||
-      field.name.toLowerCase().includes('key') ||
-      field.name.toLowerCase().includes('code')
+    const primaryKeyFields = result.fields.filter(
+      (field) =>
+        field.name.toLowerCase().includes('id') ||
+        field.name.toLowerCase().includes('key') ||
+        field.name.toLowerCase().includes('code'),
     )
 
     if (primaryKeyFields.length > 0) {
-      conditionFields.value = primaryKeyFields.map(field => field.name)
+      conditionFields.value = primaryKeyFields.map((field) => field.name)
     }
 
     logInfo(`成功解析DDL语句，发现 ${result.fields.length} 个字段`)
@@ -543,7 +521,7 @@ const parseDdl = async () => {
   } catch (error) {
     const friendlyError = logError(error, 'parsing', {
       operation: 'parseDdl',
-      ddlLength: ddlStatement.value.length
+      ddlLength: ddlStatement.value.length,
     })
     message.error(friendlyError)
   } finally {
@@ -552,9 +530,7 @@ const parseDdl = async () => {
 }
 
 const beforeUpload = (file) => {
-  const isValidType = ['xlsx', 'xls', 'csv'].some(ext =>
-    file.name.toLowerCase().endsWith(ext)
-  )
+  const isValidType = ['xlsx', 'xls', 'csv'].some((ext) => file.name.toLowerCase().endsWith(ext))
 
   if (!isValidType) {
     message.error('只支持.xlsx、.xls、.csv格式的文件')
@@ -593,7 +569,7 @@ const handleUpload = async (options) => {
     const friendlyError = logError(error, 'file', {
       operation: 'parseExcel',
       fileName: file.name,
-      fileSize: file.size
+      fileSize: file.size,
     })
     onError(friendlyError)
     message.error(friendlyError)
@@ -624,7 +600,7 @@ const autoMatchFields = () => {
     const friendlyError = logError(error, 'matching', {
       operation: 'autoMatchFields',
       ddlFieldsCount: parsedFields.value.length,
-      excelHeadersCount: excelHeaders.value.length
+      excelHeadersCount: excelHeaders.value.length,
     })
     message.error(friendlyError)
   }
@@ -642,7 +618,7 @@ const clearMapping = (ddlFieldName) => {
 }
 
 const clearAllMappings = () => {
-  parsedFields.value.forEach(field => {
+  parsedFields.value.forEach((field) => {
     updateFieldMapping(field.name, null, -1)
   })
   logInfo('清除所有字段映射')
@@ -650,17 +626,17 @@ const clearAllMappings = () => {
 }
 
 const isColumnUsed = (columnIndex) => {
-  return fieldMappings.value.some(mapping => mapping.excelIndex === columnIndex)
+  return fieldMappings.value.some((mapping) => mapping.excelIndex === columnIndex)
 }
 
 const getConfidenceColor = (confidence) => {
   const colors = {
     'very-high': 'green',
-    'high': 'blue',
-    'medium': 'orange',
-    'low': 'red',
+    high: 'blue',
+    medium: 'orange',
+    low: 'red',
     'very-low': 'gray',
-    'manual': 'purple'
+    manual: 'purple',
   }
   return colors[confidence] || 'gray'
 }
@@ -668,11 +644,11 @@ const getConfidenceColor = (confidence) => {
 const getConfidenceText = (confidence) => {
   const texts = {
     'very-high': '极高',
-    'high': '高',
-    'medium': '中',
-    'low': '低',
+    high: '高',
+    medium: '中',
+    low: '低',
     'very-low': '极低',
-    'manual': '手动'
+    manual: '手动',
   }
   return texts[confidence] || '未知'
 }
@@ -681,15 +657,13 @@ const validateMappings = () => {
   const validation = validateFieldMappings()
 
   // 额外验证条件字段是否已映射
-  const conditionFieldsNotMapped = conditionFields.value.filter(fieldName => {
-    const mapping = fieldMappings.value.find(m => m.ddlField.name === fieldName)
+  const conditionFieldsNotMapped = conditionFields.value.filter((fieldName) => {
+    const mapping = fieldMappings.value.find((m) => m.ddlField.name === fieldName)
     return !mapping || mapping.excelIndex === -1
   })
 
   if (conditionFieldsNotMapped.length > 0) {
-    validation.errors.push(
-      `条件字段 ${conditionFieldsNotMapped.join(', ')} 未正确映射到Excel列`
-    )
+    validation.errors.push(`条件字段 ${conditionFieldsNotMapped.join(', ')} 未正确映射到Excel列`)
     validation.isValid = false
   }
 
@@ -697,10 +671,10 @@ const validateMappings = () => {
     message.success('字段映射验证通过')
     logInfo('字段映射验证通过')
   } else {
-    currentErrors.value = validation.errors.map(error => ({
+    currentErrors.value = validation.errors.map((error) => ({
       id: Date.now() + Math.random(),
       message: '映射验证失败',
-      context: error
+      context: error,
     }))
     errorModalVisible.value = true
     logWarning('字段映射验证失败', 'validation', { errors: validation.errors })
@@ -745,8 +719,8 @@ const generateSql = async () => {
         format: 'formatted',
         conditionLogic: conditionLogic.value,
         conditionOperator: conditionOperator.value,
-        comments: true
-      }
+        comments: true,
+      },
     )
 
     generatedSql.value = sql
@@ -757,7 +731,7 @@ const generateSql = async () => {
       operation: 'generateUpdateSql',
       tableName: extractTableName(ddlStatement.value),
       dataRows: excelData.value.length,
-      conditionFields: conditionFields.value
+      conditionFields: conditionFields.value,
     })
     message.error(friendlyError)
   } finally {
@@ -770,34 +744,11 @@ const extractTableName = (ddl) => {
   return match ? match[1] : 'unknown_table'
 }
 
-const copySql = async () => {
-  try {
-    await navigator.clipboard.writeText(generatedSql.value)
-    message.success('SQL已复制到剪贴板')
-    logInfo('UPDATE SQL语句已复制到剪贴板')
-  } catch (error) {
-    message.error('复制失败')
-    logError(error, 'system', { operation: 'copySql' })
-  }
-}
-
-const downloadSql = () => {
-  const blob = new Blob([generatedSql.value], { type: 'text/plain' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = 'generated_update.sql'
-  a.click()
-  URL.revokeObjectURL(url)
-  logInfo('UPDATE SQL语句已下载')
-  message.success('UPDATE SQL文件下载成功')
-}
-
 const getLogColor = (level) => {
   const colors = {
     info: 'blue',
     warning: 'orange',
-    error: 'red'
+    error: 'red',
   }
   return colors[level] || 'gray'
 }
@@ -814,7 +765,7 @@ const clearLogs = () => {
 const handleSqlValidation = (validationResult) => {
   if (validationResult.hasErrors) {
     logWarning('SQL语法验证发现错误', 'validation', {
-      errors: validationResult.errors
+      errors: validationResult.errors,
     })
   } else {
     logInfo('SQL语法验证通过')

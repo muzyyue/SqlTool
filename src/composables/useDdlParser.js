@@ -103,7 +103,7 @@ export function useDdlParser() {
       .replace(/--[^\n]*/g, '') // 移除单行注释
 
     // 4. 处理特殊字符和引号
-    processed = processed.replace(/[`\[\]]/g, '"') // 统一引号格式
+    processed = processed.replace(/[`[]/g, '"') // 统一引号格式
 
     // 5. 移除可能导致node-sql-parser解析失败的字符
     // 移除行首的空白字符，避免"Expected \"#\", \"--\", \".\", \"/*\", or [ \\t\\n\\r] but \"i\" found"错误
@@ -405,12 +405,12 @@ export function useDdlParser() {
       const fieldsSection = ddlStatement.substring(leftParenIndex + 1, rightParenIndex - 1)
       console.log('提取的字段定义部分:', fieldsSection)
 
-      // 2. 提取表名
+      // 提取表名
       const tableNameMatch = ddlStatement.match(
-        /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([\w\.\"\`\[\]]+)/i,
+        /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([\w."`[\]]+)/i,
       )
       if (tableNameMatch && tableNameMatch[1]) {
-        result.tableName = tableNameMatch[1].replace(/["`\[\]]/g, '')
+        result.tableName = tableNameMatch[1].replace(/["`[\]]/g, '')
         console.log('提取的表名:', result.tableName)
       }
 
@@ -569,10 +569,10 @@ export function useDdlParser() {
 
       // 提取表名（支持多种表名格式）
       const tableNameMatch = normalizedDdl.match(
-        /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([\w\.\"\`\[\]]+)/i,
+        /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([\w."`[\]]+)/i,
       )
       if (tableNameMatch && tableNameMatch[1]) {
-        result.tableName = tableNameMatch[1].replace(/["`\[\]]/g, '')
+        result.tableName = tableNameMatch[1].replace(/["`[\]]/g, '')
         console.log('提取的表名:', result.tableName)
       } else {
         console.warn('无法提取表名')
@@ -848,32 +848,7 @@ export function useDdlParser() {
   /**
    * 解析单个字段定义
    */
-  const parseFieldDefinition = (definition) => {
-    // 匹配字段名（支持引号包围）
-    const nameMatch = definition.match(/^(["'`\w\[\]]+)/)
-    if (!nameMatch) return null
-
-    const rawName = nameMatch[1]
-    const name = rawName.replace(/["'`\[\]]/g, '')
-
-    // 匹配数据类型
-    const typeMatch = definition.match(/\s+(\w+)(?:\([^)]*\))?/)
-    const type = typeMatch ? typeMatch[1].toUpperCase() : 'VARCHAR'
-
-    // 检查是否可为空
-    const nullable = !/NOT\s+NULL/i.test(definition)
-
-    // 提取默认值
-    const defaultMatch = definition.match(/DEFAULT\s+([^,\s]+)/i)
-    const defaultValue = defaultMatch ? defaultMatch[1] : null
-
-    return {
-      name,
-      type,
-      nullable,
-      defaultValue,
-    }
-  }
+  // 移除未使用的parseFieldDefinition函数
 
   /**
    * 验证DDL语句格式
@@ -893,7 +868,7 @@ export function useDdlParser() {
 
     // 检查表名
     const tableNameMatch = ddlStatement.match(
-      /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([\w\.\"\`\[\]]+)/i,
+      /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([\w."`[\]]+)/i,
     )
     if (!tableNameMatch) {
       errors.push('无法识别表名')

@@ -534,8 +534,7 @@ async function runDmStrategyIntegrationTest() {
 }
 
 // 如果直接运行此文件，则执行测试
-if (import.meta.url === `file://${process.argv[1]}`) {
-  runDmStrategyIntegrationTest().catch(console.error)
-}
+// 移除对process变量的使用，改为手动调用测试函数
+// runDmStrategyIntegrationTest().catch(console.error)
 
 export { runDmStrategyIntegrationTest, DmStrategyTestSuite }

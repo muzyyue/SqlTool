@@ -35,4 +35,4 @@ config.global.stubs = {
 }
 
 // 全局测试辅助函数
-global.expect = expect
+globalThis.expect = expect

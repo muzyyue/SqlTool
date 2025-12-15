@@ -30,21 +30,21 @@ export class DatabaseStrategy {
   /**
    * 解析DDL语句
    */
-  async parseDdl(ddlStatement) {
+  async parseDdl() {
     throw new Error('必须实现parseDdl方法')
   }
 
   /**
    * 转换DDL语句到目标数据库语法
    */
-  async convertDdl(ddlStatement, targetDatabaseType) {
+  async convertDdl() {
     throw new Error('必须实现convertDdl方法')
   }
 
   /**
    * 验证DDL语句语法正确性
    */
-  async validateDdl(ddlStatement) {
+  async validateDdl() {
     throw new Error('必须实现validateDdl方法')
   }
 
@@ -65,7 +65,7 @@ export class DatabaseStrategy {
   /**
    * 检查版本兼容性
    */
-  checkVersionCompatibility(version) {
+  checkVersionCompatibility() {
     throw new Error('必须实现checkVersionCompatibility方法')
   }
 }
@@ -361,8 +361,8 @@ export class StrategyManager {
    */
   async parseDdl(ddlStatement, databaseType = null) {
     if (!databaseType) {
-      const detection = this.detectDatabaseType(ddlStatement)
-      databaseType = detection.databaseType
+      const detectedType = this.detectDatabaseType(ddlStatement)
+      databaseType = detectedType
 
       if (databaseType === 'unknown') {
         throw new Error('无法识别数据库类型，请明确指定 databaseType 参数')

@@ -153,7 +153,7 @@ export class OracleStrategy extends DatabaseStrategy {
   }
 
   extractTableName(ddlStatement) {
-    const tableNameRegex = /CREATE\s+(?:GLOBAL\s+TEMPORARY\s+)?TABLE\s+(?:\w+\.)?([\w"]+)/i
+    const tableNameRegex = /CREATE\s+(?:GLOBAL\s+TEMPORARY\s+)?TABLE\s+(?:\w+\.)?([\w."]+)/i
     const match = ddlStatement.match(tableNameRegex)
 
     if (match && match[1]) {
@@ -236,7 +236,7 @@ export class OracleStrategy extends DatabaseStrategy {
     }
 
     // 提取字段名（从字段定义的开头提取，直到遇到空格或括号）
-    const nameMatch = trimmedDef.match(/^([\w"]+)/)
+    const nameMatch = trimmedDef.match(/^([\w."]+)/)
     if (nameMatch) {
       field.name = nameMatch[1].replace(/"/g, '')
     }
@@ -276,7 +276,7 @@ export class OracleStrategy extends DatabaseStrategy {
     const indexes = []
 
     // 提取索引定义
-    const indexRegex = /CREATE\s+(?:UNIQUE\s+)?INDEX\s+([\w"]+)\s+ON\s+[\w"]+\s*\(([^)]+)\)/gi
+    const indexRegex = /CREATE\s+(?:UNIQUE\s+)?INDEX\s+([\w."]+)\s+ON\s+[\w."]+\s*\(([^)]+)\)/gi
     let match
 
     while ((match = indexRegex.exec(ddlStatement)) !== null) {
@@ -304,7 +304,7 @@ export class OracleStrategy extends DatabaseStrategy {
 
     // 提取外键约束
     const foreignKeyRegex =
-      /CONSTRAINT\s+([\w"]+)\s+FOREIGN\s+KEY\s*\(([^)]+)\)\s+REFERENCES\s+([\w"]+)\s*\(([^)]+)\)/gi
+      /CONSTRAINT\s+([\w."]+)\s+FOREIGN\s+KEY\s*\(([^)]+)\)\s+REFERENCES\s+([\w."]+)\s*\(([^)]+)\)/gi
     let fkMatch
 
     while ((fkMatch = foreignKeyRegex.exec(ddlStatement)) !== null) {
@@ -318,7 +318,7 @@ export class OracleStrategy extends DatabaseStrategy {
     }
 
     // 提取检查约束
-    const checkRegex = /CONSTRAINT\s+([\w"]+)\s+CHECK\s*\(([^)]+)\)/gi
+    const checkRegex = /CONSTRAINT\s+([\w."]+)\s+CHECK\s*\(([^)]+)\)/gi
     let checkMatch
 
     while ((checkMatch = checkRegex.exec(ddlStatement)) !== null) {

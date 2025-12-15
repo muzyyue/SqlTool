@@ -106,13 +106,11 @@ export function useCustomBinding() {
   }
 
   /**
-   * 应用自定义绑定到数据行
+   * 应用自定义绑定规则到数据行
    * @param {Object} rowData - Excel数据行
-   * @param {Array} ddlFields - DDL字段列表
-   * @param {Array} excelHeaders - Excel表头列表
    * @returns {Object} 应用自定义绑定后的数据
    */
-  const applyCustomBindings = (rowData, ddlFields, excelHeaders) => {
+  const applyCustomBindings = (rowData) => {
     const result = {}
 
     // 应用字段拼接规则

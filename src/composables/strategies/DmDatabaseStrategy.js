@@ -368,7 +368,7 @@ export class DmDatabaseStrategy extends DatabaseStrategy {
   // ========== DDL解析核心方法 ==========
 
   extractTableName(ddlStatement) {
-    const tableNameRegex = /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([\w\.`\[\]]+)/i
+    const tableNameRegex = /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([\w.`[\]]+)/i
     const match = ddlStatement.match(tableNameRegex)
 
     if (match && match[1]) {
@@ -590,8 +590,9 @@ export class DmDatabaseStrategy extends DatabaseStrategy {
     return constraints
   }
 
-  detectVersion(ddlStatement) {
+  detectVersion() {
     // 在实际应用中，这里应该从数据库连接或配置中获取版本信息
+    // ddlStatement参数暂时未使用，保留以备将来扩展
     // 这里简单返回支持的版本
     return this.supportedVersions[0]
   }
