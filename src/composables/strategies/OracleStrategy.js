@@ -28,6 +28,7 @@ export class OracleStrategy extends DatabaseStrategy {
       fields: [],
       indexes: [],
       constraints: [],
+      triggers: [],
       databaseType: this.databaseType,
       version: this.detectVersion(ddlStatement),
     }
@@ -44,6 +45,9 @@ export class OracleStrategy extends DatabaseStrategy {
 
       // 4. 提取约束
       result.constraints = this.extractConstraints(ddlStatement)
+
+      // 5. 提取触发器
+      result.triggers = this.extractTriggers(ddlStatement)
 
       console.log('Oracle DDL解析成功:', result)
       return result
@@ -166,11 +170,12 @@ export class OracleStrategy extends DatabaseStrategy {
   extractFieldDefinitions(ddlStatement) {
     const fields = []
 
-    // 提取字段定义部分 - 匹配到最后一个右括号
-    const fieldSectionMatch = ddlStatement.match(/CREATE\s+TABLE[^(]*\(([\s\S]*)\)[^)]*$/i)
-    if (!fieldSectionMatch) return fields
+    // 提取字段定义部分 - 只匹配CREATE TABLE语句的括号内容
+    const createTableMatch = ddlStatement.match(/CREATE\s+(?:GLOBAL\s+TEMPORARY\s+)?TABLE\s+(?:\w+\.)?([\w."]+)\s*\(([\s\S]*?)\)\s*(?:TABLESPACE|STORAGE|ENABLE|DISABLE|\/\*|--|$)/i)
 
-    const fieldSection = fieldSectionMatch[1]
+    if (!createTableMatch || !createTableMatch[2]) return fields
+
+    const fieldSection = createTableMatch[2]
     const fieldDefinitions = this.splitFieldDefinitions(fieldSection)
 
     for (const fieldDef of fieldDefinitions) {
@@ -347,6 +352,31 @@ export class OracleStrategy extends DatabaseStrategy {
     }
 
     return '11g' // 默认版本
+  }
+
+  /**
+   * 提取触发器定义
+   */
+  extractTriggers(ddlStatement) {
+    const triggers = []
+
+    // 直接匹配所有触发器定义，处理多个触发器的情况
+    const triggerRegex = /CREATE\s+TRIGGER\s+(\w+)\s+(BEFORE|AFTER)\s+(INSERT|UPDATE|DELETE)\s+ON\s+(\w+)\s+FOR\s+EACH\s+ROW\s+BEGIN\s+([\s\S]*?)\s+END;/gi
+
+    let match
+    while ((match = triggerRegex.exec(ddlStatement)) !== null) {
+      triggers.push({
+        name: match[1],
+        timing: match[2].toUpperCase(),
+        events: [match[3].toUpperCase()],
+        table: match[4],
+        body: match[5].trim(),
+        type: 'TRIGGER',
+        forEachRow: true
+      })
+    }
+
+    return triggers
   }
 
   convertParsedResult(parsedResult, targetDatabaseType) {

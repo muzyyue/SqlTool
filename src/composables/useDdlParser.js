@@ -109,16 +109,10 @@ export function useDdlParser() {
     // 移除行首的空白字符，避免"Expected \"#\", \"--\", \".\", \"/*\", or [ \\t\\n\\r] but \"i\" found"错误
     processed = processed.replace(/^\s+/, '')
 
-    // 6. 确保语句以CREATE TABLE开头
-    // 如果语句不以CREATE TABLE开头，添加适当的空白字符
-    if (!processed.toUpperCase().startsWith('CREATE TABLE')) {
-      // 查找CREATE TABLE的位置
-      const createTableIndex = processed.toUpperCase().indexOf('CREATE TABLE')
-      if (createTableIndex > 0) {
-        // 移除CREATE TABLE之前的所有内容
-        processed = processed.substring(createTableIndex)
-      }
-    }
+    // 6. 处理多行语句
+    // 保留所有语句，不只是CREATE TABLE部分
+    // 移除语句末尾的多余字符，但保留所有语句
+
 
     // 7. 保留PostgreSQL特定语法（IDENTITY、COLLATE等）
     // 不移除这些语法，而是简化它们以提高解析成功率
@@ -548,6 +542,7 @@ export function useDdlParser() {
       tableName: '',
       fields: [],
       constraints: [], // 新增：约束信息
+      triggers: [], // 新增：触发器信息
       databaseType: 'unknown',
     }
 
@@ -603,6 +598,11 @@ export function useDdlParser() {
 
       // 关联约束信息到字段（设置主键标识）
       associateConstraintsWithFields(result.fields, result.constraints)
+
+      // 新增：提取触发器信息
+      result.triggers = extractTriggersFromDdl(normalizedDdl)
+      console.log('提取的触发器数量:', result.triggers.length)
+      console.log('提取的触发器详情:', result.triggers)
 
       console.log('解析后的字段数量:', result.fields.length)
       console.log('解析后的字段详情:', result.fields)
@@ -846,6 +846,31 @@ export function useDdlParser() {
   }
 
   /**
+   * 从DDL语句中提取触发器信息
+   */
+  const extractTriggersFromDdl = (ddlStatement) => {
+    const triggers = []
+
+    // 匹配CREATE TRIGGER语句，处理可选的结束分号
+    const triggerRegex = /CREATE\s+TRIGGER\s+(\w+)\s+(BEFORE|AFTER)\s+(INSERT|UPDATE|DELETE)\s+ON\s+(\w+)\s+FOR\s+EACH\s+ROW\s+BEGIN\s+([\s\S]*?)\s+END;?/gi
+
+    let match
+    while ((match = triggerRegex.exec(ddlStatement)) !== null) {
+      triggers.push({
+        name: match[1],
+        timing: match[2].toUpperCase(),
+        events: [match[3].toUpperCase()],
+        table: match[4],
+        body: match[5].trim(),
+        type: 'TRIGGER',
+        forEachRow: true
+      })
+    }
+
+    return triggers
+  }
+
+  /**
    * 解析单个字段定义
    */
   // 移除未使用的parseFieldDefinition函数
@@ -911,8 +936,21 @@ export function useDdlParser() {
    */
   const detectDatabaseType = (ddlStatement) => {
     const databases = getSupportedDatabases()
+    const ddlLower = ddlStatement.toLowerCase()
 
-    // 优先检测PostgreSQL（更具体的语法）
+    // 1. 优先检测Oracle（识别Oracle特有类型和语法）
+    if (
+      ddlLower.includes('varchar2') ||
+      ddlLower.includes('number(') ||
+      ddlLower.includes('blob') ||
+      ddlLower.includes('create trigger') ||
+      ddlLower.includes('seq_') ||
+      ddlLower.includes('from dual')
+    ) {
+      return 'oracle'
+    }
+
+    // 2. 检测PostgreSQL（更具体的语法）
     const postgresqlKeywords = databases.find((db) => db.name === 'PostgreSQL').keywords
     for (const keyword of postgresqlKeywords) {
       if (new RegExp(`\\b${keyword}\\b`, 'i').test(ddlStatement)) {
@@ -920,7 +958,7 @@ export function useDdlParser() {
       }
     }
 
-    // 然后检测其他数据库
+    // 3. 检测其他数据库
     for (const db of databases.filter((db) => db.name !== 'PostgreSQL')) {
       for (const keyword of db.keywords) {
         if (new RegExp(`\\b${keyword}\\b`, 'i').test(ddlStatement)) {

@@ -300,6 +300,58 @@ export class DdlTypeParser {
   }
 
   /**
+   * 检测数据库类型
+   */
+  detectDatabaseType(ddlStatement) {
+    const normalized = ddlStatement.toUpperCase().trim()
+
+    // 检测MySQL特有语法
+    if (
+      normalized.includes('ENGINE=') ||
+      normalized.includes('CHARSET=') ||
+      normalized.includes('COLLATE=') ||
+      normalized.includes('AUTO_INCREMENT')
+    ) {
+      return 'mysql'
+    }
+
+    // 检测PostgreSQL特有语法
+    if (
+      normalized.includes('SERIAL ') ||
+      normalized.includes('IDENTITY(') ||
+      normalized.includes('WITH OIDS') ||
+      normalized.includes('TABLESPACE') ||
+      normalized.includes('INHERITS')
+    ) {
+      return 'postgresql'
+    }
+
+    // 检测Oracle特有语法
+    if (
+      normalized.includes('VARCHAR2(') ||
+      normalized.includes('NUMBER(') ||
+      normalized.includes('PLS_INTEGER') ||
+      normalized.includes('TABLESPACE') ||
+      normalized.includes('GENERATED ALWAYS AS IDENTITY')
+    ) {
+      return 'oracle'
+    }
+
+    // 检测SQL Server特有语法
+    if (
+      normalized.includes('IDENTITY(') && !normalized.includes('GENERATED') ||
+      normalized.includes('ON [PRIMARY]') ||
+      normalized.includes('GO') ||
+      normalized.includes('DATETIME2') ||
+      normalized.includes('NVARCHAR(')
+    ) {
+      return 'sqlserver'
+    }
+
+    return 'unknown'
+  }
+
+  /**
    * 获取错误位置信息
    */
   getErrorPosition(ddlStatement, searchText) {
@@ -328,16 +380,19 @@ export class DdlTypeParser {
   parseDdl(ddlStatement) {
     try {
       const ddlType = this.detectDdlType(ddlStatement)
+      const databaseType = this.detectDatabaseType(ddlStatement)
 
       if (ddlType === DdlStatementType.UNKNOWN) {
         const result = new DdlParseResult(DdlStatementType.UNKNOWN, '', ddlStatement)
         result.originalStatement = ddlStatement
+        result.databaseType = databaseType
         result.addError('无法识别的DDL语句类型')
         return result
       }
 
       const result = new DdlParseResult(ddlType, '', ddlStatement)
       result.originalStatement = ddlStatement
+      result.databaseType = databaseType
 
       // 根据类型进行具体解析
       switch (ddlType) {
@@ -399,8 +454,10 @@ export class DdlTypeParser {
           return result
       }
     } catch (error) {
+      const databaseType = this.detectDatabaseType(ddlStatement)
       const result = new DdlParseResult(DdlStatementType.UNKNOWN, '', ddlStatement)
       result.originalStatement = ddlStatement
+      result.databaseType = databaseType
       result.addError(`解析失败: ${error.message}`)
       return result
     }
@@ -433,10 +490,19 @@ export class DdlTypeParser {
         )
       }
 
-      // 提取字段定义部分
-      const fieldSectionMatch = normalized.match(/CREATE\s+TABLE[^(]*\(([\s\S]*?)\)/i)
-      if (fieldSectionMatch && fieldSectionMatch[1]) {
-        result.details.fields = this.parseFieldDefinitions(fieldSectionMatch[1])
+      // 提取字段定义部分（使用增强版提取方法）
+      let fieldSection = this.extractFieldSection(normalized)
+
+      // 备选方案：使用正则表达式匹配
+      if (!fieldSection) {
+        const fieldSectionMatch = normalized.match(/CREATE\s+TABLE[^(]*\(([\s\S]*?)\)/i)
+        if (fieldSectionMatch && fieldSectionMatch[1]) {
+          fieldSection = fieldSectionMatch[1]
+        }
+      }
+
+      if (fieldSection) {
+        result.details.fields = this.parseFieldDefinitions(fieldSection)
       } else {
         result.addError(
           '无法找到CREATE TABLE语句中的字段定义部分',
@@ -490,27 +556,155 @@ export class DdlTypeParser {
     }
 
     // 解析操作类型
-    if (/ADD\s+(?:COLUMN\s+)?\w+/i.test(normalized)) {
+    if (/RENAME\s+TABLE/i.test(normalized)) {
+      // RENAME TABLE操作
+      result.details.operationType = 'RENAME_TABLE'
+      const newTableNameMatch = normalized.match(/RENAME\s+TABLE\s+TO\s+([\w."`[\]]+)/i)
+      if (newTableNameMatch && newTableNameMatch[1]) {
+        result.details.newTableName = newTableNameMatch[1].replace(/["`[\]]/g, '')
+      }
+    } else if (/RENAME\s+(?:COLUMN\s+)?/i.test(normalized)) {
+      // RENAME COLUMN操作
+      result.details.operationType = 'RENAME_COLUMN'
+      const renameMatch = normalized.match(/RENAME\s+(?:COLUMN\s+)?([\w."`[\]]+)\s+TO\s+([\w."`[\]]+)/i)
+      if (renameMatch) {
+        result.details.oldColumnName = renameMatch[1].replace(/["`[\]]/g, '')
+        result.details.newColumnName = renameMatch[2].replace(/["`[\]]/g, '')
+      }
+    } else if (/ADD\s+(?:COLUMN\s+)?\w+/i.test(normalized)) {
+      // ADD COLUMN操作
       result.details.operationType = 'ADD_COLUMN'
       result.details.columns = this.extractAddedColumns(normalized)
     } else if (/DROP\s+(?:COLUMN\s+)?\w+/i.test(normalized)) {
+      // DROP COLUMN操作
       result.details.operationType = 'DROP_COLUMN'
       result.details.columns = this.extractDroppedColumns(normalized)
     } else if (
       /MODIFY\s+(?:COLUMN\s+)?\w+/i.test(normalized) ||
       /ALTER\s+(?:COLUMN\s+)?\w+/i.test(normalized)
     ) {
+      // MODIFY COLUMN操作
       result.details.operationType = 'MODIFY_COLUMN'
       result.details.columns = this.extractModifiedColumns(normalized)
+
+      // 提取ALTER COLUMN的具体操作（如设置NULL/NOT NULL、DEFAULT值等）
+      result.details.alterActions = this.extractAlterColumnActions(normalized)
+    } else if (/ADD\s+(?:UNIQUE\s+)?INDEX/i.test(normalized)) {
+      // ADD INDEX操作
+      result.details.operationType = 'ADD_INDEX'
+      result.details.indexes = this.extractAddedIndexes(normalized)
+    } else if (/DROP\s+INDEX/i.test(normalized)) {
+      // DROP INDEX操作
+      result.details.operationType = 'DROP_INDEX'
+      result.details.indexes = this.extractDroppedIndexes(normalized)
     } else if (/ADD\s+CONSTRAINT/i.test(normalized)) {
+      // ADD CONSTRAINT操作
       result.details.operationType = 'ADD_CONSTRAINT'
       result.details.constraints = this.extractAddedConstraints(normalized)
     } else if (/DROP\s+CONSTRAINT/i.test(normalized)) {
+      // DROP CONSTRAINT操作
       result.details.operationType = 'DROP_CONSTRAINT'
+      result.details.constraints = this.extractDroppedConstraints(normalized)
+    } else if (/ALTER\s+CONSTRAINT/i.test(normalized)) {
+      // ALTER CONSTRAINT操作
+      result.details.operationType = 'ALTER_CONSTRAINT'
+      result.details.constraints = this.extractAlteredConstraints(normalized)
+    } else if (/DISABLE\s+CONSTRAINT/i.test(normalized)) {
+      // DISABLE CONSTRAINT操作
+      result.details.operationType = 'DISABLE_CONSTRAINT'
+      result.details.constraints = this.extractDroppedConstraints(normalized)
+    } else if (/ENABLE\s+CONSTRAINT/i.test(normalized)) {
+      // ENABLE CONSTRAINT操作
+      result.details.operationType = 'ENABLE_CONSTRAINT'
       result.details.constraints = this.extractDroppedConstraints(normalized)
     }
 
     return result
+  }
+
+  /**
+   * 提取ALTER COLUMN的具体操作
+   */
+  extractAlterColumnActions(ddlStatement) {
+    const actions = []
+
+    // 检查NULL/NOT NULL设置
+    if (/NOT\s+NULL/i.test(ddlStatement)) {
+      actions.push('SET NOT NULL')
+    } else if (/NULL/i.test(ddlStatement)) {
+      actions.push('SET NULL')
+    }
+
+    // 检查DEFAULT值设置
+    const defaultMatch = ddlStatement.match(/DEFAULT\s+([^,;\n]+)/i)
+    if (defaultMatch) {
+      actions.push(`SET DEFAULT ${defaultMatch[1]}`)
+    }
+
+    // 检查AUTO_INCREMENT设置
+    if (/AUTO_INCREMENT/i.test(ddlStatement)) {
+      actions.push('SET AUTO_INCREMENT')
+    }
+
+    // 检查COMMENT设置
+    const commentMatch = ddlStatement.match(/COMMENT\s+['"]([^'"]+)['"]/i)
+    if (commentMatch) {
+      actions.push(`SET COMMENT ${commentMatch[1]}`)
+    }
+
+    return actions
+  }
+
+  /**
+   * 提取添加的索引
+   */
+  extractAddedIndexes(ddlStatement) {
+    const indexes = []
+    const indexMatches = ddlStatement.matchAll(
+      /ADD\s+(?:UNIQUE\s+)?(?:INDEX\s+)?([\w."`[\]]+)?\s*\(([^)]+)\)/gi
+    )
+
+    for (const match of indexMatches) {
+      indexes.push({
+        name: match[1] ? match[1].replace(/["`[\]]/g, '') : '',
+        columns: match[2].split(',').map(col => col.trim().replace(/["`[\]]/g, '')),
+        unique: match[0].includes('UNIQUE')
+      })
+    }
+
+    return indexes
+  }
+
+  /**
+   * 提取删除的索引
+   */
+  extractDroppedIndexes(ddlStatement) {
+    const indexes = []
+    const dropMatches = ddlStatement.matchAll(/DROP\s+(?:INDEX\s+)?([\w."`[\]]+)/gi)
+
+    for (const match of dropMatches) {
+      indexes.push(match[1].replace(/["`[\]]/g, ''))
+    }
+
+    return indexes
+  }
+
+  /**
+   * 提取修改的约束
+   */
+  extractAlteredConstraints(ddlStatement) {
+    const constraints = []
+    const constraintMatches = ddlStatement.matchAll(
+      /ALTER\s+CONSTRAINT\s+([\w."`[\]]+)/gi
+    )
+
+    for (const match of constraintMatches) {
+      constraints.push({
+        name: match[1].replace(/["`[\]]/g, '')
+      })
+    }
+
+    return constraints
   }
 
   /**
@@ -1043,35 +1237,89 @@ export class DdlTypeParser {
   parseSingleField(fieldDefinition) {
     const normalized = fieldDefinition.trim()
 
-    // 提取字段名（支持引号）
+    // 跳过约束定义（非字段定义）
+    if (/^(PRIMARY\s+KEY|FOREIGN\s+KEY|UNIQUE|CONSTRAINT)/i.test(normalized)) {
+      return null
+    }
+
+    // 提取字段名（支持引号和模式名）
     const nameMatch = normalized.match(/^([\w."`[\]]+)/)
     if (!nameMatch) return null
 
     const fieldName = nameMatch[1].replace(/["`[\]]/g, '')
 
-    // 提取数据类型
-    const typeMatch = normalized.match(/\s+(\w+)(?:\([^)]*\))?/)
-    const dataType = typeMatch ? typeMatch[1].toUpperCase() : 'VARCHAR'
+    // 提取数据类型（增强版，支持复杂语法）
+    let dataType = 'VARCHAR'
+    let typeDetails = ''
+
+    // 匹配完整的数据类型语法，包括：
+    // 1. 基本类型：VARCHAR
+    // 2. 带长度：VARCHAR(100)
+    // 3. 带字符集：VARCHAR2(100 CHAR)
+    // 4. 带精度和小数位：NUMBER(10,2)
+    // 5. 带排序规则：VARCHAR(100) COLLATE utf8mb4_general_ci
+    const typeRegex = /\s+([A-Za-z_]+(?:\([^)]*\))?(?:\s+[A-Za-z_]+(?:\([^)]*\))?)*)/i
+    const typeMatch = normalized.match(typeRegex)
+
+    if (typeMatch && typeMatch[1]) {
+      const fullType = typeMatch[1].toUpperCase()
+      // 提取基本类型名
+      const baseTypeMatch = fullType.match(/^([A-Za-z_]+)/)
+      if (baseTypeMatch) {
+        dataType = baseTypeMatch[1]
+        typeDetails = fullType.substring(baseTypeMatch[0].length).trim()
+      }
+    }
 
     // 检查约束
     const nullable = !/NOT\s+NULL/i.test(normalized)
     const primaryKey = /PRIMARY\s+KEY/i.test(normalized)
     const unique = /UNIQUE/i.test(normalized)
+    const autoIncrement = this.isAutoIncrementColumn(normalized, dataType)
+    const generatedColumn = this.isGeneratedColumn(normalized)
 
-    // 提取默认值
-    const defaultMatch = normalized.match(/DEFAULT\s+([^,\s]+)/i)
-    const defaultValue = defaultMatch ? defaultMatch[1] : null
+    // 提取默认值（增强版，支持复杂表达式）
+    let defaultValue = null
+    const defaultRegex = /DEFAULT\s+([^,;\n]+?)(?:\s+(?:NOT\s+NULL|NULL|COMMENT|$))/i
+    const defaultMatch = normalized.match(defaultRegex)
+    if (!defaultMatch) {
+      // 尝试匹配行尾的默认值
+      const endDefaultMatch = normalized.match(/DEFAULT\s+([^,;\n]+)$/i)
+      if (endDefaultMatch) {
+        defaultValue = endDefaultMatch[1].trim()
+      }
+    } else {
+      defaultValue = defaultMatch[1].trim()
+    }
 
-    // 提取注释
-    const commentMatch = normalized.match(/COMMENT\s+['"]([^'"]+)['"]/i)
-    const comment = commentMatch ? commentMatch[1] : ''
+    // 清理默认值中的引号
+    if (defaultValue && ((defaultValue.startsWith("'" ) && defaultValue.endsWith("'")) || (defaultValue.startsWith('"') && defaultValue.endsWith('"')))) {
+      defaultValue = defaultValue.substring(1, defaultValue.length - 1)
+    }
+
+    // 提取注释（增强版，支持不同注释格式）
+    let comment = ''
+    const commentRegex = /(?:COMMENT\s+)?(['"])([^'"]+)\1/i
+    const commentMatch = normalized.match(commentRegex)
+    if (commentMatch) {
+      comment = commentMatch[2]
+    } else {
+      // 尝试匹配MySQL的COMMENT语法
+      const mysqlCommentMatch = normalized.match(/COMMENT\s+([^,;\n]+)/i)
+      if (mysqlCommentMatch) {
+        comment = mysqlCommentMatch[1].trim().replace(/['"]/g, '')
+      }
+    }
 
     return {
       name: fieldName,
       type: dataType,
+      typeDetails: typeDetails,
       nullable: nullable,
       primaryKey: primaryKey,
       unique: unique,
+      autoIncrement: autoIncrement,
+      generatedColumn: generatedColumn,
       defaultValue: defaultValue,
       comment: comment,
       fullDefinition: normalized,
@@ -1079,23 +1327,129 @@ export class DdlTypeParser {
   }
 
   /**
-   * 分割字段定义
+   * 检查是否为自增列
+   */
+  isAutoIncrementColumn(fieldDefinition, dataType) {
+    const upperDef = fieldDefinition.toUpperCase()
+
+    // MySQL: AUTO_INCREMENT
+    if (upperDef.includes('AUTO_INCREMENT')) {
+      return true
+    }
+
+    // PostgreSQL: SERIAL类型或IDENTITY语法
+    if (dataType.includes('SERIAL') || upperDef.includes('IDENTITY')) {
+      return true
+    }
+
+    // SQL Server: IDENTITY关键字
+    if (upperDef.includes('IDENTITY')) {
+      return true
+    }
+
+    // Oracle: GENERATED ALWAYS AS IDENTITY或GENERATED BY DEFAULT AS IDENTITY
+    if (upperDef.includes('GENERATED') && upperDef.includes('AS IDENTITY')) {
+      return true
+    }
+
+    // 达梦数据库: IDENTITY关键字
+    if (upperDef.includes('IDENTITY')) {
+      return true
+    }
+
+    return false
+  }
+
+  /**
+   * 检查是否为生成列或计算列
+   */
+  isGeneratedColumn(fieldDefinition) {
+    const upperDef = fieldDefinition.toUpperCase()
+
+    // MySQL: GENERATED ALWAYS AS (...) STORED/VIRTUAL
+    if (upperDef.includes('GENERATED') && upperDef.includes('AS (')) {
+      return true
+    }
+
+    // PostgreSQL: GENERATED ALWAYS AS (...) STORED
+    if (upperDef.includes('GENERATED ALWAYS AS')) {
+      return true
+    }
+
+    // SQL Server: AS (...) PERSISTED
+    if (upperDef.includes(' AS (') && upperDef.includes(')')) {
+      return true
+    }
+
+    // Oracle: GENERATED ALWAYS AS (...)
+    if (upperDef.includes('GENERATED') && upperDef.includes('AS (')) {
+      return true
+    }
+
+    return false
+  }
+
+  /**
+   * 分割字段定义（增强版，支持引号内的逗号、注释等复杂情况）
    */
   splitFieldDefinitions(fieldSection) {
     const definitions = []
     let currentDef = ''
     let parenDepth = 0
+    let inString = false
+    let stringDelimiter = ''
+    let inComment = false
 
     for (let i = 0; i < fieldSection.length; i++) {
       const char = fieldSection[i]
+      const nextChar = fieldSection[i + 1] || ''
 
-      if (char === '(') {
-        parenDepth++
-      } else if (char === ')') {
-        parenDepth--
+      // 处理注释
+      if (!inString && !inComment) {
+        // 开始注释
+        if (char === '/' && nextChar === '*') {
+          inComment = true
+          i++ // 跳过下一个字符
+          continue
+        } else if (char === '-' && nextChar === '-') {
+          // 单行注释，跳过到行尾
+          while (i < fieldSection.length && fieldSection[i] !== '\n') {
+            i++
+          }
+          continue
+        }
+      } else if (inComment) {
+        // 结束多行注释
+        if (char === '*' && nextChar === '/') {
+          inComment = false
+          i++ // 跳过下一个字符
+        }
+        continue
       }
 
-      if (char === ',' && parenDepth === 0) {
+      // 处理字符串
+      if (!inString) {
+        if (char === '"' || char === "'") {
+          inString = true
+          stringDelimiter = char
+        }
+      } else {
+        if (char === stringDelimiter && fieldSection[i - 1] !== '\\') {
+          inString = false
+        }
+      }
+
+      // 处理括号
+      if (!inString && !inComment) {
+        if (char === '(') {
+          parenDepth++
+        } else if (char === ')') {
+          parenDepth--
+        }
+      }
+
+      // 分割字段定义
+      if (char === ',' && parenDepth === 0 && !inString && !inComment) {
         if (currentDef.trim()) {
           definitions.push(currentDef.trim())
         }
@@ -1113,13 +1467,61 @@ export class DdlTypeParser {
   }
 
   /**
+   * 增强版字段定义提取（处理复杂嵌套和多行语句）
+   */
+  extractFieldSection(ddlStatement) {
+    let depth = 0
+    let startIndex = -1
+
+    // 找到第一个左括号
+    for (let i = 0; i < ddlStatement.length; i++) {
+      if (ddlStatement[i] === '(') {
+        startIndex = i + 1
+        depth = 1
+        break
+      }
+    }
+
+    if (startIndex === -1) {
+      return null
+    }
+
+    // 找到匹配的右括号
+    for (let i = startIndex; i < ddlStatement.length; i++) {
+      if (ddlStatement[i] === '(') {
+        depth++
+      } else if (ddlStatement[i] === ')') {
+        depth--
+        if (depth === 0) {
+          return ddlStatement.substring(startIndex, i)
+        }
+      }
+    }
+
+    return null
+  }
+
+  /**
    * 提取约束信息
    */
   extractConstraints(ddlStatement) {
     const constraints = []
+    const normalized = ddlStatement.replace(/\s+/g, ' ')
 
-    // 主键约束
-    const primaryKeyMatch = ddlStatement.match(/PRIMARY\s+KEY\s*\(([^)]+)\)/i)
+    // 命名主键约束
+    const namedPrimaryKeyMatches = normalized.matchAll(
+      /CONSTRAINT\s+([\w."`[\]]+)\s+PRIMARY\s+KEY\s*\(([^)]+)\)/gi
+    )
+    for (const match of namedPrimaryKeyMatches) {
+      constraints.push({
+        name: match[1].replace(/["`[\]]/g, ''),
+        type: 'PRIMARY_KEY',
+        columns: match[2].split(',').map((col) => col.trim().replace(/["`[\]]/g, '')),
+      })
+    }
+
+    // 匿名主键约束
+    const primaryKeyMatch = normalized.match(/PRIMARY\s+KEY\s*\(([^)]+)\)/i)
     if (primaryKeyMatch) {
       constraints.push({
         type: 'PRIMARY_KEY',
@@ -1127,8 +1529,20 @@ export class DdlTypeParser {
       })
     }
 
-    // 唯一约束
-    const uniqueMatches = ddlStatement.matchAll(/UNIQUE\s*\(([^)]+)\)/gi)
+    // 命名唯一约束
+    const namedUniqueMatches = normalized.matchAll(
+      /CONSTRAINT\s+([\w."`[\]]+)\s+UNIQUE\s*\(([^)]+)\)/gi
+    )
+    for (const match of namedUniqueMatches) {
+      constraints.push({
+        name: match[1].replace(/["`[\]]/g, ''),
+        type: 'UNIQUE',
+        columns: match[2].split(',').map((col) => col.trim().replace(/["`[\]]/g, '')),
+      })
+    }
+
+    // 匿名唯一约束
+    const uniqueMatches = normalized.matchAll(/UNIQUE\s*\(([^)]+)\)/gi)
     for (const match of uniqueMatches) {
       constraints.push({
         type: 'UNIQUE',
@@ -1136,16 +1550,40 @@ export class DdlTypeParser {
       })
     }
 
-    // 外键约束
-    const foreignKeyMatches = ddlStatement.matchAll(
-      /FOREIGN\s+KEY\s*\(([^)]+)\)\s+REFERENCES\s+([\w."`[\]]+)\s*\(([^)]+)\)/gi,
+    // 命名CHECK约束
+    const namedCheckMatches = normalized.matchAll(
+      /CONSTRAINT\s+([\w."`[\]]+)\s+CHECK\s*\(([^)]+)\)/gi
+    )
+    for (const match of namedCheckMatches) {
+      constraints.push({
+        name: match[1].replace(/["`[\]]/g, ''),
+        type: 'CHECK',
+        condition: match[2].trim(),
+      })
+    }
+
+    // 匿名CHECK约束
+    const checkMatches = normalized.matchAll(/CHECK\s*\(([^)]+)\)/gi)
+    for (const match of checkMatches) {
+      constraints.push({
+        type: 'CHECK',
+        condition: match[1].trim(),
+      })
+    }
+
+    // 外键约束（支持ON DELETE/ON UPDATE选项）
+    const foreignKeyMatches = normalized.matchAll(
+      /(?:CONSTRAINT\s+([\w."`[\]]+)\s+)?FOREIGN\s+KEY\s*\(([^)]+)\)\s+REFERENCES\s+([\w."`[\]]+)\s*\(([^)]+)\)\s*(?:ON\s+DELETE\s+(CASCADE|SET\s+NULL|SET\s+DEFAULT|NO\s+ACTION|RESTRICT))?\s*(?:ON\s+UPDATE\s+(CASCADE|SET\s+NULL|SET\s+DEFAULT|NO\s+ACTION|RESTRICT))?/gi,
     )
     for (const match of foreignKeyMatches) {
       constraints.push({
+        name: match[1] ? match[1].replace(/["`[\]]/g, '') : '',
         type: 'FOREIGN_KEY',
-        columns: match[1].split(',').map((col) => col.trim().replace(/["`[\]]/g, '')),
-        referencedTable: match[2].replace(/["`[\]]/g, ''),
-        referencedColumns: match[3].split(',').map((col) => col.trim().replace(/["`[\]]/g, '')),
+        columns: match[2].split(',').map((col) => col.trim().replace(/["`[\]]/g, '')),
+        referencedTable: match[3].replace(/["`[\]]/g, ''),
+        referencedColumns: match[4].split(',').map((col) => col.trim().replace(/["`[\]]/g, '')),
+        onDelete: match[5] ? match[5] : 'NO ACTION',
+        onUpdate: match[6] ? match[6] : 'NO ACTION',
       })
     }
 
@@ -1157,16 +1595,21 @@ export class DdlTypeParser {
    */
   extractIndexes(ddlStatement) {
     const indexes = []
+    const normalized = ddlStatement.replace(/\s+/g, ' ')
 
-    const indexMatches = ddlStatement.matchAll(
-      /(?:CREATE\s+)?(?:UNIQUE\s+)?INDEX\s+([\w."`[\]]+)\s+ON\s+([\w."`[\]]+)\s*\(([^)]+)\)/gi,
+    // 支持多种索引语法
+    const indexMatches = normalized.matchAll(
+      /(?:CREATE\s+)?(?:UNIQUE\s+)?(?:INDEX\s+)?([\w."`[\]]+)?\s*ON\s+([\w."`[\]]+)\s*\(([^)]+)\)\s*(?:USING\s+(BTREE|HASH|GIN|GiST|SP-GiST|BRIN|RTREE))?\s*(?:WITH\s+\(([^)]+)\))?\s*(?:TABLESPACE\s+([\w."`[\]]+))?/gi,
     )
     for (const match of indexMatches) {
       indexes.push({
-        name: match[1].replace(/["`[\]]/g, ''),
+        name: match[1] ? match[1].replace(/["`[\]]/g, '') : '',
         table: match[2].replace(/["`[\]]/g, ''),
         columns: match[3].split(',').map((col) => col.trim().replace(/["`[\]]/g, '')),
-        unique: match[0].includes('UNIQUE'),
+        unique: match[0].toUpperCase().includes('UNIQUE'),
+        using: match[4] ? match[4].toUpperCase() : 'BTREE',
+        withOptions: match[5] ? match[5] : '',
+        tablespace: match[6] ? match[6].replace(/["`[\]]/g, '') : '',
       })
     }
 

@@ -128,35 +128,20 @@
           <div class="mapping-stats">
             <a-statistic
               title="匹配率"
-              :value="enhancedMatchingStats.matchRate"
+              :value="matchingStats.matchRate"
               :precision="1"
               suffix="%"
             />
             <a-statistic
               title="已匹配"
-              :value="enhancedMatchingStats.matched"
+              :value="matchingStats.matched"
               :value-style="{ color: '#3f8600' }"
             />
             <a-statistic
               title="未匹配"
-              :value="enhancedMatchingStats.unmatched"
+              :value="matchingStats.unmatched"
               :value-style="{ color: '#cf1322' }"
             />
-
-            <!-- 自定义绑定统计 -->
-            <div v-if="hasCustomBindingConfig" class="custom-binding-stats">
-              <a-divider type="vertical" />
-              <a-statistic
-                title="自定义绑定"
-                :value="enhancedMatchingStats.customBindings || 0"
-                :value-style="{ color: '#1890ff' }"
-              />
-              <a-statistic
-                title="字段拼接"
-                :value="enhancedMatchingStats.concatenationRules || 0"
-                :value-style="{ color: '#722ed1' }"
-              />
-            </div>
           </div>
 
           <a-table
@@ -222,25 +207,7 @@
           <div class="mapping-actions">
             <a-button @click="autoMatchFields">自动匹配</a-button>
             <a-button @click="clearAllMappings">清除所有</a-button>
-            <a-button type="primary" @click="validateEnhancedMappings">验证映射</a-button>
-
-            <!-- 自定义绑定操作 -->
-            <a-divider type="vertical" />
-            <a-switch
-              v-model:checked="customBindingEnabled"
-              checked-children="自定义绑定"
-              un-checked-children="标准模式"
-              size="small"
-              @change="handleCustomBindingToggle"
-            />
-            <a-button
-              type="dashed"
-              @click="openCustomBindingModal"
-              :disabled="!customBindingEnabled"
-            >
-              <template #icon><SettingOutlined /></template>
-              配置绑定
-            </a-button>
+            <a-button type="primary" @click="validateFieldMappings">验证映射</a-button>
           </div>
 
           <!-- 数据库类型选择 -->
@@ -404,15 +371,7 @@
   </div>
 </template>
 
-<!-- 自定义绑定模态框 -->
-<CustomBindingModal
-  v-model:visible="showCustomBindingModal"
-  :ddl-fields="parsedFields"
-  :excel-headers="excelHeaders"
-  :custom-binding-manager="customBindingManager"
-  @save="handleCustomBindingSave"
-  @cancel="handleCustomBindingCancel"
-/>
+
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
@@ -444,6 +403,7 @@ const {
   matchFields,
   updateFieldMapping,
   validateMappings: validateFieldMappings,
+  matchingStats,
 } = useFieldMatcher()
 const {
   generateInsertSql,
