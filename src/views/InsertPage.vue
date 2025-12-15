@@ -422,8 +422,8 @@ import {
   PlayCircleOutlined,
   QuestionCircleOutlined,
   UploadOutlined,
-  ClockCircleOutlined,
   SettingOutlined,
+  ClockCircleOutlined,
 } from '@ant-design/icons-vue'
 
 // 导入核心功能模块
@@ -433,7 +433,7 @@ import { useFieldMatcher } from '@/composables/useFieldMatcher'
 import { useSqlGeneratorEnhanced } from '@/composables/useSqlGeneratorEnhanced'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 
-// 导入SQL预览组件
+// 导入组件
 import SqlPreview from '@/components/SqlPreview/SqlPreview.vue'
 
 // 初始化核心功能模块
@@ -444,11 +444,6 @@ const {
   matchFields,
   updateFieldMapping,
   validateMappings: validateFieldMappings,
-  matchingStats,
-  customBindingManager,
-  enhancedMatchFields,
-  processDataWithConcatenation,
-  validateEnhancedMappings,
 } = useFieldMatcher()
 const {
   generateInsertSql,
@@ -485,10 +480,6 @@ const uploading = ref(false)
 const generating = ref(false)
 const errorModalVisible = ref(false)
 const currentErrors = ref([])
-
-// 自定义绑定相关
-const showCustomBindingModal = ref(false)
-const customBindingEnabled = ref(false)
 
 // 计算属性
 const showFieldMapping = computed(() => {
@@ -537,31 +528,6 @@ const previewColumns = computed(() => {
 
   console.log('生成的列配置:', columns)
   return columns
-})
-
-// 自定义绑定相关计算属性
-const enhancedMatchingStats = computed(() => {
-  const baseStats = matchingStats.value
-
-  if (customBindingEnabled.value) {
-    const customBindingStats = customBindingManager.getBindingStats()
-    return {
-      ...baseStats,
-      customBindings: customBindingStats.customBindings,
-      concatenationRules: customBindingStats.concatenationRules,
-      hasCustomConfig: customBindingStats.hasCustomConfig,
-    }
-  }
-
-  return baseStats
-})
-
-const hasCustomBindingConfig = computed(() => {
-  return (
-    customBindingManager.enableCustomBinding &&
-    (customBindingManager.customBindings.length > 0 ||
-      customBindingManager.fieldConcatenationRules.length > 0)
-  )
 })
 
 const sqlStats = computed(() => {
@@ -769,45 +735,6 @@ const clearAllMappings = () => {
   message.info('已清除所有字段映射')
 }
 
-// 自定义绑定相关方法
-const handleCustomBindingToggle = (enabled) => {
-  customBindingEnabled.value = enabled
-  customBindingManager.setEnableCustomBinding(enabled)
-
-  if (enabled) {
-    logInfo('启用自定义绑定模式', 'custom-binding', {
-      operation: 'enableCustomBinding',
-      customBindings: customBindingManager.customBindings.length,
-      concatenationRules: customBindingManager.fieldConcatenationRules.length,
-    })
-    message.success('已启用自定义绑定模式')
-  } else {
-    logInfo('禁用自定义绑定模式，恢复标准模式', 'custom-binding', {
-      operation: 'disableCustomBinding',
-    })
-    message.info('已恢复标准模式')
-  }
-}
-
-const openCustomBindingModal = () => {
-  if (!customBindingEnabled.value) {
-    message.warning('请先启用自定义绑定模式')
-    return
-  }
-
-  if (parsedFields.value.length === 0 || excelHeaders.value.length === 0) {
-    message.warning('请先解析DDL语句和上传Excel文件')
-    return
-  }
-
-  showCustomBindingModal.value = true
-  logInfo('打开自定义绑定配置模态框', 'custom-binding', {
-    operation: 'openCustomBindingModal',
-    ddlFieldsCount: parsedFields.value.length,
-    excelHeadersCount: excelHeaders.value.length,
-  })
-}
-
 const handleClearCache = () => {
   clearCache()
   logInfo('DDL解析缓存已清除')
@@ -976,10 +903,8 @@ const generateSql = async () => {
     return
   }
 
-  // 使用增强的验证方法，支持自定义绑定
-  const validation = customBindingEnabled.value
-    ? validateEnhancedMappings()
-    : validateFieldMappings()
+  // 使用标准验证方法
+  const validation = validateFieldMappings()
   if (!validation.isValid) {
     message.warning('请先完成字段映射配置')
     return
@@ -991,22 +916,10 @@ const generateSql = async () => {
     // 提取表名（简化处理，实际应该从DDL解析结果中获取）
     const tableName = extractTableName(ddlStatement.value)
 
-    // 处理数据：如果启用了自定义绑定，应用字段拼接
-    let processedData = excelData.value
-    if (customBindingEnabled.value) {
-      processedData = processDataWithConcatenation(
-        excelData.value,
-        parsedFields.value,
-        excelHeaders.value,
-      )
-    }
+    // 使用标准字段映射
+    const mappingsToUse = fieldMappings.value
 
-    // 使用增强的字段映射：如果启用了自定义绑定，使用增强的映射结果
-    const mappingsToUse = customBindingEnabled.value
-      ? enhancedMatchFields(parsedFields.value, excelHeaders.value)
-      : fieldMappings.value
-
-    const sql = generateInsertSql(tableName, mappingsToUse, processedData, {
+    const sql = generateInsertSql(tableName, mappingsToUse, excelData.value, {
       dbType: databaseType.value,
       format: 'formatted',
       batch: 100,
@@ -1016,18 +929,15 @@ const generateSql = async () => {
 
     generatedSql.value = sql
 
-    const modeStatus = customBindingEnabled.value ? '自定义绑定模式' : '标准模式'
     const beautifyStatus = showBeautifyOptions.value ? '应用美化' : '未美化'
 
     logInfo(
-      `SQL生成成功（${modeStatus}，${includeComments.value ? '包含注释' : '纯SQL'}，${beautifyStatus}）`,
+      `SQL生成成功（标准模式，${includeComments.value ? '包含注释' : '纯SQL'}，${beautifyStatus}）`,
       'generation',
       {
-        mode: customBindingEnabled.value ? 'custom' : 'standard',
+        mode: 'standard',
         beautifyOptions: beautifyOptions.value,
         includeComments: includeComments.value,
-        customBindings: customBindingManager.customBindings.length,
-        concatenationRules: customBindingManager.fieldConcatenationRules.length,
       },
     )
     message.success('SQL生成成功')
@@ -1036,7 +946,6 @@ const generateSql = async () => {
       operation: 'generateInsertSql',
       tableName: extractTableName(ddlStatement.value),
       dataRows: excelData.value ? excelData.value.length : 0,
-      customBindingEnabled: customBindingEnabled.value,
     })
     message.error(friendlyError)
   } finally {
@@ -1049,7 +958,7 @@ const extractTableName = (ddl) => {
   const patterns = [
     /CREATE TABLE\s+(?:IF NOT EXISTS\s+)?`?([^`\s(]+)`?/i,
     /CREATE TABLE\s+(?:IF NOT EXISTS\s+)?"?([^"\s(]+)"?/i,
-    /CREATE TABLE\s+(?:IF NOT EXISTS\s+)?\[?([^[^\s(]+)\]?/i,
+    /CREATE TABLE\s+(?:IF NOT EXISTS\s+)?\[?([^\]\s(]+)\]?/i,
   ]
 
   for (const pattern of patterns) {
@@ -1088,26 +997,23 @@ const formatLogMessage = (log) => {
   // 美化操作的特殊格式化
   if (log.context && log.context.operationType === 'beautify') {
     const operation = log.context.operation || 'unknown'
-    let isVisible = ''
-    let changes = []
 
     switch (operation) {
-      case 'toggleBeautifyOptions':
-        isVisible = log.context.isVisible ? '显示' : '隐藏'
+      case 'toggleBeautifyOptions': {
+        const isVisible = log.context.isVisible ? '显示' : '隐藏'
         message += ` (${isVisible}美化选项面板)`
         break
+      }
 
       case 'applyBeautifyOptions':
         if (log.context.changes && log.context.changes.length > 0) {
-          changes = log.context.changes
-          message += ` (变更: ${changes.join(', ')})`
+          message += ` (变更: ${log.context.changes.join(', ')})`
         }
         break
 
       case 'resetBeautifyOptions':
         if (log.context.changes && log.context.changes.length > 0) {
-          changes = log.context.changes
-          message += ` (重置项: ${changes.join(', ')})`
+          message += ` (重置项: ${log.context.changes.join(', ')})`
         }
         break
     }
@@ -1156,9 +1062,6 @@ const resetAll = () => {
   logInfo('所有数据已重置')
   message.success('重置成功')
 }
-
-// 监听错误日志变化
-// 实际应该使用watch或事件机制
 
 // 生命周期
 onMounted(() => {
