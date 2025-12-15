@@ -7,9 +7,9 @@
  * 拼接模式枚举
  */
 export const ConcatenationMode = {
-  SIMPLE: 'simple',           // 简单拼接
-  FORMATTED: 'formatted',     // 格式化拼接
-  TEMPLATE: 'template'        // 模板拼接
+  SIMPLE: 'simple', // 简单拼接
+  FORMATTED: 'formatted', // 格式化拼接
+  TEMPLATE: 'template', // 模板拼接
 }
 
 /**
@@ -52,7 +52,7 @@ export class FieldConcatenator {
 
     // 预处理值
     const processedValues = this.preprocessValues(values)
-    
+
     // 根据模式进行拼接
     switch (this.config.mode) {
       case ConcatenationMode.FORMATTED:
@@ -72,18 +72,18 @@ export class FieldConcatenator {
    */
   preprocessValues(values) {
     return values
-      .map(value => {
+      .map((value) => {
         // 转换为字符串
         let strValue = String(value || '')
-        
+
         // 修剪值
         if (this.config.trimValues) {
           strValue = strValue.trim()
         }
-        
+
         return strValue
       })
-      .filter(value => {
+      .filter((value) => {
         // 过滤空值
         if (this.config.ignoreEmpty) {
           return value.length > 0
@@ -101,9 +101,9 @@ export class FieldConcatenator {
     if (values.length === 0) {
       return ''
     }
-    
+
     let result = values.join(this.config.separator)
-    
+
     // 添加前缀和后缀
     if (this.config.prefix) {
       result = this.config.prefix + result
@@ -111,7 +111,7 @@ export class FieldConcatenator {
     if (this.config.suffix) {
       result = result + this.config.suffix
     }
-    
+
     return result
   }
 
@@ -128,16 +128,16 @@ export class FieldConcatenator {
     try {
       // 使用格式化模板
       let result = this.config.format
-      
+
       // 替换占位符
       values.forEach((value, index) => {
         const placeholder = `{${index}}`
         result = result.replace(new RegExp(placeholder, 'g'), value)
       })
-      
+
       // 替换通用占位符
       result = result.replace(/{value}/g, values.join(this.config.separator))
-      
+
       return result
     } catch (error) {
       console.error('格式化拼接失败:', error)
@@ -158,13 +158,13 @@ export class FieldConcatenator {
     try {
       // 使用模板引擎（简化版）
       let result = this.config.template
-      
+
       // 替换索引占位符
       values.forEach((value, index) => {
         const placeholder = `\$\{${index}\}`
         result = result.replace(new RegExp(placeholder, 'g'), value)
       })
-      
+
       // 替换字段名占位符（需要额外的字段名映射）
       if (this.config.fieldMapping) {
         Object.entries(this.config.fieldMapping).forEach(([fieldName, fieldIndex]) => {
@@ -173,7 +173,7 @@ export class FieldConcatenator {
           result = result.replace(new RegExp(placeholder, 'g'), value)
         })
       }
-      
+
       return result
     } catch (error) {
       console.error('模板拼接失败:', error)
@@ -187,18 +187,18 @@ export class FieldConcatenator {
    */
   validateConfig() {
     const errors = []
-    
+
     if (this.config.mode === ConcatenationMode.FORMATTED && !this.config.format) {
       errors.push('格式化模式需要提供format参数')
     }
-    
+
     if (this.config.mode === ConcatenationMode.TEMPLATE && !this.config.template) {
       errors.push('模板模式需要提供template参数')
     }
-    
+
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     }
   }
 
@@ -209,7 +209,7 @@ export class FieldConcatenator {
    */
   getPreview(sampleValues = null) {
     const values = sampleValues || Array.from({ length: 3 }, (_, i) => `示例值${i + 1}`)
-    
+
     try {
       return this.concatenate(values)
     } catch (error) {
@@ -228,7 +228,7 @@ export const PresetConcatenations = {
     format: '{0}{1}{2}',
     separator: '',
     trimValues: true,
-    ignoreEmpty: true
+    ignoreEmpty: true,
   }),
 
   // 地址拼接
@@ -237,7 +237,7 @@ export const PresetConcatenations = {
     format: '{0}{1}{2}{3}',
     separator: '',
     trimValues: true,
-    ignoreEmpty: true
+    ignoreEmpty: true,
   }),
 
   // 日期时间拼接
@@ -246,7 +246,7 @@ export const PresetConcatenations = {
     format: '{0}-{1}-{2} {3}:{4}:{5}',
     separator: '-',
     trimValues: true,
-    ignoreEmpty: false
+    ignoreEmpty: false,
   }),
 
   // 路径拼接
@@ -254,7 +254,7 @@ export const PresetConcatenations = {
     mode: ConcatenationMode.SIMPLE,
     separator: '/',
     trimValues: true,
-    ignoreEmpty: true
+    ignoreEmpty: true,
   }),
 
   // 逗号分隔列表
@@ -262,8 +262,8 @@ export const PresetConcatenations = {
     mode: ConcatenationMode.SIMPLE,
     separator: ', ',
     trimValues: true,
-    ignoreEmpty: true
-  })
+    ignoreEmpty: true,
+  }),
 }
 
 /**
@@ -271,7 +271,7 @@ export const PresetConcatenations = {
  */
 export function createConcatenator(options) {
   return new FieldConcatenator(
-    options instanceof ConcatenationConfig ? options : new ConcatenationConfig(options)
+    options instanceof ConcatenationConfig ? options : new ConcatenationConfig(options),
   )
 }
 
@@ -287,31 +287,31 @@ export function batchConcatenate(rows, concatenationRules, excelHeaders) {
     return rows
   }
 
-  return rows.map(row => {
+  return rows.map((row) => {
     const newRow = { ...row }
-    
+
     Object.entries(concatenationRules).forEach(([targetField, rule]) => {
       if (rule.sourceColumns && Array.isArray(rule.sourceColumns)) {
         // 提取源列值
-        const sourceValues = rule.sourceColumns.map(colIndex => {
+        const sourceValues = rule.sourceColumns.map((colIndex) => {
           const header = excelHeaders[colIndex]
           return row[colIndex] || row[header] || ''
         })
-        
+
         // 创建拼接器
         const concatenator = createConcatenator({
           mode: rule.format ? ConcatenationMode.FORMATTED : ConcatenationMode.SIMPLE,
           separator: rule.separator || '',
           format: rule.format,
           trimValues: true,
-          ignoreEmpty: rule.ignoreEmpty !== false
+          ignoreEmpty: rule.ignoreEmpty !== false,
         })
-        
+
         // 执行拼接
         newRow[targetField] = concatenator.concatenate(sourceValues)
       }
     })
-    
+
     return newRow
   })
 }
@@ -324,36 +324,36 @@ export function batchConcatenate(rows, concatenationRules, excelHeaders) {
  */
 export function validateConcatenationRule(rule, excelHeaders) {
   const errors = []
-  
+
   if (!rule.ddlFieldName) {
     errors.push('目标DDL字段名不能为空')
   }
-  
+
   if (!rule.sourceColumns || !Array.isArray(rule.sourceColumns)) {
     errors.push('源列配置必须为数组')
   } else if (rule.sourceColumns.length === 0) {
     errors.push('至少需要配置一个源列')
   } else {
     // 检查列索引有效性
-    rule.sourceColumns.forEach(colIndex => {
+    rule.sourceColumns.forEach((colIndex) => {
       if (colIndex < 0 || colIndex >= excelHeaders.length) {
         errors.push(`列索引${colIndex}超出有效范围`)
       }
     })
   }
-  
+
   // 检查分隔符
   if (rule.separator && typeof rule.separator !== 'string') {
     errors.push('分隔符必须是字符串')
   }
-  
+
   // 检查格式化模板
   if (rule.format && typeof rule.format !== 'string') {
     errors.push('格式化模板必须是字符串')
   }
-  
+
   return {
     isValid: errors.length === 0,
-    errors
+    errors,
   }
 }
