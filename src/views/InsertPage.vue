@@ -444,7 +444,21 @@ const {
   matchFields,
   updateFieldMapping,
   validateMappings: validateFieldMappings,
+  matchingStats,
 } = useFieldMatcher()
+
+// 增强匹配统计信息，用于UI显示
+const enhancedMatchingStats = computed(() => {
+  return {
+    matchRate: matchingStats.value.matchRate || 0,
+    matched: matchingStats.value.matched || 0,
+    unmatched: matchingStats.value.unmatched || 0,
+    total: matchingStats.value.total || 0,
+    confidenceStats: matchingStats.value.confidenceStats || {},
+    customBindings: 0,
+    concatenationRules: 0,
+  }
+})
 const {
   generateInsertSql,
   setBeautifyOptions,
