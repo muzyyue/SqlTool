@@ -165,13 +165,28 @@ jobs:
           name: dist-zip
           path: ./
 
+      - name: Set Git commit name
+        run: |
+          # 设置Git提交名称，使用GitHub上下文信息或自定义名称
+          GIT_USER_NAME="${{ github.actor }} (GitHub Actions)"
+          GIT_USER_EMAIL="${{ github.actor }}@users.noreply.github.com"
+
+          # 如果需要，可以从环境变量或工作流输入获取自定义名称
+          # GIT_USER_NAME="${{ inputs.commit_name || github.actor }} (GitHub Actions)"
+          # GIT_USER_EMAIL="${{ inputs.commit_email || github.actor }}@users.noreply.github.com"
+
+          git config --global user.name "$GIT_USER_NAME"
+          git config --global user.email "$GIT_USER_EMAIL"
+
+          echo "已设置Git提交名称：$GIT_USER_NAME <$GIT_USER_EMAIL>"
+
       - name: Generate release notes
         id: generate_release_notes
         run: |
           # 生成当前提交的详细修改内容
-          CHANGELOG=$(git log -1 --stat --pretty=format:"%h - %s%n%b%n%ad" --date=short ${{ github.sha }})
+          CHANGELOG=$(git log -1 --stat --pretty=format:"%h - %s%n%b%n%ad by %an" --date=short ${{ github.sha }})
           # 添加构建信息
-          CHANGELOG="$CHANGELOG\n\n## 构建信息\n- 构建时间: $(date -u +"%Y-%m-%d %H:%M:%S UTC")\n- 构建编号: ${{ github.run_id }}\n- 构建触发事件: ${{ github.event_name }}\n- 触发分支: ${{ github.ref_name }}"
+          CHANGELOG="$CHANGELOG\n\n## 构建信息\n- 构建时间: $(date -u +"%Y-%m-%d %H:%M:%S UTC")\n- 构建编号: ${{ github.run_id }}\n- 构建触发事件: ${{ github.event_name }}\n- 触发分支: ${{ github.ref_name }}\n- 构建者: ${{ github.actor }}"
           # 设置为环境变量
           echo "CHANGELOG<<EOF" >> $GITHUB_ENV
           echo "$CHANGELOG" >> $GITHUB_ENV
