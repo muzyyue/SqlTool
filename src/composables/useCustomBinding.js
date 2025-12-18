@@ -2,7 +2,7 @@ import { ref, computed } from 'vue'
 
 /**
  * 自定义绑定功能管理器
- * 支持手动绑定和字段拼接功能
+ * 支持手动绑定、字段拼接和自定义字段功能
  */
 export function useCustomBinding() {
   // 自定义绑定配置
@@ -11,8 +11,26 @@ export function useCustomBinding() {
   // 字段拼接规则
   const fieldConcatenationRules = ref([])
 
+  // 自定义字段配置
+  const customFields = ref([])
+
   // 是否启用自定义绑定
   const enableCustomBinding = ref(false)
+
+  // 自增数字计数器
+  const autoIncrementCounters = ref({})
+
+  // 系统预设函数列表
+  const systemFunctions = [
+    { name: 'CURRENT_DATE', description: '当前日期' },
+    { name: 'CURRENT_TIME', description: '当前时间' },
+    { name: 'CURRENT_TIMESTAMP', description: '当前时间戳' },
+    { name: 'UUID', description: '生成唯一标识符' },
+    { name: 'RAND', description: '随机数' },
+    { name: 'NOW', description: '当前日期时间' },
+    { name: 'SYSDATE', description: '系统日期' },
+    { name: 'GETDATE', description: '获取当前日期时间' },
+  ]
 
   /**
    * 添加自定义绑定
@@ -178,6 +196,13 @@ export function useCustomBinding() {
       fieldBindings.add(rule.ddlFieldName)
     })
 
+    customFields.value.forEach((field) => {
+      if (fieldBindings.has(field.fieldName)) {
+        errors.push(`自定义字段"${field.fieldName}"与现有绑定字段冲突`)
+      }
+      fieldBindings.add(field.fieldName)
+    })
+
     // 检查无效的Excel列索引
     customBindings.value.forEach((binding) => {
       if (binding.excelIndex < -1) {
@@ -193,6 +218,26 @@ export function useCustomBinding() {
       })
     })
 
+    customFields.value.forEach((field) => {
+      if (field.dataSource === 'excel_combine') {
+        field.excelCombineConfig?.columns?.forEach((colIndex) => {
+          if (colIndex < 0) {
+            errors.push(`自定义字段"${field.fieldName}"的组合列索引无效`)
+          }
+        })
+      }
+
+      if (field.dataSource === 'auto_increment') {
+        const config = field.autoIncrementConfig || {}
+        if (typeof config.start !== 'number' || isNaN(config.start)) {
+          errors.push(`自定义字段"${field.fieldName}"的自增起始值无效`)
+        }
+        if (typeof config.step !== 'number' || isNaN(config.step) || config.step <= 0) {
+          errors.push(`自定义字段"${field.fieldName}"的自增步长无效`)
+        }
+      }
+    })
+
     return {
       isValid: errors.length === 0,
       errors,
@@ -206,6 +251,7 @@ export function useCustomBinding() {
     return {
       customBindings: customBindings.value,
       fieldConcatenationRules: fieldConcatenationRules.value,
+      customFields: customFields.value,
       exportTime: new Date().toISOString(),
     }
   }
@@ -215,10 +261,27 @@ export function useCustomBinding() {
    */
   const importBindings = (config) => {
     if (config.customBindings) {
-      customBindings.value = config.customBindings
+      // 确保customBindings始终是数组
+      customBindings.value = Array.isArray(config.customBindings) ? config.customBindings : []
     }
     if (config.fieldConcatenationRules) {
-      fieldConcatenationRules.value = config.fieldConcatenationRules
+      // 确保fieldConcatenationRules始终是数组
+      fieldConcatenationRules.value = Array.isArray(config.fieldConcatenationRules)
+        ? config.fieldConcatenationRules
+        : []
+    }
+    if (config.customFields) {
+      // 确保customFields始终是数组
+      const fields = Array.isArray(config.customFields) ? config.customFields : []
+      customFields.value = fields
+      // 重置自增计数器
+      fields.forEach((field) => {
+        if (field.dataSource === 'auto_increment') {
+          autoIncrementCounters.value[field.fieldName] = {
+            current: field.autoIncrementConfig?.start || 0,
+          }
+        }
+      })
     }
   }
 
@@ -228,6 +291,8 @@ export function useCustomBinding() {
   const resetBindings = () => {
     customBindings.value = []
     fieldConcatenationRules.value = []
+    customFields.value = []
+    autoIncrementCounters.value = {}
   }
 
   /**
@@ -237,8 +302,128 @@ export function useCustomBinding() {
     return {
       customBindings: customBindings.value.length,
       concatenationRules: fieldConcatenationRules.value.length,
-      hasCustomConfig: customBindings.value.length > 0 || fieldConcatenationRules.value.length > 0,
+      customFields: customFields.value.length,
+      hasCustomConfig:
+        customBindings.value.length > 0 ||
+        fieldConcatenationRules.value.length > 0 ||
+        customFields.value.length > 0,
     }
+  }
+
+  /**
+   * 添加自定义字段
+   * @param {Object} fieldConfig - 自定义字段配置
+   */
+  const addCustomField = (fieldConfig) => {
+    const existingIndex = customFields.value.findIndex(
+      (field) => field.fieldName === fieldConfig.fieldName,
+    )
+
+    if (existingIndex >= 0) {
+      // 更新现有字段
+      customFields.value[existingIndex] = {
+        ...customFields.value[existingIndex],
+        ...fieldConfig,
+        updatedAt: new Date().toISOString(),
+      }
+    } else {
+      // 添加新字段
+      customFields.value.push({
+        id: generateId(),
+        ...fieldConfig,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+    }
+
+    // 重置自增计数器
+    if (fieldConfig.dataSource === 'auto_increment') {
+      autoIncrementCounters.value[fieldConfig.fieldName] = {
+        current: fieldConfig.autoIncrementConfig?.start || 0,
+      }
+    }
+  }
+
+  /**
+   * 移除自定义字段
+   * @param {string} fieldName - 自定义字段名
+   */
+  const removeCustomField = (fieldName) => {
+    const index = customFields.value.findIndex((field) => field.fieldName === fieldName)
+    if (index >= 0) {
+      customFields.value.splice(index, 1)
+      // 移除对应的自增计数器
+      delete autoIncrementCounters.value[fieldName]
+    }
+  }
+
+  /**
+   * 获取自定义字段配置
+   * @param {string} fieldName - 自定义字段名
+   */
+  const getCustomField = (fieldName) => {
+    return customFields.value.find((field) => field.fieldName === fieldName)
+  }
+
+  /**
+   * 生成自增数字
+   * @param {string} fieldName - 自定义字段名
+   * @param {Object} config - 自增配置
+   */
+  const generateAutoIncrementValue = (fieldName, config) => {
+    if (!autoIncrementCounters.value[fieldName]) {
+      autoIncrementCounters.value[fieldName] = {
+        current: config.start || 0,
+      }
+    }
+
+    const currentValue = autoIncrementCounters.value[fieldName].current
+    const nextValue = currentValue + (config.step || 1)
+    autoIncrementCounters.value[fieldName].current = nextValue
+
+    return currentValue
+  }
+
+  /**
+   * 应用自定义字段配置到数据行
+   * @param {Object} rowData - 原始数据行
+   * @param {Array} excelHeaders - Excel表头列表
+   */
+  const applyCustomFields = (rowData) => {
+    const result = {}
+
+    customFields.value.forEach((field) => {
+      switch (field.dataSource) {
+        case 'system_function':
+          // 使用系统预设函数
+          result[field.fieldName] = `${field.systemFunctionConfig?.functionName || 'NOW'}()`
+          break
+
+        case 'excel_combine': {
+          // 组合Excel列数据
+          const combineValues = field.excelCombineConfig?.columns
+            .map((colIndex) => rowData[colIndex] || '')
+            .join(field.excelCombineConfig?.separator || '')
+          result[field.fieldName] = field.excelCombineConfig?.format
+            ? applyFormat(combineValues, field.excelCombineConfig.format)
+            : combineValues
+          break
+        }
+
+        case 'auto_increment':
+          // 生成自增数字
+          result[field.fieldName] = generateAutoIncrementValue(
+            field.fieldName,
+            field.autoIncrementConfig || {},
+          )
+          break
+
+        default:
+          result[field.fieldName] = null
+      }
+    })
+
+    return result
   }
 
   /**
@@ -263,19 +448,25 @@ export function useCustomBinding() {
   // 计算属性
   const customBindingCount = computed(() => customBindings.value.length)
   const concatenationRuleCount = computed(() => fieldConcatenationRules.value.length)
+  const customFieldCount = computed(() => customFields.value.length)
   const totalCustomBindings = computed(
-    () => customBindingCount.value + concatenationRuleCount.value,
+    () => customBindingCount.value + concatenationRuleCount.value + customFieldCount.value,
   )
 
   return {
     // 状态
     customBindings: computed(() => customBindings.value),
     fieldConcatenationRules: computed(() => fieldConcatenationRules.value),
+    customFields: computed(() => customFields.value),
     enableCustomBinding: computed(() => enableCustomBinding.value),
+
+    // 系统预设函数
+    systemFunctions: computed(() => systemFunctions),
 
     // 统计
     customBindingCount,
     concatenationRuleCount,
+    customFieldCount,
     totalCustomBindings,
 
     // 方法
@@ -290,6 +481,13 @@ export function useCustomBinding() {
     exportBindings,
     importBindings,
     resetBindings,
+
+    // 自定义字段方法
+    addCustomField,
+    removeCustomField,
+    getCustomField,
+    generateAutoIncrementValue,
+    applyCustomFields,
 
     // 设置
     setEnableCustomBinding: (value) => {

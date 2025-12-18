@@ -223,6 +223,10 @@
             <a-button @click="autoMatchFields">自动匹配</a-button>
             <a-button @click="clearAllMappings">清除所有</a-button>
             <a-button type="primary" @click="validateEnhancedMappings">验证映射</a-button>
+            <a-button type="dashed" @click="addCustomField" :disabled="!customBindingEnabled">
+              <template #icon><PlusOutlined /></template>
+              添加字段
+            </a-button>
 
             <!-- 自定义绑定操作 -->
             <a-divider type="vertical" />
@@ -401,18 +405,18 @@
         style="margin-bottom: 8px"
       />
     </a-modal>
+
+    <!-- 自定义绑定模态框 -->
+    <CustomBindingModal
+      v-model:open="showCustomBindingModal"
+      :ddl-fields="parsedFields"
+      :excel-headers="excelHeaders"
+      :custom-binding-manager="customBindingManager"
+      @save="handleCustomBindingSave"
+      @cancel="handleCustomBindingCancel"
+    />
   </div>
 </template>
-
-<!-- 自定义绑定模态框 -->
-<CustomBindingModal
-  v-model:visible="showCustomBindingModal"
-  :ddl-fields="parsedFields"
-  :excel-headers="excelHeaders"
-  :custom-binding-manager="customBindingManager"
-  @save="handleCustomBindingSave"
-  @cancel="handleCustomBindingCancel"
-/>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
@@ -424,6 +428,7 @@ import {
   UploadOutlined,
   SettingOutlined,
   ClockCircleOutlined,
+  PlusOutlined,
 } from '@ant-design/icons-vue'
 
 // 导入核心功能模块
@@ -435,6 +440,7 @@ import { useErrorHandler } from '@/composables/useErrorHandler'
 
 // 导入组件
 import SqlPreview from '@/components/SqlPreview/SqlPreview.vue'
+import CustomBindingModal from '@/components/CustomBindingModal.vue'
 
 // 初始化核心功能模块
 const { parseDdl: parseDdlWithParser, clearCache } = useDdlParser()
@@ -443,21 +449,32 @@ const {
   fieldMappings,
   matchFields,
   updateFieldMapping,
-  validateMappings: validateFieldMappings,
+  validateEnhancedMappings,
   matchingStats,
+  customBindingManager,
 } = useFieldMatcher()
 
 // 增强匹配统计信息，用于UI显示
 const enhancedMatchingStats = computed(() => {
+  const bindingStats = customBindingManager.getBindingStats()
   return {
     matchRate: matchingStats.value.matchRate || 0,
     matched: matchingStats.value.matched || 0,
     unmatched: matchingStats.value.unmatched || 0,
     total: matchingStats.value.total || 0,
     confidenceStats: matchingStats.value.confidenceStats || {},
-    customBindings: 0,
-    concatenationRules: 0,
+    customBindings: bindingStats.customBindings || 0,
+    concatenationRules: bindingStats.concatenationRules || 0,
+    customFields: bindingStats.customFields || 0,
   }
+})
+
+// 自定义绑定相关
+const showCustomBindingModal = ref(false)
+const customBindingEnabled = ref(false)
+const hasCustomBindingConfig = computed(() => {
+  const stats = customBindingManager.getBindingStats()
+  return stats.hasCustomConfig
 })
 const {
   generateInsertSql,
@@ -737,16 +754,62 @@ const updateMapping = (ddlFieldName, excelIndex) => {
 }
 
 const clearMapping = (ddlFieldName) => {
-  updateFieldMapping(ddlFieldName, null, -1)
-  logInfo(`清除字段映射: ${ddlFieldName}`)
+  console.log('执行clearMapping:', ddlFieldName)
+
+  // 查找字段信息，判断是否为自定义字段
+  const fieldInfo = parsedFields.value.find((field) => field.name === ddlFieldName)
+  console.log('字段信息:', fieldInfo)
+
+  // 从fieldMappings中移除对应的映射记录（无论是自定义字段还是普通字段）
+  const mappingIndex = fieldMappings.value.findIndex(
+    (mapping) => mapping.ddlField.name === ddlFieldName,
+  )
+  if (mappingIndex >= 0) {
+    fieldMappings.value.splice(mappingIndex, 1)
+    console.log('已从fieldMappings移除映射记录:', ddlFieldName)
+  }
+
+  if (fieldInfo && fieldInfo.isCustom) {
+    // 1. 从parsedFields中移除自定义字段
+    const fieldIndex = parsedFields.value.findIndex((field) => field.name === ddlFieldName)
+    if (fieldIndex >= 0) {
+      parsedFields.value.splice(fieldIndex, 1)
+      console.log('已从parsedFields移除自定义字段:', ddlFieldName)
+    }
+
+    // 2. 从customBindingManager中移除自定义字段
+    customBindingManager.removeCustomField(ddlFieldName)
+    console.log('已从customBindingManager移除自定义字段:', ddlFieldName)
+
+    logInfo(`移除自定义字段: ${ddlFieldName}`)
+    message.info(`已移除自定义字段: ${ddlFieldName}`)
+  } else {
+    // 如果是普通字段，从fieldMappings中移除后就不再显示在界面上
+    console.log('已移除普通字段映射记录:', ddlFieldName)
+    logInfo(`移除字段映射记录: ${ddlFieldName}`)
+    message.info(`已移除字段映射记录: ${ddlFieldName}`)
+  }
 }
 
 const clearAllMappings = () => {
+  // 移除所有自定义字段
+  const originalLength = parsedFields.value.length
+  parsedFields.value = parsedFields.value.filter((field) => !field.isCustom)
+  const customFieldsRemoved = originalLength - parsedFields.value.length
+
+  // 清除剩余普通字段的映射关系
   parsedFields.value.forEach((field) => {
     updateFieldMapping(field.name, null, -1)
   })
-  logInfo('清除所有字段映射')
-  message.info('已清除所有字段映射')
+
+  if (customFieldsRemoved > 0) {
+    logInfo(`已移除 ${customFieldsRemoved} 个自定义字段`)
+    logInfo('已清除所有普通字段映射')
+    message.info(`已移除 ${customFieldsRemoved} 个自定义字段并清除所有普通字段映射`)
+  } else {
+    logInfo('清除所有字段映射')
+    message.info('已清除所有字段映射')
+  }
 }
 
 const handleClearCache = () => {
@@ -917,8 +980,8 @@ const generateSql = async () => {
     return
   }
 
-  // 使用标准验证方法
-  const validation = validateFieldMappings()
+  // 验证映射配置
+  const validation = validateEnhancedMappings()
   if (!validation.isValid) {
     message.warning('请先完成字段映射配置')
     return
@@ -930,28 +993,35 @@ const generateSql = async () => {
     // 提取表名（简化处理，实际应该从DDL解析结果中获取）
     const tableName = extractTableName(ddlStatement.value)
 
-    // 使用标准字段映射
+    // 准备字段映射和自定义字段配置
     const mappingsToUse = fieldMappings.value
+    const customFieldsConfig = customBindingManager.customFields
+    const enableCustomBinding = customBindingEnabled.value
 
+    // 生成SQL
     const sql = generateInsertSql(tableName, mappingsToUse, excelData.value, {
       dbType: databaseType.value,
       format: 'formatted',
       batch: 100,
       comments: includeComments.value,
       beautifyOptions: beautifyOptions.value,
+      customFields: customFieldsConfig,
+      enableCustomBinding: enableCustomBinding,
     })
 
     generatedSql.value = sql
 
     const beautifyStatus = showBeautifyOptions.value ? '应用美化' : '未美化'
+    const bindingMode = enableCustomBinding ? '自定义绑定模式' : '标准模式'
 
     logInfo(
-      `SQL生成成功（标准模式，${includeComments.value ? '包含注释' : '纯SQL'}，${beautifyStatus}）`,
+      `SQL生成成功（${bindingMode}，${includeComments.value ? '包含注释' : '纯SQL'}，${beautifyStatus}）`,
       'generation',
       {
-        mode: 'standard',
+        mode: enableCustomBinding ? 'custom' : 'standard',
         beautifyOptions: beautifyOptions.value,
         includeComments: includeComments.value,
+        customFieldsCount: customFieldsConfig.length,
       },
     )
     message.success('SQL生成成功')
@@ -1063,6 +1133,134 @@ const exportLogs = () => {
   message.info('日志导出功能开发中')
 }
 
+// 自定义绑定相关方法
+const openCustomBindingModal = () => {
+  showCustomBindingModal.value = true
+}
+
+const handleCustomBindingToggle = (checked) => {
+  customBindingEnabled.value = true
+  customBindingManager.setEnableCustomBinding(checked)
+  logInfo(`自定义绑定已${checked ? '启用' : '禁用'}`)
+  message.success(`自定义绑定已${checked ? '启用' : '禁用'}`)
+}
+
+const handleCustomBindingSave = (customFieldsData) => {
+  // 保存自定义绑定配置
+  logInfo('自定义绑定配置已保存')
+  console.log(
+    '保存的自定义绑定配置:==================================================',
+    customFieldsData,
+  )
+
+  try {
+    // 1. 获取自定义字段数据，优先使用函数参数，其次使用customBindingManager
+    const customFields = Array.isArray(customFieldsData)
+      ? customFieldsData
+      : customBindingManager.customFields.value || []
+
+    // 2. 去重处理：移除空字段名的自定义字段，并根据fieldName去重
+    const validCustomFieldsMap = new Map()
+    customFields.forEach((field) => {
+      if (
+        typeof field === 'object' &&
+        field !== null &&
+        field.fieldName &&
+        field.fieldName.trim() !== ''
+      ) {
+        // 使用Map去重，保留最后一个出现的字段
+        validCustomFieldsMap.set(field.fieldName.trim(), field)
+      }
+    })
+    // 转换为数组
+    const validCustomFields = Array.from(validCustomFieldsMap.values())
+
+    console.log('有效自定义字段（去重后）:', validCustomFields)
+    console.log('有效自定义字段数量:', validCustomFields.length)
+
+    // 3. 先移除所有之前添加的自定义字段
+    const originalLength = parsedFields.value.length
+    parsedFields.value = parsedFields.value.filter((field) => !field.isCustom)
+    logInfo(`已移除 ${originalLength - parsedFields.value.length} 个之前添加的自定义字段`)
+
+    // 4. 清空customBindingManager中的旧字段，避免累积
+    customBindingManager.resetBindings()
+
+    // 5. 遍历有效的自定义字段，整合到DDL解析结果中
+    let addedCount = 0
+    validCustomFields.forEach((customField) => {
+      try {
+        // 构建符合DDL解析结果结构的字段对象
+        const ddlField = {
+          name: customField.fieldName,
+          type: customField.dataType || 'string',
+          nullable: customField.nullable !== false,
+          isIdentity: customField.isIdentity || false,
+          primaryKey: customField.primaryKey || false,
+          isCustom: true, // 标记为自定义字段
+          customConfig: customField, // 保存原始自定义字段配置
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }
+
+        // 添加到DDL解析结果集合中
+        parsedFields.value.push(ddlField)
+
+        // 同时添加到customBindingManager中
+        customBindingManager.addCustomField(customField)
+
+        addedCount++
+        logInfo(`添加自定义字段: ${customField.fieldName}`)
+      } catch (error) {
+        logError(error, 'custom-field', {
+          operation: 'addCustomField',
+          customField: customField,
+          errorMessage: error.message,
+        })
+        message.error(`处理自定义字段${customField.fieldName}时出错: ${error.message}`)
+      }
+    })
+
+    logInfo(`成功添加 ${addedCount} 个自定义字段`)
+    console.log('最终parsedFields:', parsedFields.value)
+    console.log('最终parsedFields数量:', parsedFields.value.length)
+
+    // 6. 重新进行字段匹配，确保自定义字段被正确添加到fieldMappings
+    if (excelHeaders.value.length > 0) {
+      console.log('开始重新匹配字段...')
+      autoMatchFields()
+    }
+
+    message.success(`自定义绑定配置已保存，成功添加 ${addedCount} 个自定义字段`)
+  } catch (error) {
+    logError(error, 'custom-binding', {
+      operation: 'saveCustomBinding',
+      errorMessage: error.message,
+    })
+    message.error(`自定义绑定保存失败: ${error.message}`)
+  }
+}
+
+const handleCustomBindingCancel = () => {
+  showCustomBindingModal.value = false
+}
+
+const addCustomField = () => {
+  // 添加默认配置的自定义字段
+  customBindingManager.addCustomField({
+    fieldName: '',
+    dataSource: 'system_function',
+    systemFunctionConfig: {
+      functionName: 'NOW',
+    },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  })
+
+  logInfo('已添加新的自定义字段')
+  message.success('已添加新的自定义字段，请在配置绑定中编辑')
+}
+
 const resetAll = () => {
   ddlStatement.value = ''
   parsedFields.value = []
@@ -1072,6 +1270,8 @@ const resetAll = () => {
   generatedSql.value = ''
   fileList.value = []
   handleClearCache()
+  customBindingEnabled.value = false
+  customBindingManager.resetBindings()
 
   logInfo('所有数据已重置')
   message.success('重置成功')

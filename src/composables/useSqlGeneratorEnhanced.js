@@ -95,10 +95,21 @@ export function useSqlGeneratorEnhanced() {
    */
   const generateBatchInsertSql = (tableName, fieldMappings, batchData, dbType) => {
     // 过滤掉自增主键字段和主键字段
+    // 对于自定义字段，即使没有映射到Excel列也保留（如自增字段、系统函数字段等）
     const mappedFields = fieldMappings
-      .filter((mapping) => mapping.excelHeader && mapping.excelIndex >= 0)
-      .filter((mapping) => !mapping.ddlField.isIdentity && !mapping.ddlField.primaryKey) // 排除自增字段和主键字段
-      .sort((a, b) => a.excelIndex - b.excelIndex)
+      .filter((mapping) => {
+        // 保留所有非自增、非主键字段
+        // 对于自定义字段，即使没有映射到Excel列也保留
+        return (!mapping.ddlField.isIdentity && !mapping.ddlField.primaryKey) && 
+               (mapping.excelHeader || mapping.ddlField.isCustom);
+      })
+      .sort((a, b) => {
+        // 按excelIndex排序，没有excelIndex的自定义字段排在后面
+        if (a.excelIndex === -1 && b.excelIndex === -1) return 0;
+        if (a.excelIndex === -1) return 1;
+        if (b.excelIndex === -1) return -1;
+        return a.excelIndex - b.excelIndex;
+      })
 
     if (mappedFields.length === 0) {
       throw new Error('没有有效的字段映射关系（所有字段都是自增主键、主键字段或未映射）')
@@ -108,11 +119,46 @@ export function useSqlGeneratorEnhanced() {
     const valuesList = []
 
     // 处理每行数据
-    batchData.forEach((row) => {
+    batchData.forEach((row, rowIndex) => {
       const values = mappedFields.map((mapping) => {
-        const value = row[mapping.excelIndex]
-        return formatValue(value, mapping.ddlField.type, dbType)
+        console.log(`处理字段: ${mapping.ddlField.name}, 自定义字段: ${mapping.ddlField.isCustom}, excelHeader: ${mapping.excelHeader}, excelIndex: ${mapping.excelIndex}`);
+        
+        // 检查是否是自定义字段且没有映射到Excel列
+        if (mapping.ddlField.isCustom && (!mapping.excelHeader || mapping.excelIndex === -1)) {
+          // 处理自定义字段的特殊情况
+          const customField = mapping.ddlField.customConfig;
+          
+          console.log(`处理无映射的自定义字段: ${mapping.ddlField.name}, 数据源类型: ${customField.dataSource}`);
+          
+          // 根据自定义字段的数据源类型返回对应的值
+          if (customField.dataSource === 'system_function') {
+            // 系统函数字段，直接返回函数调用字符串
+            const funcName = customField.systemFunctionConfig?.functionName || 'NOW';
+            return `${funcName}()`;
+          } else if (customField.dataSource === 'auto_increment') {
+            // 自增字段，暂时返回NULL，实际使用时会由数据库处理
+            return 'NULL';
+          } else if (customField.dataSource === 'excel_combine') {
+            // Excel组合字段，这里可能需要特殊处理
+            return 'NULL';
+          } else {
+            // 默认返回NULL
+            return 'NULL';
+          }
+        } else {
+          // 正常映射的字段（包括有映射的自定义字段），从Excel数据中获取值
+          console.log(`处理有映射的字段: ${mapping.ddlField.name}, excelIndex: ${mapping.excelIndex}, row数据: ${JSON.stringify(row)}`);
+          
+          const value = row[mapping.excelIndex];
+          console.log(`字段 ${mapping.ddlField.name} 的值: ${value}`);
+          
+          const formattedValue = formatValue(value, mapping.ddlField.type, dbType);
+          console.log(`格式化后的值: ${formattedValue}`);
+          
+          return formattedValue;
+        }
       })
+      console.log(`第${rowIndex + 1}行生成的VALUES: (${values.join(', ')})`);
       valuesList.push(`(${values.join(', ')})`)
     })
 
@@ -182,7 +228,7 @@ export function useSqlGeneratorEnhanced() {
     // 验证表名格式（支持更灵活的表名格式）
     // 允许：字母、数字、下划线、中文字符、点号、连字符、空格、双引号（用于PostgreSQL模式）
     // 禁止：特殊字符和SQL关键字
-    const invalidChars = /[<>/\\;'|*?$^[\]{}() +=]/i
+    const invalidChars = /[<>/\\;'|*?$^[\]{}()+=]/i
     const sqlKeywords = /\b(SELECT|INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|TRUNCATE)\b/i
 
     // 检查是否包含不允许的特殊字符（排除双引号，因为PostgreSQL支持带引号的表名）
@@ -378,22 +424,11 @@ export function useSqlGeneratorEnhanced() {
    * 解析日期时间字符串
    */
   const parseDateTime = (dateTimeStr) => {
-    const formats = [
-      'YYYY-MM-DD',
-      'YYYY-MM-DD HH:mm:ss',
-      'YYYY/MM/DD',
-      'YYYY/MM/DD HH:mm:ss',
-      'MM/DD/YYYY',
-      'MM/DD/YYYY HH:mm:ss',
-    ]
-
-    for (let i = 0; i < formats.length; i++) {
-      const date = new Date(dateTimeStr)
-      if (!isNaN(date.getTime())) {
-        return date
-      }
+    // 直接尝试转换，不使用预设格式
+    const date = new Date(dateTimeStr)
+    if (!isNaN(date.getTime())) {
+      return date
     }
-
     return null
   }
 
