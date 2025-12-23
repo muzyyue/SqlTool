@@ -1150,14 +1150,31 @@ const handleCustomBindingSave = (customFieldsData) => {
   logInfo('自定义绑定配置已保存')
   console.log(
     '保存的自定义绑定配置:==================================================',
-    customFieldsData,
+    customBindingManager,
   )
 
   try {
-    // 1. 获取自定义字段数据，优先使用函数参数，其次使用customBindingManager
-    const customFields = Array.isArray(customFieldsData)
-      ? customFieldsData
-      : customBindingManager.customFields.value || []
+    // 1. 首先导入完整的绑定配置到customBindingManager
+    if (customFieldsData && typeof customFieldsData === 'object') {
+      customBindingManager.importBindings(customFieldsData)
+      console.log('已导入完整绑定配置到customBindingManager')
+    }
+
+    // 2. 获取自定义字段数据，确保它是数组
+    let customFields = []
+
+    // 从customFieldsData或customBindingManager获取自定义字段
+    if (customFieldsData && customFieldsData.customFields) {
+      // 从传递的数据中获取
+      customFields = Array.isArray(customFieldsData.customFields)
+        ? customFieldsData.customFields
+        : []
+    } else {
+      // 从customBindingManager获取
+      customFields = Array.isArray(customBindingManager.customFields.value)
+        ? customBindingManager.customFields.value
+        : []
+    }
 
     // 2. 去重处理：移除空字段名的自定义字段，并根据fieldName去重
     const validCustomFieldsMap = new Map()
@@ -1183,13 +1200,12 @@ const handleCustomBindingSave = (customFieldsData) => {
     parsedFields.value = parsedFields.value.filter((field) => !field.isCustom)
     logInfo(`已移除 ${originalLength - parsedFields.value.length} 个之前添加的自定义字段`)
 
-    // 4. 清空customBindingManager中的旧字段，避免累积
-    customBindingManager.resetBindings()
-
-    // 5. 遍历有效的自定义字段，整合到DDL解析结果中
+    // 4. 遍历有效的自定义字段，整合到DDL解析结果中
     let addedCount = 0
-    validCustomFields.forEach((customField) => {
+    validCustomFields.forEach((customField, index) => {
       try {
+        console.log(`添加自定义字段${index}:`, customField)
+
         // 构建符合DDL解析结果结构的字段对象
         const ddlField = {
           name: customField.fieldName,
@@ -1205,9 +1221,7 @@ const handleCustomBindingSave = (customFieldsData) => {
 
         // 添加到DDL解析结果集合中
         parsedFields.value.push(ddlField)
-
-        // 同时添加到customBindingManager中
-        customBindingManager.addCustomField(customField)
+        console.log(`已添加到parsedFields:`, ddlField.name)
 
         addedCount++
         logInfo(`添加自定义字段: ${customField.fieldName}`)
@@ -1225,11 +1239,46 @@ const handleCustomBindingSave = (customFieldsData) => {
     console.log('最终parsedFields:', parsedFields.value)
     console.log('最终parsedFields数量:', parsedFields.value.length)
 
+    // 5. 为新添加的自定义字段创建或更新映射记录
+    validCustomFields.forEach((customField) => {
+      // 查找字段在parsedFields中的引用
+      const ddlFieldRef = parsedFields.value.find((field) => field.name === customField.fieldName)
+
+      // 检查是否已存在映射记录
+      const existingIndex = fieldMappings.value.findIndex(
+        (m) => m.ddlField?.name === customField.fieldName,
+      )
+
+      if (existingIndex >= 0) {
+        // 更新现有映射记录
+        fieldMappings.value[existingIndex] = {
+          ...fieldMappings.value[existingIndex],
+          ddlField: ddlFieldRef,
+        }
+        console.log('已更新映射记录:', customField.fieldName)
+      } else {
+        // 创建并添加新的映射记录
+        const mapping = {
+          ddlField: ddlFieldRef,
+          excelHeader: null,
+          excelIndex: -1,
+          similarity: 0,
+          confidence: 'manual',
+          status: 'unmatched',
+        }
+        fieldMappings.value.push(mapping)
+        console.log('已添加映射记录:', customField.fieldName)
+      }
+    })
+
     // 6. 重新进行字段匹配，确保自定义字段被正确添加到fieldMappings
     if (excelHeaders.value.length > 0) {
       console.log('开始重新匹配字段...')
-      autoMatchFields()
+      matchFields(parsedFields.value, excelHeaders.value, ddlStatement.value)
     }
+
+    console.log('最终fieldMappings:', fieldMappings.value)
+    console.log('最终fieldMappings数量:', fieldMappings.value.length)
 
     message.success(`自定义绑定配置已保存，成功添加 ${addedCount} 个自定义字段`)
   } catch (error) {

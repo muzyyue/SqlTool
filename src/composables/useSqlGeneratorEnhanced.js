@@ -100,15 +100,18 @@ export function useSqlGeneratorEnhanced() {
       .filter((mapping) => {
         // 保留所有非自增、非主键字段
         // 对于自定义字段，即使没有映射到Excel列也保留
-        return (!mapping.ddlField.isIdentity && !mapping.ddlField.primaryKey) && 
-               (mapping.excelHeader || mapping.ddlField.isCustom);
+        return (
+          !mapping.ddlField.isIdentity &&
+          !mapping.ddlField.primaryKey &&
+          (mapping.excelHeader || mapping.ddlField.isCustom)
+        )
       })
       .sort((a, b) => {
         // 按excelIndex排序，没有excelIndex的自定义字段排在后面
-        if (a.excelIndex === -1 && b.excelIndex === -1) return 0;
-        if (a.excelIndex === -1) return 1;
-        if (b.excelIndex === -1) return -1;
-        return a.excelIndex - b.excelIndex;
+        if (a.excelIndex === -1 && b.excelIndex === -1) return 0
+        if (a.excelIndex === -1) return 1
+        if (b.excelIndex === -1) return -1
+        return a.excelIndex - b.excelIndex
       })
 
     if (mappedFields.length === 0) {
@@ -121,44 +124,50 @@ export function useSqlGeneratorEnhanced() {
     // 处理每行数据
     batchData.forEach((row, rowIndex) => {
       const values = mappedFields.map((mapping) => {
-        console.log(`处理字段: ${mapping.ddlField.name}, 自定义字段: ${mapping.ddlField.isCustom}, excelHeader: ${mapping.excelHeader}, excelIndex: ${mapping.excelIndex}`);
-        
+        console.log(
+          `处理字段: ${mapping.ddlField.name}, 自定义字段: ${mapping.ddlField.isCustom}, excelHeader: ${mapping.excelHeader}, excelIndex: ${mapping.excelIndex}`,
+        )
+
         // 检查是否是自定义字段且没有映射到Excel列
         if (mapping.ddlField.isCustom && (!mapping.excelHeader || mapping.excelIndex === -1)) {
           // 处理自定义字段的特殊情况
-          const customField = mapping.ddlField.customConfig;
-          
-          console.log(`处理无映射的自定义字段: ${mapping.ddlField.name}, 数据源类型: ${customField.dataSource}`);
-          
+          const customField = mapping.ddlField.customConfig
+
+          console.log(
+            `处理无映射的自定义字段: ${mapping.ddlField.name}, 数据源类型: ${customField.dataSource}`,
+          )
+
           // 根据自定义字段的数据源类型返回对应的值
           if (customField.dataSource === 'system_function') {
             // 系统函数字段，直接返回函数调用字符串
-            const funcName = customField.systemFunctionConfig?.functionName || 'NOW';
-            return `${funcName}()`;
+            const funcName = customField.systemFunctionConfig?.functionName || 'NOW'
+            return `${funcName}()`
           } else if (customField.dataSource === 'auto_increment') {
             // 自增字段，暂时返回NULL，实际使用时会由数据库处理
-            return 'NULL';
+            return 'NULL'
           } else if (customField.dataSource === 'excel_combine') {
             // Excel组合字段，这里可能需要特殊处理
-            return 'NULL';
+            return 'NULL'
           } else {
             // 默认返回NULL
-            return 'NULL';
+            return 'NULL'
           }
         } else {
           // 正常映射的字段（包括有映射的自定义字段），从Excel数据中获取值
-          console.log(`处理有映射的字段: ${mapping.ddlField.name}, excelIndex: ${mapping.excelIndex}, row数据: ${JSON.stringify(row)}`);
-          
-          const value = row[mapping.excelIndex];
-          console.log(`字段 ${mapping.ddlField.name} 的值: ${value}`);
-          
-          const formattedValue = formatValue(value, mapping.ddlField.type, dbType);
-          console.log(`格式化后的值: ${formattedValue}`);
-          
-          return formattedValue;
+          console.log(
+            `处理有映射的字段: ${mapping.ddlField.name}, excelIndex: ${mapping.excelIndex}, row数据: ${JSON.stringify(row)}`,
+          )
+
+          const value = row[mapping.excelIndex]
+          console.log(`字段 ${mapping.ddlField.name} 的值: ${value}`)
+
+          const formattedValue = formatValue(value, mapping.ddlField.type, dbType)
+          console.log(`格式化后的值: ${formattedValue}`)
+
+          return formattedValue
         }
       })
-      console.log(`第${rowIndex + 1}行生成的VALUES: (${values.join(', ')})`);
+      console.log(`第${rowIndex + 1}行生成的VALUES: (${values.join(', ')})`)
       valuesList.push(`(${values.join(', ')})`)
     })
 

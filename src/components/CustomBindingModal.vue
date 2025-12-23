@@ -678,11 +678,11 @@ const addCustomField = () => {
 const removeCustomField = (id) => {
   const index = customFields.value.findIndex((field) => field.id === id)
   if (index >= 0) {
-    const fieldName = customFields.value[index].fieldName
+    const fieldToRemove = customFields.value[index]
     customFields.value.splice(index, 1)
     // 从管理器中移除
-    if (fieldName) {
-      props.customBindingManager.removeCustomField(fieldName)
+    if (fieldToRemove.fieldName) {
+      props.customBindingManager.removeCustomField(fieldToRemove.fieldName)
     }
   }
 }
@@ -731,8 +731,24 @@ const getCustomFieldPreview = (field) => {
 }
 
 const saveBindings = () => {
-  console.log("===========================================================",);
+  console.log(
+    '========================customFields===================================',
+    customFields.value,
+  )
 
+  // 核心修复：将本地自定义字段同步到customBindingManager
+  // 1. 先清空管理器中现有的自定义字段
+  customFields.value.forEach((field) => {
+    if (field.fieldName) {
+      props.customBindingManager.removeCustomField(field.fieldName)
+    }
+  })
+  // 2. 将本地所有自定义字段添加到管理器中
+  customFields.value.forEach((field) => {
+    if (field.fieldName) {
+      props.customBindingManager.addCustomField(field)
+    }
+  })
 
   // 验证配置
   const validation = props.customBindingManager.validateBindings()
@@ -743,9 +759,9 @@ const saveBindings = () => {
   }
 
   emit('save', {
-    customBindings: props.customBindingManager.customBindings,
-    fieldConcatenationRules: props.customBindingManager.fieldConcatenationRules,
-    customFields: props.customBindingManager.customFields,
+    customBindings: props.customBindingManager.customBindings.value,
+    fieldConcatenationRules: props.customBindingManager.fieldConcatenationRules.value,
+    customFields: props.customBindingManager.customFields.value,
     enableCustomBinding: enableCustomBinding.value,
   })
 
