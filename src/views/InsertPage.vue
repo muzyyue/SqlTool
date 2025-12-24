@@ -1271,12 +1271,6 @@ const handleCustomBindingSave = (customFieldsData) => {
       }
     })
 
-    // 6. 重新进行字段匹配，确保自定义字段被正确添加到fieldMappings
-    if (excelHeaders.value.length > 0) {
-      console.log('开始重新匹配字段...')
-      matchFields(parsedFields.value, excelHeaders.value, ddlStatement.value)
-    }
-
     console.log('最终fieldMappings:', fieldMappings.value)
     console.log('最终fieldMappings数量:', fieldMappings.value.length)
 

@@ -168,7 +168,15 @@ export function useSqlGeneratorEnhanced() {
         }
       })
       console.log(`第${rowIndex + 1}行生成的VALUES: (${values.join(', ')})`)
-      valuesList.push(`(${values.join(', ')})`)
+
+      const validatedValues = values.map(v => {
+        if (v === undefined || v === null || v === '') {
+          return 'NULL'
+        }
+        return v
+      })
+
+      valuesList.push(`(${validatedValues.join(', ')})`)
     })
 
     // 确保VALUES子句格式正确，每行单独处理
