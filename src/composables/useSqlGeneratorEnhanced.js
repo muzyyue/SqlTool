@@ -141,8 +141,31 @@ export function useSqlGeneratorEnhanced() {
             // 自增字段，暂时返回NULL，实际使用时会由数据库处理
             return 'NULL'
           } else if (customField.dataSource === 'excel_combine') {
-            // Excel组合字段，这里可能需要特殊处理
-            return 'NULL'
+            // Excel组合字段处理
+            const combineConfig = customField.excelCombineConfig || {}
+            const columnIndices = combineConfig.columns || []
+            const separator = combineConfig.separator || ''
+            const formatTemplate = combineConfig.format || ''
+
+            // 读取并组合Excel列的值
+            const combinedValues = columnIndices
+              .map((colIndex) => {
+                if (colIndex !== undefined && colIndex >= 0 && row[colIndex] !== undefined) {
+                  return row[colIndex]
+                }
+                return ''
+              })
+              .filter((v) => v !== undefined && v !== null && v !== '')
+
+            let combinedValue = combinedValues.join(separator)
+
+            // 应用格式模板
+            if (formatTemplate) {
+              combinedValue = formatTemplate.replace(/\{value\}/g, combinedValue)
+            }
+
+            console.log(`Excel组合字段 ${mapping.ddlField.name} 的值: ${combinedValue}`)
+            return formatValue(combinedValue, mapping.ddlField.type, dbType)
           } else {
             // 默认返回NULL
             return 'NULL'
