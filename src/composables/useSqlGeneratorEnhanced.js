@@ -95,16 +95,11 @@ export function useSqlGeneratorEnhanced() {
    */
   const generateBatchInsertSql = (tableName, fieldMappings, batchData, dbType) => {
     // 过滤掉自增主键字段和主键字段
-    // 对于自定义字段，即使没有映射到Excel列也保留（如自增字段、系统函数字段等）
+    // 保留所有其他字段：有映射的普通字段、无映射的普通字段（值为NULL）、有映射或无映射的自定义字段
     const mappedFields = fieldMappings
       .filter((mapping) => {
-        // 保留所有非自增、非主键字段
-        // 对于自定义字段，即使没有映射到Excel列也保留
-        return (
-          !mapping.ddlField.isIdentity &&
-          !mapping.ddlField.primaryKey &&
-          (mapping.excelHeader || mapping.ddlField.isCustom)
-        )
+        // 排除自增主键和主键字段，保留所有其他字段
+        return !mapping.ddlField.isIdentity && !mapping.ddlField.primaryKey
       })
       .sort((a, b) => {
         // 按excelIndex排序，没有excelIndex的自定义字段排在后面
@@ -152,8 +147,12 @@ export function useSqlGeneratorEnhanced() {
             // 默认返回NULL
             return 'NULL'
           }
+        } else if (!mapping.excelHeader || mapping.excelIndex < 0) {
+          // 未映射到Excel列的普通字段，返回NULL
+          console.log(`字段 ${mapping.ddlField.name} 未映射到Excel列，返回NULL`)
+          return 'NULL'
         } else {
-          // 正常映射的字段（包括有映射的自定义字段），从Excel数据中获取值
+          // 正常映射的字段，从Excel数据中获取值
           console.log(
             `处理有映射的字段: ${mapping.ddlField.name}, excelIndex: ${mapping.excelIndex}, row数据: ${JSON.stringify(row)}`,
           )
