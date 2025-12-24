@@ -169,14 +169,21 @@ export function useSqlGeneratorEnhanced() {
       })
       console.log(`第${rowIndex + 1}行生成的VALUES: (${values.join(', ')})`)
 
-      const validatedValues = values.map(v => {
+      const validatedValues = values.map((v) => {
         if (v === undefined || v === null || v === '') {
           return 'NULL'
         }
         return v
       })
 
-      valuesList.push(`(${validatedValues.join(', ')})`)
+      const finalValues = validatedValues.map((v) => {
+        if (v === 'NULL' || v === null) {
+          return 'NULL'
+        }
+        return v
+      })
+
+      valuesList.push(`(${finalValues.join(', ')})`)
     })
 
     // 确保VALUES子句格式正确，每行单独处理
@@ -315,7 +322,16 @@ export function useSqlGeneratorEnhanced() {
       return 'NULL'
     }
 
+    // 特殊处理：如果是系统函数调用（如 UUID(), NOW()），直接返回
     const strValue = String(value).trim()
+    if (/^[A-Z_]+\(\)$/i.test(strValue)) {
+      return strValue
+    }
+
+    // 特殊处理：如果是已经格式化的 NULL 字符串，直接返回
+    if (strValue === 'NULL') {
+      return 'NULL'
+    }
 
     // 处理数字类型
     if (isNumericType(dataType)) {
