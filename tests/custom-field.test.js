@@ -515,4 +515,387 @@ describe('自定义字段功能测试', () => {
       expect(result).toContain('GETDATE()')
     })
   })
+
+  describe('字段拼接功能测试', () => {
+    it('应该正确拼接Excel列的值，只在整个结果两侧添加引号', () => {
+      const tableName = 'users'
+      const ddlFields = [
+        { name: 'id', type: 'INT', primaryKey: true, isIdentity: true },
+        { name: 'full_name', type: 'VARCHAR(100)', primaryKey: false, isIdentity: false },
+      ]
+
+      const excelData = [
+        ['1', '张三', 'zhangsan@example.com'],
+        ['2', '李四', 'lisi@example.com'],
+      ]
+
+      const excelHeaders = ['ID', '姓名', '邮箱']
+
+      const fieldMappings = ddlFields.map((field, index) => ({
+        ddlField: field,
+        excelHeader: excelHeaders[index] || null,
+        excelIndex: index < excelHeaders.length ? index : -1,
+      }))
+
+      const customFields = [
+        {
+          name: 'full_name',
+          type: 'VARCHAR(100)',
+          isCustom: true,
+          customConfig: {
+            dataSource: 'excel_combine',
+            excelCombineConfig: {
+              columns: [1, 2],
+              separator: ' ',
+              format: '',
+            },
+          },
+        },
+      ]
+
+      const allFieldMappings = [
+        ...fieldMappings.filter((m) => m.ddlField.name !== 'full_name'),
+        ...customFields.map((customField) => ({
+          ddlField: customField,
+          excelHeader: null,
+          excelIndex: -1,
+        })),
+      ]
+
+      const result = sqlGenerator.generateInsertSql(tableName, allFieldMappings, excelData, {
+        dbType: 'mysql',
+        format: 'formatted',
+        batch: 100,
+        comments: false,
+      })
+
+      console.log('字段拼接的SQL:', result)
+
+      expect(result).toContain('INSERT INTO')
+      expect(result).toContain('full_name')
+      expect(result).toContain("'张三 zhangsan@example.com'")
+      expect(result).toContain("'李四 lisi@example.com'")
+    })
+
+    it('应该支持格式化模板拼接', () => {
+      const tableName = 'users'
+      const ddlFields = [
+        { name: 'id', type: 'INT', primaryKey: true, isIdentity: true },
+        { name: 'display_name', type: 'VARCHAR(150)', primaryKey: false, isIdentity: false },
+      ]
+
+      const excelData = [
+        ['1', '张三', 'zhangsan@example.com'],
+        ['2', '李四', 'lisi@example.com'],
+      ]
+
+      const excelHeaders = ['ID', '姓名', '邮箱']
+
+      const fieldMappings = ddlFields.map((field, index) => ({
+        ddlField: field,
+        excelHeader: excelHeaders[index] || null,
+        excelIndex: index < excelHeaders.length ? index : -1,
+      }))
+
+      const customFields = [
+        {
+          name: 'display_name',
+          type: 'VARCHAR(150)',
+          isCustom: true,
+          customConfig: {
+            dataSource: 'excel_combine',
+            excelCombineConfig: {
+              columns: [1, 2],
+              separator: ' <',
+              format: '{value}>',
+            },
+          },
+        },
+      ]
+
+      const allFieldMappings = [
+        ...fieldMappings.filter((m) => m.ddlField.name !== 'display_name'),
+        ...customFields.map((customField) => ({
+          ddlField: customField,
+          excelHeader: null,
+          excelIndex: -1,
+        })),
+      ]
+
+      const result = sqlGenerator.generateInsertSql(tableName, allFieldMappings, excelData, {
+        dbType: 'mysql',
+        format: 'formatted',
+        batch: 100,
+        comments: false,
+      })
+
+      console.log('格式化模板拼接的SQL:', result)
+
+      expect(result).toContain('INSERT INTO')
+      expect(result).toContain('display_name')
+      expect(result).toContain("'张三 <zhangsan@example.com>'")
+      expect(result).toContain("'李四 <lisi@example.com>'")
+    })
+
+    it('应该支持自定义字段名称的字段拼接', () => {
+      const tableName = 'users'
+      const ddlFields = [
+        { name: 'id', type: 'INT', primaryKey: true, isIdentity: true },
+        { name: 'name', type: 'VARCHAR(50)', primaryKey: false, isIdentity: false },
+        { name: 'email', type: 'VARCHAR(100)', primaryKey: false, isIdentity: false },
+      ]
+
+      const excelData = [
+        ['1', '张三', 'zhangsan@example.com'],
+        ['2', '李四', 'lisi@example.com'],
+      ]
+
+      const excelHeaders = ['ID', '姓名', '邮箱']
+
+      const fieldMappings = ddlFields.map((field, index) => ({
+        ddlField: field,
+        excelHeader: excelHeaders[index] || null,
+        excelIndex: index < excelHeaders.length ? index : -1,
+      }))
+
+      const customFields = [
+        {
+          name: 'user_info',
+          type: 'VARCHAR(150)',
+          isCustom: true,
+          customConfig: {
+            dataSource: 'excel_combine',
+            excelCombineConfig: {
+              columns: [1, 2],
+              separator: ' - ',
+              format: '',
+            },
+          },
+        },
+      ]
+
+      const allFieldMappings = [
+        ...fieldMappings,
+        ...customFields.map((customField) => ({
+          ddlField: customField,
+          excelHeader: null,
+          excelIndex: -1,
+        })),
+      ]
+
+      const result = sqlGenerator.generateInsertSql(tableName, allFieldMappings, excelData, {
+        dbType: 'mysql',
+        format: 'formatted',
+        batch: 100,
+        comments: false,
+      })
+
+      console.log('自定义字段名称的字段拼接SQL:', result)
+
+      expect(result).toContain('INSERT INTO')
+      expect(result).toContain('user_info')
+      expect(result).toContain("'张三 - zhangsan@example.com'")
+      expect(result).toContain("'李四 - lisi@example.com'")
+    })
+
+    it('应该支持多个自定义字段名称的字段拼接', () => {
+      const tableName = 'users'
+      const ddlFields = [
+        { name: 'id', type: 'INT', primaryKey: true, isIdentity: true },
+        { name: 'name', type: 'VARCHAR(50)', primaryKey: false, isIdentity: false },
+        { name: 'email', type: 'VARCHAR(100)', primaryKey: false, isIdentity: false },
+        { name: 'phone', type: 'VARCHAR(20)', primaryKey: false, isIdentity: false },
+      ]
+
+      const excelData = [
+        ['1', '张三', 'zhangsan@example.com', '13800138000'],
+        ['2', '李四', 'lisi@example.com', '13900139000'],
+      ]
+
+      const excelHeaders = ['ID', '姓名', '邮箱', '电话']
+
+      const fieldMappings = ddlFields.map((field, index) => ({
+        ddlField: field,
+        excelHeader: excelHeaders[index] || null,
+        excelIndex: index < excelHeaders.length ? index : -1,
+      }))
+
+      const customFields = [
+        {
+          name: 'user_contact',
+          type: 'VARCHAR(150)',
+          isCustom: true,
+          customConfig: {
+            dataSource: 'excel_combine',
+            excelCombineConfig: {
+              columns: [1, 3],
+              separator: ':',
+              format: '',
+            },
+          },
+        },
+        {
+          name: 'user_email',
+          type: 'VARCHAR(100)',
+          isCustom: true,
+          customConfig: {
+            dataSource: 'excel_combine',
+            excelCombineConfig: {
+              columns: [2],
+              separator: '',
+              format: '',
+            },
+          },
+        },
+      ]
+
+      const allFieldMappings = [
+        ...fieldMappings,
+        ...customFields.map((customField) => ({
+          ddlField: customField,
+          excelHeader: null,
+          excelIndex: -1,
+        })),
+      ]
+
+      const result = sqlGenerator.generateInsertSql(tableName, allFieldMappings, excelData, {
+        dbType: 'mysql',
+        format: 'formatted',
+        batch: 100,
+        comments: false,
+      })
+
+      console.log('多个自定义字段名称的字段拼接SQL:', result)
+
+      expect(result).toContain('INSERT INTO')
+      expect(result).toContain('user_contact')
+      expect(result).toContain('user_email')
+      expect(result).toContain("'张三:13800138000'")
+      expect(result).toContain("'李四:13900139000'")
+      expect(result).toContain("'zhangsan@example.com'")
+      expect(result).toContain("'lisi@example.com'")
+    })
+
+    it('应该支持格式化模板中的变量引用{value1}, {value2}等', () => {
+      const tableName = 'users'
+      const ddlFields = [
+        { name: 'id', type: 'INT', primaryKey: true, isIdentity: true },
+        { name: 'name', type: 'VARCHAR(50)', primaryKey: false, isIdentity: false },
+        { name: 'email', type: 'VARCHAR(100)', primaryKey: false, isIdentity: false },
+      ]
+
+      const excelData = [
+        ['1', '张三', 'zhangsan@example.com'],
+        ['2', '李四', 'lisi@example.com'],
+      ]
+
+      const excelHeaders = ['ID', '姓名', '邮箱']
+
+      const fieldMappings = ddlFields.map((field, index) => ({
+        ddlField: field,
+        excelHeader: excelHeaders[index] || null,
+        excelIndex: index < excelHeaders.length ? index : -1,
+      }))
+
+      const customFields = [
+        {
+          name: 'formatted_name',
+          type: 'VARCHAR(100)',
+          isCustom: true,
+          customConfig: {
+            dataSource: 'excel_combine',
+            excelCombineConfig: {
+              columns: [1, 2],
+              separator: '',
+              format: '姓名:{value1}, 邮箱:{value2}',
+            },
+          },
+        },
+      ]
+
+      const allFieldMappings = [
+        ...fieldMappings,
+        ...customFields.map((customField) => ({
+          ddlField: customField,
+          excelHeader: null,
+          excelIndex: -1,
+        })),
+      ]
+
+      const result = sqlGenerator.generateInsertSql(tableName, allFieldMappings, excelData, {
+        dbType: 'mysql',
+        format: 'formatted',
+        batch: 100,
+        comments: false,
+      })
+
+      console.log('变量引用格式化SQL:', result)
+
+      expect(result).toContain('INSERT INTO')
+      expect(result).toContain('formatted_name')
+      expect(result).toContain("'姓名:张三, 邮箱:zhangsan@example.com'")
+      expect(result).toContain("'姓名:李四, 邮箱:lisi@example.com'")
+    })
+
+    it('应该支持混合使用{value}和{value1}, {value2}等变量引用', () => {
+      const tableName = 'users'
+      const ddlFields = [
+        { name: 'id', type: 'INT', primaryKey: true, isIdentity: true },
+        { name: 'name', type: 'VARCHAR(50)', primaryKey: false, isIdentity: false },
+        { name: 'email', type: 'VARCHAR(100)', primaryKey: false, isIdentity: false },
+      ]
+
+      const excelData = [
+        ['1', '张三', 'zhangsan@example.com'],
+        ['2', '李四', 'lisi@example.com'],
+      ]
+
+      const excelHeaders = ['ID', '姓名', '邮箱']
+
+      const fieldMappings = ddlFields.map((field, index) => ({
+        ddlField: field,
+        excelHeader: excelHeaders[index] || null,
+        excelIndex: index < excelHeaders.length ? index : -1,
+      }))
+
+      const customFields = [
+        {
+          name: 'user_info',
+          type: 'VARCHAR(150)',
+          isCustom: true,
+          customConfig: {
+            dataSource: 'excel_combine',
+            excelCombineConfig: {
+              columns: [1, 2],
+              separator: ' - ',
+              format: '{value}',
+            },
+          },
+        },
+      ]
+
+      const allFieldMappings = [
+        ...fieldMappings,
+        ...customFields.map((customField) => ({
+          ddlField: customField,
+          excelHeader: null,
+          excelIndex: -1,
+        })),
+      ]
+
+      const result = sqlGenerator.generateInsertSql(tableName, allFieldMappings, excelData, {
+        dbType: 'mysql',
+        format: 'formatted',
+        batch: 100,
+        comments: false,
+      })
+
+      console.log('混合变量引用SQL:', result)
+
+      expect(result).toContain('INSERT INTO')
+      expect(result).toContain('user_info')
+      expect(result).toContain("'张三 - zhangsan@example.com'")
+      expect(result).toContain("'李四 - lisi@example.com'")
+    })
+  })
 })

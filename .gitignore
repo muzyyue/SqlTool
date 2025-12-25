@@ -22,6 +22,10 @@ __screenshots__/
 Test.txt
 Test.xlsx
 项目测试.xlsx
+playwright-report/
+test_data.xlsx
+tests/e2e/
+playwright.config.js
 
 # Environment files
 .env

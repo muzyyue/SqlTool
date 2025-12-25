@@ -160,7 +160,7 @@
           </div>
 
           <a-table
-            :data-source="fieldMappings"
+            :data-source="filteredFieldMappings"
             :columns="mappingColumns"
             :pagination="false"
             size="small"
@@ -467,6 +467,24 @@ const enhancedMatchingStats = computed(() => {
     concatenationRules: bindingStats.concatenationRules || 0,
     customFields: bindingStats.customFields || 0,
   }
+})
+
+/**
+ * 过滤后的字段映射，排除来自字段拼接规则的excel_combine类型字段
+ * 字段拼接规则创建的字段不出现在DDL原始字段列表中
+ */
+const filteredFieldMappings = computed(() => {
+  return fieldMappings.value.filter((mapping) => {
+    // 如果是自定义字段且数据源类型为excel_combine，并且来自字段拼接规则，则过滤掉
+    if (
+      mapping.ddlField?.isCustom &&
+      mapping.ddlField?.customConfig?.dataSource === 'excel_combine' &&
+      mapping.ddlField?.customConfig?.isFromConcatenationRule
+    ) {
+      return false
+    }
+    return true
+  })
 })
 
 // 自定义绑定相关

@@ -158,7 +158,7 @@ export function useSqlGeneratorEnhanced() {
             const formatTemplate = combineConfig.format || ''
 
             // 读取并组合Excel列的值
-            const combinedValues = columnIndices
+            const columnValues = columnIndices
               .map((colIndex) => {
                 if (colIndex !== undefined && colIndex >= 0 && row[colIndex] !== undefined) {
                   return row[colIndex]
@@ -167,11 +167,18 @@ export function useSqlGeneratorEnhanced() {
               })
               .filter((v) => v !== undefined && v !== null && v !== '')
 
-            let combinedValue = combinedValues.join(separator)
+            let combinedValue = columnValues.join(separator)
 
-            // 应用格式模板
+            // 应用格式模板，支持{value1}, {value2}, {value3}等变量引用
             if (formatTemplate) {
-              combinedValue = formatTemplate.replace(/\{value\}/g, combinedValue)
+              // 替换{value1}, {value2}, {value3}等变量
+              combinedValue = formatTemplate.replace(/\{value(\d+)\}/g, (match, num) => {
+                const index = parseInt(num, 10) - 1
+                return columnValues[index] !== undefined ? columnValues[index] : ''
+              })
+
+              // 保持向后兼容：将{value}替换为所有列的拼接结果
+              combinedValue = combinedValue.replace(/\{value\}/g, columnValues.join(separator))
             }
 
             console.log(`Excel组合字段 ${mapping.ddlField.name} 的值: ${combinedValue}`)
