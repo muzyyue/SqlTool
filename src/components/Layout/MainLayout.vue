@@ -37,11 +37,7 @@
         </div>
 
         <div class="header-actions">
-          <a-button
-            type="text"
-            @click="toggleTheme"
-            class="theme-toggle"
-          >
+          <a-button type="text" @click="toggleTheme" class="theme-toggle">
             <template #icon>
               <BulbOutlined v-if="isDarkTheme" />
               <BulbFilled v-else />
@@ -115,22 +111,12 @@
     </a-layout-footer>
 
     <!-- 全局设置模态框 -->
-    <a-modal
-      v-model:open="settingsVisible"
-      title="系统设置"
-      width="600px"
-      :footer="null"
-    >
+    <a-modal v-model:open="settingsVisible" title="系统设置" width="600px" :footer="null">
       <SettingsPanel @close="settingsVisible = false" />
     </a-modal>
 
     <!-- 关于模态框 -->
-    <a-modal
-      v-model:open="aboutVisible"
-      title="关于SQL生成工具"
-      width="500px"
-      :footer="null"
-    >
+    <a-modal v-model:open="aboutVisible" title="关于SQL生成工具" width="500px" :footer="null">
       <AboutPanel @close="aboutVisible = false" />
     </a-modal>
   </a-layout>
@@ -148,7 +134,7 @@ import {
   SettingOutlined,
   ToolOutlined,
   ExportOutlined,
-  InfoCircleOutlined
+  InfoCircleOutlined,
 } from '@ant-design/icons-vue'
 import SettingsPanel from './SettingsPanel.vue'
 import AboutPanel from './AboutPanel.vue'

@@ -1,24 +1,24 @@
 // 由于node-sql-parser是CommonJS模块，需要使用动态导入方式
-let Parser;
+let Parser
 
 // 初始化Parser的异步函数
 const initParser = async () => {
   if (!Parser) {
     try {
-      const parserModule = await import('node-sql-parser');
-      Parser = parserModule.Parser || parserModule.default?.Parser || parserModule.default;
+      const parserModule = await import('node-sql-parser')
+      Parser = parserModule.Parser || parserModule.default?.Parser || parserModule.default
     } catch (error) {
-      console.error('Failed to import node-sql-parser:', error);
+      console.error('Failed to import node-sql-parser:', error)
       // 如果动态导入失败，尝试其他方式
       try {
-        const parserModule = await import('node-sql-parser/build/mysql');
-        Parser = parserModule.Parser || parserModule.default?.Parser || parserModule.default;
+        const parserModule = await import('node-sql-parser/build/mysql')
+        Parser = parserModule.Parser || parserModule.default?.Parser || parserModule.default
       } catch (fallbackError) {
-        console.error('Fallback import also failed:', fallbackError);
+        console.error('Fallback import also failed:', fallbackError)
       }
     }
   }
-};
+}
 
 // 新增注释：该文件用于生成SQL语句，包括INSERT和UPDATE操作
 
@@ -38,28 +38,28 @@ export function useSqlGenerator() {
 
     try {
       // 初始化Parser
-      await initParser();
+      await initParser()
 
       // 如果Parser初始化成功，使用node-sql-parser解析
       if (Parser) {
         try {
-          const parser = new Parser();
-          const ast = parser.parse(ddlStatement, { database: 'MySQL' });
+          const parser = new Parser()
+          const ast = parser.parse(ddlStatement, { database: 'MySQL' })
 
           // 从AST中提取字段名
-          const fields = [];
+          const fields = []
 
           if (ast && ast.ast && ast.ast[0] && ast.ast[0].create_definitions) {
-            ast.ast[0].create_definitions.forEach(definition => {
+            ast.ast[0].create_definitions.forEach((definition) => {
               if (definition.column && definition.column.column) {
-                fields.push(definition.column.column);
+                fields.push(definition.column.column)
               }
-            });
+            })
           }
 
-          return fields;
+          return fields
         } catch (parseError) {
-          console.warn('使用node-sql-parser解析失败，回退到正则表达式方法:', parseError);
+          console.warn('使用node-sql-parser解析失败，回退到正则表达式方法:', parseError)
         }
       }
 
@@ -122,11 +122,7 @@ export function useSqlGenerator() {
     }
   }
 
-  const generateInsertSql = async (
-    ddl,
-    data,
-    tableName
-  ) => {
+  const generateInsertSql = async (ddl, data, tableName) => {
     if (!ddl || !data || !tableName) return ''
 
     try {
@@ -134,15 +130,15 @@ export function useSqlGenerator() {
       const parsedTableName = tableName.includes('.') ? tableName.split('.').pop() : tableName
 
       // 从DDL解析字段
-      const fields = await parseDdlForFields(ddl);
+      const fields = await parseDdlForFields(ddl)
 
       // 构建字段列表字符串
-      const fieldList = fields.map(field => `"${field}"`).join(', ')
+      const fieldList = fields.map((field) => `"${field}"`).join(', ')
 
       // 为每行数据生成值列表
-      const valueRows = data.map(row => {
+      const valueRows = data.map((row) => {
         // 对每个字段值进行处理
-        const values = fields.map(field => {
+        const values = fields.map((field) => {
           const value = row[field]
 
           // 处理NULL值
@@ -175,19 +171,14 @@ export function useSqlGenerator() {
     }
   }
 
-  const generateUpdateSql = async (
-    ddl,
-    data,
-    tableName,
-    primaryKeyFields = []
-  ) => {
+  const generateUpdateSql = async (ddl, data, tableName, primaryKeyFields = []) => {
     if (!ddl || !data || !tableName || primaryKeyFields.length === 0) {
       return ''
     }
 
     try {
       // 从DDL解析字段
-      const fields = await parseDdlForFields(ddl);
+      const fields = await parseDdlForFields(ddl)
 
       // 存储所有生成的UPDATE语句
       let updateStatements = []

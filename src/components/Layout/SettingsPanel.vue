@@ -13,14 +13,14 @@
                 <a-radio value="auto">跟随系统</a-radio>
               </a-radio-group>
             </a-form-item>
-            
+
             <a-form-item label="语言">
               <a-select v-model:value="language" style="width: 200px">
                 <a-select-option value="zh-CN">简体中文</a-select-option>
-                <a-select-option value="en-US">English</a-select-option>
+                <a-select-option value="en-US">英语</a-select-option>
               </a-select>
             </a-form-item>
-            
+
             <a-form-item label="页面布局">
               <a-radio-group v-model:value="layoutMode">
                 <a-radio value="fluid">流式布局</a-radio>
@@ -29,33 +29,33 @@
             </a-form-item>
           </a-form>
         </div>
-        
+
         <div class="settings-section">
           <h3>操作设置</h3>
           <a-form layout="vertical">
             <a-form-item label="确认对话框">
-              <a-switch 
-                v-model:checked="confirmDialogs" 
-                checked-children="开启" 
-                un-checked-children="关闭" 
+              <a-switch
+                v-model:checked="confirmDialogs"
+                checked-children="开启"
+                un-checked-children="关闭"
               />
               <div class="setting-description">在执行重要操作前显示确认对话框</div>
             </a-form-item>
-            
+
             <a-form-item label="自动保存">
-              <a-switch 
-                v-model:checked="autoSave" 
-                checked-children="开启" 
-                un-checked-children="关闭" 
+              <a-switch
+                v-model:checked="autoSave"
+                checked-children="开启"
+                un-checked-children="关闭"
               />
               <div class="setting-description">自动保存当前工作状态</div>
             </a-form-item>
-            
+
             <a-form-item label="保存间隔">
-              <a-input-number 
-                v-model:value="saveInterval" 
-                :min="1" 
-                :max="60" 
+              <a-input-number
+                v-model:value="saveInterval"
+                :min="1"
+                :max="60"
                 :disabled="!autoSave"
                 addon-after="分钟"
                 style="width: 150px"
@@ -77,36 +77,36 @@
                 <a-select-option value="sqlserver">SQL Server</a-select-option>
               </a-select>
             </a-form-item>
-            
+
             <a-form-item label="SQL格式">
               <a-radio-group v-model:value="sqlFormat">
                 <a-radio value="formatted">格式化</a-radio>
                 <a-radio value="minified">压缩</a-radio>
               </a-radio-group>
             </a-form-item>
-            
+
             <a-form-item label="批量大小">
-              <a-input-number 
-                v-model:value="batchSize" 
-                :min="1" 
-                :max="1000" 
+              <a-input-number
+                v-model:value="batchSize"
+                :min="1"
+                :max="1000"
                 addon-after="条/批"
                 style="width: 150px"
               />
               <div class="setting-description">每批生成的SQL语句数量</div>
             </a-form-item>
-            
+
             <a-form-item label="包含注释">
-              <a-switch 
-                v-model:checked="includeComments" 
-                checked-children="是" 
-                un-checked-children="否" 
+              <a-switch
+                v-model:checked="includeComments"
+                checked-children="是"
+                un-checked-children="否"
               />
               <div class="setting-description">在生成的SQL中包含注释信息</div>
             </a-form-item>
           </a-form>
         </div>
-        
+
         <div class="settings-section">
           <h3>字段映射设置</h3>
           <a-form layout="vertical">
@@ -117,24 +117,24 @@
                 <a-select-option value="manual">手动匹配</a-select-option>
               </a-select>
             </a-form-item>
-            
+
             <a-form-item label="相似度阈值">
-              <a-slider 
-                v-model:value="similarityThreshold" 
-                :min="0" 
-                :max="1" 
+              <a-slider
+                v-model:value="similarityThreshold"
+                :min="0"
+                :max="1"
                 :step="0.1"
-                :marks="{0: '0', 0.5: '0.5', 1: '1'}"
+                :marks="{ 0: '0', 0.5: '0.5', 1: '1' }"
               />
               <div class="slider-value">当前值: {{ similarityThreshold }}</div>
               <div class="setting-description">字段名称相似度匹配的阈值</div>
             </a-form-item>
-            
+
             <a-form-item label="自动映射">
-              <a-switch 
-                v-model:checked="autoMapping" 
-                checked-children="开启" 
-                un-checked-children="关闭" 
+              <a-switch
+                v-model:checked="autoMapping"
+                checked-children="开启"
+                un-checked-children="关闭"
               />
               <div class="setting-description">上传文件后自动执行字段映射</div>
             </a-form-item>
@@ -148,16 +148,16 @@
           <h3>文件上传设置</h3>
           <a-form layout="vertical">
             <a-form-item label="最大文件大小">
-              <a-input-number 
-                v-model:value="maxFileSize" 
-                :min="1" 
-                :max="100" 
+              <a-input-number
+                v-model:value="maxFileSize"
+                :min="1"
+                :max="100"
                 addon-after="MB"
                 style="width: 150px"
               />
               <div class="setting-description">单个文件的最大上传大小</div>
             </a-form-item>
-            
+
             <a-form-item label="支持的文件格式">
               <a-checkbox-group v-model:value="supportedFormats">
                 <a-checkbox value="xlsx">Excel (.xlsx)</a-checkbox>
@@ -165,28 +165,28 @@
                 <a-checkbox value="csv">CSV (.csv)</a-checkbox>
               </a-checkbox-group>
             </a-form-item>
-            
+
             <a-form-item label="分块处理">
-              <a-switch 
-                v-model:checked="chunkProcessing" 
-                checked-children="开启" 
-                un-checked-children="关闭" 
+              <a-switch
+                v-model:checked="chunkProcessing"
+                checked-children="开启"
+                un-checked-children="关闭"
               />
               <div class="setting-description">对大文件进行分块处理以提高性能</div>
             </a-form-item>
-            
+
             <a-form-item label="分块大小" v-if="chunkProcessing">
-              <a-input-number 
-                v-model:value="chunkSize" 
-                :min="100" 
-                :max="10000" 
+              <a-input-number
+                v-model:value="chunkSize"
+                :min="100"
+                :max="10000"
                 addon-after="行"
                 style="width: 150px"
               />
             </a-form-item>
           </a-form>
         </div>
-        
+
         <div class="settings-section">
           <h3>导出设置</h3>
           <a-form layout="vertical">
@@ -197,7 +197,7 @@
                 <a-radio value="json">JSON文件 (.json)</a-radio>
               </a-radio-group>
             </a-form-item>
-            
+
             <a-form-item label="文件编码">
               <a-select v-model:value="fileEncoding" style="width: 200px">
                 <a-select-option value="utf-8">UTF-8</a-select-option>
@@ -205,12 +205,12 @@
                 <a-select-option value="gb2312">GB2312</a-select-option>
               </a-select>
             </a-form-item>
-            
+
             <a-form-item label="自动下载">
-              <a-switch 
-                v-model:checked="autoDownload" 
-                checked-children="开启" 
-                un-checked-children="关闭" 
+              <a-switch
+                v-model:checked="autoDownload"
+                checked-children="开启"
+                un-checked-children="关闭"
               />
               <div class="setting-description">生成完成后自动下载文件</div>
             </a-form-item>
@@ -224,25 +224,25 @@
           <h3>性能设置</h3>
           <a-form layout="vertical">
             <a-form-item label="缓存大小">
-              <a-input-number 
-                v-model:value="cacheSize" 
-                :min="10" 
-                :max="1000" 
+              <a-input-number
+                v-model:value="cacheSize"
+                :min="10"
+                :max="1000"
                 addon-after="MB"
                 style="width: 150px"
               />
               <div class="setting-description">内存缓存的最大大小</div>
             </a-form-item>
-            
+
             <a-form-item label="并行处理">
-              <a-switch 
-                v-model:checked="parallelProcessing" 
-                checked-children="开启" 
-                un-checked-children="关闭" 
+              <a-switch
+                v-model:checked="parallelProcessing"
+                checked-children="开启"
+                un-checked-children="关闭"
               />
               <div class="setting-description">启用多线程并行处理</div>
             </a-form-item>
-            
+
             <a-form-item label="日志级别">
               <a-select v-model:value="logLevel" style="width: 200px">
                 <a-select-option value="error">错误</a-select-option>
@@ -253,33 +253,33 @@
             </a-form-item>
           </a-form>
         </div>
-        
+
         <div class="settings-section">
           <h3>调试设置</h3>
           <a-form layout="vertical">
             <a-form-item label="开发者模式">
-              <a-switch 
-                v-model:checked="developerMode" 
-                checked-children="开启" 
-                un-checked-children="关闭" 
+              <a-switch
+                v-model:checked="developerMode"
+                checked-children="开启"
+                un-checked-children="关闭"
               />
               <div class="setting-description">显示调试信息和高级选项</div>
             </a-form-item>
-            
+
             <a-form-item label="控制台日志">
-              <a-switch 
-                v-model:checked="consoleLogging" 
-                checked-children="开启" 
-                un-checked-children="关闭" 
+              <a-switch
+                v-model:checked="consoleLogging"
+                checked-children="开启"
+                un-checked-children="关闭"
               />
               <div class="setting-description">在浏览器控制台输出详细日志</div>
             </a-form-item>
-            
+
             <a-form-item label="性能监控">
-              <a-switch 
-                v-model:checked="performanceMonitoring" 
-                checked-children="开启" 
-                un-checked-children="关闭" 
+              <a-switch
+                v-model:checked="performanceMonitoring"
+                checked-children="开启"
+                un-checked-children="关闭"
               />
               <div class="setting-description">监控系统性能并生成报告</div>
             </a-form-item>
@@ -287,7 +287,7 @@
         </div>
       </a-tab-pane>
     </a-tabs>
-    
+
     <div class="settings-actions">
       <a-button @click="handleReset">恢复默认</a-button>
       <a-button type="primary" @click="handleSave">保存设置</a-button>
@@ -347,7 +347,7 @@ const loadSettings = () => {
   if (savedSettings) {
     try {
       const settings = JSON.parse(savedSettings)
-      Object.keys(settings).forEach(key => {
+      Object.keys(settings).forEach((key) => {
         if (refs[key] !== undefined) {
           refs[key].value = settings[key]
         }
@@ -385,7 +385,7 @@ const saveSettings = () => {
     logLevel: logLevel.value,
     developerMode: developerMode.value,
     consoleLogging: consoleLogging.value,
-    performanceMonitoring: performanceMonitoring.value
+    performanceMonitoring: performanceMonitoring.value,
   }
 
   try {
@@ -440,11 +440,32 @@ const handleReset = () => {
 
 // 引用所有响应式变量，用于批量操作
 const refs = {
-  themeMode, language, layoutMode, confirmDialogs, autoSave, saveInterval,
-  defaultDatabase, sqlFormat, batchSize, includeComments, defaultMatchingAlgorithm,
-  similarityThreshold, autoMapping, maxFileSize, supportedFormats, chunkProcessing,
-  chunkSize, defaultExportFormat, fileEncoding, autoDownload, cacheSize,
-  parallelProcessing, logLevel, developerMode, consoleLogging, performanceMonitoring
+  themeMode,
+  language,
+  layoutMode,
+  confirmDialogs,
+  autoSave,
+  saveInterval,
+  defaultDatabase,
+  sqlFormat,
+  batchSize,
+  includeComments,
+  defaultMatchingAlgorithm,
+  similarityThreshold,
+  autoMapping,
+  maxFileSize,
+  supportedFormats,
+  chunkProcessing,
+  chunkSize,
+  defaultExportFormat,
+  fileEncoding,
+  autoDownload,
+  cacheSize,
+  parallelProcessing,
+  logLevel,
+  developerMode,
+  consoleLogging,
+  performanceMonitoring,
 }
 
 // 生命周期
@@ -503,11 +524,11 @@ onMounted(() => {
   .settings-panel {
     max-height: 60vh;
   }
-  
+
   .settings-actions {
     flex-direction: column;
   }
-  
+
   .settings-actions .ant-btn {
     width: 100%;
     margin-bottom: 8px;

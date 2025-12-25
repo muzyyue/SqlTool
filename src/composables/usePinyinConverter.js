@@ -15,7 +15,7 @@ export function usePinyinConverter() {
   }
 
   const convertHeaders = (headers) => {
-    return headers.map(header => convertToPinyinFirstLetter(header))
+    return headers.map((header) => convertToPinyinFirstLetter(header))
   }
 
   return { convertToPinyinFirstLetter, convertHeaders }
