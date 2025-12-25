@@ -1,5 +1,27 @@
 # 版本变更历史
 
+## 0.0.7 (2025-12-25)
+
+- 修复static_value数据源类型未处理的问题，添加静态值字段处理逻辑
+- 创建自定义字段功能测试文件，实现11个测试用例覆盖多种场景
+- 修复SQL语法验证正则表达式，支持MySQL反引号表名格式
+- 所有测试通过（11/11），验证自定义字段添加、SQL生成、语法规范等功能
+
+## 0.0.6 (2025-12-24)
+
+- 修复选择达梦数据库时的运行时错误（handleDatabaseTypeChange函数缺失及逻辑错误）
+- 更新函数显示格式，同时展示函数名及简述（不仅显示中文名）
+- 解决自定义字段配置中仅显示函数中文描述而无具体函数名的问题
+- 修复ESLint的no-case-declarations规则错误
+
+## 0.0.5 (2025-12-24)
+
+- 修复 CustomBindingModal.vue 导入路径错误（useCustomBinding 和 databaseFunctions）
+- 添加数据库特定系统函数支持（MySQL、PostgreSQL、Oracle、SQL Server、达梦）
+- 创建 databaseFunctions.js 工具文件，包含各数据库常用函数定义
+- 修改 CustomBindingModal.vue 添加数据库类型选择器和分类函数列表
+- 更新 useSqlGeneratorEnhanced.js 使用 getFunctionInfo 获取正确的数据库函数语法
+
 ## 0.0.4 (2025-12-24)
 
 - 修复自定义字段选择"Excel列组合"数据来源时，生成的SQL中没有包含绑定的Excel列数据的问题

@@ -1,4 +1,5 @@
 import { ref, computed } from 'vue'
+import { getFunctionInfo } from '../utils/databaseFunctions'
 
 /**
  * 增强版SQL生成器
@@ -134,9 +135,18 @@ export function useSqlGeneratorEnhanced() {
 
           // 根据自定义字段的数据源类型返回对应的值
           if (customField.dataSource === 'system_function') {
-            // 系统函数字段，直接返回函数调用字符串
+            // 系统函数字段，使用数据库特定函数语法
+            const funcDbType = customField.systemFunctionConfig?.databaseType || dbType
             const funcName = customField.systemFunctionConfig?.functionName || 'NOW'
-            return `${funcName}()`
+            const funcInfo = getFunctionInfo(funcDbType, funcName)
+
+            if (funcInfo) {
+              // 获取该数据库的函数语法
+              return funcInfo.syntax
+            } else {
+              // 如果找不到对应的函数，回退到默认语法
+              return `${funcName}()`
+            }
           } else if (customField.dataSource === 'auto_increment') {
             // 自增字段，暂时返回NULL，实际使用时会由数据库处理
             return 'NULL'
@@ -166,6 +176,12 @@ export function useSqlGeneratorEnhanced() {
 
             console.log(`Excel组合字段 ${mapping.ddlField.name} 的值: ${combinedValue}`)
             return formatValue(combinedValue, mapping.ddlField.type, dbType)
+          } else if (customField.dataSource === 'static_value') {
+            const staticValue =
+              customField.staticValue !== undefined ? customField.staticValue : 'NULL'
+            const fieldType = mapping?.ddlField?.type || 'VARCHAR'
+            console.log(`静态值字段 ${mapping.ddlField.name} 的值: ${staticValue}`)
+            return formatValue(staticValue, fieldType, dbType)
           } else {
             // 默认返回NULL
             return 'NULL'
