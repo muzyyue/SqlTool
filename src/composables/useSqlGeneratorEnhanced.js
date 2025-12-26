@@ -114,7 +114,10 @@ export function useSqlGeneratorEnhanced() {
       throw new Error('没有有效的字段映射关系（所有字段都是自增主键、主键字段或未映射）')
     }
 
-    const fieldNames = mappedFields.map((mapping) => escapeFieldName(mapping.ddlField.name, dbType))
+    const fieldNames = mappedFields.map((mapping) => {
+      const fieldName = mapping.customFieldName || mapping.ddlField.name
+      return escapeFieldName(fieldName, dbType)
+    })
     const valuesList = []
 
     // 处理每行数据
@@ -255,13 +258,14 @@ export function useSqlGeneratorEnhanced() {
       }
 
       const value = row[mapping.excelIndex]
-      const fieldName = escapeFieldName(mapping.ddlField.name, dbType)
+      const fieldName = mapping.customFieldName || mapping.ddlField.name
+      const escapedFieldName = escapeFieldName(fieldName, dbType)
       const formattedValue = formatValue(value, mapping.ddlField.type, dbType)
 
       if (isWhereField) {
-        whereClauses.push(`${fieldName} = ${formattedValue}`)
+        whereClauses.push(`${escapedFieldName} = ${formattedValue}`)
       } else {
-        setClauses.push(`${fieldName} = ${formattedValue}`)
+        setClauses.push(`${escapedFieldName} = ${formattedValue}`)
       }
     })
 

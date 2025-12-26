@@ -79,12 +79,16 @@ export function useFieldMatcher() {
 
       if (bestMatch && bestScore > 0.3) {
         // 相似度阈值
-        mappings.push(bestMatch)
+        mappings.push({
+          ...bestMatch,
+          customFieldName: '',
+        })
         usedExcelIndices.add(bestMatch.excelIndex)
       } else {
         // 没有找到匹配项
         mappings.push({
           ddlField,
+          customFieldName: '',
           excelHeader: null,
           excelIndex: -1,
           similarity: 0,
@@ -141,11 +145,15 @@ export function useFieldMatcher() {
 
       if (bestMatch && bestScore > 0.5) {
         // 拼音匹配阈值较高
-        mappings.push(bestMatch)
+        mappings.push({
+          ...bestMatch,
+          customFieldName: '',
+        })
         usedExcelIndices.add(bestMatch.excelIndex)
       } else {
         mappings.push({
           ddlField: ddlItem.field,
+          customFieldName: '',
           excelHeader: null,
           excelIndex: -1,
           similarity: 0,
@@ -164,6 +172,7 @@ export function useFieldMatcher() {
   const createManualMappings = (ddlFields) => {
     return ddlFields.map((ddlField) => ({
       ddlField,
+      customFieldName: '',
       excelHeader: null,
       excelIndex: -1,
       similarity: 0,
@@ -273,6 +282,7 @@ export function useFieldMatcher() {
     if (mappingIndex !== -1) {
       fieldMappings.value[mappingIndex] = {
         ...fieldMappings.value[mappingIndex],
+        customFieldName: fieldMappings.value[mappingIndex].customFieldName || '',
         excelHeader,
         excelIndex,
         similarity: excelHeader ? calculateSimilarity(ddlFieldName, excelHeader) : 0,
@@ -364,6 +374,7 @@ export function useFieldMatcher() {
 
       return {
         ddlField: ddlField || { name: config.ddlField, type: 'UNKNOWN' },
+        customFieldName: config.customFieldName || '',
         excelHeader: config.excelIndex >= 0 ? excelHeader : null,
         excelIndex: config.excelIndex,
         similarity: config.similarity || 0,
@@ -373,6 +384,59 @@ export function useFieldMatcher() {
     })
 
     fieldMappings.value = newMappings
+  }
+
+  /**
+   * 获取显示的字段名（自定义字段名或原始字段名）
+   * @param {Object} mapping - 字段映射对象
+   * @returns {string} 显示的字段名
+   */
+  const getDisplayFieldName = (mapping) => {
+    return mapping.customFieldName || mapping.ddlField.name
+  }
+
+  /**
+   * 获取SQL使用的字段名（自定义字段名或原始字段名）
+   * @param {Object} mapping - 字段映射对象
+   * @returns {string} SQL使用的字段名
+   */
+  const getSqlFieldName = (mapping) => {
+    return mapping.customFieldName || mapping.ddlField.name
+  }
+
+  /**
+   * 更新字段的自定义字段名
+   * @param {string} ddlFieldName - DDL字段名
+   * @param {string} customFieldName - 自定义字段名
+   */
+  const updateCustomFieldName = (ddlFieldName, customFieldName) => {
+    const mappingIndex = fieldMappings.value.findIndex(
+      (mapping) => mapping.ddlField.name === ddlFieldName,
+    )
+
+    if (mappingIndex !== -1) {
+      fieldMappings.value[mappingIndex] = {
+        ...fieldMappings.value[mappingIndex],
+        customFieldName: customFieldName || '',
+      }
+    }
+  }
+
+  /**
+   * 重置字段的自定义字段名
+   * @param {string} ddlFieldName - DDL字段名
+   */
+  const resetCustomFieldName = (ddlFieldName) => {
+    updateCustomFieldName(ddlFieldName, '')
+  }
+
+  /**
+   * 重置所有字段的自定义字段名
+   */
+  const resetAllCustomFieldNames = () => {
+    fieldMappings.value.forEach((mapping) => {
+      mapping.customFieldName = ''
+    })
   }
 
   /**
@@ -492,6 +556,13 @@ export function useFieldMatcher() {
     exportMappings,
     importMappings,
     resetMappings,
+
+    // 字段名相关方法
+    getDisplayFieldName,
+    getSqlFieldName,
+    updateCustomFieldName,
+    resetCustomFieldName,
+    resetAllCustomFieldNames,
 
     // 增强方法（支持自定义绑定）
     enhancedMatchFields,

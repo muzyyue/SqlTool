@@ -166,6 +166,27 @@
             size="small"
           >
             <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'fieldName'">
+                <div class="field-name-cell">
+                  <a-input
+                    v-model:value="record.customFieldName"
+                    placeholder="输入自定义字段名"
+                    size="small"
+                    @blur="handleFieldNameBlur(record)"
+                    @pressEnter="handleFieldNameBlur(record)"
+                  />
+                  <a-button
+                    v-if="record.customFieldName"
+                    type="link"
+                    size="small"
+                    @click="resetFieldName(record.ddlField.name)"
+                    title="恢复原始字段名"
+                  >
+                    <template #icon><ReloadOutlined /></template>
+                  </a-button>
+                </div>
+              </template>
+
               <template v-if="column.key === 'ddlField'">
                 <div>
                   <strong>{{ record.ddlField.name }}</strong>
@@ -452,6 +473,8 @@ const {
   validateEnhancedMappings,
   matchingStats,
   customBindingManager,
+  updateCustomFieldName,
+  resetCustomFieldName,
 } = useFieldMatcher()
 
 // 增强匹配统计信息，用于UI显示
@@ -597,19 +620,24 @@ const sqlStats = computed(() => {
 // 表格列定义
 const mappingColumns = [
   {
+    title: '字段名',
+    key: 'fieldName',
+    width: '20%',
+  },
+  {
     title: 'DDL字段',
     key: 'ddlField',
-    width: '30%',
+    width: '25%',
   },
   {
     title: 'Excel列',
     key: 'excelHeader',
-    width: '40%',
+    width: '35%',
   },
   {
     title: '相似度',
     key: 'similarity',
-    width: '20%',
+    width: '10%',
   },
   {
     title: '操作',
@@ -769,6 +797,19 @@ const updateMapping = (ddlFieldName, excelIndex) => {
   const excelHeader = excelIndex >= 0 ? excelHeaders.value[excelIndex] : null
   updateFieldMapping(ddlFieldName, excelHeader, excelIndex)
   logInfo(`手动更新字段映射: ${ddlFieldName} -> ${excelHeader || '未匹配'}`)
+}
+
+const handleFieldNameBlur = (record) => {
+  const ddlFieldName = record.ddlField.name
+  const customFieldName = record.customFieldName || ''
+  updateCustomFieldName(ddlFieldName, customFieldName)
+  logInfo(`更新字段名: ${ddlFieldName} -> ${customFieldName || record.ddlField.name}`)
+}
+
+const resetFieldName = (ddlFieldName) => {
+  resetCustomFieldName(ddlFieldName)
+  logInfo(`重置字段名: ${ddlFieldName}`)
+  message.info(`已重置字段名为原始名称`)
 }
 
 const clearMapping = (ddlFieldName) => {
@@ -1157,7 +1198,7 @@ const openCustomBindingModal = () => {
 }
 
 const handleCustomBindingToggle = (checked) => {
-  customBindingEnabled.value = true
+  customBindingEnabled.value = checked
   customBindingManager.setEnableCustomBinding(checked)
   logInfo(`自定义绑定已${checked ? '启用' : '禁用'}`)
   message.success(`自定义绑定已${checked ? '启用' : '禁用'}`)
@@ -1483,6 +1524,16 @@ onMounted(() => {
   color: #666;
   font-size: 12px;
   margin-top: 2px;
+}
+
+.field-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.field-name-cell .ant-input {
+  flex: 1;
 }
 
 .output-actions,
