@@ -100,6 +100,43 @@
             />
           </div>
 
+          <!-- 去重配置 -->
+          <div v-if="excelData && excelData.length > 0" class="deduplication-config">
+            <a-divider style="margin: 12px 0" />
+            <div class="deduplication-header">
+              <a-checkbox
+                v-model:checked="deduplicationEnabled"
+                @change="handleDeduplicationToggle"
+              >
+                启用数据去重
+              </a-checkbox>
+              <a-tooltip title="根据选定列的值去除重复数据行，仅保留每组的第一次出现">
+                <QuestionCircleOutlined />
+              </a-tooltip>
+            </div>
+            <div v-if="deduplicationEnabled" class="deduplication-controls">
+              <a-select
+                v-model:value="deduplicationColumn"
+                placeholder="选择去重列"
+                style="width: 100%"
+                @change="applyDeduplication"
+              >
+                <a-select-option
+                  v-for="(header, idx) in excelHeaders || []"
+                  :key="idx"
+                  :value="idx"
+                >
+                  {{ header }} (列{{ idx + 1 }})
+                </a-select-option>
+              </a-select>
+              <div v-if="deduplicationStats.removedRows > 0" class="deduplication-stats">
+                <a-tag color="blue">原始: {{ deduplicationStats.originalRows }} 行</a-tag>
+                <a-tag color="green">去重后: {{ deduplicationStats.deduplicatedRows }} 行</a-tag>
+                <a-tag color="orange">去重: {{ deduplicationStats.removedRows }} 行</a-tag>
+              </div>
+            </div>
+          </div>
+
           <div v-if="excelData && excelData.length > 0" class="data-preview">
             <a-collapse>
               <a-collapse-panel key="preview" header="数据预览">
@@ -188,10 +225,29 @@
               </template>
 
               <template v-if="column.key === 'ddlField'">
-                <div>
-                  <strong>{{ record.ddlField.name }}</strong>
-                  <div class="field-type">{{ record.ddlField.type }}</div>
-                  <a-tag v-if="!record.ddlField.nullable" color="red" size="small"> 必填 </a-tag>
+                <div class="ddl-field-cell">
+                  <div class="ddl-field-info">
+                    <strong>{{ record.ddlField.name }}</strong>
+                    <div class="field-type">{{ record.ddlField.type }}</div>
+                    <a-tag v-if="!record.ddlField.nullable" color="red" size="small"> 必填 </a-tag>
+                  </div>
+                  <a-select
+                    v-model:value="record.excelIndex"
+                    style="width: 100%; margin-top: 8px"
+                    placeholder="选择Excel列"
+                    size="small"
+                    @change="(value) => updateMapping(record.ddlField.name, value)"
+                  >
+                    <a-select-option :value="-1">未绑定</a-select-option>
+                    <a-select-option
+                      v-for="(header, idx) in excelHeaders || []"
+                      :key="idx"
+                      :value="idx"
+                      :disabled="isColumnUsed(idx)"
+                    >
+                      {{ header }} (列{{ idx + 1 }})
+                    </a-select-option>
+                  </a-select>
                 </div>
               </template>
 
@@ -536,6 +592,15 @@ const operationLogs = ref([])
 const includeComments = ref(true) // 控制是否包含SQL注释
 const databaseType = ref('mysql') // 数据库类型：mysql, postgresql, sqlserver
 
+// 去重相关状态
+const deduplicationEnabled = ref(false) // 是否启用去重
+const deduplicationColumn = ref(-1) // 去重列索引，-1表示未选择
+const deduplicationStats = ref({
+  originalRows: 0, // 原始行数
+  deduplicatedRows: 0, // 去重后行数
+  removedRows: 0, // 去重数量
+}) // 去重统计信息
+
 // SQL美化相关数据
 const showBeautifyOptions = ref(false)
 const beautifyOptions = ref({
@@ -617,7 +682,6 @@ const sqlStats = computed(() => {
   }
 })
 
-// 表格列定义
 const mappingColumns = [
   {
     title: '字段名',
@@ -627,12 +691,12 @@ const mappingColumns = [
   {
     title: 'DDL字段',
     key: 'ddlField',
-    width: '25%',
+    width: '35%',
   },
   {
     title: 'Excel列',
     key: 'excelHeader',
-    width: '35%',
+    width: '25%',
   },
   {
     title: '相似度',
@@ -662,7 +726,10 @@ const parseDdl = async (forceRefresh = false) => {
 
   try {
     const result = await parseDdlWithParser(ddlStatement.value, forceRefresh)
-    parsedFields.value = result.fields
+    parsedFields.value = result.fields.map((field) => ({
+      ...field,
+      excelIndex: -1,
+    }))
 
     logInfo(`成功解析DDL语句，发现 ${result.fields.length} 个字段`)
     message.success(`DDL解析成功，发现 ${result.fields.length} 个字段`)
@@ -759,7 +826,98 @@ const clearFile = () => {
   excelData.value = []
   excelHeaders.value = []
   fileList.value = []
+  deduplicationEnabled.value = false
+  deduplicationColumn.value = -1
+  deduplicationStats.value = {
+    originalRows: 0,
+    deduplicatedRows: 0,
+    removedRows: 0,
+  }
   logInfo('已清除上传的文件')
+}
+
+/**
+ * 处理去重开关切换
+ * 当关闭去重时，恢复原始数据
+ */
+const handleDeduplicationToggle = (checked) => {
+  if (!checked) {
+    deduplicationColumn.value = -1
+    deduplicationStats.value = {
+      originalRows: 0,
+      deduplicatedRows: 0,
+      removedRows: 0,
+    }
+    logInfo('已关闭数据去重')
+  } else {
+    logInfo('已启用数据去重，请选择去重列')
+  }
+}
+
+/**
+ * 应用去重逻辑
+ * 根据选定列的值去除重复数据行，仅保留每组的第一次出现
+ */
+const applyDeduplication = () => {
+  if (deduplicationColumn.value === -1) {
+    message.warning('请先选择去重列')
+    return
+  }
+
+  if (!excelData.value || excelData.value.length === 0) {
+    message.warning('没有可去重的数据')
+    return
+  }
+
+  const columnIndex = deduplicationColumn.value
+  const seenValues = new Set()
+  const deduplicatedData = []
+
+  excelData.value.forEach((row) => {
+    const value = row[columnIndex]
+    if (!seenValues.has(value)) {
+      seenValues.add(value)
+      deduplicatedData.push(row)
+    }
+  })
+
+  const originalRows = excelData.value.length
+  const deduplicatedRows = deduplicatedData.length
+  const removedRows = originalRows - deduplicatedRows
+
+  excelData.value = deduplicatedData
+
+  deduplicationStats.value = {
+    originalRows,
+    deduplicatedRows,
+    removedRows,
+  }
+
+  if (removedRows > 0) {
+    logInfo(
+      `数据去重完成: 原始 ${originalRows} 行 → 去重后 ${deduplicatedRows} 行 (去除 ${removedRows} 行重复)`,
+      'deduplication',
+      {
+        operation: 'applyDeduplication',
+        columnIndex,
+        columnName: excelHeaders.value[columnIndex],
+        originalRows,
+        deduplicatedRows,
+        removedRows,
+      },
+    )
+    message.success(`去重完成: 原始 ${originalRows} 行 → 去重后 ${deduplicatedRows} 行`)
+  } else {
+    logInfo('数据去重完成: 未发现重复数据', 'deduplication', {
+      operation: 'applyDeduplication',
+      columnIndex,
+      columnName: excelHeaders.value[columnIndex],
+      originalRows,
+      deduplicatedRows,
+      removedRows,
+    })
+    message.info('未发现重复数据')
+  }
 }
 
 const autoMatchFields = () => {
@@ -778,6 +936,15 @@ const autoMatchFields = () => {
   try {
     console.log('开始自动匹配字段...')
     matchFields(parsedFields.value, excelHeaders.value, 'similarity')
+
+    // 同步更新parsedFields中的excelIndex
+    fieldMappings.value.forEach((mapping) => {
+      const field = parsedFields.value.find((f) => f.name === mapping.ddlField.name)
+      if (field) {
+        field.excelIndex = mapping.excelIndex
+      }
+    })
+
     console.log('自动字段匹配完成')
     logInfo('自动字段匹配完成')
     message.success('字段自动匹配完成')
@@ -1219,7 +1386,73 @@ const handleCustomBindingSave = (customFieldsData) => {
       console.log('已导入完整绑定配置到customBindingManager')
     }
 
-    // 2. 获取自定义字段数据，确保它是数组
+    // 2. 处理单列绑定（customBindings）- 同步到fieldMappings
+    const customBindings = Array.isArray(customBindingManager.customBindings.value)
+      ? customBindingManager.customBindings.value
+      : []
+
+    console.log('单列绑定数据:', customBindings)
+
+    // 过滤出单列绑定
+    const singleBindings = customBindings.filter((binding) => binding.bindingType === 'single')
+
+    // 遍历单列绑定，更新或创建映射记录
+    singleBindings.forEach((binding) => {
+      const { ddlFieldName, excelIndex } = binding
+
+      // 查找DDL字段
+      let ddlField = parsedFields.value.find((field) => field.name === ddlFieldName)
+
+      // 如果DDL字段不存在（可能是自定义字段名），创建临时字段对象
+      if (!ddlField) {
+        console.warn(`DDL字段 ${ddlFieldName} 不存在，创建临时字段对象`)
+        ddlField = {
+          name: ddlFieldName,
+          type: 'string',
+          nullable: true,
+          isIdentity: false,
+          primaryKey: false,
+          isCustom: true, // 标记为自定义字段
+          customConfig: {
+            fieldName: ddlFieldName,
+            isFromCustomBinding: true, // 标记来自自定义绑定
+          },
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }
+        // 添加到parsedFields中，确保后续可以找到
+        parsedFields.value.push(ddlField)
+        console.log(`已添加临时字段到parsedFields: ${ddlFieldName}`)
+      }
+
+      // 查找现有映射记录
+      const existingIndex = fieldMappings.value.findIndex((m) => m.ddlField?.name === ddlFieldName)
+
+      if (existingIndex >= 0) {
+        // 更新现有映射记录
+        fieldMappings.value[existingIndex] = {
+          ...fieldMappings.value[existingIndex],
+          excelIndex: excelIndex,
+          excelHeader: excelIndex >= 0 ? excelHeaders.value[excelIndex] : null,
+          status: excelIndex >= 0 ? 'bound' : 'unmatched',
+        }
+        console.log(`已更新单列绑定映射: ${ddlFieldName} -> 列${excelIndex + 1}`)
+      } else {
+        // 创建新的映射记录
+        const mapping = {
+          ddlField: ddlField,
+          excelHeader: excelIndex >= 0 ? excelHeaders.value[excelIndex] : null,
+          excelIndex: excelIndex,
+          similarity: 0,
+          confidence: 'manual',
+          status: excelIndex >= 0 ? 'bound' : 'unmatched',
+        }
+        fieldMappings.value.push(mapping)
+        console.log(`已添加单列绑定映射: ${ddlFieldName} -> 列${excelIndex + 1}`)
+      }
+    })
+
+    // 3. 获取自定义字段数据，确保它是数组
     let customFields = []
 
     // 从customFieldsData或customBindingManager获取自定义字段
@@ -1235,7 +1468,7 @@ const handleCustomBindingSave = (customFieldsData) => {
         : []
     }
 
-    // 2. 去重处理：移除空字段名的自定义字段，并根据fieldName去重
+    // 3. 去重处理：移除空字段名的自定义字段，并根据fieldName去重
     const validCustomFieldsMap = new Map()
     customFields.forEach((field) => {
       if (
@@ -1254,12 +1487,12 @@ const handleCustomBindingSave = (customFieldsData) => {
     console.log('有效自定义字段（去重后）:', validCustomFields)
     console.log('有效自定义字段数量:', validCustomFields.length)
 
-    // 3. 先移除所有之前添加的自定义字段
+    // 4. 先移除所有之前添加的自定义字段
     const originalLength = parsedFields.value.length
     parsedFields.value = parsedFields.value.filter((field) => !field.isCustom)
     logInfo(`已移除 ${originalLength - parsedFields.value.length} 个之前添加的自定义字段`)
 
-    // 4. 遍历有效的自定义字段，整合到DDL解析结果中
+    // 5. 遍历有效的自定义字段，整合到DDL解析结果中
     let addedCount = 0
     validCustomFields.forEach((customField, index) => {
       try {
@@ -1298,7 +1531,7 @@ const handleCustomBindingSave = (customFieldsData) => {
     console.log('最终parsedFields:', parsedFields.value)
     console.log('最终parsedFields数量:', parsedFields.value.length)
 
-    // 5. 为新添加的自定义字段创建或更新映射记录
+    // 6. 为新添加的自定义字段创建或更新映射记录
     validCustomFields.forEach((customField) => {
       // 查找字段在parsedFields中的引用
       const ddlFieldRef = parsedFields.value.find((field) => field.name === customField.fieldName)
@@ -1333,7 +1566,9 @@ const handleCustomBindingSave = (customFieldsData) => {
     console.log('最终fieldMappings:', fieldMappings.value)
     console.log('最终fieldMappings数量:', fieldMappings.value.length)
 
-    message.success(`自定义绑定配置已保存，成功添加 ${addedCount} 个自定义字段`)
+    message.success(
+      `自定义绑定配置已保存，成功处理 ${singleBindings.length} 个单列绑定和 ${addedCount} 个自定义字段`,
+    )
   } catch (error) {
     logError(error, 'custom-binding', {
       operation: 'saveCustomBinding',
@@ -1421,6 +1656,8 @@ onMounted(() => {
   grid-template-columns: 1fr 1fr;
   gap: 24px;
   min-height: 600px;
+  width: 100%;
+  max-width: 100%;
 }
 
 .input-section,
@@ -1428,6 +1665,8 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .input-card,
@@ -1436,6 +1675,7 @@ onMounted(() => {
   border-radius: 8px;
   padding: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
 }
 
 .card-header {
@@ -1463,6 +1703,26 @@ onMounted(() => {
 .field-count {
   color: #666;
   font-size: 12px;
+}
+
+.ddl-fields-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+  overflow: hidden;
+}
+
+.ddl-fields-section .ant-table {
+  font-size: 12px;
+}
+
+.ddl-fields-section .ant-table-container {
+  overflow-x: auto;
+}
+
+.ddl-fields-section .ant-table-thead > tr > th {
+  background: #fafafa;
+  font-weight: 600;
 }
 
 .file-info {
@@ -1534,6 +1794,18 @@ onMounted(() => {
 
 .field-name-cell .ant-input {
   flex: 1;
+}
+
+.ddl-field-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ddl-field-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .output-actions,

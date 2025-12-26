@@ -22,8 +22,11 @@ __screenshots__/
 Test.txt
 Test.xlsx
 项目测试.xlsx
+test_dm_parser.js
+test_dm_parser_fix.js
+test_fixed_parser.js
+test_preprocess.js
 playwright-report/
-test_data.xlsx
 tests/e2e/
 playwright.config.js
 

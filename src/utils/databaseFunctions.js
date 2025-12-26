@@ -1183,6 +1183,12 @@ export const DatabaseFunctions = {
     { name: 'NOW', description: '当前日期时间', syntax: 'NOW()', category: '日期时间' },
     { name: 'GETDATE', description: '获取当前日期时间', syntax: 'GETDATE()', category: '日期时间' },
     { name: 'GUID', description: '生成唯一标识符', syntax: 'GUID()', category: '字符串' },
+    {
+      name: 'SYS_GUID',
+      description: '生成全局唯一标识符',
+      syntax: 'SYS_GUID()',
+      category: '字符串',
+    },
     { name: 'RANDOM', description: '生成随机数', syntax: 'RANDOM()', category: '数值' },
     {
       name: 'TO_CHAR',

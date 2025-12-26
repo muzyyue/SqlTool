@@ -26,10 +26,16 @@
             <div class="tab-content">
               <div class="section-header">
                 <h4>单列绑定配置</h4>
-                <a-button type="primary" size="small" @click="addSingleBinding">
-                  <template #icon><PlusOutlined /></template>
-                  添加绑定
-                </a-button>
+                <a-space>
+                  <a-button type="primary" size="small" @click="addSingleBinding">
+                    <template #icon><PlusOutlined /></template>
+                    添加绑定
+                  </a-button>
+                  <a-button type="dashed" size="small" @click="batchAddSingleBindings">
+                    <template #icon><PlusOutlined /></template>
+                    批量添加
+                  </a-button>
+                </a-space>
               </div>
 
               <a-table
@@ -40,21 +46,63 @@
               >
                 <template #bodyCell="{ column, record }">
                   <div v-if="column.key === 'ddlField'">
-                    <a-select
-                      v-model:value="record.ddlFieldName"
-                      style="width: 100%"
-                      placeholder="选择DDL字段"
-                      @change="handleSingleBindingChange(record)"
-                    >
-                      <a-select-option
-                        v-for="field in availableDdlFields"
-                        :key="field.name"
-                        :value="field.name"
-                        :disabled="isFieldBound(field.name)"
+                    <div class="ddl-field-input-wrapper">
+                      <a-radio-group
+                        v-model:value="record.inputMode"
+                        size="small"
+                        button-style="solid"
+                        style="margin-bottom: 8px"
                       >
-                        {{ field.name }} ({{ field.type }})
-                      </a-select-option>
-                    </a-select>
+                        <a-radio-button value="select">选择</a-radio-button>
+                        <a-radio-button value="custom">自定义</a-radio-button>
+                      </a-radio-group>
+
+                      <a-select
+                        v-if="record.inputMode === 'select'"
+                        v-model:value="record.ddlFieldName"
+                        style="width: 100%"
+                        placeholder="选择DDL字段"
+                        @change="handleSingleBindingChange(record)"
+                      >
+                        <a-select-option
+                          v-for="field in availableDdlFields"
+                          :key="field.name"
+                          :value="field.name"
+                          :disabled="isFieldBound(field.name, record.id)"
+                        >
+                          {{ field.name }} ({{ field.type }})
+                        </a-select-option>
+                      </a-select>
+
+                      <a-input
+                        v-else
+                        v-model:value="record.customFieldName"
+                        placeholder="输入自定义DDL字段名"
+                        @change="handleCustomFieldNameChange(record)"
+                      >
+                        <template #suffix>
+                          <a-tooltip v-if="record.customFieldName" title="清空自定义字段名">
+                            <CloseCircleOutlined
+                              style="cursor: pointer; color: #999"
+                              @click="clearCustomFieldName(record)"
+                            />
+                          </a-tooltip>
+                        </template>
+                      </a-input>
+
+                      <a-alert
+                        v-if="
+                          record.inputMode === 'custom' &&
+                          record.customFieldName &&
+                          !isFieldInDdl(record.customFieldName)
+                        "
+                        type="warning"
+                        :message="`字段 '${record.customFieldName}' 不在DDL中`"
+                        show-icon
+                        size="small"
+                        style="margin-top: 4px"
+                      />
+                    </div>
                   </div>
 
                   <div v-else-if="column.key === 'excelColumn'">
@@ -383,7 +431,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { PlusOutlined } from '@ant-design/icons-vue'
+import { PlusOutlined, CloseCircleOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { getDatabaseFunctions, getSupportedDatabaseTypes } from '../utils/databaseFunctions'
 
@@ -664,11 +712,16 @@ const loadBindings = () => {
     : []
   singleBindings.value = customBindings
     .filter((binding) => binding.bindingType === 'single')
-    .map((binding) => ({
-      id: binding.id,
-      ddlFieldName: binding.ddlFieldName,
-      excelIndex: binding.excelIndex,
-    }))
+    .map((binding) => {
+      const isInDdl = props.ddlFields.some((field) => field.name === binding.ddlFieldName)
+      return {
+        id: binding.id,
+        ddlFieldName: binding.ddlFieldName,
+        inputMode: isInDdl ? 'select' : 'custom',
+        customFieldName: isInDdl ? '' : binding.ddlFieldName,
+        excelIndex: binding.excelIndex,
+      }
+    })
 
   // 加载字段拼接规则 - 确保fieldConcatenationRules是数组
   const fieldConcatenationRules = Array.isArray(props.customBindingManager.fieldConcatenationRules)
@@ -717,8 +770,36 @@ const addSingleBinding = () => {
   singleBindings.value.push({
     id: generateId(),
     ddlFieldName: '',
+    inputMode: 'select',
+    customFieldName: '',
     excelIndex: -1,
   })
+}
+
+/**
+ * 批量添加单列绑定
+ * 为所有未绑定的DDL字段创建绑定记录
+ */
+const batchAddSingleBindings = () => {
+  // 获取已绑定的DDL字段名
+  const boundFieldNames = new Set(
+    singleBindings.value
+      .filter((binding) => binding.ddlFieldName)
+      .map((binding) => binding.ddlFieldName),
+  )
+
+  // 为所有未绑定的DDL字段创建绑定记录
+  props.ddlFields.forEach((ddlField) => {
+    if (!boundFieldNames.has(ddlField.name)) {
+      singleBindings.value.push({
+        id: generateId(),
+        ddlFieldName: ddlField.name,
+        excelIndex: -1,
+      })
+    }
+  })
+
+  message.success(`已批量添加 ${props.ddlFields.length - boundFieldNames.size} 个绑定记录`)
 }
 
 const removeSingleBinding = (id) => {
@@ -729,9 +810,9 @@ const removeSingleBinding = (id) => {
 }
 
 const handleSingleBindingChange = (record) => {
-  if (record.ddlFieldName && record.excelIndex >= 0) {
-    props.customBindingManager.addCustomBinding(record.ddlFieldName, record.excelIndex, 'single')
-  }
+  // 只更新本地状态，不立即添加到管理器中
+  // 最终保存时由saveBindings统一处理
+  console.log('单列绑定已更新:', record)
 }
 
 const addConcatenationRule = () => {
@@ -776,11 +857,31 @@ const handleConcatenationChange = (record) => {
   }
 }
 
-const isFieldBound = (fieldName) => {
+const isFieldBound = (fieldName, currentBindingId) => {
   return (
-    singleBindings.value.some((binding) => binding.ddlFieldName === fieldName) ||
-    concatenationRules.value.some((rule) => rule.ddlFieldName === fieldName)
+    singleBindings.value.some(
+      (binding) => binding.id !== currentBindingId && binding.ddlFieldName === fieldName,
+    ) || concatenationRules.value.some((rule) => rule.ddlFieldName === fieldName)
   )
+}
+
+const isFieldInDdl = (fieldName) => {
+  return props.ddlFields.some((field) => field.name === fieldName)
+}
+
+const handleCustomFieldNameChange = (record) => {
+  // 只更新本地状态，不立即添加到管理器中
+  // 最终保存时由saveBindings统一处理
+  if (record.customFieldName) {
+    record.ddlFieldName = record.customFieldName
+  }
+  console.log('自定义字段名已更新:', record)
+}
+
+const clearCustomFieldName = (record) => {
+  record.customFieldName = ''
+  record.ddlFieldName = ''
+  console.log('自定义字段名已清空:', record)
 }
 
 const isColumnUsed = (columnIndex, currentBindingId) => {
@@ -976,15 +1077,49 @@ const saveBindings = () => {
     customFields.value,
   )
 
-  // 核心修复：将本地自定义字段同步到customBindingManager
-  // 1. 先清空管理器中现有的自定义字段
-  customFields.value.forEach((field) => {
-    if (field.fieldName) {
-      props.customBindingManager.removeCustomField(field.fieldName)
+  // 核心修复：将本地单列绑定同步到customBindingManager
+  // 1. 先清空管理器中现有的单列绑定
+  const currentCustomBindings = Array.isArray(props.customBindingManager.customBindings.value)
+    ? props.customBindingManager.customBindings.value
+    : []
+
+  // 记录需要删除的DDL字段名
+  const ddlFieldNamesToRemove = currentCustomBindings
+    .filter((binding) => binding.bindingType === 'single')
+    .map((binding) => binding.ddlFieldName)
+
+  // 逐个删除单列绑定
+  ddlFieldNamesToRemove.forEach((ddlFieldName) => {
+    props.customBindingManager.removeCustomBinding(ddlFieldName)
+  })
+
+  // 2. 将本地单列绑定添加到管理器中
+  singleBindings.value.forEach((binding) => {
+    // 确定最终使用的字段名
+    const finalFieldName =
+      binding.inputMode === 'custom' ? binding.customFieldName : binding.ddlFieldName
+
+    // 只有当字段名有效且Excel列已绑定时才添加
+    if (finalFieldName && binding.excelIndex >= 0) {
+      props.customBindingManager.addCustomBinding(finalFieldName, binding.excelIndex, 'single')
     }
   })
 
-  // 2. 处理字段拼接规则中的自定义字段名称
+  // 核心修复：将本地自定义字段同步到customBindingManager
+  // 3. 先清空管理器中现有的自定义字段
+  const currentCustomFields = Array.isArray(props.customBindingManager.customFields.value)
+    ? props.customBindingManager.customFields.value
+    : []
+
+  // 记录需要删除的自定义字段名
+  const customFieldNamesToRemove = currentCustomFields.map((field) => field.fieldName)
+
+  // 逐个删除自定义字段
+  customFieldNamesToRemove.forEach((fieldName) => {
+    props.customBindingManager.removeCustomField(fieldName)
+  })
+
+  // 4. 处理字段拼接规则中的自定义字段名称
   concatenationRules.value.forEach((rule) => {
     if (rule.customFieldName && rule.customFieldName.trim() !== '') {
       // 创建独立的自定义字段
@@ -1002,7 +1137,7 @@ const saveBindings = () => {
     }
   })
 
-  // 3. 将本地所有自定义字段添加到管理器中
+  // 5. 将本地所有自定义字段添加到管理器中
   customFields.value.forEach((field) => {
     if (field.fieldName) {
       props.customBindingManager.addCustomField(field)
@@ -1099,5 +1234,19 @@ const generateId = () => {
   text-align: right;
   padding-top: 16px;
   border-top: 1px solid #f0f0f0;
+}
+
+.ddl-field-input-wrapper {
+  padding: 4px;
+}
+
+.ddl-field-input-wrapper .ant-radio-group {
+  display: flex;
+  width: 100%;
+}
+
+.ddl-field-input-wrapper .ant-radio-button-wrapper {
+  flex: 1;
+  text-align: center;
 }
 </style>

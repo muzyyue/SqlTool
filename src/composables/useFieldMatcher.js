@@ -37,6 +37,9 @@ export function useFieldMatcher() {
       case 'pinyin':
         mappings = matchByPinyin(ddlFields, excelHeaders)
         break
+      case 'hybrid':
+        mappings = matchByHybrid(ddlFields, excelHeaders)
+        break
       case 'manual':
         mappings = createManualMappings(ddlFields, excelHeaders)
         break
@@ -159,6 +162,100 @@ export function useFieldMatcher() {
           similarity: 0,
           confidence: 'low',
           status: 'unmatched',
+        })
+      }
+    })
+
+    return mappings
+  }
+
+  /**
+   * 混合匹配策略：结合相似度匹配和拼音首字母大写匹配
+   * 优先使用相似度匹配，对于未匹配的字段尝试拼音首字母匹配
+   */
+  const matchByHybrid = (ddlFields, excelHeaders) => {
+    const mappings = []
+    const usedExcelIndices = new Set()
+
+    // 转换为拼音首字母（大写）
+    const ddlPinyinMap = ddlFields.map((field) => ({
+      field,
+      pinyin: convertToPinyinFirstLetter(field.name),
+    }))
+
+    const excelPinyinMap = excelHeaders.map((header, index) => ({
+      header,
+      index,
+      pinyin: convertToPinyinFirstLetter(header),
+    }))
+
+    // 为每个DDL字段找到最匹配的Excel列
+    ddlFields.forEach((ddlField, ddlIndex) => {
+      let bestMatch = null
+      let bestScore = -1
+      let matchType = ''
+
+      excelHeaders.forEach((excelHeader, excelIndex) => {
+        if (usedExcelIndices.has(excelIndex)) return
+
+        // 计算多种匹配方式的相似度
+        const directSimilarity = calculateSimilarity(ddlField.name, excelHeader)
+        const ddlPinyin = ddlPinyinMap[ddlIndex].pinyin
+        const excelPinyin = excelPinyinMap[excelIndex].pinyin
+        const pinyinSimilarity = calculateSimilarity(ddlPinyin, excelPinyin)
+
+        // 检查是否为拼音首字母大写匹配
+        const isPinyinUppercaseMatch =
+          ddlPinyin.length > 0 && excelPinyin.length > 0 && ddlPinyin === excelPinyin.toUpperCase()
+
+        // 综合评分：优先直接匹配，其次拼音匹配
+        let combinedScore = directSimilarity
+
+        // 如果拼音首字母完全匹配，给予额外加分
+        if (isPinyinUppercaseMatch) {
+          combinedScore = Math.max(combinedScore, pinyinSimilarity * 1.2)
+          matchType = 'pinyin-uppercase'
+        } else if (pinyinSimilarity > directSimilarity) {
+          combinedScore = Math.max(combinedScore, pinyinSimilarity * 0.9)
+          matchType = 'pinyin'
+        }
+
+        if (combinedScore > bestScore) {
+          bestScore = combinedScore
+          bestMatch = {
+            ddlField,
+            excelHeader,
+            excelIndex,
+            similarity: directSimilarity,
+            pinyinSimilarity,
+            combinedScore: bestScore,
+            confidence: getConfidenceLevel(bestScore),
+            matchType,
+          }
+        }
+      })
+
+      // 使用较低的阈值，因为混合匹配更灵活
+      const threshold = 0.25
+
+      if (bestMatch && bestScore > threshold) {
+        mappings.push({
+          ...bestMatch,
+          customFieldName: '',
+        })
+        usedExcelIndices.add(bestMatch.excelIndex)
+      } else {
+        mappings.push({
+          ddlField,
+          customFieldName: '',
+          excelHeader: null,
+          excelIndex: -1,
+          similarity: 0,
+          pinyinSimilarity: 0,
+          combinedScore: 0,
+          confidence: 'low',
+          status: 'unmatched',
+          matchType: 'none',
         })
       }
     })
