@@ -461,7 +461,18 @@ const emit = defineEmits(['update:open', 'save'])
 // 响应式数据
 const visible = ref(props.open)
 const activeTab = ref('single')
-const enableCustomBinding = ref(props.customBindingManager.enableCustomBinding)
+const enableCustomBinding = ref(false)
+
+// 初始化enableCustomBinding
+watch(
+  () => props.customBindingManager?.enableCustomBinding,
+  (newVal) => {
+    if (newVal !== undefined) {
+      enableCustomBinding.value = newVal
+    }
+  },
+  { immediate: true },
+)
 
 // 单列绑定数据
 const singleBindings = ref([])
@@ -694,13 +705,6 @@ watch(
       // 模态框打开时加载数据
       loadBindings()
     }
-  },
-)
-
-watch(
-  () => props.customBindingManager.enableCustomBinding,
-  (newVal) => {
-    enableCustomBinding.value = newVal
   },
 )
 
