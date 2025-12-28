@@ -1,5 +1,15 @@
 # 版本变更历史
 
+## 1.0.6 (2025-12-26)
+
+**正式发布版本**
+
+- 删除映射配置表格中的字段名输入框和重置按钮
+- 简化字段名显示逻辑，直接显示DDL字段名
+- 移除handleFieldNameBlur和resetFieldName处理函数
+- 移除updateCustomFieldName和resetCustomFieldName导入
+- 简化UI界面，提高用户体验一致性
+
 ## 1.0.5 (2025-12-26)
 
 **正式发布版本**

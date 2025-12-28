@@ -204,24 +204,7 @@
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'fieldName'">
-                <div class="field-name-cell">
-                  <a-input
-                    v-model:value="record.customFieldName"
-                    placeholder="输入自定义字段名"
-                    size="small"
-                    @blur="handleFieldNameBlur(record)"
-                    @pressEnter="handleFieldNameBlur(record)"
-                  />
-                  <a-button
-                    v-if="record.customFieldName"
-                    type="link"
-                    size="small"
-                    @click="resetFieldName(record.ddlField.name)"
-                    title="恢复原始字段名"
-                  >
-                    <template #icon><ReloadOutlined /></template>
-                  </a-button>
-                </div>
+                <span>{{ record.ddlField.name }}</span>
               </template>
 
               <template v-if="column.key === 'ddlField'">
@@ -529,8 +512,6 @@ const {
   validateEnhancedMappings,
   matchingStats,
   customBindingManager,
-  updateCustomFieldName,
-  resetCustomFieldName,
 } = useFieldMatcher()
 
 // 增强匹配统计信息，用于UI显示
@@ -964,19 +945,6 @@ const updateMapping = (ddlFieldName, excelIndex) => {
   const excelHeader = excelIndex >= 0 ? excelHeaders.value[excelIndex] : null
   updateFieldMapping(ddlFieldName, excelHeader, excelIndex)
   logInfo(`手动更新字段映射: ${ddlFieldName} -> ${excelHeader || '未匹配'}`)
-}
-
-const handleFieldNameBlur = (record) => {
-  const ddlFieldName = record.ddlField.name
-  const customFieldName = record.customFieldName || ''
-  updateCustomFieldName(ddlFieldName, customFieldName)
-  logInfo(`更新字段名: ${ddlFieldName} -> ${customFieldName || record.ddlField.name}`)
-}
-
-const resetFieldName = (ddlFieldName) => {
-  resetCustomFieldName(ddlFieldName)
-  logInfo(`重置字段名: ${ddlFieldName}`)
-  message.info(`已重置字段名为原始名称`)
 }
 
 const clearMapping = (ddlFieldName) => {
