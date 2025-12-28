@@ -83,8 +83,6 @@
               <a-menu-item key="copy"> <CopyOutlined /> 复制到剪贴板 </a-menu-item>
               <a-menu-item key="download"> <DownloadOutlined /> 下载SQL文件 </a-menu-item>
               <a-menu-item key="preview"> <EyeOutlined /> 新窗口预览 </a-menu-item>
-              <a-menu-divider />
-              <a-menu-item key="validate"> <SafetyOutlined /> 语法验证 </a-menu-item>
             </a-menu>
           </template>
           <a-button>
@@ -94,43 +92,13 @@
         </a-dropdown>
       </a-space>
     </div>
-
-    <!-- 语法验证结果 -->
-    <div v-if="validationResult" class="validation-result">
-      <div class="validation-header">
-        <SafetyOutlined />
-        <span>语法验证结果</span>
-      </div>
-      <div class="validation-content" :class="{ 'has-errors': validationResult.hasErrors }">
-        <div v-if="validationResult.hasErrors">
-          <a-alert message="发现语法错误" type="error" show-icon>
-            <template #description>
-              <ul class="error-list">
-                <li v-for="error in validationResult.errors" :key="error.line">
-                  第{{ error.line }}行: {{ error.message }}
-                </li>
-              </ul>
-            </template>
-          </a-alert>
-        </div>
-        <div v-else>
-          <a-alert message="语法验证通过" type="success" show-icon />
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import { message } from 'ant-design-vue'
-import {
-  CopyOutlined,
-  DownloadOutlined,
-  EyeOutlined,
-  MoreOutlined,
-  SafetyOutlined,
-} from '@ant-design/icons-vue'
+import { CopyOutlined, DownloadOutlined, EyeOutlined, MoreOutlined } from '@ant-design/icons-vue'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 import { useSqlGeneratorEnhanced } from '@/composables/useSqlGeneratorEnhanced'
 import { sqlHighlighter } from '@/utils/sqlSyntaxHighlighter'
@@ -149,15 +117,11 @@ const props = defineProps({
       fileSize: 0,
     }),
   },
-  autoValidate: {
-    type: Boolean,
-    default: true,
-  },
 })
 
-const emit = defineEmits(['copy', 'download', 'validate'])
+const emit = defineEmits(['copy', 'download'])
 
-const { logError, logInfo, logWarning } = useErrorHandler()
+const { logError, logInfo } = useErrorHandler()
 const sqlGenerator = useSqlGeneratorEnhanced()
 
 // 响应式数据
@@ -165,7 +129,6 @@ const previewMode = ref('formatted')
 const syntaxHighlight = ref(true)
 const showLineNumbers = ref(true)
 const copying = ref(false)
-const validationResult = ref(null)
 
 // SQL美化设置
 const beautifySettings = ref({
@@ -351,72 +314,6 @@ const previewInNewWindow = () => {
   }
 }
 
-const validateSqlSyntax = async () => {
-  if (!props.sql) {
-    validationResult.value = null
-    return
-  }
-
-  try {
-    // 简单的SQL语法验证（实际可以集成更复杂的验证库）
-    const errors = []
-    const lines = props.sql.split('\n')
-
-    lines.forEach((line, index) => {
-      const lineNumber = index + 1
-      const trimmedLine = line.trim()
-
-      // 检查基本的SQL语法问题
-      if (trimmedLine && !trimmedLine.endsWith(';') && !trimmedLine.startsWith('--')) {
-        // 忽略注释行和空行
-        if (!trimmedLine.startsWith('/*') && !trimmedLine.endsWith('*/')) {
-          errors.push({
-            line: lineNumber,
-            message: '语句缺少分号结尾',
-          })
-        }
-      }
-
-      // 检查常见的语法错误
-      if (
-        trimmedLine.toLowerCase().includes('insert') &&
-        !trimmedLine.toLowerCase().includes('values')
-      ) {
-        errors.push({
-          line: lineNumber,
-          message: 'INSERT语句缺少VALUES关键字',
-        })
-      }
-
-      if (
-        trimmedLine.toLowerCase().includes('update') &&
-        !trimmedLine.toLowerCase().includes('set')
-      ) {
-        errors.push({
-          line: lineNumber,
-          message: 'UPDATE语句缺少SET关键字',
-        })
-      }
-    })
-
-    validationResult.value = {
-      hasErrors: errors.length > 0,
-      errors: errors,
-    }
-
-    emit('validate', validationResult.value)
-
-    if (errors.length > 0) {
-      logWarning('SQL语法验证发现错误', 'validation', { errors })
-    } else {
-      logInfo('SQL语法验证通过')
-    }
-  } catch (error) {
-    message.error('语法验证失败')
-    logError(error, 'system', { operation: 'validateSqlSyntax' })
-  }
-}
-
 const handleExportMenuClick = ({ key }) => {
   switch (key) {
     case 'copy':
@@ -428,28 +325,13 @@ const handleExportMenuClick = ({ key }) => {
     case 'preview':
       previewInNewWindow()
       break
-    case 'validate':
-      validateSqlSyntax()
-      break
   }
 }
-
-// 监听SQL变化，自动验证
-watch(
-  () => props.sql,
-  (newSql, oldSql) => {
-    if (newSql && newSql !== oldSql && props.autoValidate) {
-      validateSqlSyntax()
-    }
-  },
-  { immediate: true },
-)
 
 // 暴露方法给父组件
 defineExpose({
   copySql,
   downloadSql,
-  validateSqlSyntax,
   previewInNewWindow,
   clearCache,
 })

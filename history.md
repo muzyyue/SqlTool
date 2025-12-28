@@ -10,6 +10,10 @@
 - 修改enhancedMatchingStats使用计算属性直接获取统计数据
 - 优化统计逻辑，确保添加自定义字段或拼接规则后实时更新
 - 修复CustomBindingModal初始化错误，正确处理计算属性props
+- 修复useCustomBinding函数缺少return语句导致的undefined错误
+- 修复上传文件后customBindingManager为undefined的问题
+- 删除语法验证结果功能，移除相关UI和逻辑代码
+- 清理SqlPreview组件中的验证相关代码和依赖
 
 ## 1.0.8 (2025-12-26)
 

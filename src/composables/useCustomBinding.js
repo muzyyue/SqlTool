@@ -500,4 +500,6 @@ export function useCustomBinding() {
       enableCustomBinding.value = value
     },
   }
+
+  return customBindingManagerInstance
 }

@@ -415,10 +415,8 @@
           <SqlPreview
             :sql="generatedSql"
             :stats="sqlStats"
-            :auto-validate="true"
             @copy="handleSqlCopy"
             @download="handleSqlDownload"
-            @validate="handleSqlValidation"
           />
         </div>
 
@@ -558,7 +556,7 @@ const {
   setBeautifyOptions,
   resetBeautifyOptions: resetDefaultBeautifyOptions,
 } = useSqlGeneratorEnhanced()
-const { logError, logInfo, logWarning } = useErrorHandler()
+const { logError, logInfo } = useErrorHandler()
 
 // 响应式数据
 const ddlStatement = ref('')
@@ -1320,16 +1318,6 @@ const formatLogMessage = (log) => {
 const clearLogs = () => {
   operationLogs.value = []
   logInfo('操作日志已清除')
-}
-
-const handleSqlValidation = (validationResult) => {
-  if (validationResult.hasErrors) {
-    logWarning('SQL语法验证发现错误', 'validation', {
-      errors: validationResult.errors,
-    })
-  } else {
-    logInfo('SQL语法验证通过')
-  }
 }
 
 const exportLogs = () => {

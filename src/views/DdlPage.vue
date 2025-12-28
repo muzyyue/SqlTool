@@ -299,25 +299,6 @@
             <a-empty v-else description="请配置DDL参数并生成SQL" />
           </div>
         </div>
-
-        <!-- 语法验证结果 -->
-        <div class="output-card">
-          <div class="card-header">
-            <h3>语法验证</h3>
-            <a-button @click="validateSql" :loading="validating"> 验证语法 </a-button>
-          </div>
-
-          <div class="validation-results">
-            <a-alert
-              v-if="validationResult"
-              :message="validationResult.valid ? '语法验证通过' : '语法验证失败'"
-              :description="validationResult.message"
-              :type="validationResult.valid ? 'success' : 'error'"
-              show-icon
-            />
-            <a-empty v-else description="请先生成SQL语句" />
-          </div>
-        </div>
       </div>
     </div>
   </div>
@@ -326,7 +307,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
-import { useDdlTypeParser } from '../composables/useDdlTypeParser'
 import { useDdlGenerator } from '../composables/useDdlGenerator'
 import {
   ReloadOutlined,
@@ -345,12 +325,9 @@ const tableComment = ref('')
 const fields = ref([])
 const constraints = ref([])
 const generatedSql = ref('')
-const validationResult = ref(null)
 const generating = ref(false)
-const validating = ref(false)
 
 // DDL类型解析器和生成器
-const { parseDdlType } = useDdlTypeParser()
 const { generateDdl } = useDdlGenerator()
 
 // 数据库选项
@@ -519,55 +496,6 @@ const generateDdlSql = async () => {
   }
 }
 
-const validateSql = async () => {
-  if (!generatedSql.value) {
-    message.warning('请先生成SQL语句')
-    return
-  }
-
-  validating.value = true
-
-  try {
-    // 这里将调用语法验证器
-    const result = await validateDdlSql(generatedSql.value, selectedDatabase.value)
-    validationResult.value = result
-
-    if (result.valid) {
-      message.success('语法验证通过')
-    } else {
-      message.warning('语法验证发现错误')
-    }
-  } catch (error) {
-    message.error('语法验证失败: ' + error.message)
-  } finally {
-    validating.value = false
-  }
-}
-
-const validateDdlSql = async (sql, dbType) => {
-  // 使用DDL类型解析器进行语法验证
-  try {
-    const parseResult = await parseDdlType(sql)
-
-    if (parseResult.success) {
-      return {
-        valid: true,
-        message: `SQL语句语法正确，检测到${parseResult.statementType}类型语句，符合${getDatabaseInfo(dbType).name}语法规范`,
-      }
-    } else {
-      return {
-        valid: false,
-        message: `语法验证失败: ${parseResult.error}`,
-      }
-    }
-  } catch {
-    return {
-      valid: false,
-      message: '语法验证异常',
-    }
-  }
-}
-
 const copySql = async () => {
   try {
     await navigator.clipboard.writeText(generatedSql.value)
@@ -593,7 +521,6 @@ const resetAll = () => {
   selectedDdlType.value = 'create'
   resetDdlInputs()
   generatedSql.value = ''
-  validationResult.value = null
   message.success('所有数据已重置')
 }
 
