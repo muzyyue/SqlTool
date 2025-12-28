@@ -283,10 +283,6 @@
             <a-button @click="autoMatchFields">自动匹配</a-button>
             <a-button @click="clearAllMappings">清除所有</a-button>
             <a-button type="primary" @click="validateEnhancedMappings">验证映射</a-button>
-            <a-button type="dashed" @click="addCustomField" :disabled="!customBindingEnabled">
-              <template #icon><PlusOutlined /></template>
-              添加字段
-            </a-button>
 
             <!-- 自定义绑定操作 -->
             <a-divider type="vertical" />
@@ -488,7 +484,6 @@ import {
   UploadOutlined,
   SettingOutlined,
   ClockCircleOutlined,
-  PlusOutlined,
 } from '@ant-design/icons-vue'
 
 // 导入核心功能模块
@@ -1548,22 +1543,6 @@ const handleCustomBindingSave = (customFieldsData) => {
 
 const handleCustomBindingCancel = () => {
   showCustomBindingModal.value = false
-}
-
-const addCustomField = () => {
-  // 添加默认配置的自定义字段
-  customBindingManager.addCustomField({
-    fieldName: '',
-    dataSource: 'system_function',
-    systemFunctionConfig: {
-      functionName: 'NOW',
-    },
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  })
-
-  logInfo('已添加新的自定义字段')
-  message.success('已添加新的自定义字段，请在配置绑定中编辑')
 }
 
 const resetAll = () => {
