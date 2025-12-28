@@ -648,6 +648,7 @@ export function useFieldMatcher() {
 
     // 基础方法
     matchFields,
+    createManualMappings,
     updateFieldMapping,
     validateMappings,
     exportMappings,

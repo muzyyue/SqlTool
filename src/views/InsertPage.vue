@@ -507,6 +507,7 @@ const {
   validateEnhancedMappings,
   matchingStats,
   customBindingManager,
+  createManualMappings,
 } = useFieldMatcher()
 
 // 增强匹配统计信息，用于UI显示
@@ -710,10 +711,8 @@ const parseDdl = async (forceRefresh = false) => {
     logInfo(`成功解析DDL语句，发现 ${result.fields.length} 个字段`)
     message.success(`DDL解析成功，发现 ${result.fields.length} 个字段`)
 
-    // 如果已有Excel数据，自动执行字段匹配
-    if (excelHeaders.value.length > 0) {
-      autoMatchFields()
-    }
+    // 创建手动映射，显示所有DDL字段（不管Excel中有没有匹配字段）
+    createManualMappings(parsedFields.value)
   } catch (error) {
     const friendlyError = logError(error, 'parsing', {
       operation: 'parseDdl',
@@ -772,12 +771,6 @@ const handleUpload = async (options) => {
     onSuccess('文件上传成功')
     logInfo(`成功解析Excel文件，共 ${result.rows?.length || 0} 行数据`)
     message.success('文件解析成功')
-
-    // 如果已有DDL字段，自动执行字段匹配
-    if (parsedFields.value.length > 0) {
-      console.log('开始自动字段匹配...')
-      autoMatchFields()
-    }
 
     console.log('=== 文件上传调试信息结束 ===')
   } catch (error) {
