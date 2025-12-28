@@ -49,6 +49,7 @@ playwright.config.js
 .DS_Store
 *.local
 Thumbs.db
+~$*.xlsx
 
 # Tooling
 .trae/

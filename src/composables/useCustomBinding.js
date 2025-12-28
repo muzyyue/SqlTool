@@ -1,10 +1,17 @@
 import { ref, computed } from 'vue'
 
 /**
- * 自定义绑定功能管理器
+ * 自定义绑定功能管理器（单例模式）
  * 支持手动绑定、字段拼接和自定义字段功能
  */
+let customBindingManagerInstance = null
+
 export function useCustomBinding() {
+  // 如果实例已存在，直接返回
+  if (customBindingManagerInstance) {
+    return customBindingManagerInstance
+  }
+
   // 自定义绑定配置
   const customBindings = ref([])
 
@@ -297,16 +304,14 @@ export function useCustomBinding() {
 
   /**
    * 获取绑定统计信息
+   * @returns {Object} 统计信息（包含计算属性）
    */
   const getBindingStats = () => {
     return {
-      customBindings: customBindings.value.length,
-      concatenationRules: fieldConcatenationRules.value.length,
-      customFields: customFields.value.length,
-      hasCustomConfig:
-        customBindings.value.length > 0 ||
-        fieldConcatenationRules.value.length > 0 ||
-        customFields.value.length > 0,
+      customBindings: customBindingCount.value,
+      concatenationRules: concatenationRuleCount.value,
+      customFields: customFieldCount.value,
+      hasCustomConfig: totalCustomBindings.value > 0,
     }
   }
 
@@ -453,7 +458,8 @@ export function useCustomBinding() {
     () => customBindingCount.value + concatenationRuleCount.value + customFieldCount.value,
   )
 
-  return {
+  // 保存实例引用
+  customBindingManagerInstance = {
     // 状态
     customBindings: computed(() => customBindings.value),
     fieldConcatenationRules: computed(() => fieldConcatenationRules.value),

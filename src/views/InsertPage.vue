@@ -213,8 +213,16 @@
                     <strong>{{ record.ddlField.name }}</strong>
                     <div class="field-type">{{ record.ddlField.type }}</div>
                     <a-tag v-if="!record.ddlField.nullable" color="red" size="small"> 必填 </a-tag>
+                    <a-tag
+                      v-if="record.status === 'unmatched' || record.excelIndex === -1"
+                      color="orange"
+                      size="small"
+                    >
+                      未匹配
+                    </a-tag>
                   </div>
                   <a-select
+                    v-if="excelHeaders && excelHeaders.length > 0"
                     v-model:value="record.excelIndex"
                     style="width: 100%; margin-top: 8px"
                     placeholder="选择Excel列"
@@ -231,42 +239,39 @@
                       {{ header }} (列{{ idx + 1 }})
                     </a-select-option>
                   </a-select>
+                  <div v-else class="no-excel-hint">
+                    <small>请先上传Excel文件</small>
+                  </div>
                 </div>
               </template>
 
               <template v-if="column.key === 'excelHeader'">
-                <a-select
-                  v-if="record.status === 'pending'"
-                  v-model:value="record.excelIndex"
-                  style="width: 100%"
-                  placeholder="选择Excel列"
-                  @change="(value) => updateMapping(record.ddlField.name, value)"
-                >
-                  <a-select-option :value="-1">未匹配</a-select-option>
-                  <a-select-option
-                    v-for="(header, idx) in excelHeaders || []"
-                    :key="idx"
-                    :value="idx"
-                    :disabled="isColumnUsed(idx)"
-                  >
-                    {{ header }} (列{{ idx + 1 }})
-                  </a-select-option>
-                </a-select>
+                <span v-if="record.excelIndex === -1 || !record.excelHeader">
+                  <a-tag color="gray" size="small">未绑定</a-tag>
+                </span>
                 <span v-else>
                   {{ record.excelHeader }}
-                  <a-tag :color="getConfidenceColor(record.confidence)" size="small">
+                  <a-tag
+                    v-if="record.confidence && record.confidence !== 'manual'"
+                    :color="getConfidenceColor(record.confidence)"
+                    size="small"
+                  >
                     {{ getConfidenceText(record.confidence) }}
+                  </a-tag>
+                  <a-tag v-else-if="record.confidence === 'manual'" color="purple" size="small">
+                    手动
                   </a-tag>
                 </span>
               </template>
 
               <template v-if="column.key === 'similarity'">
+                <span v-if="record.excelIndex === -1 || !record.similarity">-</span>
                 <a-progress
-                  v-if="record.similarity > 0"
+                  v-else
                   :percent="Math.round(record.similarity * 100)"
                   size="small"
+                  :stroke-color="getSimilarityColor(record.similarity)"
                 />
-                <span v-else>-</span>
               </template>
 
               <template v-if="column.key === 'actions'">
@@ -507,21 +512,19 @@ const {
   validateEnhancedMappings,
   matchingStats,
   customBindingManager,
-  createManualMappings,
 } = useFieldMatcher()
 
 // 增强匹配统计信息，用于UI显示
 const enhancedMatchingStats = computed(() => {
-  const bindingStats = customBindingManager.getBindingStats()
   return {
     matchRate: matchingStats.value.matchRate || 0,
     matched: matchingStats.value.matched || 0,
     unmatched: matchingStats.value.unmatched || 0,
     total: matchingStats.value.total || 0,
     confidenceStats: matchingStats.value.confidenceStats || {},
-    customBindings: bindingStats.customBindings || 0,
-    concatenationRules: bindingStats.concatenationRules || 0,
-    customFields: bindingStats.customFields || 0,
+    customBindings: customBindingManager.customBindingCount.value || 0,
+    concatenationRules: customBindingManager.concatenationRuleCount.value || 0,
+    customFields: customBindingManager.customFieldCount.value || 0,
   }
 })
 
@@ -711,8 +714,14 @@ const parseDdl = async (forceRefresh = false) => {
     logInfo(`成功解析DDL语句，发现 ${result.fields.length} 个字段`)
     message.success(`DDL解析成功，发现 ${result.fields.length} 个字段`)
 
-    // 创建手动映射，显示所有DDL字段（不管Excel中有没有匹配字段）
-    createManualMappings(parsedFields.value)
+    // 立即创建映射记录，确保所有DDL字段都显示
+    if (excelHeaders.value.length > 0) {
+      // 如果已有Excel数据，执行自动匹配
+      autoMatchFields()
+    } else {
+      // 如果没有Excel数据，创建手动映射模板
+      matchFields(parsedFields.value, [], 'manual')
+    }
   } catch (error) {
     const friendlyError = logError(error, 'parsing', {
       operation: 'parseDdl',
@@ -771,6 +780,12 @@ const handleUpload = async (options) => {
     onSuccess('文件上传成功')
     logInfo(`成功解析Excel文件，共 ${result.rows?.length || 0} 行数据`)
     message.success('文件解析成功')
+
+    // 如果已有DDL字段，自动执行字段匹配
+    if (parsedFields.value.length > 0) {
+      console.log('开始自动字段匹配...')
+      autoMatchFields()
+    }
 
     console.log('=== 文件上传调试信息结束 ===')
   } catch (error) {
@@ -1026,6 +1041,13 @@ const getConfidenceText = (confidence) => {
     manual: '手动',
   }
   return texts[confidence] || '未知'
+}
+
+const getSimilarityColor = (similarity) => {
+  if (similarity >= 0.8) return '#52c41a'
+  if (similarity >= 0.6) return '#1890ff'
+  if (similarity >= 0.4) return '#faad14'
+  return '#ff4d4f'
 }
 
 // SQL美化相关方法
@@ -1746,6 +1768,16 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+
+.no-excel-hint {
+  padding: 8px;
+  background: #fffbe6;
+  border: 1px solid #ffe58f;
+  border-radius: 4px;
+  color: #fa8c16;
+  text-align: center;
+  margin-top: 8px;
 }
 
 .output-actions,
