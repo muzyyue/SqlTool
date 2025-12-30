@@ -415,6 +415,7 @@
           <SqlPreview
             :sql="generatedSql"
             :stats="sqlStats"
+            :beautify-options="beautifyOptions"
             @copy="handleSqlCopy"
             @download="handleSqlDownload"
           />

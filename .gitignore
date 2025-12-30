@@ -17,18 +17,15 @@ dist.zip
 
 # Testing
 coverage
+test/
 test-results/
 __screenshots__/
 Test.txt
 Test.xlsx
 项目测试.xlsx
-test_dm_parser.js
-test_dm_parser_fix.js
-test_fixed_parser.js
-test_preprocess.js
-playwright-report/
-tests/e2e/
-playwright.config.js
+test/reports/
+*.xlsx
+*.md
 
 # Environment files
 .env

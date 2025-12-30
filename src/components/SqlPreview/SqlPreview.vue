@@ -117,6 +117,16 @@ const props = defineProps({
       fileSize: 0,
     }),
   },
+  beautifyOptions: {
+    type: Object,
+    default: () => ({
+      indentSpaces: 4,
+      formatStyle: 'expanded',
+      keywordCase: 'upper',
+      maxLineLength: 80,
+      alignValues: true,
+    }),
+  },
 })
 
 const emit = defineEmits(['copy', 'download'])
@@ -130,14 +140,17 @@ const syntaxHighlight = ref(true)
 const showLineNumbers = ref(true)
 const copying = ref(false)
 
-// SQL美化设置
-const beautifySettings = ref({
-  indentSpaces: 4,
-  formatStyle: 'expanded',
-  keywordCase: 'upper',
-  maxLineLength: 80,
-  alignValues: true,
-})
+// SQL美化设置（使用父组件传递的选项）
+const beautifySettings = computed(() => ({
+  indentSpaces: props.beautifyOptions.indentSpaces || 4,
+  formatStyle:
+    props.beautifyOptions.formatStyle === 'standard'
+      ? 'expanded'
+      : props.beautifyOptions.formatStyle,
+  keywordCase: props.beautifyOptions.keywordCase || 'upper',
+  maxLineLength: props.beautifyOptions.maxLineLength || 80,
+  alignValues: props.beautifyOptions.alignValues !== false,
+}))
 
 // 缓存机制
 const cacheKey = computed(() => {

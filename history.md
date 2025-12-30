@@ -1,5 +1,51 @@
 # 版本变更历史
 
+## 1.2.1 (2025-12-30)
+
+**Update页面功能优化**
+
+- 修复Update页面SQL预览功能，支持格式化、压缩、语法高亮、显示行号
+- 修改SqlPreview组件，添加beautifyOptions props，支持父组件传递美化选项
+- 在InsertPage和UpdatePage中传递beautifyOptions给SqlPreview组件
+- 统一UpdatePage的beautifyOptions配置与InsertPage保持一致（indentSpaces: 4, formatStyle: 'expanded'）
+- 验证数据库类型正确传递给SQL生成逻辑（MySQL、PostgreSQL、SQL Server）
+- 修复insert-page.spec.js中未使用的导入（selectField、selectDropdownOption）
+- 通过Playwright测试验证格式化、压缩、语法高亮、显示行号功能正常工作
+
+## 1.2.0 (2025-12-29)
+
+**目录结构优化**
+
+- 重组测试目录结构，将所有测试相关文件整合到统一的test/目录下
+- 创建test/unit/目录存放单元测试文件
+- 创建test/e2e/目录存放E2E测试文件
+- 创建test/fixtures/目录存放测试数据和fixture文件
+- 创建test/reports/目录存放测试报告（test-results和playwright-report）
+- 创建test/docs/目录存放测试文档（TEST_RULES.md、TEST_SUMMARY.md等）
+- 创建test/scripts/目录存放测试脚本（test_dm_parser_fix.js等）
+- 创建test/config/目录存放测试配置文件（playwright.config.js、vitest.config.js）
+- 更新package.json中的所有测试脚本路径，使用新的配置文件位置
+- 更新vitest.config.js配置，添加include规则只运行test/unit/目录下的测试
+- 更新playwright.config.js配置，调整testDir和reporter路径为相对路径
+- 更新.gitignore文件，反映新的测试目录结构
+- 修复所有单元测试文件的导入路径（从../src/改为../../src/）
+- 验证单元测试和E2E测试在新目录结构下正常运行
+
+## 1.1.0 (2025-12-29)
+
+**正式发布版本**
+
+- 创建完整的Playwright E2E测试框架和自动化测试脚本
+- 添加playwright.config.js配置文件，支持Chrome、Firefox、Safari浏览器测试
+- 创建test-utils.js工具函数库，提供20+个常用测试辅助函数
+- 实现insert-page.spec.js测试套件，包含20个INSERT页面测试用例
+- 实现update-page.spec.js测试套件，包含30个UPDATE页面测试用例
+- 添加测试报告生成器TestReporter类，支持详细的测试结果统计
+- 在package.json中添加7个测试脚本命令（test:e2e、test:e2e:ui、test:e2e:headed等）
+- 更新.gitignore，添加e2e/目录和playwright.config.js排除规则
+- 测试覆盖范围：页面加载、DDL解析、Excel上传、SQL生成、字段映射、错误处理等
+- 基于TEST_RULES.md和TEST_SUMMARY.md的测试经验创建自动化测试脚本
+
 ## 1.0.9 (2025-12-28)
 
 **正式发布版本**
@@ -14,6 +60,9 @@
 - 修复上传文件后customBindingManager为undefined的问题
 - 删除语法验证结果功能，移除相关UI和逻辑代码
 - 清理SqlPreview组件中的验证相关代码和依赖
+- 在DdlPage.vue中添加UPDATE TABLE语句生成功能
+- 添加UPDATE TABLE输入界面，支持表名、WHERE条件和更新字段配置
+- 优化DdlPage.vue的重置和生成SQL功能，与InsertPage.vue保持一致
 
 ## 1.0.8 (2025-12-26)
 

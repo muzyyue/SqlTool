@@ -67,6 +67,7 @@
           >
             <a-radio-button value="create">CREATE TABLE</a-radio-button>
             <a-radio-button value="alter">ALTER TABLE</a-radio-button>
+            <a-radio-button value="update">UPDATE TABLE</a-radio-button>
             <a-radio-button value="drop">DROP TABLE</a-radio-button>
             <a-radio-button value="truncate">TRUNCATE TABLE</a-radio-button>
           </a-radio-group>
@@ -267,6 +268,64 @@
               />
             </div>
           </div>
+
+          <!-- UPDATE TABLE 输入 -->
+          <div v-else-if="selectedDdlType === 'update'" class="ddl-input-section">
+            <div class="form-row">
+              <a-input v-model:value="tableName" placeholder="请输入表名" addon-before="表名" />
+            </div>
+
+            <div class="form-row">
+              <a-textarea
+                v-model:value="updateWhereClause"
+                placeholder="请输入WHERE条件（可选）"
+                :rows="3"
+                addon-before="WHERE条件"
+              />
+            </div>
+
+            <div class="fields-section">
+              <div class="section-header">
+                <h4>更新字段</h4>
+                <a-button type="link" @click="addUpdateField" size="small">
+                  <template #icon><PlusOutlined /></template>
+                  添加字段
+                </a-button>
+              </div>
+
+              <a-table
+                :data-source="updateFields"
+                :columns="updateFieldColumns"
+                :pagination="false"
+                size="small"
+              >
+                <template #bodyCell="{ column, record, index }">
+                  <template v-if="column.key === 'name'">
+                    <a-input
+                      v-model:value="record.name"
+                      placeholder="字段名"
+                      @change="updateUpdateField(index, 'name', $event)"
+                    />
+                  </template>
+
+                  <template v-if="column.key === 'value'">
+                    <a-input
+                      v-model:value="record.value"
+                      placeholder="更新值"
+                      @change="updateUpdateField(index, 'value', $event)"
+                    />
+                  </template>
+
+                  <template v-if="column.key === 'actions'">
+                    <a-button type="link" danger size="small" @click="removeUpdateField(index)">
+                      <template #icon><CloseCircleOutlined /></template>
+                      删除
+                    </a-button>
+                  </template>
+                </template>
+              </a-table>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -278,14 +337,6 @@
             <h3>生成的DDL语句</h3>
             <div class="output-actions">
               <a-space>
-                <a-button @click="copySql" :disabled="!generatedSql">
-                  <template #icon><CopyOutlined /></template>
-                  复制
-                </a-button>
-                <a-button @click="downloadSql" :disabled="!generatedSql">
-                  <template #icon><DownloadOutlined /></template>
-                  下载
-                </a-button>
                 <a-button type="primary" @click="generateSql" :loading="generating">
                   <template #icon><PlayCircleOutlined /></template>
                   生成SQL
@@ -294,10 +345,12 @@
             </div>
           </div>
 
-          <div class="sql-preview">
-            <pre v-if="generatedSql" class="sql-code">{{ generatedSql }}</pre>
-            <a-empty v-else description="请配置DDL参数并生成SQL" />
-          </div>
+          <SqlPreview
+            :sql="generatedSql"
+            :stats="sqlStats"
+            @copy="copySql"
+            @download="downloadSql"
+          />
         </div>
       </div>
     </div>
@@ -308,13 +361,12 @@
 import { ref, computed, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { useDdlGenerator } from '../composables/useDdlGenerator'
+import SqlPreview from '../components/SqlPreview/SqlPreview.vue'
 import {
   ReloadOutlined,
   PlayCircleOutlined,
   QuestionCircleOutlined,
   PlusOutlined,
-  CopyOutlined,
-  DownloadOutlined,
 } from '@ant-design/icons-vue'
 
 // 响应式数据
@@ -326,6 +378,10 @@ const fields = ref([])
 const constraints = ref([])
 const generatedSql = ref('')
 const generating = ref(false)
+
+// UPDATE TABLE 相关数据
+const updateWhereClause = ref('')
+const updateFields = ref([])
 
 // DDL类型解析器和生成器
 const { generateDdl } = useDdlGenerator()
@@ -350,16 +406,32 @@ const fieldColumns = ref([
   { title: '操作', key: 'actions', width: '15%' },
 ])
 
+// UPDATE字段表格列定义
+const updateFieldColumns = ref([
+  { title: '字段名', key: 'name', width: '40%' },
+  { title: '更新值', key: 'value', width: '40%' },
+  { title: '操作', key: 'actions', width: '20%' },
+])
+
 // 计算属性
 const getDdlInputTooltip = computed(() => {
   const tooltips = {
     create: '输入CREATE TABLE语句的表结构和约束信息',
     alter: '输入ALTER TABLE语句的修改操作',
+    update: '输入UPDATE TABLE语句的更新字段和WHERE条件',
     drop: '输入要删除的表名',
     truncate: '输入要清空的表名',
   }
   return tooltips[selectedDdlType.value] || '输入DDL语句参数'
 })
+
+// SQL统计信息计算属性
+const sqlStats = computed(() => ({
+  statementCount: generatedSql.value ? 1 : 0,
+  affectedRows: 0,
+  generationTime: 0,
+  fileSize: new Blob([generatedSql.value]).size,
+}))
 
 // 方法
 const handleDatabaseChange = (value) => {
@@ -448,6 +520,25 @@ const resetDdlInputs = () => {
   tableComment.value = ''
   fields.value = []
   constraints.value = []
+  updateWhereClause.value = ''
+  updateFields.value = []
+}
+
+const addUpdateField = () => {
+  updateFields.value.push({
+    name: '',
+    value: '',
+  })
+}
+
+const updateUpdateField = (index, field, value) => {
+  if (updateFields.value[index]) {
+    updateFields.value[index][field] = value
+  }
+}
+
+const removeUpdateField = (index) => {
+  updateFields.value.splice(index, 1)
 }
 
 const generateSql = async () => {
@@ -456,8 +547,17 @@ const generateSql = async () => {
     return
   }
 
-  if (!tableName.value.trim()) {
+  if (
+    selectedDdlType.value !== 'drop' &&
+    selectedDdlType.value !== 'truncate' &&
+    !tableName.value.trim()
+  ) {
     message.warning('请输入表名')
+    return
+  }
+
+  if (selectedDdlType.value === 'update' && updateFields.value.length === 0) {
+    message.warning('请至少添加一个更新字段')
     return
   }
 
@@ -488,6 +588,16 @@ const generateDdlSql = async () => {
 
     // 根据DDL类型调用相应的生成方法
     const ddlType = selectedDdlType.value.toUpperCase()
+
+    // 特殊处理UPDATE TABLE
+    if (ddlType === 'UPDATE') {
+      const setClause = updateFields.value
+        .map((field) => `${field.name} = ${formatValue(field.value)}`)
+        .join(', ')
+      const whereClause = updateWhereClause.value ? `WHERE ${updateWhereClause.value}` : ''
+      return `UPDATE ${tableName.value} SET ${setClause} ${whereClause};`.trim()
+    }
+
     const sql = await generateDdl(ddlType, options)
     return sql
   } catch (error) {
@@ -496,17 +606,27 @@ const generateDdlSql = async () => {
   }
 }
 
-const copySql = async () => {
+const formatValue = (value) => {
+  if (!value) return 'NULL'
+  if (typeof value === 'string') {
+    return `'${value.replace(/'/g, "''")}'`
+  }
+  if (typeof value === 'number') return value
+  return `'${value}'`
+}
+
+const copySql = async (sql) => {
   try {
-    await navigator.clipboard.writeText(generatedSql.value)
+    await navigator.clipboard.writeText(sql || generatedSql.value)
     message.success('SQL已复制到剪贴板')
   } catch {
     message.error('复制失败')
   }
 }
 
-const downloadSql = () => {
-  const blob = new Blob([generatedSql.value], { type: 'text/plain' })
+const downloadSql = (sql) => {
+  const sqlToDownload = sql || generatedSql.value
+  const blob = new Blob([sqlToDownload], { type: 'text/plain' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url

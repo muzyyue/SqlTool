@@ -70,6 +70,7 @@ export function useSqlGeneratorEnhanced() {
       format = sqlFormat.value,
       comments = includeComments.value,
       beautifyOptions = {},
+      updateFields = null,
     } = options
 
     const sqlStatements = []
@@ -81,7 +82,14 @@ export function useSqlGeneratorEnhanced() {
 
     // 生成每条记录的UPDATE语句
     excelData.forEach((row) => {
-      const updateSql = generateSingleUpdateSql(tableName, fieldMappings, row, whereFields, dbType)
+      const updateSql = generateSingleUpdateSql(
+        tableName,
+        fieldMappings,
+        row,
+        whereFields,
+        dbType,
+        updateFields,
+      )
       if (updateSql) {
         sqlStatements.push(updateSql)
       }
@@ -244,28 +252,90 @@ export function useSqlGeneratorEnhanced() {
   /**
    * 生成单条UPDATE语句（自动排除自增主键字段和主键字段）
    */
-  const generateSingleUpdateSql = (tableName, fieldMappings, row, whereFields, dbType) => {
+  const generateSingleUpdateSql = (
+    tableName,
+    fieldMappings,
+    row,
+    whereFields,
+    dbType,
+    updateFields = null,
+  ) => {
     const setClauses = []
     const whereClauses = []
 
     fieldMappings.forEach((mapping) => {
-      if (!mapping.excelHeader || mapping.excelIndex < 0) return
-
       // 排除自增主键字段和主键字段（除非它们是WHERE条件字段）
       const isWhereField = whereFields && whereFields.includes(mapping.ddlField.name)
       if (!isWhereField && (mapping.ddlField.isIdentity || mapping.ddlField.primaryKey)) {
         return // 跳过自增主键字段和主键字段
       }
 
-      const value = row[mapping.excelIndex]
+      // 如果指定了updateFields，只更新用户选择的字段
+      if (updateFields && updateFields.length > 0 && !isWhereField) {
+        if (!updateFields.includes(mapping.ddlField.name)) {
+          return // 跳过未选择的字段
+        }
+      }
+
+      let value
       const fieldName = mapping.customFieldName || mapping.ddlField.name
       const escapedFieldName = escapeFieldName(fieldName, dbType)
-      const formattedValue = formatValue(value, mapping.ddlField.type, dbType)
+
+      // 处理自定义字段（可能没有映射到Excel列）
+      if (mapping.ddlField.isCustom && (!mapping.excelHeader || mapping.excelIndex === -1)) {
+        const customField = mapping.ddlField.customConfig
+
+        if (customField.dataSource === 'system_function') {
+          const funcDbType = customField.systemFunctionConfig?.databaseType || dbType
+          const funcName = customField.systemFunctionConfig?.functionName || 'NOW'
+          const funcInfo = getFunctionInfo(funcDbType, funcName)
+          value = funcInfo ? funcInfo.syntax : `${funcName}()`
+        } else if (customField.dataSource === 'auto_increment') {
+          value = 'NULL'
+        } else if (customField.dataSource === 'excel_combine') {
+          const combineConfig = customField.excelCombineConfig || {}
+          const columnIndices = combineConfig.columns || []
+          const separator = combineConfig.separator || ''
+          const formatTemplate = combineConfig.format || ''
+
+          const columnValues = columnIndices
+            .map((colIndex) => {
+              if (colIndex !== undefined && colIndex >= 0 && row[colIndex] !== undefined) {
+                return row[colIndex]
+              }
+              return ''
+            })
+            .filter((v) => v !== undefined && v !== null && v !== '')
+
+          let combinedValue = columnValues.join(separator)
+
+          if (formatTemplate) {
+            combinedValue = formatTemplate.replace(/\{value(\d+)\}/g, (match, num) => {
+              const index = parseInt(num, 10) - 1
+              return columnValues[index] !== undefined ? columnValues[index] : ''
+            })
+            combinedValue = combinedValue.replace(/\{value\}/g, columnValues.join(separator))
+          }
+
+          value = formatValue(combinedValue, mapping.ddlField.type, dbType)
+        } else if (customField.dataSource === 'static_value') {
+          const staticValue =
+            customField.staticValue !== undefined ? customField.staticValue : 'NULL'
+          value = formatValue(staticValue, mapping.ddlField.type, dbType)
+        } else {
+          value = 'NULL'
+        }
+      } else if (!mapping.excelHeader || mapping.excelIndex < 0) {
+        return // 跳过未映射到Excel列的普通字段
+      } else {
+        value = row[mapping.excelIndex]
+        value = formatValue(value, mapping.ddlField.type, dbType)
+      }
 
       if (isWhereField) {
-        whereClauses.push(`${escapedFieldName} = ${formattedValue}`)
+        whereClauses.push(`${escapedFieldName} = ${value}`)
       } else {
-        setClauses.push(`${escapedFieldName} = ${formattedValue}`)
+        setClauses.push(`${escapedFieldName} = ${value}`)
       }
     })
 
