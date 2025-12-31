@@ -23,8 +23,6 @@ Test.txt
 Test.xlsx
 项目测试.xlsx
 test/reports/
-test/unit/
-test/e2e/
 test/scripts/
 *.xlsx
 # test/config/目录需要被git跟踪，供GitHub Actions使用

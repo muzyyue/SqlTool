@@ -1,5 +1,14 @@
 # 版本变更历史
 
+## 1.2.10 (2025-12-31)
+
+**修复测试文件未被git跟踪的问题**
+
+- 从.gitignore中移除test/unit/和test/e2e/的忽略规则
+- 确保单元测试和E2E测试文件能够被提交到git仓库
+- 解决GitHub Actions中vitest找不到测试文件的问题
+- 修复"No test files found"错误
+
 ## 1.2.9 (2025-12-31)
 
 **修复GitHub Actions测试运行失败的问题**
