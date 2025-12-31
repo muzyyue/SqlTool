@@ -569,12 +569,21 @@ export function useFieldMatcher() {
   /**
    * 增强的字段匹配方法，支持自定义绑定
    */
-  const enhancedMatchFields = (ddlFields, excelHeaders, algorithm = 'similarity') => {
-    // 执行基础匹配
-    const baseMappings = matchFields(ddlFields, excelHeaders, algorithm)
+  const enhancedMatchFields = (
+    ddlFields,
+    excelHeaders,
+    algorithm = 'similarity',
+    skipBaseMatching = false,
+  ) => {
+    let baseMappings
 
-    // 如果启用了自定义绑定，应用自定义绑定规则
-    if (customBindingManager.enableCustomBinding) {
+    if (skipBaseMatching) {
+      baseMappings = fieldMappings.value
+    } else {
+      baseMappings = matchFields(ddlFields, excelHeaders, algorithm)
+    }
+
+    if (customBindingManager.enableCustomBinding.value) {
       return applyCustomBindingsToMappings(baseMappings)
     }
 
@@ -588,7 +597,7 @@ export function useFieldMatcher() {
     const enhancedMappings = [...baseMappings]
 
     // 应用单列自定义绑定
-    customBindingManager.customBindings.forEach((customBinding) => {
+    customBindingManager.customBindings.value.forEach((customBinding) => {
       if (customBinding.bindingType === 'single' && customBinding.excelIndex >= 0) {
         const mappingIndex = enhancedMappings.findIndex(
           (mapping) => mapping.ddlField.name === customBinding.ddlFieldName,
@@ -603,6 +612,52 @@ export function useFieldMatcher() {
             status: 'matched',
           }
         }
+      }
+    })
+
+    customBindingManager.customFields.value.forEach((customField) => {
+      const mappingIndex = enhancedMappings.findIndex(
+        (mapping) => mapping.ddlField.name === customField.fieldName,
+      )
+
+      console.log(`处理自定义字段: ${customField.fieldName}, mappingIndex: ${mappingIndex}`)
+      console.log(`customField.dataSource: ${customField.dataSource}`)
+      console.log(`customField.systemFunctionConfig:`, customField.systemFunctionConfig)
+
+      if (mappingIndex >= 0) {
+        console.log(`更新已存在的映射: ${customField.fieldName}`)
+        enhancedMappings[mappingIndex] = {
+          ...enhancedMappings[mappingIndex],
+          ddlField: {
+            ...enhancedMappings[mappingIndex].ddlField,
+            isCustom: true,
+            customConfig: customField,
+          },
+          customFieldName: customField.fieldName,
+          generatedByFunction: true,
+        }
+        console.log(
+          `更新后的 ddlField.customConfig:`,
+          enhancedMappings[mappingIndex].ddlField.customConfig,
+        )
+      } else {
+        console.log(`添加新的映射: ${customField.fieldName}`)
+        enhancedMappings.push({
+          ddlField: {
+            name: customField.fieldName,
+            type: customField.dataType || 'VARCHAR',
+            nullable: true,
+            isCustom: true,
+            customConfig: customField,
+          },
+          customFieldName: customField.fieldName,
+          excelHeader: null,
+          excelIndex: -1,
+          similarity: 0,
+          confidence: 'manual',
+          status: 'unmatched',
+          generatedByFunction: true,
+        })
       }
     })
 

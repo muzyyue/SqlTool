@@ -1186,11 +1186,20 @@ const saveBindings = () => {
   })
 
   // 5. 将本地所有自定义字段添加到管理器中
+  console.log('准备添加自定义字段到管理器:', customFields.value)
   customFields.value.forEach((field) => {
+    console.log('检查字段:', field)
     if (field.fieldName) {
+      console.log('添加字段:', field.fieldName)
       props.customBindingManager.addCustomField(field)
+    } else {
+      console.log('跳过字段，因为fieldName为空')
     }
   })
+  console.log(
+    '添加后customBindingManager.customFields.value:',
+    props.customBindingManager.customFields.value,
+  )
 
   // 验证配置
   const validation = props.customBindingManager.validateBindings()

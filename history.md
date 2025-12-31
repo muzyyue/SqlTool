@@ -1,5 +1,41 @@
 # 版本变更历史
 
+## 1.2.19 (2025-12-31)
+
+**修复自定义字段函数配置无法传递的问题**
+
+- 修复enhancedMatchFields返回值未赋值给fieldMappings.value的问题
+- 修复自定义字段未添加到customBindingManager的问题
+- 修复importBindings不更新已存在字段的问题
+- 修复自定义绑定未自动启用的问题
+- 修复字段重复导致自定义字段配置无法正确使用的问题
+- 修复formatValue函数不支持不带括号的系统函数（如Oracle的SYSDATE）
+- 修复使用配置中的数据库类型而不是当前选择的数据库类型的问题
+- 确保自定义字段函数配置能够正确传递到SQL生成逻辑
+- 现在根据当前选择的数据库类型生成对应的函数语法
+
+## 1.2.18 (2025-12-31)
+
+**修复自定义字段配置未应用到字段映射的问题**
+
+- 修复applyCustomBindingsToMappings函数未处理customFields的问题
+- 将customBindingManager.customFields中的自定义字段添加到enhancedMappings
+- 确保自定义字段的ddlField.isCustom和customConfig属性正确设置
+- 修复用户配置NOW()函数但生成SQL使用UUID()的问题
+- 标记为"函数生成"的字段现在能正确使用配置的函数
+
+## 1.2.17 (2025-12-31)
+
+**修复函数生成字段未添加到SQL语句的问题**
+
+- 修复标记为"函数生成"的字段在生成INSERT和UPDATE语句时被过滤的问题
+- 在generateBatchInsertSql中添加对generatedByFunction字段的检查
+- 在generateSingleUpdateSql中添加对generatedByFunction字段的检查
+- 标记为"函数生成"的字段根据自定义字段配置生成值，不再统一使用UUID
+- 支持系统函数、自增、Excel组合、静态值等多种数据源类型
+- 修改字段过滤逻辑，保留标记为"函数生成"的主键字段
+- 添加调试日志，便于追踪函数生成字段的处理过程
+
 ## 1.2.16 (2025-12-31)
 
 **增强错误提示信息的详细程度**

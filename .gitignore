@@ -28,6 +28,8 @@ test/scripts/
 # test/config/目录需要被git跟踪，供GitHub Actions使用
 !test/config/
 *.md
+test/custom_field_function_test.js
+test_data.csv
 
 # Environment files
 .env

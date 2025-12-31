@@ -295,12 +295,24 @@ export function useCustomBinding() {
         : []
     }
     if (config.customFields) {
-      // 确保customFields始终是数组
       const fields = Array.isArray(config.customFields) ? config.customFields : []
-      // 合并字段而不是替换，保留已存在的字段
-      const existingFieldNames = new Set(customFields.value.map((f) => f.fieldName))
+      // 更新或添加字段
+      const existingFieldMap = new Map()
+      customFields.value.forEach((field) => {
+        existingFieldMap.set(field.fieldName, field)
+      })
+
       fields.forEach((field) => {
-        if (!existingFieldNames.has(field.fieldName)) {
+        if (existingFieldMap.has(field.fieldName)) {
+          const existingIndex = customFields.value.findIndex((f) => f.fieldName === field.fieldName)
+          if (existingIndex >= 0) {
+            customFields.value[existingIndex] = {
+              ...customFields.value[existingIndex],
+              ...field,
+              updatedAt: new Date().toISOString(),
+            }
+          }
+        } else {
           customFields.value.push(field)
         }
       })
