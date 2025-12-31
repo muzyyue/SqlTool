@@ -187,54 +187,71 @@ export function useCustomBinding() {
   const validateBindings = () => {
     const errors = []
 
+    // 确保数据是数组
+    const bindings = Array.isArray(customBindings.value) ? customBindings.value : []
+    const rules = Array.isArray(fieldConcatenationRules.value) ? fieldConcatenationRules.value : []
+    const fields = Array.isArray(customFields.value) ? customFields.value : []
+
     // 检查重复绑定
     const fieldBindings = new Set()
-    customBindings.value.forEach((binding) => {
-      if (fieldBindings.has(binding.ddlFieldName)) {
-        errors.push(`字段"${binding.ddlFieldName}"存在重复的自定义绑定`)
+    bindings.forEach((binding) => {
+      if (binding && binding.ddlFieldName) {
+        if (fieldBindings.has(binding.ddlFieldName)) {
+          errors.push(`字段"${binding.ddlFieldName}"存在重复的自定义绑定`)
+        }
+        fieldBindings.add(binding.ddlFieldName)
       }
-      fieldBindings.add(binding.ddlFieldName)
     })
 
-    fieldConcatenationRules.value.forEach((rule) => {
-      if (fieldBindings.has(rule.ddlFieldName)) {
-        errors.push(`字段"${rule.ddlFieldName}"同时存在单列绑定和拼接规则`)
+    rules.forEach((rule) => {
+      if (rule && rule.ddlFieldName) {
+        if (fieldBindings.has(rule.ddlFieldName)) {
+          errors.push(`字段"${rule.ddlFieldName}"同时存在单列绑定和拼接规则`)
+        }
+        fieldBindings.add(rule.ddlFieldName)
       }
-      fieldBindings.add(rule.ddlFieldName)
     })
 
-    customFields.value.forEach((field) => {
-      if (fieldBindings.has(field.fieldName)) {
-        errors.push(`自定义字段"${field.fieldName}"与现有绑定字段冲突`)
+    fields.forEach((field) => {
+      if (field && field.fieldName) {
+        if (fieldBindings.has(field.fieldName)) {
+          errors.push(`自定义字段"${field.fieldName}"与现有绑定字段冲突`)
+        }
+        fieldBindings.add(field.fieldName)
       }
-      fieldBindings.add(field.fieldName)
     })
 
     // 检查无效的Excel列索引
-    customBindings.value.forEach((binding) => {
-      if (binding.excelIndex < -1) {
+    bindings.forEach((binding) => {
+      if (binding && typeof binding.excelIndex === 'number' && binding.excelIndex < -1) {
         errors.push(`字段"${binding.ddlFieldName}"的Excel列索引无效`)
       }
     })
 
-    fieldConcatenationRules.value.forEach((rule) => {
-      rule.sourceColumns.forEach((colIndex) => {
-        if (colIndex < 0) {
-          errors.push(`字段"${rule.ddlFieldName}"的拼接源列索引无效`)
-        }
-      })
+    rules.forEach((rule) => {
+      if (rule && Array.isArray(rule.sourceColumns)) {
+        rule.sourceColumns.forEach((colIndex) => {
+          if (typeof colIndex === 'number' && colIndex < 0) {
+            errors.push(`字段"${rule.ddlFieldName}"的拼接源列索引无效`)
+          }
+        })
+      }
     })
 
-    customFields.value.forEach((field) => {
-      if (field.dataSource === 'excel_combine') {
-        field.excelCombineConfig?.columns?.forEach((colIndex) => {
-          if (colIndex < 0) {
+    fields.forEach((field) => {
+      if (
+        field &&
+        field.dataSource === 'excel_combine' &&
+        Array.isArray(field.excelCombineConfig?.columns)
+      ) {
+        field.excelCombineConfig.columns.forEach((colIndex) => {
+          if (typeof colIndex === 'number' && colIndex < 0) {
             errors.push(`自定义字段"${field.fieldName}"的组合列索引无效`)
           }
         })
       }
 
-      if (field.dataSource === 'auto_increment') {
+      if (field && field.dataSource === 'auto_increment') {
         const config = field.autoIncrementConfig || {}
         if (typeof config.start !== 'number' || isNaN(config.start)) {
           errors.push(`自定义字段"${field.fieldName}"的自增起始值无效`)
@@ -280,7 +297,13 @@ export function useCustomBinding() {
     if (config.customFields) {
       // 确保customFields始终是数组
       const fields = Array.isArray(config.customFields) ? config.customFields : []
-      customFields.value = fields
+      // 合并字段而不是替换，保留已存在的字段
+      const existingFieldNames = new Set(customFields.value.map((f) => f.fieldName))
+      fields.forEach((field) => {
+        if (!existingFieldNames.has(field.fieldName)) {
+          customFields.value.push(field)
+        }
+      })
       // 重置自增计数器
       fields.forEach((field) => {
         if (field.dataSource === 'auto_increment') {
