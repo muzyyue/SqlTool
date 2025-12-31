@@ -647,6 +647,16 @@ export function useFieldMatcher() {
 
     const allErrors = [...baseValidation.errors, ...customValidation.errors]
 
+    // 添加调试日志
+    if (typeof console !== 'undefined' && console.log) {
+      console.log('=== validateEnhancedMappings 调试信息 ===')
+      console.log('baseValidation.isValid:', baseValidation.isValid)
+      console.log('baseValidation.errors:', baseValidation.errors)
+      console.log('customValidation.isValid:', customValidation.isValid)
+      console.log('customValidation.errors:', customValidation.errors)
+      console.log('allErrors:', allErrors)
+    }
+
     return {
       isValid: baseValidation.isValid && customValidation.isValid,
       errors: allErrors,

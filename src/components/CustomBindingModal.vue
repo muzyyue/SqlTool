@@ -965,7 +965,7 @@ const resetBindings = () => {
 }
 
 const addCustomField = () => {
-  const newField = {
+  customFields.value.push({
     id: generateId(),
     fieldName: '',
     dataType: 'string',
@@ -983,10 +983,7 @@ const addCustomField = () => {
       start: 1,
       step: 1,
     },
-  }
-  customFields.value.push(newField)
-  // 同步到customBindingManager
-  props.customBindingManager.addCustomField(newField)
+  })
 }
 
 const removeCustomField = (id) => {

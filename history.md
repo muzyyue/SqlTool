@@ -1,5 +1,14 @@
 # 版本变更历史
 
+## 1.2.14 (2025-12-31)
+
+**修复自定义字段显示和Win7验证问题（最终修复）**
+
+- 修复添加第二个字段后，第一个字段名不显示的问题
+- 修改CustomBindingModal的addCustomField函数，移除立即同步到customBindingManager的逻辑
+- 在validateEnhancedMappings中添加调试日志，帮助定位Win7验证问题
+- 修复字段同步逻辑，确保数据一致性
+
 ## 1.2.13 (2025-12-31)
 
 **修复自定义字段显示和Win7兼容性问题（深度修复）**
