@@ -1,5 +1,15 @@
 # 版本变更历史
 
+## 1.2.9 (2025-12-31)
+
+**修复GitHub Actions测试运行失败的问题**
+
+- 修改.gitignore文件，允许test/config/目录被git跟踪
+- 添加test/unit/和test/e2e/到忽略列表
+- 添加test/config/的例外规则，确保配置文件可以被GitHub Actions使用
+- 解决Could not resolve vitest.config.js的错误
+- 确保GitHub Actions能够正确运行测试
+
 ## 1.2.8 (2025-12-31)
 
 **修复字段去重显示-1而不是placeholder的问题**
