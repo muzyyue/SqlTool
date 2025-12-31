@@ -308,6 +308,16 @@
             </a-button>
           </div>
 
+          <!-- 自定义字段管理 -->
+          <CustomFieldManager
+            v-if="customBindingEnabled"
+            :custom-fields="customFieldsData"
+            :custom-binding-manager="customBindingManager"
+            @edit="handleEditCustomField"
+            @delete="handleDeleteCustomField"
+            @refresh="handleRefreshCustomFields"
+          />
+
           <!-- 数据库类型选择 -->
           <div class="database-type-section">
             <h4>数据库类型</h4>
@@ -500,6 +510,7 @@ import { useErrorHandler } from '@/composables/useErrorHandler'
 // 导入组件
 import SqlPreview from '@/components/SqlPreview/SqlPreview.vue'
 import CustomBindingModal from '@/components/CustomBindingModal.vue'
+import CustomFieldManager from '@/components/CustomFieldManager/CustomFieldManager.vue'
 
 // 初始化核心功能模块
 const { parseDdl: parseDdlWithParser, clearCache } = useDdlParser()
@@ -552,6 +563,13 @@ const hasCustomBindingConfig = computed(() => {
   const stats = customBindingManager.getBindingStats()
   return stats.hasCustomConfig
 })
+
+const customFieldsData = computed(() => {
+  return Array.isArray(customBindingManager.customFields.value)
+    ? customBindingManager.customFields.value
+    : []
+})
+
 const {
   generateInsertSql,
   setBeautifyOptions,
@@ -1547,6 +1565,20 @@ const handleCustomBindingSave = (customFieldsData) => {
 
 const handleCustomBindingCancel = () => {
   showCustomBindingModal.value = false
+}
+
+const handleEditCustomField = (record) => {
+  logInfo(`编辑自定义字段: ${record.fieldName}`)
+  openCustomBindingModal()
+}
+
+const handleDeleteCustomField = (record) => {
+  logInfo(`删除自定义字段: ${record.fieldName}`)
+}
+
+const handleRefreshCustomFields = () => {
+  logInfo('刷新自定义字段列表')
+  parseDdl(false)
 }
 
 const resetAll = () => {

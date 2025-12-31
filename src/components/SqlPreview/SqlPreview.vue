@@ -12,12 +12,12 @@
 
       <div class="control-group">
         <span class="control-label">语法高亮：</span>
-        <a-switch v-model:checked="syntaxHighlight" size="small" />
+        <a-switch v-model:checked="syntaxHighlight" size="small" :disabled="isCompressedMode" />
       </div>
 
       <div class="control-group">
         <span class="control-label">显示行号：</span>
-        <a-switch v-model:checked="showLineNumbers" size="small" />
+        <a-switch v-model:checked="showLineNumbers" size="small" :disabled="isCompressedMode" />
       </div>
     </div>
 
@@ -96,7 +96,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { CopyOutlined, DownloadOutlined, EyeOutlined, MoreOutlined } from '@ant-design/icons-vue'
 import { useErrorHandler } from '@/composables/useErrorHandler'
@@ -140,6 +140,25 @@ const syntaxHighlight = ref(true)
 const showLineNumbers = ref(true)
 const copying = ref(false)
 
+// 保存格式化模式下的原始状态
+const originalSyntaxHighlight = ref(true)
+const originalShowLineNumbers = ref(true)
+
+// 监听预览模式变化，控制语法高亮和行号显示
+watch(previewMode, (newMode, oldMode) => {
+  if (newMode === 'compressed' && oldMode === 'formatted') {
+    // 切换到压缩模式时，保存当前状态并禁用
+    originalSyntaxHighlight.value = syntaxHighlight.value
+    originalShowLineNumbers.value = showLineNumbers.value
+    syntaxHighlight.value = false
+    showLineNumbers.value = false
+  } else if (newMode === 'formatted' && oldMode === 'compressed') {
+    // 切换回格式化模式时，恢复原始状态
+    syntaxHighlight.value = originalSyntaxHighlight.value
+    showLineNumbers.value = originalShowLineNumbers.value
+  }
+})
+
 // SQL美化设置（使用父组件传递的选项）
 const beautifySettings = computed(() => ({
   indentSpaces: props.beautifyOptions.indentSpaces || 4,
@@ -151,6 +170,9 @@ const beautifySettings = computed(() => ({
   maxLineLength: props.beautifyOptions.maxLineLength || 80,
   alignValues: props.beautifyOptions.alignValues !== false,
 }))
+
+// 计算属性：是否为压缩模式
+const isCompressedMode = computed(() => previewMode.value === 'compressed')
 
 // 缓存机制
 const cacheKey = computed(() => {

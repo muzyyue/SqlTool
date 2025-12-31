@@ -769,7 +769,11 @@ export function useSqlGeneratorEnhanced() {
    */
   const formatSql = (sql, format, beautifyOptions = {}) => {
     if (format === 'minified') {
-      return sql.replace(/\s+/g, ' ').trim()
+      return sql
+        .replace(/\s+/g, ' ')
+        .replace(/\s*([(),;])\s*/g, '$1')
+        .replace(/\s+/g, ' ')
+        .trim()
     }
 
     // 应用高级美化功能
