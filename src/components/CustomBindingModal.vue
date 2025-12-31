@@ -965,7 +965,7 @@ const resetBindings = () => {
 }
 
 const addCustomField = () => {
-  customFields.value.push({
+  const newField = {
     id: generateId(),
     fieldName: '',
     dataType: 'string',
@@ -983,7 +983,10 @@ const addCustomField = () => {
       start: 1,
       step: 1,
     },
-  })
+  }
+  customFields.value.push(newField)
+  // 同步到customBindingManager
+  props.customBindingManager.addCustomField(newField)
 }
 
 const removeCustomField = (id) => {
@@ -1144,12 +1147,16 @@ const saveBindings = () => {
     ? props.customBindingManager.customFields.value
     : []
 
-  // 记录需要删除的自定义字段名
-  const customFieldNamesToRemove = currentCustomFields.map((field) => field.fieldName)
+  // 记录需要删除的自定义字段名（只删除不在当前列表中的）
+  const newFieldNames = new Set(
+    customFields.value.filter((f) => f.fieldName).map((f) => f.fieldName),
+  )
 
-  // 逐个删除自定义字段
-  customFieldNamesToRemove.forEach((fieldName) => {
-    props.customBindingManager.removeCustomField(fieldName)
+  // 只删除不在新列表中的字段
+  currentCustomFields.forEach((field) => {
+    if (!newFieldNames.has(field.fieldName)) {
+      props.customBindingManager.removeCustomField(field.fieldName)
+    }
   })
 
   // 4. 处理字段拼接规则中的自定义字段名称

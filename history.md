@@ -1,5 +1,16 @@
 # 版本变更历史
 
+## 1.2.13 (2025-12-31)
+
+**修复自定义字段显示和Win7兼容性问题（深度修复）**
+
+- 修复添加自定义字段后，外部显示只显示一个字段的问题
+- 修改CustomBindingModal的saveBindings函数，只删除不在新列表中的字段
+- 修改CustomBindingModal的addCustomField函数，添加字段时同步到customBindingManager
+- 修复Win7 Chrome上生成SQL时提示"请先完成字段映射配置"的问题
+- 增强validateMappings函数，添加映射对象和ddlField的空值检查
+- 确保在旧版浏览器上的兼容性
+
 ## 1.2.12 (2025-12-31)
 
 **修复自定义字段显示和Win7兼容性问题**

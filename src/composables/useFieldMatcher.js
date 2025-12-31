@@ -429,6 +429,16 @@ export function useFieldMatcher() {
     const usedExcelIndices = new Set()
 
     fieldMappings.value.forEach((mapping) => {
+      // 确保映射对象有效
+      if (!mapping) {
+        return
+      }
+
+      // 确保ddlField存在
+      if (!mapping.ddlField) {
+        return
+      }
+
       if (mapping.excelHeader) {
         if (usedExcelIndices.has(mapping.excelIndex)) {
           errors.push(`Excel列"${mapping.excelHeader}"被重复映射`)
@@ -436,7 +446,9 @@ export function useFieldMatcher() {
         usedExcelIndices.add(mapping.excelIndex)
       }
 
-      if (!mapping.excelHeader && mapping.ddlField.nullable === false) {
+      // 检查必填字段
+      const isNullable = mapping.ddlField.nullable !== false
+      if (!mapping.excelHeader && !isNullable) {
         errors.push(`必填字段"${mapping.ddlField.name}"未映射到Excel列`)
       }
     })
