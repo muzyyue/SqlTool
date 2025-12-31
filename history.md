@@ -1,5 +1,14 @@
 # 版本变更历史
 
+## 1.2.8 (2025-12-31)
+
+**修复字段去重显示-1而不是placeholder的问题**
+
+- 将deduplicationColumn的初始值从-1改为undefined
+- 修改applyDeduplication函数中的判断逻辑，检查undefined或null
+- 修改handleDeduplicationToggle函数中的重置逻辑，使用undefined
+- 确保a-select组件在未选择时正确显示placeholder"请选择去重列"
+
 ## 1.2.7 (2025-12-31)
 
 **修复字段去重placeholder和自定义字段自增数据显示null的问题**

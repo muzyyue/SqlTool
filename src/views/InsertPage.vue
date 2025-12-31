@@ -602,7 +602,7 @@ const databaseType = ref('mysql') // 数据库类型：mysql, postgresql, sqlser
 
 // 去重相关状态
 const deduplicationEnabled = ref(false) // 是否启用去重
-const deduplicationColumn = ref(-1) // 去重列索引，-1表示未选择
+const deduplicationColumn = ref(undefined) // 去重列索引，undefined表示未选择
 const deduplicationStats = ref({
   originalRows: 0, // 原始行数
   deduplicatedRows: 0, // 去重后行数
@@ -854,7 +854,7 @@ const clearFile = () => {
  */
 const handleDeduplicationToggle = (checked) => {
   if (!checked) {
-    deduplicationColumn.value = -1
+    deduplicationColumn.value = undefined
     deduplicationStats.value = {
       originalRows: 0,
       deduplicatedRows: 0,
@@ -871,7 +871,7 @@ const handleDeduplicationToggle = (checked) => {
  * 根据选定列的值去除重复数据行，仅保留每组的第一次出现
  */
 const applyDeduplication = () => {
-  if (deduplicationColumn.value === -1) {
+  if (deduplicationColumn.value === undefined || deduplicationColumn.value === null) {
     message.warning('请先选择去重列')
     return
   }
