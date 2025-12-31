@@ -1,5 +1,16 @@
 # 版本变更历史
 
+## 1.2.7 (2025-12-31)
+
+**修复字段去重placeholder和自定义字段自增数据显示null的问题**
+
+- 修改字段去重部分的placeholder为"请选择去重列"，提高用户体验
+- 修复自定义字段选择自增数据时SQL中显示null的问题
+- 在generateBatchInsertSql和generateSingleUpdateSql中添加customBindingManager参数
+- 当自定义字段数据源类型为auto_increment时，调用customBindingManager.generateAutoIncrementValue()生成自增值
+- 确保自增字段能够正确生成递增的数值，而不是显示NULL
+- 所有E2E测试通过（24/24），验证修复效果
+
 ## 1.2.6 (2025-12-31)
 
 **修复删除自定义字段时触发重新解析的问题**

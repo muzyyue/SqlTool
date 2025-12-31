@@ -32,6 +32,7 @@ export function useSqlGeneratorEnhanced() {
       batch = batchSize.value,
       comments = includeComments.value,
       beautifyOptions = {},
+      customBindingManager = null,
     } = options
 
     const sqlStatements = []
@@ -44,13 +45,25 @@ export function useSqlGeneratorEnhanced() {
     // 分批处理数据
     // 如果数据行数小于等于批量大小，生成单个INSERT语句
     if (excelData.length <= batch) {
-      const batchSql = generateBatchInsertSql(tableName, fieldMappings, excelData, dbType)
+      const batchSql = generateBatchInsertSql(
+        tableName,
+        fieldMappings,
+        excelData,
+        dbType,
+        customBindingManager,
+      )
       sqlStatements.push(batchSql)
     } else {
       // 否则按原逻辑分批处理
       for (let i = 0; i < excelData.length; i += batch) {
         const batchData = excelData.slice(i, i + batch)
-        const batchSql = generateBatchInsertSql(tableName, fieldMappings, batchData, dbType)
+        const batchSql = generateBatchInsertSql(
+          tableName,
+          fieldMappings,
+          batchData,
+          dbType,
+          customBindingManager,
+        )
         sqlStatements.push(batchSql)
       }
     }
@@ -71,6 +84,7 @@ export function useSqlGeneratorEnhanced() {
       comments = includeComments.value,
       beautifyOptions = {},
       updateFields = null,
+      customBindingManager = null,
     } = options
 
     const sqlStatements = []
@@ -89,6 +103,7 @@ export function useSqlGeneratorEnhanced() {
         whereFields,
         dbType,
         updateFields,
+        customBindingManager,
       )
       if (updateSql) {
         sqlStatements.push(updateSql)
@@ -102,7 +117,13 @@ export function useSqlGeneratorEnhanced() {
   /**
    * 生成批量INSERT语句（自动排除自增主键字段和主键字段）
    */
-  const generateBatchInsertSql = (tableName, fieldMappings, batchData, dbType) => {
+  const generateBatchInsertSql = (
+    tableName,
+    fieldMappings,
+    batchData,
+    dbType,
+    customBindingManager,
+  ) => {
     // 过滤掉自增主键字段和主键字段
     // 保留所有其他字段：有映射的普通字段、无映射的普通字段（值为NULL）、有映射或无映射的自定义字段
     const mappedFields = fieldMappings
@@ -159,8 +180,21 @@ export function useSqlGeneratorEnhanced() {
               return `${funcName}()`
             }
           } else if (customField.dataSource === 'auto_increment') {
-            // 自增字段，暂时返回NULL，实际使用时会由数据库处理
-            return 'NULL'
+            // 自增字段，调用customBindingManager生成自增值
+            if (customBindingManager && customBindingManager.generateAutoIncrementValue) {
+              const autoIncrementValue = customBindingManager.generateAutoIncrementValue(
+                mapping.ddlField.name,
+                customField.autoIncrementConfig || {},
+              )
+              console.log(`自增字段 ${mapping.ddlField.name} 的值: ${autoIncrementValue}`)
+              return formatValue(autoIncrementValue, mapping.ddlField.type, dbType)
+            } else {
+              // 如果没有customBindingManager，返回NULL
+              console.log(
+                `警告: 自增字段 ${mapping.ddlField.name} 缺少customBindingManager，返回NULL`,
+              )
+              return 'NULL'
+            }
           } else if (customField.dataSource === 'excel_combine') {
             // Excel组合字段处理
             const combineConfig = customField.excelCombineConfig || {}
@@ -259,6 +293,7 @@ export function useSqlGeneratorEnhanced() {
     whereFields,
     dbType,
     updateFields = null,
+    customBindingManager = null,
   ) => {
     const setClauses = []
     const whereClauses = []
@@ -291,7 +326,21 @@ export function useSqlGeneratorEnhanced() {
           const funcInfo = getFunctionInfo(funcDbType, funcName)
           value = funcInfo ? funcInfo.syntax : `${funcName}()`
         } else if (customField.dataSource === 'auto_increment') {
-          value = 'NULL'
+          // 自增字段，调用customBindingManager生成自增值
+          if (customBindingManager && customBindingManager.generateAutoIncrementValue) {
+            const autoIncrementValue = customBindingManager.generateAutoIncrementValue(
+              mapping.ddlField.name,
+              customField.autoIncrementConfig || {},
+            )
+            console.log(`自增字段 ${mapping.ddlField.name} 的值: ${autoIncrementValue}`)
+            value = formatValue(autoIncrementValue, mapping.ddlField.type, dbType)
+          } else {
+            // 如果没有customBindingManager，返回NULL
+            console.log(
+              `警告: 自增字段 ${mapping.ddlField.name} 缺少customBindingManager，返回NULL`,
+            )
+            value = 'NULL'
+          }
         } else if (customField.dataSource === 'excel_combine') {
           const combineConfig = customField.excelCombineConfig || {}
           const columnIndices = combineConfig.columns || []

@@ -117,7 +117,7 @@
             <div v-if="deduplicationEnabled" class="deduplication-controls">
               <a-select
                 v-model:value="deduplicationColumn"
-                placeholder="选择去重列"
+                placeholder="请选择去重列"
                 style="width: 100%"
                 @change="applyDeduplication"
               >
@@ -1237,8 +1237,7 @@ const generateSql = async () => {
       batch: 100,
       comments: includeComments.value,
       beautifyOptions: beautifyOptions.value,
-      customFields: customFieldsConfig,
-      enableCustomBinding: enableCustomBinding,
+      customBindingManager: customBindingManager,
     })
 
     generatedSql.value = sql

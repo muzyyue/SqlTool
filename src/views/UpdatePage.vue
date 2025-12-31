@@ -1053,6 +1053,7 @@ const generateSql = async () => {
         comments: includeComments.value,
         beautifyOptions: beautifyOptions.value,
         updateFields: updateFields.value,
+        customBindingManager: customBindingManager,
       },
     )
 
@@ -1480,6 +1481,7 @@ const applyBeautifyOptions = async () => {
           comments: includeComments.value,
           updateFields: updateFields.value,
           beautifyOptions: beautifyOptions.value,
+          customBindingManager: customBindingManager,
         },
       )
       generatedSql.value = sql
