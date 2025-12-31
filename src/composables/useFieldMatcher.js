@@ -85,6 +85,7 @@ export function useFieldMatcher() {
         mappings.push({
           ...bestMatch,
           customFieldName: '',
+          generatedByFunction: false,
         })
         usedExcelIndices.add(bestMatch.excelIndex)
       } else {
@@ -97,6 +98,7 @@ export function useFieldMatcher() {
           similarity: 0,
           confidence: 'low',
           status: 'unmatched',
+          generatedByFunction: false,
         })
       }
     })
@@ -151,6 +153,7 @@ export function useFieldMatcher() {
         mappings.push({
           ...bestMatch,
           customFieldName: '',
+          generatedByFunction: false,
         })
         usedExcelIndices.add(bestMatch.excelIndex)
       } else {
@@ -162,6 +165,7 @@ export function useFieldMatcher() {
           similarity: 0,
           confidence: 'low',
           status: 'unmatched',
+          generatedByFunction: false,
         })
       }
     })
@@ -242,6 +246,7 @@ export function useFieldMatcher() {
         mappings.push({
           ...bestMatch,
           customFieldName: '',
+          generatedByFunction: false,
         })
         usedExcelIndices.add(bestMatch.excelIndex)
       } else {
@@ -256,6 +261,7 @@ export function useFieldMatcher() {
           confidence: 'low',
           status: 'unmatched',
           matchType: 'none',
+          generatedByFunction: false,
         })
       }
     })
@@ -275,6 +281,7 @@ export function useFieldMatcher() {
       similarity: 0,
       confidence: 'manual',
       status: 'pending',
+      generatedByFunction: false,
     }))
   }
 
@@ -448,7 +455,10 @@ export function useFieldMatcher() {
 
       // 检查必填字段
       const isNullable = mapping.ddlField.nullable !== false
-      if (!mapping.excelHeader && !isNullable) {
+      const isGeneratedByFunction = mapping.generatedByFunction === true
+
+      // 如果字段标记为通过函数生成，则跳过Excel列映射检查
+      if (!isGeneratedByFunction && !mapping.excelHeader && !isNullable) {
         errors.push(`必填字段"${mapping.ddlField.name}"未映射到Excel列`)
       }
     })
@@ -489,6 +499,7 @@ export function useFieldMatcher() {
         similarity: config.similarity || 0,
         confidence: config.confidence || 'manual',
         status: config.excelIndex >= 0 ? 'matched' : 'unmatched',
+        generatedByFunction: config.generatedByFunction || false,
       }
     })
 

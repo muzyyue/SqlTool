@@ -274,6 +274,13 @@
                 />
               </template>
 
+              <template v-if="column.key === 'generatedByFunction'">
+                <a-checkbox
+                  v-model:checked="record.generatedByFunction"
+                  @change="handleGeneratedByFunctionChange(record)"
+                />
+              </template>
+
               <template v-if="column.key === 'actions'">
                 <a-space>
                   <a-button type="link" size="small" @click="clearMapping(record.ddlField.name)">
@@ -696,17 +703,17 @@ const mappingColumns = [
   {
     title: '字段名',
     key: 'fieldName',
-    width: '20%',
+    width: '15%',
   },
   {
     title: 'DDL字段',
     key: 'ddlField',
-    width: '35%',
+    width: '30%',
   },
   {
     title: 'Excel列',
     key: 'excelHeader',
-    width: '25%',
+    width: '20%',
   },
   {
     title: '相似度',
@@ -714,9 +721,14 @@ const mappingColumns = [
     width: '10%',
   },
   {
+    title: '函数生成',
+    key: 'generatedByFunction',
+    width: '10%',
+  },
+  {
     title: '操作',
     key: 'actions',
-    width: '10%',
+    width: '15%',
   },
 ]
 
@@ -978,6 +990,18 @@ const updateMapping = (ddlFieldName, excelIndex) => {
   const excelHeader = excelIndex >= 0 ? excelHeaders.value[excelIndex] : null
   updateFieldMapping(ddlFieldName, excelHeader, excelIndex)
   logInfo(`手动更新字段映射: ${ddlFieldName} -> ${excelHeader || '未匹配'}`)
+}
+
+const handleGeneratedByFunctionChange = (record) => {
+  const mapping = fieldMappings.value.find((m) => m.ddlField.name === record.ddlField.name)
+  if (mapping) {
+    mapping.generatedByFunction = record.generatedByFunction
+    if (record.generatedByFunction) {
+      logInfo(`字段 ${record.ddlField.name} 标记为通过函数生成，将跳过Excel列映射检查`)
+    } else {
+      logInfo(`字段 ${record.ddlField.name} 取消函数生成标记`)
+    }
+  }
 }
 
 const clearMapping = (ddlFieldName) => {
