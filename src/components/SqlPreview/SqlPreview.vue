@@ -157,6 +157,35 @@ watch(previewMode, (newMode, oldMode) => {
     syntaxHighlight.value = originalSyntaxHighlight.value
     showLineNumbers.value = originalShowLineNumbers.value
   }
+  // 清除缓存，确保显示更新
+  clearCache()
+})
+
+// 监听SQL内容变化，清除缓存
+watch(
+  () => props.sql,
+  () => {
+    clearCache()
+  },
+)
+
+// 监听美化选项变化，清除缓存
+watch(
+  () => props.beautifyOptions,
+  () => {
+    clearCache()
+  },
+  { deep: true },
+)
+
+// 监听语法高亮开关变化，清除缓存
+watch(syntaxHighlight, () => {
+  clearCache()
+})
+
+// 监听行号显示开关变化，清除缓存
+watch(showLineNumbers, () => {
+  clearCache()
 })
 
 // SQL美化设置（使用父组件传递的选项）

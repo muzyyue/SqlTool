@@ -296,6 +296,21 @@
                     />
                   </div>
 
+                  <div v-else-if="column.key === 'dataType'">
+                    <a-select
+                      v-model:value="record.dataType"
+                      style="width: 100%"
+                      placeholder="选择数据类型"
+                      @change="handleCustomFieldChange(record)"
+                    >
+                      <a-select-option value="string">字符串</a-select-option>
+                      <a-select-option value="int">整数</a-select-option>
+                      <a-select-option value="decimal">小数</a-select-option>
+                      <a-select-option value="datetime">日期时间</a-select-option>
+                      <a-select-option value="boolean">布尔值</a-select-option>
+                    </a-select>
+                  </div>
+
                   <div v-else-if="column.key === 'dataSource'">
                     <a-select
                       v-model:value="record.dataSource"
@@ -572,7 +587,12 @@ const customFieldColumns = [
   {
     title: '字段名',
     key: 'fieldName',
-    width: '20%',
+    width: '15%',
+  },
+  {
+    title: '数据类型',
+    key: 'dataType',
+    width: '15%',
   },
   {
     title: '数据来源',
@@ -940,6 +960,7 @@ const addCustomField = () => {
   customFields.value.push({
     id: generateId(),
     fieldName: '',
+    dataType: 'string',
     dataSource: 'system_function',
     systemFunctionConfig: {
       databaseType: 'mysql',

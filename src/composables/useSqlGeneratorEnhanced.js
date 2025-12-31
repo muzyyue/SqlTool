@@ -983,6 +983,7 @@ export function useSqlGeneratorEnhanced() {
     generateUpdateSql,
     previewSql,
     validateSqlSyntax,
+    formatSql,
     beautifySql,
 
     setDatabaseType,

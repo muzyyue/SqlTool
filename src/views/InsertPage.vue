@@ -1488,8 +1488,8 @@ const handleCustomBindingSave = (customFieldsData) => {
           name: customField.fieldName,
           type: customField.dataType || 'string',
           nullable: customField.nullable !== false,
-          isIdentity: customField.isIdentity || false,
-          primaryKey: customField.primaryKey || false,
+          isIdentity: false, // 自定义字段不应该被标记为数据库层的自增字段
+          primaryKey: false, // 自定义字段不应该被标记为主键字段
           isCustom: true, // 标记为自定义字段
           customConfig: customField, // 保存原始自定义字段配置
           createdAt: new Date().toISOString(),
@@ -1531,12 +1531,14 @@ const handleCustomBindingSave = (customFieldsData) => {
         fieldMappings.value[existingIndex] = {
           ...fieldMappings.value[existingIndex],
           ddlField: ddlFieldRef,
+          customFieldName: customField.fieldName,
         }
         console.log('已更新映射记录:', customField.fieldName)
       } else {
         // 创建并添加新的映射记录
         const mapping = {
           ddlField: ddlFieldRef,
+          customFieldName: customField.fieldName,
           excelHeader: null,
           excelIndex: -1,
           similarity: 0,

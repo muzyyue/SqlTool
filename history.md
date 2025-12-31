@@ -1,5 +1,28 @@
 # 版本变更历史
 
+## 1.2.4 (2025-12-31)
+
+**修复SQL预览功能异常**
+
+- 修复SqlPreview组件中formatSql方法未导出的问题
+- 添加监听props.sql变化，自动清除缓存
+- 添加监听props.beautifyOptions变化，自动清除缓存
+- 添加监听syntaxHighlight开关变化，自动清除缓存
+- 添加监听showLineNumbers开关变化，自动清除缓存
+- 确保预览模式切换、格式化、压缩、语法高亮、显示行号等功能正常响应
+
+## 1.2.3 (2025-12-31)
+
+**修复INSERT语句生成功能异常**
+
+- 修复自定义字段映射记录缺少customFieldName属性的问题
+- 修复自定义字段被错误标记为isIdentity或primaryKey的问题
+- 为自定义字段添加数据类型选择功能（字符串、整数、小数、日期时间、布尔值）
+- 在CustomBindingModal中添加数据类型列，允许用户为自定义字段指定数据类型
+- 修复generateBatchInsertSql函数中自定义字段的处理逻辑
+- 确保自定义字段正确包含在生成的INSERT语句中
+- 优化自定义字段的字段名获取逻辑，优先使用customFieldName
+
 ## 1.2.2 (2025-12-31)
 
 **自定义字段管理功能**
