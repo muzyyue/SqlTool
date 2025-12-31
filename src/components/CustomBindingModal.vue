@@ -445,9 +445,9 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, h } from 'vue'
 import { PlusOutlined, CloseCircleOutlined } from '@ant-design/icons-vue'
-import { message } from 'ant-design-vue'
+import { message, Modal } from 'ant-design-vue'
 import { getDatabaseFunctions, getSupportedDatabaseTypes } from '../utils/databaseFunctions'
 
 // Props
@@ -952,7 +952,18 @@ const validateBindings = () => {
   if (validation.isValid) {
     message.success('自定义绑定配置验证通过')
   } else {
-    message.error(`配置验证失败: ${validation.errors.join('; ')}`)
+    Modal.error({
+      title: '自定义绑定配置验证失败',
+      content: h('div', [
+        h('p', '以下配置存在问题，请修复后再保存：'),
+        h('ul', { style: { paddingLeft: '20px', marginTop: '10px' } }, [
+          ...validation.errors.map((error) =>
+            h('li', { style: { marginBottom: '5px', color: '#ff4d4f' } }, error),
+          ),
+        ]),
+      ]),
+      okText: '我知道了',
+    })
   }
 }
 
@@ -1185,7 +1196,18 @@ const saveBindings = () => {
   const validation = props.customBindingManager.validateBindings()
 
   if (!validation.isValid) {
-    message.error(`保存失败: ${validation.errors.join('; ')}`)
+    Modal.error({
+      title: '保存失败',
+      content: h('div', [
+        h('p', '以下配置存在问题，请修复后再保存：'),
+        h('ul', { style: { paddingLeft: '20px', marginTop: '10px' } }, [
+          ...validation.errors.map((error) =>
+            h('li', { style: { marginBottom: '5px', color: '#ff4d4f' } }, error),
+          ),
+        ]),
+      ]),
+      okText: '我知道了',
+    })
     return
   }
 

@@ -498,8 +498,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { message } from 'ant-design-vue'
+import { ref, computed, onMounted, h } from 'vue'
+import { message, Modal } from 'ant-design-vue'
 import {
   ReloadOutlined,
   PlayCircleOutlined,
@@ -1241,7 +1241,21 @@ const generateSql = async () => {
   // 验证映射配置
   const validation = validateEnhancedMappings()
   if (!validation.isValid) {
-    message.warning('请先完成字段映射配置')
+    Modal.error({
+      title: '字段映射配置不完整',
+      content: h('div', [
+        h('p', '以下字段存在问题，请修复后再生成SQL：'),
+        h('ul', { style: { paddingLeft: '20px', marginTop: '10px' } }, [
+          ...validation.errors.map((error) =>
+            h('li', { style: { marginBottom: '5px', color: '#ff4d4f' } }, error),
+          ),
+        ]),
+        h('p', { style: { marginTop: '15px', color: '#8c8c8c' } }, [
+          '提示：对于通过函数生成的字段（如UUID主键），请在字段映射表格中勾选"函数生成"复选框',
+        ]),
+      ]),
+      okText: '我知道了',
+    })
     return
   }
 
