@@ -121,7 +121,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { message, Modal, Empty } from 'ant-design-vue'
 import { SearchOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons-vue'
 
@@ -185,6 +185,25 @@ const filteredFields = computed(() => {
   return fields
 })
 
+watch(
+  () => props.customFields,
+  (newFields, oldFields) => {
+    console.log('CustomFieldManager: customFields props changed', {
+      oldLength: oldFields?.length || 0,
+      newLength: newFields?.length || 0,
+      oldFields: oldFields,
+      newFields: newFields,
+    })
+
+    if (newFields && newFields.length !== oldFields?.length) {
+      console.log('CustomFieldManager: 自定义字段数量发生变化，重置搜索和筛选状态')
+      searchText.value = ''
+      filterType.value = 'all'
+    }
+  },
+  { deep: true, immediate: false },
+)
+
 const getDataSourceLabel = (dataSource) => {
   const labels = {
     system_function: '系统函数',
@@ -227,7 +246,8 @@ const handleDelete = (record) => {
       try {
         props.customBindingManager.removeCustomField(record.fieldName)
         emit('delete', record)
-        emit('refresh')
+        // 不再触发refresh事件，避免重新解析DDL导致配置数据被覆盖
+        // emit('refresh')
         message.success(`已删除自定义字段: ${record.fieldName}`)
       } catch (error) {
         message.error(`删除失败: ${error.message}`)

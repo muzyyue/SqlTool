@@ -311,6 +311,7 @@
           <!-- 自定义字段管理 -->
           <CustomFieldManager
             v-if="customBindingEnabled"
+            :key="customFieldManagerKey"
             :custom-fields="customFieldsData"
             :custom-binding-manager="customBindingManager"
             @edit="handleEditCustomField"
@@ -568,6 +569,16 @@ const customFieldsData = computed(() => {
   return Array.isArray(customBindingManager.customFields.value)
     ? customBindingManager.customFields.value
     : []
+})
+
+const customFieldManagerKey = computed(() => {
+  const fields = customFieldsData.value
+  const fieldCount = fields.length
+  const fieldNames = fields
+    .map((f) => f.fieldName)
+    .sort()
+    .join(',')
+  return `custom-field-manager-${fieldCount}-${fieldNames}`
 })
 
 const {
@@ -1576,11 +1587,21 @@ const handleEditCustomField = (record) => {
 
 const handleDeleteCustomField = (record) => {
   logInfo(`删除自定义字段: ${record.fieldName}`)
+
+  // 从fieldMappings中移除对应的映射记录
+  const mappingIndex = fieldMappings.value.findIndex(
+    (mapping) => mapping.ddlField?.name === record.fieldName,
+  )
+  if (mappingIndex >= 0) {
+    fieldMappings.value.splice(mappingIndex, 1)
+    console.log('已从fieldMappings移除自定义字段映射记录:', record.fieldName)
+  }
 }
 
 const handleRefreshCustomFields = () => {
   logInfo('刷新自定义字段列表')
-  parseDdl(false)
+  // 删除自定义字段后不需要重新解析DDL，只需要更新字段映射
+  // parseDdl(false)  // 注释掉，避免覆盖已配置的数据
 }
 
 const resetAll = () => {

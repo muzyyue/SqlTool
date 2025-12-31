@@ -1,5 +1,28 @@
 # 版本变更历史
 
+## 1.2.6 (2025-12-31)
+
+**修复删除自定义字段时触发重新解析的问题**
+
+- 修复handleRefreshCustomFields函数调用parseDdl(false)导致重新解析DDL的问题
+- 删除自定义字段时不再触发重新解析，避免覆盖已配置的数据
+- 在handleDeleteCustomField函数中添加逻辑，从fieldMappings中移除对应的映射记录
+- 在CustomFieldManager组件中注释掉emit('refresh')事件触发
+- 确保删除自定义字段后，其他已配置的字段映射数据保持不变
+- 所有E2E测试通过（24/24），验证修复效果
+
+## 1.2.5 (2025-12-31)
+
+**修复自定义数据列表缓存未清除的问题**
+
+- 在CustomFieldManager组件中添加watcher监听props.customFields的变化
+- 当检测到自定义字段数量变化时，自动重置搜索和筛选状态
+- 在InsertPage中为CustomFieldManager添加动态key属性
+- key基于自定义字段的数量和字段名生成，确保数据变化时组件强制重新渲染
+- 确保执行SQL操作后，自定义字段列表缓存能够正确清除
+- 确保显示内容与最新的映射配置保持同步
+- 所有E2E测试通过（24/24），验证修复效果
+
 ## 1.2.4 (2025-12-31)
 
 **修复SQL预览功能异常**
