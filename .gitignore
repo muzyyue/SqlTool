@@ -17,14 +17,17 @@ dist.zip
 
 # Testing
 coverage
-test/
 test-results/
 __screenshots__/
 Test.txt
 Test.xlsx
 项目测试.xlsx
 test/reports/
+test/unit/
+test/e2e/
 *.xlsx
+# test/config/目录需要被git跟踪，供GitHub Actions使用
+!test/config/
 *.md
 
 # Environment files
