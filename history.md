@@ -1,5 +1,15 @@
 # 版本变更历史
 
+## 1.2.11 (2025-12-31)
+
+**修复自定义字段编辑功能**
+
+- 修复点击编辑自定义字段后弹窗没有显示信息的问题
+- 在CustomBindingModal组件中添加editingField prop
+- 在InsertPage和UpdatePage中添加editingCustomField状态管理
+- 点击编辑时自动切换到自定义字段标签页
+- 关闭弹窗时清空editingCustomField状态
+
 ## 1.2.10 (2025-12-31)
 
 **修复测试文件未被git跟踪的问题**

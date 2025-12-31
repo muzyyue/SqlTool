@@ -585,6 +585,7 @@
       :ddl-fields="parsedFields"
       :excel-headers="excelHeaders"
       :custom-binding-manager="customBindingManager"
+      :editing-field="editingCustomField"
       @save="handleCustomBindingSave"
       @cancel="handleCustomBindingCancel"
     />
@@ -660,6 +661,7 @@ const deduplicationStats = ref({
 // 自定义绑定相关
 const customBindingEnabled = ref(false)
 const showCustomBindingModal = ref(false)
+const editingCustomField = ref(null)
 const hasCustomBindingConfig = computed(() => {
   const stats = customBindingManager.getBindingStats()
   return stats.hasCustomConfig
@@ -1414,10 +1416,12 @@ const handleCustomBindingSave = (customFieldsData) => {
 
 const handleCustomBindingCancel = () => {
   showCustomBindingModal.value = false
+  editingCustomField.value = null
 }
 
 const handleEditCustomField = (record) => {
   logInfo(`编辑自定义字段: ${record.fieldName}`)
+  editingCustomField.value = record
   openCustomBindingModal()
 }
 

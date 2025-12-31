@@ -468,6 +468,10 @@ const props = defineProps({
     type: Object,
     required: true,
   },
+  editingField: {
+    type: Object,
+    default: null,
+  },
 })
 
 // Emits
@@ -724,6 +728,10 @@ watch(
     if (newVal) {
       // 模态框打开时加载数据
       loadBindings()
+      // 如果有编辑字段，切换到自定义字段标签页
+      if (props.editingField) {
+        activeTab.value = 'customFields'
+      }
     }
   },
 )
