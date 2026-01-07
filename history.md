@@ -1,5 +1,13 @@
 # 版本变更历史
 
+## 1.2.28 (2025-01-07)
+
+**修复 useBatchEdit.js 导出问题**
+
+- 将 applyBatchEdit 和 parseInsertSql 改为直接导出的函数
+- 修复 BatchEditPanel.vue 无法导入 applyBatchEdit 的问题
+- 重构 useBatchEdit.js，将辅助函数移到外部作为独立导出
+
 ## 1.2.27 (2025-01-07)
 
 **修复 InsertPage.vue 中代码格式化问题**
