@@ -1,5 +1,13 @@
 # 版本变更历史
 
+## 1.2.29 (2025-01-07)
+
+**修复批量修改条件匹配逻辑错误**
+
+- 修复条件字段索引获取错误（rule.condition.value 改为 rule.condition.fieldName）
+- 修复 parseInsertSql 函数的表名匹配正则表达式
+- 修复批量修改功能无法正确应用条件的问题
+
 ## 1.2.28 (2025-01-07)
 
 **修复 useBatchEdit.js 导出问题**

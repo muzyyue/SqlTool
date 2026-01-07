@@ -28,29 +28,26 @@ export const parseInsertSql = (sql) => {
   }
 
   try {
-    const tableMatch = sql.match(/INSERT\s+INTO\s+`?(\w+)`?\s*\(/i)
+    const normalizedSql = sql.trim()
+
+    const tableMatch = normalizedSql.match(/INSERT\s+INTO\s+([`"']?)(\w+)\1\s*\(/i)
     if (!tableMatch) {
       return null
     }
 
-    const tableName = tableMatch[1]
+    const tableName = tableMatch[2]
 
-    const fieldsMatch = sql.match(/\((.*?)\)\s*VALUES/i)
+    const fieldsMatch = normalizedSql.match(/\((.*?)\)\s*VALUES/i)
     if (!fieldsMatch) {
       return null
     }
 
     const fields = fieldsMatch[1].split(',').map((f) => f.trim().replace(/[`'"]/g, ''))
 
-    const valuesMatch = sql.match(/VALUES\s*\((.*?)\)(?:\s*,\s*\((.*?)\))*/is)
-    if (!valuesMatch) {
-      return null
-    }
-
     const valuesPattern = /\((.*?)\)/gs
     const values = []
     let match
-    while ((match = valuesPattern.exec(sql)) !== null) {
+    while ((match = valuesPattern.exec(normalizedSql)) !== null) {
       const rowValues = match[1].split(',').map((v) => {
         const trimmed = v.trim()
         if (
@@ -190,7 +187,7 @@ export const applyBatchEdit = (sql, rules) => {
       }
 
       if (rule.condition.enabled) {
-        const conditionFieldIndex = fields.indexOf(rule.condition.value)
+        const conditionFieldIndex = fields.indexOf(rule.condition.fieldName)
         if (conditionFieldIndex === -1) {
           return
         }
