@@ -602,26 +602,24 @@ const customFieldColumns = [
     title: '数据来源',
     key: 'dataSource',
     width: '20%',
-    customCell: (_, record) => {
-      if (!record) return { children: '' }
+    customRender: ({ record }) => {
+      if (!record) return '未知'
       if (record.dataSource === 'system_function' && record.systemFunctionConfig?.functionName) {
         const func = findFunctionByFunctionName(
           record.systemFunctionConfig.databaseType,
           record.systemFunctionConfig.functionName,
         )
         if (func) {
-          return { children: `${func.name} - ${func.description}` }
+          return `${func.name} - ${func.description}`
         }
-        return { children: `${record.systemFunctionConfig.functionName} - 未知函数` }
+        return `${record.systemFunctionConfig.functionName} - 未知函数`
       }
-      return {
-        children:
-          {
-            system_function: '系统预设函数',
-            excel_combine: 'Excel列组合',
-            auto_increment: '自增数字',
-          }[record.dataSource] || record.dataSource,
+      const sourceLabels = {
+        system_function: '系统预设函数',
+        excel_combine: 'Excel列组合',
+        auto_increment: '自增数字',
       }
+      return sourceLabels[record.dataSource] || record.dataSource
     },
   },
   {

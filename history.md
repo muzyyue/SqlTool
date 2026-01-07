@@ -1,5 +1,13 @@
 # 版本变更历史
 
+## 1.2.23 (2025-12-31)
+
+**修复表格列children属性设置错误**
+
+- 修复 customFieldColumns 中使用 customCell 返回 { children: 'xxx' } 对象的问题
+- 将 customCell 改为 customRender，正确返回渲染内容
+- 避免 Vue 警告 "Cannot set property children of #<Element> which has only a getter"
+
 ## 1.2.22 (2025-12-31)
 
 **修复ASwitch类型检查及级联选择器key重复问题**
