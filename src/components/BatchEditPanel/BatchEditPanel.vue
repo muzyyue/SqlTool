@@ -261,46 +261,50 @@ const applyBatchEditToData = (data, rules) => {
     }
   }
 
-  let affectedRows = 0
-  const modifiedData = data.map((row) => {
-    let modified = false
-    const newRow = { ...row }
+  const modifiedData = data.map((row) => ({ ...row }))
+  const affectedRowIndices = new Set()
 
-    rules.forEach((rule) => {
-      if (!rule.fieldName || rule.newValue === undefined || rule.newValue === '') {
-        return
-      }
-
-      const columnIndex = getExcelColumnIndex(rule.fieldName)
-      if (columnIndex === -1) {
-        return
-      }
-
-      if (rule.condition.enabled) {
-        const conditionColumnIndex = getExcelColumnIndex(rule.condition.fieldName)
-        if (conditionColumnIndex === -1) {
-          return
-        }
-
-        const conditionFieldValue = row[String(conditionColumnIndex)]
-        if (!matchCondition(conditionFieldValue, rule.condition.operator, rule.condition.value)) {
-          return
-        }
-      }
-
-      newRow[String(columnIndex)] = rule.newValue
-      modified = true
-    })
-
-    if (modified) {
-      affectedRows++
+  rules.forEach((rule) => {
+    if (!rule.fieldName || rule.newValue === undefined || rule.newValue === '') {
+      return
     }
 
-    return newRow
+    const columnIndex = getExcelColumnIndex(rule.fieldName)
+    if (columnIndex === -1) {
+      return
+    }
+
+    let rowIndicesToModify = []
+
+    if (rule.condition.enabled) {
+      const conditionColumnIndex = getExcelColumnIndex(rule.condition.fieldName)
+      if (conditionColumnIndex === -1) {
+        return
+      }
+
+      rowIndicesToModify = modifiedData
+        .map((row, index) => {
+          const conditionFieldValue = row[String(conditionColumnIndex)]
+          const match = matchCondition(
+            conditionFieldValue,
+            rule.condition.operator,
+            rule.condition.value,
+          )
+          return match ? index : -1
+        })
+        .filter((index) => index !== -1)
+    } else {
+      rowIndicesToModify = modifiedData.map((_, index) => index)
+    }
+
+    rowIndicesToModify.forEach((rowIndex) => {
+      modifiedData[rowIndex][String(columnIndex)] = rule.newValue
+      affectedRowIndices.add(rowIndex)
+    })
   })
 
   return {
-    affectedRows,
+    affectedRows: affectedRowIndices.size,
     modifiedData,
   }
 }
