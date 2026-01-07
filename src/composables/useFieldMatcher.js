@@ -620,12 +620,16 @@ export function useFieldMatcher() {
         (mapping) => mapping.ddlField.name === customField.fieldName,
       )
 
-      console.log(`处理自定义字段: ${customField.fieldName}, mappingIndex: ${mappingIndex}`)
-      console.log(`customField.dataSource: ${customField.dataSource}`)
-      console.log(`customField.systemFunctionConfig:`, customField.systemFunctionConfig)
+      // 只有当数据源是函数、自增或静态值时，才标记为函数生成
+      // Excel组合字段需要从Excel获取数据，不应标记为函数生成
+      const shouldGenerateByFunction = [
+        'system_function',
+        'auto_increment',
+        'static_value',
+      ].includes(customField.dataSource)
 
       if (mappingIndex >= 0) {
-        console.log(`更新已存在的映射: ${customField.fieldName}`)
+        // 保留原有的 excelHeader、excelIndex、similarity、confidence、status 等属性
         enhancedMappings[mappingIndex] = {
           ...enhancedMappings[mappingIndex],
           ddlField: {
@@ -634,14 +638,12 @@ export function useFieldMatcher() {
             customConfig: customField,
           },
           customFieldName: customField.fieldName,
-          generatedByFunction: true,
+          generatedByFunction: shouldGenerateByFunction,
+          // 保留原有的 Excel 映射信息
+          excelHeader: enhancedMappings[mappingIndex].excelHeader,
+          excelIndex: enhancedMappings[mappingIndex].excelIndex,
         }
-        console.log(
-          `更新后的 ddlField.customConfig:`,
-          enhancedMappings[mappingIndex].ddlField.customConfig,
-        )
       } else {
-        console.log(`添加新的映射: ${customField.fieldName}`)
         enhancedMappings.push({
           ddlField: {
             name: customField.fieldName,
@@ -656,7 +658,7 @@ export function useFieldMatcher() {
           similarity: 0,
           confidence: 'manual',
           status: 'unmatched',
-          generatedByFunction: true,
+          generatedByFunction: shouldGenerateByFunction,
         })
       }
     })

@@ -1,5 +1,14 @@
 # 版本变更历史
 
+## 1.2.20 (2025-12-31)
+
+**修复映射配置必填项无法生成SQL的问题**
+
+- 修复 applyCustomBindingsToMappings 中错误地将所有自定义字段标记为 generatedByFunction = true
+- 只有当数据源是函数、自增或静态值时才标记为函数生成
+- Excel组合字段需要从Excel获取数据，不应标记为函数生成
+- 修复更新映射时丢失 excelHeader 和 excelIndex 的问题
+
 ## 1.2.19 (2025-12-31)
 
 **修复自定义字段函数配置无法传递的问题**
