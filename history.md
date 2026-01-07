@@ -1,5 +1,13 @@
 # 版本变更历史
 
+## 1.2.27 (2025-01-07)
+
+**修复 InsertPage.vue 中代码格式化问题**
+
+- 修复批量修改相关函数被错误格式化成一行的问题
+- 修复 batchEditRules 变量定义格式错误
+- 恢复 handleBatchPreview、handleBatchApply、handleBatchChange 函数的正常格式
+
 ## 1.2.26 (2025-01-07)
 
 **修复批量编辑功能多个问题**

@@ -625,8 +625,9 @@ const uploadedFile = ref(null)
 const excelData = ref([])
 const excelHeaders = ref([])
 const generatedSql = ref('')
-const previewSql = ref('') // 批量修改预览SQL
-const previewMode = ref('original') // 预览模式：original | preview
+const previewSql = ref('')
+const previewMode = ref('original')
+const batchEditRules = ref([])
 const operationLogs = ref([])
 const includeComments = ref(true) // 控制是否包含SQL注释
 const databaseType = ref('mysql') // 数据库类型：mysql, postgresql, sqlserver
@@ -1760,6 +1761,7 @@ const handleBatchApply = (result) => {
  * @param {Array} rules - 修改规则列表
  */
 const handleBatchChange = (rules) => {
+  batchEditRules.value = rules
   console.log('批量修改规则变化:', rules)
 }
 
