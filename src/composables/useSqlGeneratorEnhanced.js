@@ -127,13 +127,18 @@ export function useSqlGeneratorEnhanced() {
     // 过滤掉自增主键字段和主键字段
     // 保留所有其他字段：有映射的普通字段、无映射的普通字段（值为NULL）、有映射或无映射的自定义字段
     // 注意：标记为"函数生成"的主键字段不会被过滤
+    // 注意：如果主键字段已映射到Excel列，也会被保留（允许用户手动指定主键值）
     const mappedFields = fieldMappings
       .filter((mapping) => {
         // 如果标记为通过函数生成，保留该字段
         if (mapping.generatedByFunction === true) {
           return true
         }
-        // 排除自增主键和主键字段
+        // 如果主键字段已映射到Excel列，保留该字段（允许用户手动指定主键值）
+        if (mapping.ddlField.primaryKey && mapping.excelIndex >= 0) {
+          return true
+        }
+        // 排除自增主键和未被映射的主键字段
         return !mapping.ddlField.isIdentity && !mapping.ddlField.primaryKey
       })
       .sort((a, b) => {
