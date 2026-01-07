@@ -450,11 +450,13 @@
           <BatchEditPanel
             v-if="generatedSql"
             :ddl-fields="parsedFields"
-            :sql="generatedSql"
+            :excel-data="excelData"
+            :field-mappings="fieldMappings"
             :auto-preview="false"
             @preview="handleBatchPreview"
             @apply="handleBatchApply"
             @change="handleBatchChange"
+            @update:excelData="handleExcelDataUpdate"
           />
         </div>
 
@@ -1732,7 +1734,7 @@ const resetAll = () => {
  * @param {Object} result - 预览结果
  */
 const handleBatchPreview = (result) => {
-  previewSql.value = result.sql
+  previewSql.value = generateSqlFromData(result.modifiedData)
   previewMode.value = 'preview'
   logInfo(`批量修改预览：将影响 ${result.affectedRows} 行数据`, 'batch-edit', {
     operation: 'preview',
@@ -1746,7 +1748,8 @@ const handleBatchPreview = (result) => {
  * @param {Object} result - 应用结果
  */
 const handleBatchApply = (result) => {
-  generatedSql.value = result.sql
+  excelData.value = result.modifiedData
+  generatedSql.value = generateSqlFromData(result.modifiedData)
   previewSql.value = ''
   previewMode.value = 'original'
   logInfo(`批量修改应用成功：已修改 ${result.affectedRows} 行数据`, 'batch-edit', {
@@ -1757,12 +1760,45 @@ const handleBatchApply = (result) => {
 }
 
 /**
+ * 处理 Excel 数据更新
+ * @param {Array} newData - 新的 Excel 数据
+ */
+const handleExcelDataUpdate = (newData) => {
+  excelData.value = newData
+}
+
+/**
  * 处理批量修改规则变化
  * @param {Array} rules - 修改规则列表
  */
 const handleBatchChange = (rules) => {
   batchEditRules.value = rules
   console.log('批量修改规则变化:', rules)
+}
+
+/**
+ * 从数据生成 SQL
+ * @param {Array} data - 数据数组
+ * @returns {string} 生成的 SQL
+ */
+const generateSqlFromData = (data) => {
+  if (!data || data.length === 0) {
+    return ''
+  }
+
+  const tableName = extractTableName(ddlStatement.value)
+  const mappingsToUse = fieldMappings.value
+
+  const sql = generateInsertSql(tableName, mappingsToUse, data, {
+    dbType: databaseType.value,
+    format: 'formatted',
+    batch: 100,
+    comments: includeComments.value,
+    beautifyOptions: beautifyOptions.value,
+    customBindingManager: customBindingManager,
+  })
+
+  return sql
 }
 
 // 生命周期

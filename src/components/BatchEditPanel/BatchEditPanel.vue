@@ -1,11 +1,8 @@
 <template>
   <div class="batch-edit-panel">
-    <!-- 玻璃态卡片容器 -->
     <div class="glass-card">
-      <!-- 折叠面板 -->
       <a-collapse v-model:activeKey="activeKey" :bordered="false">
         <a-collapse-panel key="1" header="批量修改SQL语句">
-          <!-- 操作按钮栏 -->
           <div class="action-bar">
             <a-space>
               <a-button type="primary" @click="handleAddRule" size="small">
@@ -26,10 +23,8 @@
             </div>
           </div>
 
-          <!-- 修改规则列表 -->
           <div v-if="editRules.length > 0" class="rules-list">
             <div v-for="rule in editRules" :key="rule.id" class="rule-item glass-card-inner">
-              <!-- 规则头部 -->
               <div class="rule-header">
                 <span class="rule-title">修改规则 #{{ editRules.indexOf(rule) + 1 }}</span>
                 <a-button type="link" danger size="small" @click="handleRemoveRule(rule.id)">
@@ -38,7 +33,6 @@
                 </a-button>
               </div>
 
-              <!-- 字段选择 -->
               <div class="rule-field">
                 <label class="field-label">选择字段:</label>
                 <a-select
@@ -51,7 +45,6 @@
                 />
               </div>
 
-              <!-- 新值输入 -->
               <div class="rule-field">
                 <label class="field-label">新值:</label>
                 <a-input
@@ -67,7 +60,6 @@
                 </a-input>
               </div>
 
-              <!-- 条件设置 -->
               <div class="rule-field condition-section">
                 <div class="condition-header">
                   <a-checkbox v-model:checked="rule.condition.enabled">
@@ -125,14 +117,12 @@
               </div>
             </div>
 
-            <!-- 空状态提示 -->
             <a-empty
               v-if="editRules.length === 0"
               description="暂无修改规则，点击上方按钮添加"
               style="padding: 40px 0"
             />
 
-            <!-- 底部操作按钮 -->
             <div v-if="editRules.length > 0" class="bottom-actions">
               <a-space>
                 <a-button @click="handlePreview" :loading="previewing">
@@ -146,7 +136,6 @@
               </a-space>
             </div>
 
-            <!-- 预览结果提示 -->
             <a-alert
               v-if="previewResult.affectedRows > 0"
               :message="`预览结果：将影响 ${previewResult.affectedRows} 行数据`"
@@ -173,72 +162,41 @@ import {
   QuestionCircleOutlined,
   InfoCircleOutlined,
 } from '@ant-design/icons-vue'
-import { applyBatchEdit } from '@/composables/useBatchEdit'
 
-/**
- * BatchEditPanel组件 - 批量修改SQL语句面板
- *
- * @component
- * @example
- * <BatchEditPanel
- *   :ddl-fields="parsedFields"
- *   :sql="generatedSql"
- *   @preview="handlePreview"
- *   @apply="handleApply"
- *   @change="handleChange"
- * />
- */
-
-// Props定义
 const props = defineProps({
-  /**
-   * DDL字段列表
-   * @type {Array<Object>}
-   */
   ddlFields: {
     type: Array,
     default: () => [],
   },
-  /**
-   * 当前SQL语句
-   * @type {string}
-   */
-  sql: {
-    type: String,
-    default: '',
+  excelData: {
+    type: Array,
+    default: () => [],
   },
-  /**
-   * 是否自动预览
-   * @type {boolean}
-   */
+  fieldMappings: {
+    type: Array,
+    default: () => [],
+  },
   autoPreview: {
     type: Boolean,
     default: false,
   },
-  /**
-   * 批量修改规则列表
-   * @type {Array<Object>}
-   */
   rules: {
     type: Array,
     default: () => [],
   },
 })
 
-// Emits定义
-const emit = defineEmits(['preview', 'apply', 'change', 'rules-update'])
+const emit = defineEmits(['preview', 'apply', 'change', 'update:excelData'])
 
-// 响应式状态
 const activeKey = ref([])
 const previewing = ref(false)
 const applying = ref(false)
 const editRules = ref([])
 const previewResult = ref({
-  sql: '',
   affectedRows: 0,
+  modifiedData: [],
 })
 
-// 计算属性：字段选项
 const fieldOptions = computed(() => {
   return props.ddlFields.map((field) => ({
     label: `${field.name} (${field.type})`,
@@ -246,7 +204,6 @@ const fieldOptions = computed(() => {
   }))
 })
 
-// 计算属性：规则统计
 const rulesStats = computed(() => {
   return {
     total: editRules.value.length,
@@ -254,15 +211,100 @@ const rulesStats = computed(() => {
   }
 })
 
-// 过滤选项
 const filterOption = (input, option) => {
   return option.label.toLowerCase().includes(input.toLowerCase())
 }
 
-/**
- * 处理添加规则
- * @returns {void}
- */
+const getExcelColumnIndex = (ddlFieldName) => {
+  const mapping = props.fieldMappings.find((m) => m.ddlField === ddlFieldName)
+  return mapping ? mapping.excelColumn : -1
+}
+
+const matchCondition = (fieldValue, operator, conditionValue) => {
+  try {
+    switch (operator) {
+      case '=':
+        return String(fieldValue) === String(conditionValue)
+      case '!=':
+        return String(fieldValue) !== String(conditionValue)
+      case '>':
+        return Number(fieldValue) > Number(conditionValue)
+      case '<':
+        return Number(fieldValue) < Number(conditionValue)
+      case '>=':
+        return Number(fieldValue) >= Number(conditionValue)
+      case '<=':
+        return Number(fieldValue) <= Number(conditionValue)
+      case 'LIKE': {
+        const pattern = conditionValue.replace(/%/g, '.*').replace(/_/g, '.')
+        const regex = new RegExp(pattern, 'i')
+        return regex.test(String(fieldValue))
+      }
+      case 'IN': {
+        const values = conditionValue.split(',').map((v) => v.trim())
+        return values.includes(String(fieldValue))
+      }
+      default:
+        return false
+    }
+  } catch (error) {
+    console.error('条件匹配失败:', error)
+    return false
+  }
+}
+
+const applyBatchEditToData = (data, rules) => {
+  if (!data || !rules || rules.length === 0) {
+    return {
+      affectedRows: 0,
+      modifiedData: data,
+    }
+  }
+
+  let affectedRows = 0
+  const modifiedData = data.map((row) => {
+    let modified = false
+    const newRow = { ...row }
+
+    rules.forEach((rule) => {
+      if (!rule.fieldName || rule.newValue === undefined || rule.newValue === '') {
+        return
+      }
+
+      const columnIndex = getExcelColumnIndex(rule.fieldName)
+      if (columnIndex === -1) {
+        return
+      }
+
+      if (rule.condition.enabled) {
+        const conditionColumnIndex = getExcelColumnIndex(rule.condition.fieldName)
+        if (conditionColumnIndex === -1) {
+          return
+        }
+
+        const conditionFieldValue = row[conditionColumnIndex]
+        if (!matchCondition(conditionFieldValue, rule.condition.operator, rule.condition.value)) {
+          return
+        }
+      }
+
+      newRow[columnIndex] = rule.newValue
+      modified = true
+    })
+
+    if (modified) {
+      affectedRows++
+    }
+
+    return newRow
+  })
+
+  return {
+    affectedRows,
+    modifiedData,
+  }
+}
+
 const handleAddRule = () => {
   const newRule = {
     id: `rule_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -275,18 +317,12 @@ const handleAddRule = () => {
     },
   }
   editRules.value.push(newRule)
-  // 自动展开面板
   if (activeKey.value.length === 0) {
     activeKey.value = ['1']
   }
   emit('change', editRules.value)
 }
 
-/**
- * 处理删除规则
- * @param {string} ruleId - 规则ID
- * @returns {void}
- */
 const handleRemoveRule = (ruleId) => {
   const index = editRules.value.findIndex((rule) => rule.id === ruleId)
   if (index !== -1) {
@@ -295,27 +331,19 @@ const handleRemoveRule = (ruleId) => {
   emit('change', editRules.value)
 }
 
-/**
- * 处理重置
- * @returns {void}
- */
 const handleReset = () => {
   editRules.value = []
   previewResult.value = {
-    sql: '',
     affectedRows: 0,
+    modifiedData: [],
   }
   message.info('已重置所有修改规则')
   emit('change', editRules.value)
 }
 
-/**
- * 处理预览
- * @returns {void}
- */
 const handlePreview = async () => {
-  if (!props.sql) {
-    message.warning('请先生成SQL语句')
+  if (!props.excelData || props.excelData.length === 0) {
+    message.warning('请先上传Excel文件')
     return
   }
   if (editRules.value.length === 0) {
@@ -324,7 +352,7 @@ const handlePreview = async () => {
   }
   previewing.value = true
   try {
-    const result = applyBatchEdit(props.sql, editRules.value)
+    const result = applyBatchEditToData(props.excelData, editRules.value)
     previewResult.value = result
     emit('preview', result)
     message.success(`预览成功，将影响 ${result.affectedRows} 行数据`)
@@ -335,13 +363,9 @@ const handlePreview = async () => {
   }
 }
 
-/**
- * 处理应用
- * @returns {void}
- */
 const handleApply = async () => {
-  if (!props.sql) {
-    message.warning('请先生成SQL语句')
+  if (!props.excelData || props.excelData.length === 0) {
+    message.warning('请先上传Excel文件')
     return
   }
   if (editRules.value.length === 0) {
@@ -350,7 +374,8 @@ const handleApply = async () => {
   }
   applying.value = true
   try {
-    const result = applyBatchEdit(props.sql, editRules.value)
+    const result = applyBatchEditToData(props.excelData, editRules.value)
+    emit('update:excelData', result.modifiedData)
     emit('apply', result)
     message.success(`应用成功，已修改 ${result.affectedRows} 行数据`)
   } catch (error) {
@@ -360,12 +385,16 @@ const handleApply = async () => {
   }
 }
 
-// 监听规则变化，自动预览
 watch(
   editRules,
   () => {
-    if (props.autoPreview && props.sql && editRules.value.length > 0) {
-      const result = applyBatchEdit(props.sql, editRules.value)
+    if (
+      props.autoPreview &&
+      props.excelData &&
+      props.excelData.length > 0 &&
+      editRules.value.length > 0
+    ) {
+      const result = applyBatchEditToData(props.excelData, editRules.value)
       emit('preview', result)
     }
     emit('change', editRules.value)
@@ -373,33 +402,19 @@ watch(
   { deep: true },
 )
 
-// 监听SQL变化，清空预览结果
-watch(
-  () => props.sql,
-  () => {
-    previewResult.value = {
-      sql: '',
-      affectedRows: 0,
-    }
-  },
-)
-
-// 暴露方法给父组件
 defineExpose({
   addRule: handleAddRule,
   removeRule: handleRemoveRule,
   resetRules: handleReset,
-  applyBatchEdit: () => applyBatchEdit(props.sql, editRules.value),
+  applyBatchEdit: () => applyBatchEditToData(props.excelData, editRules.value),
 })
 </script>
 
 <style scoped>
-/* 主容器 */
 .batch-edit-panel {
   margin-top: 16px;
 }
 
-/* 玻璃态卡片 */
 .glass-card {
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(20px);
@@ -410,7 +425,6 @@ defineExpose({
   overflow: hidden;
 }
 
-/* 内部玻璃态卡片 */
 .glass-card-inner {
   background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(10px);
@@ -427,7 +441,6 @@ defineExpose({
   transform: translateY(-2px);
 }
 
-/* 操作栏 */
 .action-bar {
   display: flex;
   justify-content: space-between;
@@ -444,14 +457,12 @@ defineExpose({
   gap: 8px;
 }
 
-/* 规则列表 */
 .rules-list {
   max-height: 500px;
   overflow-y: auto;
   padding: 0;
 }
 
-/* 规则项 */
 .rule-item {
   margin-bottom: 12px;
 }
@@ -460,7 +471,6 @@ defineExpose({
   margin-bottom: 0;
 }
 
-/* 规则头部 */
 .rule-header {
   display: flex;
   justify-content: space-between;
@@ -476,7 +486,6 @@ defineExpose({
   color: #1677ff;
 }
 
-/* 规则字段 */
 .rule-field {
   margin-bottom: 12px;
 }
@@ -493,7 +502,6 @@ defineExpose({
   font-weight: 500;
 }
 
-/* 条件部分 */
 .condition-section {
   background: rgba(20, 201, 201, 0.05);
   border-radius: 6px;
@@ -525,7 +533,6 @@ defineExpose({
   margin-bottom: 0;
 }
 
-/* 底部操作按钮 */
 .bottom-actions {
   display: flex;
   align-items: center;
@@ -541,7 +548,6 @@ defineExpose({
   margin-top: 12px;
 }
 
-/* 滚动条样式 */
 .rules-list::-webkit-scrollbar {
   width: 6px;
 }
@@ -560,7 +566,6 @@ defineExpose({
   background: rgba(22, 119, 255, 0.3);
 }
 
-/* Ant Design Collapse样式覆盖 */
 :deep(.ant-collapse) {
   background: transparent;
   border: none;
@@ -586,7 +591,6 @@ defineExpose({
   padding: 0 16px 16px;
 }
 
-/* 暗色主题支持 */
 [data-theme='dark'] .glass-card {
   background: rgba(30, 41, 59, 0.6);
   border-color: rgba(255, 255, 255, 0.1);
@@ -641,7 +645,6 @@ defineExpose({
   background: rgba(255, 255, 255, 0.2);
 }
 
-/* 按钮悬停效果 */
 :deep(.ant-btn) {
   transition: all 0.2s ease;
 }
@@ -656,7 +659,6 @@ defineExpose({
   box-shadow: none;
 }
 
-/* 微交互动画 */
 @keyframes fadeIn {
   from {
     opacity: 0;

@@ -1,5 +1,15 @@
 # 版本变更历史
 
+## 1.2.30 (2025-01-07)
+
+**重构批量修改功能，直接修改 Excel 数据**
+
+- 重构 BatchEditPanel 组件，接收 excelData 和 fieldMappings 作为 props
+- 根据 DDL 字段名找到对应的 Excel 列索引，直接修改 excelData 中的数据
+- 添加 generateSqlFromData 函数，从修改后的数据重新生成 SQL
+- 更新 handleBatchPreview、handleBatchApply、handleExcelDataUpdate 函数
+- 移除 SQL 解析逻辑，避免解析错误
+
 ## 1.2.29 (2025-01-07)
 
 **修复批量修改条件匹配逻辑错误**
