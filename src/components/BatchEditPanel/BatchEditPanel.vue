@@ -129,12 +129,7 @@
           </div>
 
           <!-- 空状态提示 -->
-          <a-empty
-            v-else
-            description="暂无修改规则，点击上方按钮添加"
-            :image="Empty.PRESENTED_IMAGE_SIMPLE"
-            style="padding: 40px 0"
-          />
+          <a-empty v-else description="暂无修改规则，点击上方按钮添加" style="padding: 40px 0" />
 
           <!-- 底部操作按钮 -->
           <div v-if="editRules.length > 0" class="bottom-actions">
@@ -175,7 +170,6 @@ import {
   CheckOutlined,
   QuestionCircleOutlined,
   InfoCircleOutlined,
-  Empty,
 } from '@ant-design/icons-vue'
 import { useBatchEdit } from '@/composables/useBatchEdit'
 

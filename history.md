@@ -1,5 +1,13 @@
 # 版本变更历史
 
+## 1.2.25 (2025-01-07)
+
+**修复 BatchEditPanel.vue 中 Empty 图标错误导入**
+
+- 从 @ant-design/icons-vue 中移除 Empty 导入
+- Empty 是 ant-design-vue 的组件，不是图标
+- 移除 a-empty 组件中的 :image 属性，避免图标导入错误
+
 ## 1.2.24 (2026-01-07)
 
 **添加批量修改SQL语句功能**
