@@ -431,11 +431,30 @@
           </div>
 
           <SqlPreview
-            :sql="generatedSql"
+            :sql="displaySql"
             :stats="sqlStats"
             :beautify-options="beautifyOptions"
             @copy="handleSqlCopy"
             @download="handleSqlDownload"
+          />
+
+          <!-- 预览模式切换 -->
+          <div v-if="previewSql" class="preview-mode-switch">
+            <a-radio-group v-model:value="previewMode" button-style="solid" size="small">
+              <a-radio-button value="original">原始SQL</a-radio-button>
+              <a-radio-button value="preview">预览修改</a-radio-button>
+            </a-radio-group>
+          </div>
+
+          <!-- 批量修改面板 -->
+          <BatchEditPanel
+            v-if="generatedSql"
+            :ddl-fields="parsedFields"
+            :sql="generatedSql"
+            :auto-preview="false"
+            @preview="handleBatchPreview"
+            @apply="handleBatchApply"
+            @change="handleBatchChange"
           />
         </div>
 
@@ -520,6 +539,7 @@ import { useErrorHandler } from '@/composables/useErrorHandler'
 import SqlPreview from '@/components/SqlPreview/SqlPreview.vue'
 import CustomBindingModal from '@/components/CustomBindingModal.vue'
 import CustomFieldManager from '@/components/CustomFieldManager/CustomFieldManager.vue'
+import BatchEditPanel from '@/components/BatchEditPanel/BatchEditPanel.vue'
 
 // 初始化核心功能模块
 const { parseDdl: parseDdlWithParser, clearCache } = useDdlParser()
@@ -605,6 +625,8 @@ const uploadedFile = ref(null)
 const excelData = ref([])
 const excelHeaders = ref([])
 const generatedSql = ref('')
+const previewSql = ref('') // 批量修改预览SQL
+const previewMode = ref('original') // 预览模式：original | preview
 const operationLogs = ref([])
 const includeComments = ref(true) // 控制是否包含SQL注释
 const databaseType = ref('mysql') // 数据库类型：mysql, postgresql, sqlserver
@@ -685,11 +707,14 @@ const previewColumns = computed(() => {
 })
 
 const sqlStats = computed(() => {
-  if (!generatedSql.value) {
+  const sqlToCheck =
+    previewMode.value === 'preview' && previewSql.value ? previewSql.value : generatedSql.value
+
+  if (!sqlToCheck) {
     return { statementCount: 0, affectedRows: 0, generationTime: 0 }
   }
 
-  const statements = generatedSql.value.split(';').filter((s) => s.trim())
+  const statements = sqlToCheck.split(';').filter((s) => s.trim())
   const affectedRows = excelData.value.length
 
   return {
@@ -697,6 +722,11 @@ const sqlStats = computed(() => {
     affectedRows,
     generationTime: 0, // 实际应该从生成过程中获取
   }
+})
+
+// 计算属性：显示的SQL（根据预览模式）
+const displaySql = computed(() => {
+  return previewMode.value === 'preview' && previewSql.value ? previewSql.value : generatedSql.value
 })
 
 const mappingColumns = [
@@ -1685,6 +1715,8 @@ const resetAll = () => {
   excelData.value = []
   excelHeaders.value = []
   generatedSql.value = ''
+  previewSql.value = ''
+  previewMode.value = 'original'
   fileList.value = []
   handleClearCache()
   customBindingEnabled.value = false
@@ -1692,6 +1724,43 @@ const resetAll = () => {
 
   logInfo('所有数据已重置')
   message.success('重置成功')
+}
+
+/**
+ * 处理批量预览
+ * @param {Object} result - 预览结果
+ */
+const handleBatchPreview = (result) => {
+  previewSql.value = result.sql
+  previewMode.value = 'preview'
+  logInfo(`批量修改预览：将影响 ${result.affectedRows} 行数据`, 'batch-edit', {
+    operation: 'preview',
+    affectedRows: result.affectedRows,
+  })
+  message.info(`预览：将影响 ${result.affectedRows} 行数据`)
+}
+
+/**
+ * 处理批量应用
+ * @param {Object} result - 应用结果
+ */
+const handleBatchApply = (result) => {
+  generatedSql.value = result.sql
+  previewSql.value = ''
+  previewMode.value = 'original'
+  logInfo(`批量修改应用成功：已修改 ${result.affectedRows} 行数据`, 'batch-edit', {
+    operation: 'apply',
+    affectedRows: result.affectedRows,
+  })
+  message.success(`应用成功，已修改 ${result.affectedRows} 行数据`)
+}
+
+/**
+ * 处理批量修改规则变化
+ * @param {Array} rules - 修改规则列表
+ */
+const handleBatchChange = (rules) => {
+  console.log('批量修改规则变化:', rules)
 }
 
 // 生命周期
@@ -1756,6 +1825,7 @@ onMounted(() => {
   padding: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   overflow: hidden;
+  position: relative;
 }
 
 .card-header {
@@ -1938,6 +2008,18 @@ onMounted(() => {
   border-radius: 6px;
   padding: 16px;
   margin-bottom: 16px;
+}
+
+/* 预览模式切换样式 */
+.preview-mode-switch {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 4px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .option-row {
