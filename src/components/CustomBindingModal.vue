@@ -484,7 +484,7 @@ const enableCustomBinding = ref(false)
 
 // 初始化enableCustomBinding
 watch(
-  () => props.customBindingManager?.enableCustomBinding,
+  () => props.customBindingManager?.enableCustomBinding?.value,
   (newVal) => {
     if (newVal !== undefined) {
       enableCustomBinding.value = newVal
@@ -660,9 +660,12 @@ const cascaderOptions = computed(() => {
       for (const func of functions) {
         if (func && func.name && typeof func.name === 'string') {
           functionOptions.push({
-            value: func.name,
+            // 使用数据库类型前缀确保 key 唯一
+            value: `${dbType.value}_${func.name}`,
             label: func.name,
             description: func.description || '',
+            databaseType: dbType.value,
+            functionName: func.name,
           })
         }
       }
@@ -679,7 +682,7 @@ const cascaderOptions = computed(() => {
 /**
  * 获取级联选择器的当前值
  * @param {Object} record - 自定义字段记录
- * @returns {Array} 级联选择器的值数组 [databaseType, functionName]
+ * @returns {Array} 级联选择器的值数组 [databaseType, functionKey]
  */
 const getCascaderValue = (record) => {
   if (!record || !record.systemFunctionConfig) {
@@ -692,12 +695,13 @@ const getCascaderValue = (record) => {
     return []
   }
 
-  return [databaseType, functionName]
+  // 使用与 cascaderOptions 相同的格式构造 functionKey
+  return [databaseType, `${databaseType}_${functionName}`]
 }
 
 /**
  * 处理级联选择器的变更事件
- * @param {Array} value - 级联选择器的值 [databaseType, functionName]
+ * @param {Array} value - 级联选择器的值 [databaseType, functionKey]
  * @param {Object} record - 自定义字段记录
  */
 const handleCascaderChange = (value, record) => {
@@ -705,7 +709,10 @@ const handleCascaderChange = (value, record) => {
     return
   }
 
-  const [databaseType, functionName] = value
+  const [databaseType, functionKey] = value
+
+  // 从 functionKey 中提取 functionName（格式: dbType_functionName）
+  const functionName = functionKey.replace(`${databaseType}_`, '')
 
   if (!record.systemFunctionConfig) {
     record.systemFunctionConfig = {

@@ -1,5 +1,13 @@
 # 版本变更历史
 
+## 1.2.22 (2025-12-31)
+
+**修复ASwitch类型检查及级联选择器key重复问题**
+
+- 修复 CustomBindingModal 中 enableCustomBinding watch 监听计算属性时的解包问题
+- 修复级联选择器函数选项的 value 使用数据库类型前缀确保唯一性
+- 更新 handleCascaderChange 和 getCascaderValue 函数以适配新的 value 格式
+
 ## 1.2.21 (2025-12-31)
 
 **修复主键字段未生成到SQL的问题**
