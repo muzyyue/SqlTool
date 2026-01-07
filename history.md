@@ -1,5 +1,18 @@
 # 版本变更历史
 
+## 1.2.26 (2025-01-07)
+
+**修复批量编辑功能多个问题**
+
+- 修复 BatchEditPanel 组件中 editRules 状态管理问题
+- 修复 useBatchEdit.js 中未使用的变量（updateRule, getRulesStats）
+- 修复 BatchEditPanel.vue 中未使用的导入（parseInsertSql）
+- 修复 BatchEditPanel.vue 中未定义的变量（previewBatchEdit）
+- 修复 BatchEditPanel.vue 中未使用的函数（handleChange）
+- 修复 v-else 指令错误
+- 修复 defineExpose 中的 previewBatchEdit 未定义问题
+- 修复 useBatchEdit.js 导出问题
+
 ## 1.2.25 (2025-01-07)
 
 **修复 BatchEditPanel.vue 中 Empty 图标错误导入**

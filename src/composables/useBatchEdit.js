@@ -22,7 +22,7 @@ import { ref } from 'vue'
  * @returns {Object} 批量修改相关的方法和状态
  */
 export function useBatchEdit() {
-  // 修改规则列表
+  // 编辑规则列表
   const editRules = ref([])
 
   // 预览结果
@@ -58,19 +58,6 @@ export function useBatchEdit() {
     const index = editRules.value.findIndex((rule) => rule.id === ruleId)
     if (index !== -1) {
       editRules.value.splice(index, 1)
-    }
-  }
-
-  /**
-   * 更新修改规则
-   * @param {string} ruleId - 规则ID
-   * @param {Object} updates - 更新的字段
-   * @returns {void}
-   */
-  const updateRule = (ruleId, updates) => {
-    const rule = editRules.value.find((r) => r.id === ruleId)
-    if (rule) {
-      Object.assign(rule, updates)
     }
   }
 
@@ -293,10 +280,11 @@ export function useBatchEdit() {
   /**
    * 预览批量修改
    * @param {string} sql - 原始SQL语句
+   * @param {Array<BatchEditRule>} rules - 修改规则列表
    * @returns {Object} 预览结果
    */
-  const previewBatchEdit = (sql) => {
-    const result = applyBatchEdit(sql, editRules.value)
+  const previewBatchEdit = (sql, rules) => {
+    const result = applyBatchEdit(sql, rules)
     previewResult.value = result
     return result
   }
@@ -313,30 +301,16 @@ export function useBatchEdit() {
     }
   }
 
-  /**
-   * 获取规则统计信息
-   * @returns {Object} 统计信息
-   */
-  const getRulesStats = () => {
-    return {
-      total: editRules.value.length,
-      withCondition: editRules.value.filter((r) => r.condition.enabled).length,
-    }
-  }
-
   return {
     // 状态
     editRules,
     previewResult,
-
     // 方法
     addRule,
     removeRule,
-    updateRule,
     parseInsertSql,
     applyBatchEdit,
     previewBatchEdit,
     resetRules,
-    getRulesStats,
   }
 }

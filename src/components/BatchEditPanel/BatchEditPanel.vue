@@ -90,7 +90,6 @@
                       :filter-option="filterOption"
                     />
                   </div>
-
                   <div class="condition-row">
                     <label class="field-label">操作符:</label>
                     <a-select
@@ -108,7 +107,6 @@
                       <a-select-option value="IN">IN</a-select-option>
                     </a-select>
                   </div>
-
                   <div class="condition-row">
                     <label class="field-label">条件值:</label>
                     <a-input
@@ -126,23 +124,27 @@
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- 空状态提示 -->
-          <a-empty v-else description="暂无修改规则，点击上方按钮添加" style="padding: 40px 0" />
+            <!-- 空状态提示 -->
+            <a-empty
+              v-if="editRules.length === 0"
+              description="暂无修改规则，点击上方按钮添加"
+              style="padding: 40px 0"
+            />
 
-          <!-- 底部操作按钮 -->
-          <div v-if="editRules.length > 0" class="bottom-actions">
-            <a-space>
-              <a-button @click="handlePreview" :loading="previewing">
-                <template #icon><EyeOutlined /></template>
-                预览修改
-              </a-button>
-              <a-button type="primary" @click="handleApply" :loading="applying">
-                <template #icon><CheckOutlined /></template>
-                应用修改
-              </a-button>
-            </a-space>
+            <!-- 底部操作按钮 -->
+            <div v-if="editRules.length > 0" class="bottom-actions">
+              <a-space>
+                <a-button @click="handlePreview" :loading="previewing">
+                  <template #icon><EyeOutlined /></template>
+                  预览修改
+                </a-button>
+                <a-button type="primary" @click="handleApply" :loading="applying">
+                  <template #icon><CheckOutlined /></template>
+                  应用修改
+                </a-button>
+              </a-space>
+            </div>
 
             <!-- 预览结果提示 -->
             <a-alert
@@ -171,7 +173,7 @@ import {
   QuestionCircleOutlined,
   InfoCircleOutlined,
 } from '@ant-design/icons-vue'
-import { useBatchEdit } from '@/composables/useBatchEdit'
+import { applyBatchEdit } from '@/composables/useBatchEdit'
 
 /**
  * BatchEditPanel组件 - 批量修改SQL语句面板
@@ -183,6 +185,7 @@ import { useBatchEdit } from '@/composables/useBatchEdit'
  *   :sql="generatedSql"
  *   @preview="handlePreview"
  *   @apply="handleApply"
+ *   @change="handleChange"
  * />
  */
 
@@ -190,7 +193,7 @@ import { useBatchEdit } from '@/composables/useBatchEdit'
 const props = defineProps({
   /**
    * DDL字段列表
-   * @type {Array<{name: string, type: string}>}
+   * @type {Array<Object>}
    */
   ddlFields: {
     type: Array,
@@ -212,26 +215,28 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  /**
+   * 批量修改规则列表
+   * @type {Array<Object>}
+   */
+  rules: {
+    type: Array,
+    default: () => [],
+  },
 })
 
 // Emits定义
-const emit = defineEmits(['preview', 'apply', 'change'])
-
-// 使用批量编辑功能
-const {
-  editRules,
-  previewResult,
-  addRule,
-  removeRule,
-  previewBatchEdit,
-  resetRules,
-  getRulesStats,
-} = useBatchEdit()
+const emit = defineEmits(['preview', 'apply', 'change', 'rules-update'])
 
 // 响应式状态
 const activeKey = ref([])
 const previewing = ref(false)
 const applying = ref(false)
+const editRules = ref([])
+const previewResult = ref({
+  sql: '',
+  affectedRows: 0,
+})
 
 // 计算属性：字段选项
 const fieldOptions = computed(() => {
@@ -243,15 +248,13 @@ const fieldOptions = computed(() => {
 
 // 计算属性：规则统计
 const rulesStats = computed(() => {
-  return getRulesStats()
+  return {
+    total: editRules.value.length,
+    withCondition: editRules.value.filter((r) => r.condition.enabled).length,
+  }
 })
 
-/**
- * 过滤选项
- * @param {string} input - 输入值
- * @param {Object} option - 选项对象
- * @returns {boolean} 是否匹配
- */
+// 过滤选项
 const filterOption = (input, option) => {
   return option.label.toLowerCase().includes(input.toLowerCase())
 }
@@ -261,7 +264,17 @@ const filterOption = (input, option) => {
  * @returns {void}
  */
 const handleAddRule = () => {
-  addRule()
+  const newRule = {
+    id: `rule_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    fieldName: '',
+    newValue: '',
+    condition: {
+      enabled: false,
+      operator: '=',
+      value: '',
+    },
+  }
+  editRules.value.push(newRule)
   // 自动展开面板
   if (activeKey.value.length === 0) {
     activeKey.value = ['1']
@@ -275,7 +288,10 @@ const handleAddRule = () => {
  * @returns {void}
  */
 const handleRemoveRule = (ruleId) => {
-  removeRule(ruleId)
+  const index = editRules.value.findIndex((rule) => rule.id === ruleId)
+  if (index !== -1) {
+    editRules.value.splice(index, 1)
+  }
   emit('change', editRules.value)
 }
 
@@ -284,7 +300,11 @@ const handleRemoveRule = (ruleId) => {
  * @returns {void}
  */
 const handleReset = () => {
-  resetRules()
+  editRules.value = []
+  previewResult.value = {
+    sql: '',
+    affectedRows: 0,
+  }
   message.info('已重置所有修改规则')
   emit('change', editRules.value)
 }
@@ -298,24 +318,14 @@ const handlePreview = async () => {
     message.warning('请先生成SQL语句')
     return
   }
-
   if (editRules.value.length === 0) {
     message.warning('请先添加修改规则')
     return
   }
-
-  // 验证规则
-  const invalidRules = editRules.value.filter(
-    (rule) => !rule.fieldName || rule.newValue === undefined || rule.newValue === '',
-  )
-  if (invalidRules.length > 0) {
-    message.warning('请完善所有修改规则的字段和新值')
-    return
-  }
-
   previewing.value = true
   try {
-    const result = previewBatchEdit(props.sql)
+    const result = applyBatchEdit(props.sql, editRules.value)
+    previewResult.value = result
     emit('preview', result)
     message.success(`预览成功，将影响 ${result.affectedRows} 行数据`)
   } catch (error) {
@@ -334,24 +344,13 @@ const handleApply = async () => {
     message.warning('请先生成SQL语句')
     return
   }
-
   if (editRules.value.length === 0) {
     message.warning('请先添加修改规则')
     return
   }
-
-  // 验证规则
-  const invalidRules = editRules.value.filter(
-    (rule) => !rule.fieldName || rule.newValue === undefined || rule.newValue === '',
-  )
-  if (invalidRules.length > 0) {
-    message.warning('请完善所有修改规则的字段和新值')
-    return
-  }
-
   applying.value = true
   try {
-    const result = previewBatchEdit(props.sql)
+    const result = applyBatchEdit(props.sql, editRules.value)
     emit('apply', result)
     message.success(`应用成功，已修改 ${result.affectedRows} 行数据`)
   } catch (error) {
@@ -366,7 +365,7 @@ watch(
   editRules,
   () => {
     if (props.autoPreview && props.sql && editRules.value.length > 0) {
-      const result = previewBatchEdit(props.sql)
+      const result = applyBatchEdit(props.sql, editRules.value)
       emit('preview', result)
     }
     emit('change', editRules.value)
@@ -387,10 +386,10 @@ watch(
 
 // 暴露方法给父组件
 defineExpose({
-  addRule,
-  removeRule,
-  resetRules,
-  previewBatchEdit,
+  addRule: handleAddRule,
+  removeRule: handleRemoveRule,
+  resetRules: handleReset,
+  applyBatchEdit: () => applyBatchEdit(props.sql, editRules.value),
 })
 </script>
 
@@ -449,7 +448,7 @@ defineExpose({
 .rules-list {
   max-height: 500px;
   overflow-y: auto;
-  padding: 0 4px;
+  padding: 0;
 }
 
 /* 规则项 */
@@ -537,6 +536,11 @@ defineExpose({
   border-radius: 8px;
 }
 
+.bottom-actions .ant-alert {
+  margin-left: 0 !important;
+  margin-top: 12px;
+}
+
 /* 滚动条样式 */
 .rules-list::-webkit-scrollbar {
   width: 6px;
@@ -579,7 +583,7 @@ defineExpose({
 }
 
 :deep(.ant-collapse-content-box) {
-  padding: 0 16px 16px 16px;
+  padding: 0 16px 16px;
 }
 
 /* 暗色主题支持 */
@@ -637,33 +641,19 @@ defineExpose({
   background: rgba(255, 255, 255, 0.2);
 }
 
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .action-bar {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
+/* 按钮悬停效果 */
+:deep(.ant-btn) {
+  transition: all 0.2s ease;
+}
 
-  .stats-info {
-    width: 100%;
-    justify-content: flex-start;
-  }
+:deep(.ant-btn:hover) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(22, 119, 255, 0.15);
+}
 
-  .bottom-actions {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .bottom-actions :deep(.ant-space) {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .bottom-actions .ant-alert {
-    margin-left: 0 !important;
-    margin-top: 12px;
-  }
+:deep(.ant-btn:active) {
+  transform: translateY(0);
+  box-shadow: none;
 }
 
 /* 微交互动画 */
@@ -680,20 +670,5 @@ defineExpose({
 
 .rule-item {
   animation: fadeIn 0.3s ease;
-}
-
-/* 按钮悬停效果 */
-:deep(.ant-btn) {
-  transition: all 0.2s ease;
-}
-
-:deep(.ant-btn:hover) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(22, 119, 255, 0.15);
-}
-
-:deep(.ant-btn:active) {
-  transform: translateY(0);
-  box-shadow: none;
 }
 </style>
