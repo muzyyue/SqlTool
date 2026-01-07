@@ -282,13 +282,13 @@ const applyBatchEditToData = (data, rules) => {
           return
         }
 
-        const conditionFieldValue = row[conditionColumnIndex]
+        const conditionFieldValue = row[String(conditionColumnIndex)]
         if (!matchCondition(conditionFieldValue, rule.condition.operator, rule.condition.value)) {
           return
         }
       }
 
-      newRow[columnIndex] = rule.newValue
+      newRow[String(columnIndex)] = rule.newValue
       modified = true
     })
 
