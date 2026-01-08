@@ -409,11 +409,20 @@ export function useCustomBinding() {
    * 生成自增数字
    * @param {string} fieldName - 自定义字段名
    * @param {Object} config - 自增配置
+   * @param {string} groupValue - 分组字段值，为空则全局递增
    */
-  const generateAutoIncrementValue = (fieldName, config) => {
-    if (!autoIncrementCounters.value[fieldName]) {
+  const generateAutoIncrementValue = (fieldName, config, groupValue = '') => {
+    const counter = autoIncrementCounters.value[fieldName]
+
+    if (!counter) {
       autoIncrementCounters.value[fieldName] = {
         current: config.start || 0,
+        groupValue: groupValue,
+      }
+    } else {
+      if (config.groupBy && counter.groupValue !== groupValue) {
+        counter.current = config.start || 0
+        counter.groupValue = groupValue
       }
     }
 
@@ -435,6 +444,7 @@ export function useCustomBinding() {
       if (field.dataSource === 'auto_increment') {
         countersToReset[field.fieldName] = {
           current: field.autoIncrementConfig?.start || 0,
+          groupValue: '',
         }
       }
     })

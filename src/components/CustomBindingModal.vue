@@ -374,7 +374,7 @@
                     </div>
 
                     <div v-else-if="record.dataSource === 'auto_increment'" class="config-section">
-                      <div style="display: flex; gap: 8px">
+                      <div style="display: flex; gap: 8px; margin-bottom: 8px">
                         <a-input-number
                           v-model:value="record.autoIncrementConfig.start"
                           :min="0"
@@ -387,6 +387,24 @@
                           placeholder="步长"
                           @change="handleCustomFieldChange(record)"
                         />
+                      </div>
+                      <a-select
+                        v-model:value="record.autoIncrementConfig.groupBy"
+                        placeholder="选择分组字段（可选）"
+                        allow-clear
+                        style="width: 100%"
+                        @change="handleCustomFieldChange(record)"
+                      >
+                        <a-select-option
+                          v-for="field in availableDdlFields"
+                          :key="field.name"
+                          :value="field.name"
+                        >
+                          {{ field.name }} ({{ field.type }})
+                        </a-select-option>
+                      </a-select>
+                      <div style="color: #999; font-size: 12px; margin-top: 4px">
+                        相同分组值的行会连续递增，不同则重置
                       </div>
                     </div>
                   </div>
