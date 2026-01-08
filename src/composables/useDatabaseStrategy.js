@@ -168,6 +168,18 @@ export class DatabaseDialectDetector {
       return 'unknown'
     }
 
+    // 优先检测达梦数据库特有的语法模式
+    const dmSpecificPatterns = [
+      /STORAGE\s*\(/i, // 达梦数据库特有的STORAGE语法
+      /\bNOT\s+CLUSTER\s+PRIMARY\s+KEY/i, // 达梦数据库特有的主键语法（移除末尾单词边界以匹配"KEY("）
+    ]
+
+    for (const pattern of dmSpecificPatterns) {
+      if (pattern.test(ddlStatement)) {
+        return 'dm'
+      }
+    }
+
     const scores = {}
 
     // 计算每种数据库的匹配分数
@@ -234,6 +246,7 @@ export class DatabaseDialectDetector {
         lowerDdl.includes('storage') ||
         lowerDdl.includes('pctfree') ||
         lowerDdl.includes('logging') ||
+        lowerDdl.includes('not cluster primary key') ||
         (lowerDdl.includes('identity(') && lowerDdl.includes('timestamp default current_timestamp'))
       ) {
         return 'dm'

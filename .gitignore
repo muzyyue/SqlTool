@@ -7,12 +7,34 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
-.DS_Store
+
+# Build outputs
 dist
 dist-ssr
+dist.zip
+
+# Testing
 coverage
-*.local
+test-results/
+__screenshots__/
+Test.txt
+Test.xlsx
+项目测试.xlsx
+test/reports/
+test/scripts/
+*.xlsx
+# test/config/目录需要被git跟踪，供GitHub Actions使用
+!test/config/
+*.md
+test/custom_field_function_test.js
+test_data.csv
+
+# Environment files
+.env
+.env.local
+.env.*.local
 
 # Editor directories and files
 .vscode/*
@@ -24,13 +46,21 @@ coverage
 *.sln
 *.sw?
 
+# OS generated files
+.DS_Store
+*.local
+Thumbs.db
+~$*.xlsx
+
+# Tooling
+.trae/
+.eslintcache
 *.tsbuildinfo
 
-.eslintcache
+# Documentation
+项目重构架构设计.md
+request.md
 
 # Cypress
 /cypress/videos/
 /cypress/screenshots/
-
-# Vitest
-__screenshots__/

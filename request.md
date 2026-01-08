@@ -2,15 +2,24 @@
 
 **每次添加新功能时，生成一些测试数据，用测试数据测试通过后在提示完成任务**
 
-- 保留并增强动态添加字段功能模块，支持添加自定义字段、设置数据类型和默认值
+​	use Sequential Thinking  在生成的INSERT语句部分添加一个批量修改的功能和ui（下拉选择ddl字段，输入框输入数据），修改指定ddl字段/列的数据，将列数据为XX 的数据更改为 XX 
 
-- 保留并优化批量修改功能模块，支持对多个字段或记录进行统一编辑，提供批量替换、格式转换等高级功能
 
-- 修改过滤字段功能逻辑，将原有的通用过滤机制改为基于DDL语句提供的字段进行精确过滤，确保只显示和处理表结构中定义的字段
 
-- 美化sql出错，sql语句不可用，语法验证结果 出现大量错误
+开个新分支，实现工具箱项目
 
-- DDL绑定EXCEL数据列还是没有
+
+
+### 添加新模块
+
+**添加JSON模块，功能有：** 类似文本编辑器(像notepad++那样)？ Web版本的
+
+- json数据格式化，语法高亮，可折叠json块
+- 添加一栏（左右两栏），可用于数据对比
+- 数据定位（类似ctrl + f ），查找数据
+- 根据指定字段对比两个json数据，看是否相同或者缺少那个数据 支持深度匹配  给出哪边缺少的数据
+- 显示每一个json块包含多少条数据
+- 解析数组？ 逗号识别（中/英）？
 
 ### 新任务
 
@@ -64,4 +73,77 @@
 
 - 绑定excel数据列未成功
 - 拼接字段的功能也未成功
-- 添加自定义默认字段，可以用一个文件保存自定义的字段  eg：CREATED_AT 等等
+- 添加自定义默认字段，可以用一个文件保存自定义的字段 eg：CREATED_AT 等等
+- 添加函数列表 达梦的GUID
+
+整体优化项目： 升级项目为小工具站
+
+角色定位
+你是一位「Vue3 + Ant Design Vue」静态页面美学专家，深耕 UnoCSS、动画、视觉降噪与无障碍交互。本次任务：打造一款 “在线小工具箱” Web 项目（示例工具：JSON 格式化、SQL 生成、时间戳转换、正则测试、MD5 加密、二维码生成…）。要求纯前端、0 后端、可秒级部署到 GitHub Pages，同时延续 ant.vben.pro 同款「高饱和渐变 + 玻璃卡片 + 圆角网格」风格。
+一、美术硬指标（不对 antd 默认样式开刀，仅用覆盖）
+主渐变：linear-gradient(135deg, #1677FF 0%, #14C9C9 100%)
+玻璃卡片：背景 rgba(255,255,255,0.85) + backdrop-blur-20px + 外发光 0 8 32 0 rgba(22,119,255,0.12) + 圆角 12px
+圆角规范：4px（小标签）、8px（按钮）、12px（卡片）、16px（大图标）
+阴影层级：sm → 0 2 8 0 rgba(0,0,0,0.08)　lg → 0 8 32 0 rgba(22,119,255,0.12)
+字体：Inter + 阿里巴巴普惠体；主标题 24px 500、正文 14px 400、代码 13px JetBrains Mono
+暗色模式：背景 #151C28 → 卡片 #1E293B 60% 不透明，一键切换 ≤ 30ms
+二、技术栈（纯前端，可按功能随时插拔）
+Vue3 <script setup> + TypeScript + Vite
+Ant Design Vue 4.x（仅基础组件：Input、Button、Table、Tabs、Modal…）
+UnoCSS（原子化 + 主题变量 + shortcuts）
+Vue-Router 4（每个工具一个路由，懒加载）
+Pinia（存主题、偏好语言、收藏夹）
+Iconify（离线图标包 @iconify/json）
+CodeMirror 6 + lang-json / lang-sql（工具内嵌编辑器，支持主题切换）
+Clipboard API（一键复制）
+FileSaver.js（一键下载）
+PWA：workbox 预缓存，离线可访问常用工具
+部署：GitHub Actions 自动推 dist → GitHub Pages（HTTPS）
+三、目录规范
+src/
+├─ assets/ # 字体、lottie、静态插画
+├─ components/ # 通用 VbenGlassCard、VbenGradientButton、CodeEditor
+├─ composables/ # useCopy、useDownload、useDebounce、useTheme
+├─ layouts/ # 默认玻璃导航布局
+├─ views/ # 各工具页面（每个单文件组件）
+├─ router/ # 路由表，自动扫描 views 目录生成
+├─ stores/ # pinia 模块
+├─ utils/ # 纯函数工具（json2tree、sqlInsert、timestampFormat…）
+├─ design/ # 色板、uno.config.ts、vben.css
+└─ App.vue / main.ts
+四、页面 & 交互（静态即可，预留后续 API 插槽）
+首页 /
+Hero：主渐变文字 + 搜索框（可快速定位工具）
+工具网格：图标 + 名称 + 一句话描述；支持“收藏”星标
+底部 Footer：GitHub 链接、主题切换、语言切换
+工具详情（各路由）
+JSON 格式化：左侧粘贴 → 右侧树形高亮；错误行红色波浪；支持压缩、转义、下载
+SQL 生成：表单输入表名 & 列 → 实时生成 CREATE / INSERT / UPDATE 语句；支持 MySQL、PostgreSQL 方言切换
+时间戳转换：双向绑定 → 输入时间戳回显本地时间；输入日期回显时间戳；支持毫秒、秒、UTC
+正则测试：正则输入 + flags 多选 → 高亮匹配结果 + 分组表格 + 常用正则快捷插入
+MD5/SHA 加密：实时计算 32/16 位大/小写；支持文件拖入哈希
+二维码生成：输入文本 → 实时二维码 + 下载 SVG/PNG
+通用微交互
+按钮点击：缩放 0.98 + 亮度 +10%　120ms ease
+卡片 hover：抬高 2px + 阴影 lg 过渡 200ms
+代码编辑器：Tab 键插入 2 空格；切换暗色时编辑器主题同步 monokai / vs-light
+五、暗色/亮色切换实现
+在 src/design/theme.ts 定义 CSS 变量，并写入 html[data-theme='dark'] 作用域
+Pinia 中 useTheme().toggle() 切换 data-theme 属性，UnoCSS 用 dark: 前缀适配
+六、性能 & 兼容性
+首屏 JS ≤ 150 KB（gzip）
+Lighthouse 性能 ≥ 95、可访问性 ≥ 95
+支持 Chrome 90+、Edge、Firefox、Safari；不支持 IE
+七、交付清单
+完整源码（每个工具独立 view 文件，代码内嵌中文注释）
+uno.config.ts + vben.css（玻璃卡片、渐变按钮 0 依赖）
+CodeMirror 主题切换钩子（同步亮色/暗色）
+README：
+一键运行 / 构建 / 部署到 GitHub Pages
+如何新增一个工具（复制模板 → 写 util → 加路由）
+主题换色、图标、国际化说明
+在线演示（GitHub Pages 地址）
+架构图（drawio）+ 新增工具流程图（PlantUML）
+八、输出格式
+请把所有源码、配置、示意图按树状结构贴在 Markdown 代码块，顶部一句：
+「复制到 VS Code → pnpm i → pnpm dev，即可看到 Vben 同款高颜值小工具箱」

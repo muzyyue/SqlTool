@@ -464,7 +464,8 @@ export class DmDatabaseStrategy extends DatabaseStrategy {
       trimmedDef.toUpperCase().startsWith('PRIMARY KEY') ||
       trimmedDef.toUpperCase().startsWith('FOREIGN KEY') ||
       trimmedDef.toUpperCase().startsWith('UNIQUE') ||
-      trimmedDef.toUpperCase().startsWith('CONSTRAINT')
+      trimmedDef.toUpperCase().startsWith('CONSTRAINT') ||
+      trimmedDef.toUpperCase().startsWith('NOT CLUSTER PRIMARY KEY')
     ) {
       return null
     }
@@ -479,14 +480,29 @@ export class DmDatabaseStrategy extends DatabaseStrategy {
       comment: '',
     }
 
-    // 提取字段名
-    const nameMatch = trimmedDef.match(/^([\w]+)/)
+    // 提取字段名（支持带引号和不带引号的字段名）
+    // 支持引号内包含特殊字符，如中文、下划线等
+    const nameMatch = trimmedDef.match(/^(["'])(.*?)\1|^([\w]+)/)
     if (nameMatch) {
-      field.name = nameMatch[1]
+      field.name = nameMatch[2] || nameMatch[3]
     }
 
     // 提取数据类型和长度
-    const typeMatch = trimmedDef.match(/\b(\w+)(?:\((\d+(?:,\s*\d+)*)\))?/i)
+    // 考虑带引号的字段名，跳过字段名部分再匹配数据类型
+    let typePattern = /\b(\w+)(?:\((\d+(?:,\s*\d+)*)\))?/i
+    let typeMatch
+
+    // 如果字段名是带引号的，跳过引号部分再匹配
+    if (trimmedDef.startsWith('"') || trimmedDef.startsWith("'")) {
+      const quoteEndIndex = trimmedDef.indexOf(trimmedDef[0], 1)
+      if (quoteEndIndex !== -1) {
+        typeMatch = trimmedDef.slice(quoteEndIndex + 1).match(typePattern)
+      }
+    } else {
+      // 字段名不带引号，直接匹配
+      typeMatch = trimmedDef.match(typePattern)
+    }
+
     if (typeMatch) {
       field.type = typeMatch[1].toUpperCase()
       if (typeMatch[2]) {

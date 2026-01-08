@@ -4,8 +4,8 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest'
-import { useDdlTypeParser } from '../src/composables/useDdlTypeParser.js'
-import { useDdlProcessor } from '../src/composables/useDdlProcessor.js'
+import { useDdlTypeParser } from '../../src/composables/useDdlTypeParser.js'
+import { useDdlProcessor } from '../../src/composables/useDdlProcessor.js'
 
 // 测试数据
 const testDdl = `

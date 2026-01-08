@@ -19,7 +19,7 @@ export function useErrorHandler() {
     GENERATION: 'generation',
     NETWORK: 'network',
     FILE: 'file',
-    UNKNOWN: 'unknown'
+    UNKNOWN: 'unknown',
   }
 
   /**
@@ -28,7 +28,7 @@ export function useErrorHandler() {
   const ErrorLevels = {
     ERROR: 'error',
     WARNING: 'warning',
-    INFO: 'info'
+    INFO: 'info',
   }
 
   /**
@@ -37,7 +37,7 @@ export function useErrorHandler() {
   const logError = (error, type = ErrorTypes.UNKNOWN, context = {}) => {
     const errorEntry = createLogEntry(error, ErrorLevels.ERROR, type, context)
     errorLogs.value.unshift(errorEntry)
-    
+
     // 限制日志大小
     if (errorLogs.value.length > maxLogSize.value) {
       errorLogs.value = errorLogs.value.slice(0, maxLogSize.value)
@@ -53,7 +53,7 @@ export function useErrorHandler() {
   const logWarning = (warning, type = ErrorTypes.UNKNOWN, context = {}) => {
     const warningEntry = createLogEntry(warning, ErrorLevels.WARNING, type, context)
     warningLogs.value.unshift(warningEntry)
-    
+
     if (warningLogs.value.length > maxLogSize.value) {
       warningLogs.value = warningLogs.value.slice(0, maxLogSize.value)
     }
@@ -68,7 +68,7 @@ export function useErrorHandler() {
   const logInfo = (info, type = ErrorTypes.UNKNOWN, context = {}) => {
     const infoEntry = createLogEntry(info, ErrorLevels.INFO, type, context)
     infoLogs.value.unshift(infoEntry)
-    
+
     if (infoLogs.value.length > maxLogSize.value) {
       infoLogs.value = infoLogs.value.slice(0, maxLogSize.value)
     }
@@ -83,7 +83,7 @@ export function useErrorHandler() {
   const createLogEntry = (message, level, type, context = {}) => {
     const timestamp = new Date().toISOString()
     const id = generateId()
-    
+
     return {
       id,
       timestamp,
@@ -95,9 +95,9 @@ export function useErrorHandler() {
         userAgent: navigator.userAgent,
         url: window.location.href,
         timestamp: Date.now(),
-        ...context
+        ...context,
       },
-      resolved: false
+      resolved: false,
     }
   }
 
@@ -113,13 +113,13 @@ export function useErrorHandler() {
    */
   const handleValidationError = (errors, context = {}) => {
     if (Array.isArray(errors)) {
-      errors.forEach(error => {
+      errors.forEach((error) => {
         logError(error, ErrorTypes.VALIDATION, context)
       })
     } else {
       logError(errors, ErrorTypes.VALIDATION, context)
     }
-    
+
     return getFriendlyErrorMessage(ErrorTypes.VALIDATION, errors)
   }
 
@@ -160,11 +160,11 @@ export function useErrorHandler() {
    */
   const getFriendlyErrorMessage = (type, error) => {
     const baseMessage = typeof error === 'string' ? error : error?.message || '发生未知错误'
-    
+
     switch (type) {
       case ErrorTypes.VALIDATION:
         return `输入验证失败: ${baseMessage}`
-      
+
       case ErrorTypes.PARSING:
         if (baseMessage.includes('DDL') || baseMessage.includes('SQL')) {
           return `SQL解析错误: ${baseMessage}`
@@ -173,10 +173,10 @@ export function useErrorHandler() {
           return `文件解析错误: ${baseMessage}`
         }
         return `数据解析错误: ${baseMessage}`
-      
+
       case ErrorTypes.GENERATION:
         return `SQL生成错误: ${baseMessage}`
-      
+
       case ErrorTypes.FILE:
         if (baseMessage.includes('格式') || baseMessage.includes('类型')) {
           return `文件格式错误: ${baseMessage}`
@@ -185,10 +185,10 @@ export function useErrorHandler() {
           return `文件大小超出限制: ${baseMessage}`
         }
         return `文件操作错误: ${baseMessage}`
-      
+
       case ErrorTypes.NETWORK:
         return `网络连接错误: ${baseMessage}`
-      
+
       default:
         return `系统错误: ${baseMessage}`
     }
@@ -199,22 +199,22 @@ export function useErrorHandler() {
    */
   const getErrorStats = computed(() => {
     const last24Hours = Date.now() - 24 * 60 * 60 * 1000
-    
-    const recentErrors = errorLogs.value.filter(log => 
-      new Date(log.timestamp).getTime() > last24Hours
+
+    const recentErrors = errorLogs.value.filter(
+      (log) => new Date(log.timestamp).getTime() > last24Hours,
     )
-    
+
     const typeStats = {}
-    Object.values(ErrorTypes).forEach(type => {
-      typeStats[type] = recentErrors.filter(log => log.type === type).length
+    Object.values(ErrorTypes).forEach((type) => {
+      typeStats[type] = recentErrors.filter((log) => log.type === type).length
     })
-    
+
     return {
       totalErrors: errorLogs.value.length,
       recentErrors: recentErrors.length,
-      unresolvedErrors: errorLogs.value.filter(log => !log.resolved).length,
+      unresolvedErrors: errorLogs.value.filter((log) => !log.resolved).length,
       typeStats,
-      lastError: errorLogs.value[0] || null
+      lastError: errorLogs.value[0] || null,
     }
   })
 
@@ -222,7 +222,7 @@ export function useErrorHandler() {
    * 标记错误为已解决
    */
   const markAsResolved = (errorId) => {
-    const errorIndex = errorLogs.value.findIndex(log => log.id === errorId)
+    const errorIndex = errorLogs.value.findIndex((log) => log.id === errorId)
     if (errorIndex !== -1) {
       errorLogs.value[errorIndex].resolved = true
     }
@@ -232,14 +232,14 @@ export function useErrorHandler() {
    * 批量标记错误为已解决
    */
   const markMultipleAsResolved = (errorIds) => {
-    errorIds.forEach(id => markAsResolved(id))
+    errorIds.forEach((id) => markAsResolved(id))
   }
 
   /**
    * 清除已解决的错误
    */
   const clearResolvedErrors = () => {
-    errorLogs.value = errorLogs.value.filter(log => !log.resolved)
+    errorLogs.value = errorLogs.value.filter((log) => !log.resolved)
   }
 
   /**
@@ -258,9 +258,9 @@ export function useErrorHandler() {
       warnings: warningLogs.value,
       infos: infoLogs.value,
       exportTime: new Date().toISOString(),
-      stats: getErrorStats.value
+      stats: getErrorStats.value,
     }
-    
+
     switch (format) {
       case 'json':
         return JSON.stringify(logs, null, 2)
@@ -278,21 +278,21 @@ export function useErrorHandler() {
    */
   const convertToCSV = (logs) => {
     let csv = '时间戳,级别,类型,消息,已解决\n'
-    
+
     const allLogs = [
-      ...logs.errors.map(log => ({ ...log, level: 'ERROR' })),
-      ...logs.warnings.map(log => ({ ...log, level: 'WARNING' })),
-      ...logs.infos.map(log => ({ ...log, level: 'INFO' }))
+      ...logs.errors.map((log) => ({ ...log, level: 'ERROR' })),
+      ...logs.warnings.map((log) => ({ ...log, level: 'WARNING' })),
+      ...logs.infos.map((log) => ({ ...log, level: 'INFO' })),
     ]
-    
-    allLogs.forEach(log => {
+
+    allLogs.forEach((log) => {
       const timestamp = new Date(log.timestamp).toLocaleString('zh-CN')
       const message = `"${log.message.replace(/"/g, '""')}"`
       const resolved = log.resolved ? '是' : '否'
-      
+
       csv += `${timestamp},${log.level},${log.type},${message},${resolved}\n`
     })
-    
+
     return csv
   }
 
@@ -302,25 +302,25 @@ export function useErrorHandler() {
   const convertToText = (logs) => {
     let text = `错误日志报告 - ${new Date().toLocaleString('zh-CN')}\n`
     text += `========================================\n\n`
-    
+
     text += `错误统计:\n`
     text += `- 总错误数: ${logs.stats.totalErrors}\n`
     text += `- 24小时内错误数: ${logs.stats.recentErrors}\n`
     text += `- 未解决错误数: ${logs.stats.unresolvedErrors}\n\n`
-    
+
     text += `详细日志:\n`
     text += `----------------------------------------\n`
-    
+
     const allLogs = [
-      ...logs.errors.map(log => ({ ...log, level: 'ERROR' })),
-      ...logs.warnings.map(log => ({ ...log, level: 'WARNING' })),
-      ...logs.infos.map(log => ({ ...log, level: 'INFO' }))
+      ...logs.errors.map((log) => ({ ...log, level: 'ERROR' })),
+      ...logs.warnings.map((log) => ({ ...log, level: 'WARNING' })),
+      ...logs.infos.map((log) => ({ ...log, level: 'INFO' })),
     ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-    
-    allLogs.forEach(log => {
+
+    allLogs.forEach((log) => {
       const timestamp = new Date(log.timestamp).toLocaleString('zh-CN')
       const status = log.resolved ? '[已解决]' : '[未解决]'
-      
+
       text += `[${timestamp}] ${log.level} ${status}\n`
       text += `类型: ${log.type}\n`
       text += `消息: ${log.message}\n`
@@ -329,7 +329,7 @@ export function useErrorHandler() {
       }
       text += `\n`
     })
-    
+
     return text
   }
 
@@ -350,19 +350,19 @@ export function useErrorHandler() {
   const setupGlobalErrorHandling = () => {
     // 捕获未处理的Promise拒绝
     window.addEventListener('unhandledrejection', (event) => {
-      logError(event.reason, ErrorTypes.UNKNOWN, { 
+      logError(event.reason, ErrorTypes.UNKNOWN, {
         event: 'unhandledrejection',
-        promise: event.promise 
+        promise: event.promise,
       })
     })
 
     // 捕获全局错误
     window.addEventListener('error', (event) => {
-      logError(event.error, ErrorTypes.UNKNOWN, { 
+      logError(event.error, ErrorTypes.UNKNOWN, {
         event: 'global error',
         filename: event.filename,
         lineno: event.lineno,
-        colno: event.colno 
+        colno: event.colno,
       })
     })
 
@@ -374,27 +374,27 @@ export function useErrorHandler() {
     warningLogs: computed(() => warningLogs.value),
     infoLogs: computed(() => infoLogs.value),
     errorStats: getErrorStats,
-    
+
     ErrorTypes,
     ErrorLevels,
-    
+
     logError,
     logWarning,
     logInfo,
-    
+
     handleValidationError,
     handleParsingError,
     handleGenerationError,
     handleFileError,
     handleNetworkError,
-    
+
     markAsResolved,
     markMultipleAsResolved,
     clearResolvedErrors,
     clearAllErrors,
     exportErrorLogs,
-    
+
     setMaxLogSize,
-    setupGlobalErrorHandling
+    setupGlobalErrorHandling,
   }
 }

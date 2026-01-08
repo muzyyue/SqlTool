@@ -31,7 +31,7 @@ config.global.stubs = {
   'a-progress': true,
   'a-timeline': true,
   'a-timeline-item': true,
-  'a-empty': true
+  'a-empty': true,
 }
 
 // 全局测试辅助函数

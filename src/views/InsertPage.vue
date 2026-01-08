@@ -100,6 +100,43 @@
             />
           </div>
 
+          <!-- 去重配置 -->
+          <div v-if="excelData && excelData.length > 0" class="deduplication-config">
+            <a-divider style="margin: 12px 0" />
+            <div class="deduplication-header">
+              <a-checkbox
+                v-model:checked="deduplicationEnabled"
+                @change="handleDeduplicationToggle"
+              >
+                启用数据去重
+              </a-checkbox>
+              <a-tooltip title="根据选定列的值去除重复数据行，仅保留每组的第一次出现">
+                <QuestionCircleOutlined />
+              </a-tooltip>
+            </div>
+            <div v-if="deduplicationEnabled" class="deduplication-controls">
+              <a-select
+                v-model:value="deduplicationColumn"
+                placeholder="请选择去重列"
+                style="width: 100%"
+                @change="applyDeduplication"
+              >
+                <a-select-option
+                  v-for="(header, idx) in excelHeaders || []"
+                  :key="idx"
+                  :value="idx"
+                >
+                  {{ header }} (列{{ idx + 1 }})
+                </a-select-option>
+              </a-select>
+              <div v-if="deduplicationStats.removedRows > 0" class="deduplication-stats">
+                <a-tag color="blue">原始: {{ deduplicationStats.originalRows }} 行</a-tag>
+                <a-tag color="green">去重后: {{ deduplicationStats.deduplicatedRows }} 行</a-tag>
+                <a-tag color="orange">去重: {{ deduplicationStats.removedRows }} 行</a-tag>
+              </div>
+            </div>
+          </div>
+
           <div v-if="excelData && excelData.length > 0" class="data-preview">
             <a-collapse>
               <a-collapse-panel key="preview" header="数据预览">
@@ -128,70 +165,120 @@
           <div class="mapping-stats">
             <a-statistic
               title="匹配率"
-              :value="matchingStats.matchRate"
+              :value="enhancedMatchingStats.matchRate"
               :precision="1"
               suffix="%"
             />
             <a-statistic
               title="已匹配"
-              :value="matchingStats.matched"
+              :value="enhancedMatchingStats.matched"
               :value-style="{ color: '#3f8600' }"
             />
             <a-statistic
               title="未匹配"
-              :value="matchingStats.unmatched"
+              :value="enhancedMatchingStats.unmatched"
               :value-style="{ color: '#cf1322' }"
             />
+
+            <!-- 自定义绑定统计 -->
+            <div v-if="hasCustomBindingConfig" class="custom-binding-stats">
+              <a-divider type="vertical" />
+              <a-statistic
+                title="自定义绑定"
+                :value="enhancedMatchingStats.customBindings || 0"
+                :value-style="{ color: '#1890ff' }"
+              />
+              <a-statistic
+                title="字段拼接"
+                :value="enhancedMatchingStats.concatenationRules || 0"
+                :value-style="{ color: '#722ed1' }"
+              />
+            </div>
           </div>
 
           <a-table
-            :data-source="fieldMappings"
+            :data-source="filteredFieldMappings"
             :columns="mappingColumns"
             :pagination="false"
             size="small"
           >
             <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'fieldName'">
+                <span>{{ record.ddlField.name }}</span>
+              </template>
+
               <template v-if="column.key === 'ddlField'">
-                <div>
-                  <strong>{{ record.ddlField.name }}</strong>
-                  <div class="field-type">{{ record.ddlField.type }}</div>
-                  <a-tag v-if="!record.ddlField.nullable" color="red" size="small"> 必填 </a-tag>
+                <div class="ddl-field-cell">
+                  <div class="ddl-field-info">
+                    <strong>{{ record.ddlField.name }}</strong>
+                    <div class="field-type">{{ record.ddlField.type }}</div>
+                    <a-tag v-if="!record.ddlField.nullable" color="red" size="small"> 必填 </a-tag>
+                    <a-tag
+                      v-if="record.status === 'unmatched' || record.excelIndex === -1"
+                      color="orange"
+                      size="small"
+                    >
+                      未匹配
+                    </a-tag>
+                  </div>
+                  <a-select
+                    v-if="excelHeaders && excelHeaders.length > 0"
+                    v-model:value="record.excelIndex"
+                    style="width: 100%; margin-top: 8px"
+                    placeholder="选择Excel列"
+                    size="small"
+                    @change="(value) => updateMapping(record.ddlField.name, value)"
+                  >
+                    <a-select-option :value="-1">未绑定</a-select-option>
+                    <a-select-option
+                      v-for="(header, idx) in excelHeaders || []"
+                      :key="idx"
+                      :value="idx"
+                      :disabled="isColumnUsed(idx)"
+                    >
+                      {{ header }} (列{{ idx + 1 }})
+                    </a-select-option>
+                  </a-select>
+                  <div v-else class="no-excel-hint">
+                    <small>请先上传Excel文件</small>
+                  </div>
                 </div>
               </template>
 
               <template v-if="column.key === 'excelHeader'">
-                <a-select
-                  v-if="record.status === 'pending'"
-                  v-model:value="record.excelIndex"
-                  style="width: 100%"
-                  placeholder="选择Excel列"
-                  @change="(value) => updateMapping(record.ddlField.name, value)"
-                >
-                  <a-select-option :value="-1">未匹配</a-select-option>
-                  <a-select-option
-                    v-for="(header, idx) in excelHeaders || []"
-                    :key="idx"
-                    :value="idx"
-                    :disabled="isColumnUsed(idx)"
-                  >
-                    {{ header }} (列{{ idx + 1 }})
-                  </a-select-option>
-                </a-select>
+                <span v-if="record.excelIndex === -1 || !record.excelHeader">
+                  <a-tag color="gray" size="small">未绑定</a-tag>
+                </span>
                 <span v-else>
                   {{ record.excelHeader }}
-                  <a-tag :color="getConfidenceColor(record.confidence)" size="small">
+                  <a-tag
+                    v-if="record.confidence && record.confidence !== 'manual'"
+                    :color="getConfidenceColor(record.confidence)"
+                    size="small"
+                  >
                     {{ getConfidenceText(record.confidence) }}
+                  </a-tag>
+                  <a-tag v-else-if="record.confidence === 'manual'" color="purple" size="small">
+                    手动
                   </a-tag>
                 </span>
               </template>
 
               <template v-if="column.key === 'similarity'">
+                <span v-if="record.excelIndex === -1 || !record.similarity">-</span>
                 <a-progress
-                  v-if="record.similarity > 0"
+                  v-else
                   :percent="Math.round(record.similarity * 100)"
                   size="small"
+                  :stroke-color="getSimilarityColor(record.similarity)"
                 />
-                <span v-else>-</span>
+              </template>
+
+              <template v-if="column.key === 'generatedByFunction'">
+                <a-checkbox
+                  v-model:checked="record.generatedByFunction"
+                  @change="handleGeneratedByFunctionChange(record)"
+                />
               </template>
 
               <template v-if="column.key === 'actions'">
@@ -207,8 +294,37 @@
           <div class="mapping-actions">
             <a-button @click="autoMatchFields">自动匹配</a-button>
             <a-button @click="clearAllMappings">清除所有</a-button>
-            <a-button type="primary" @click="validateFieldMappings">验证映射</a-button>
+            <a-button type="primary" @click="validateEnhancedMappings">验证映射</a-button>
+
+            <!-- 自定义绑定操作 -->
+            <a-divider type="vertical" />
+            <a-switch
+              v-model:checked="customBindingEnabled"
+              checked-children="自定义绑定"
+              un-checked-children="标准模式"
+              size="small"
+              @change="handleCustomBindingToggle"
+            />
+            <a-button
+              type="dashed"
+              @click="openCustomBindingModal"
+              :disabled="!customBindingEnabled"
+            >
+              <template #icon><SettingOutlined /></template>
+              配置绑定
+            </a-button>
           </div>
+
+          <!-- 自定义字段管理 -->
+          <CustomFieldManager
+            v-if="customBindingEnabled"
+            :key="customFieldManagerKey"
+            :custom-fields="customFieldsData"
+            :custom-binding-manager="customBindingManager"
+            @edit="handleEditCustomField"
+            @delete="handleDeleteCustomField"
+            @refresh="handleRefreshCustomFields"
+          />
 
           <!-- 数据库类型选择 -->
           <div class="database-type-section">
@@ -315,12 +431,32 @@
           </div>
 
           <SqlPreview
-            :sql="generatedSql"
+            :sql="displaySql"
             :stats="sqlStats"
-            :auto-validate="true"
+            :beautify-options="beautifyOptions"
             @copy="handleSqlCopy"
             @download="handleSqlDownload"
-            @validate="handleSqlValidation"
+          />
+
+          <!-- 预览模式切换 -->
+          <div v-if="previewSql" class="preview-mode-switch">
+            <a-radio-group v-model:value="previewMode" button-style="solid" size="small">
+              <a-radio-button value="original">原始SQL</a-radio-button>
+              <a-radio-button value="preview">预览修改</a-radio-button>
+            </a-radio-group>
+          </div>
+
+          <!-- 批量修改面板 -->
+          <BatchEditPanel
+            v-if="generatedSql"
+            :ddl-fields="parsedFields"
+            :excel-data="excelData"
+            :field-mappings="fieldMappings"
+            :auto-preview="false"
+            @preview="handleBatchPreview"
+            @apply="handleBatchApply"
+            @change="handleBatchChange"
+            @update:excelData="handleExcelDataUpdate"
           />
         </div>
 
@@ -368,14 +504,23 @@
         style="margin-bottom: 8px"
       />
     </a-modal>
+
+    <!-- 自定义绑定模态框 -->
+    <CustomBindingModal
+      v-model:open="showCustomBindingModal"
+      :ddl-fields="parsedFields"
+      :excel-headers="excelHeaders"
+      :custom-binding-manager="customBindingManager"
+      :editing-field="editingCustomField"
+      @save="handleCustomBindingSave"
+      @cancel="handleCustomBindingCancel"
+    />
   </div>
 </template>
 
-
-
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { message } from 'ant-design-vue'
+import { ref, computed, onMounted, h } from 'vue'
+import { message, Modal } from 'ant-design-vue'
 import {
   ReloadOutlined,
   PlayCircleOutlined,
@@ -394,23 +539,85 @@ import { useErrorHandler } from '@/composables/useErrorHandler'
 
 // 导入组件
 import SqlPreview from '@/components/SqlPreview/SqlPreview.vue'
+import CustomBindingModal from '@/components/CustomBindingModal.vue'
+import CustomFieldManager from '@/components/CustomFieldManager/CustomFieldManager.vue'
+import BatchEditPanel from '@/components/BatchEditPanel/BatchEditPanel.vue'
 
 // 初始化核心功能模块
 const { parseDdl: parseDdlWithParser, clearCache } = useDdlParser()
 const { parseExcel: parseExcelEnhanced } = useExcelParserEnhanced()
 const {
   fieldMappings,
-  matchFields,
+  enhancedMatchFields,
   updateFieldMapping,
-  validateMappings: validateFieldMappings,
+  validateEnhancedMappings,
   matchingStats,
+  customBindingManager,
 } = useFieldMatcher()
+
+// 增强匹配统计信息，用于UI显示
+const enhancedMatchingStats = computed(() => {
+  return {
+    matchRate: matchingStats.value.matchRate || 0,
+    matched: matchingStats.value.matched || 0,
+    unmatched: matchingStats.value.unmatched || 0,
+    total: matchingStats.value.total || 0,
+    confidenceStats: matchingStats.value.confidenceStats || {},
+    customBindings: customBindingManager.customBindingCount.value || 0,
+    concatenationRules: customBindingManager.concatenationRuleCount.value || 0,
+    customFields: customBindingManager.customFieldCount.value || 0,
+  }
+})
+
+/**
+ * 过滤后的字段映射，排除来自字段拼接规则的excel_combine类型字段
+ * 字段拼接规则创建的字段不出现在DDL原始字段列表中
+ */
+const filteredFieldMappings = computed(() => {
+  return fieldMappings.value.filter((mapping) => {
+    // 如果是自定义字段且数据源类型为excel_combine，并且来自字段拼接规则，则过滤掉
+    if (
+      mapping.ddlField?.isCustom &&
+      mapping.ddlField?.customConfig?.dataSource === 'excel_combine' &&
+      mapping.ddlField?.customConfig?.isFromConcatenationRule
+    ) {
+      return false
+    }
+    return true
+  })
+})
+
+// 自定义绑定相关
+const showCustomBindingModal = ref(false)
+const editingCustomField = ref(null)
+const customBindingEnabled = ref(false)
+const hasCustomBindingConfig = computed(() => {
+  const stats = customBindingManager.getBindingStats()
+  return stats.hasCustomConfig
+})
+
+const customFieldsData = computed(() => {
+  return Array.isArray(customBindingManager.customFields.value)
+    ? customBindingManager.customFields.value
+    : []
+})
+
+const customFieldManagerKey = computed(() => {
+  const fields = customFieldsData.value
+  const fieldCount = fields.length
+  const fieldNames = fields
+    .map((f) => f.fieldName)
+    .sort()
+    .join(',')
+  return `custom-field-manager-${fieldCount}-${fieldNames}`
+})
+
 const {
   generateInsertSql,
   setBeautifyOptions,
   resetBeautifyOptions: resetDefaultBeautifyOptions,
 } = useSqlGeneratorEnhanced()
-const { logError, logInfo, logWarning } = useErrorHandler()
+const { logError, logInfo } = useErrorHandler()
 
 // 响应式数据
 const ddlStatement = ref('')
@@ -420,9 +627,21 @@ const uploadedFile = ref(null)
 const excelData = ref([])
 const excelHeaders = ref([])
 const generatedSql = ref('')
+const previewSql = ref('')
+const previewMode = ref('original')
+const batchEditRules = ref([])
 const operationLogs = ref([])
 const includeComments = ref(true) // 控制是否包含SQL注释
 const databaseType = ref('mysql') // 数据库类型：mysql, postgresql, sqlserver
+
+// 去重相关状态
+const deduplicationEnabled = ref(false) // 是否启用去重
+const deduplicationColumn = ref(undefined) // 去重列索引，undefined表示未选择
+const deduplicationStats = ref({
+  originalRows: 0, // 原始行数
+  deduplicatedRows: 0, // 去重后行数
+  removedRows: 0, // 去重数量
+}) // 去重统计信息
 
 // SQL美化相关数据
 const showBeautifyOptions = ref(false)
@@ -491,11 +710,14 @@ const previewColumns = computed(() => {
 })
 
 const sqlStats = computed(() => {
-  if (!generatedSql.value) {
+  const sqlToCheck =
+    previewMode.value === 'preview' && previewSql.value ? previewSql.value : generatedSql.value
+
+  if (!sqlToCheck) {
     return { statementCount: 0, affectedRows: 0, generationTime: 0 }
   }
 
-  const statements = generatedSql.value.split(';').filter((s) => s.trim())
+  const statements = sqlToCheck.split(';').filter((s) => s.trim())
   const affectedRows = excelData.value.length
 
   return {
@@ -505,8 +727,17 @@ const sqlStats = computed(() => {
   }
 })
 
-// 表格列定义
+// 计算属性：显示的SQL（根据预览模式）
+const displaySql = computed(() => {
+  return previewMode.value === 'preview' && previewSql.value ? previewSql.value : generatedSql.value
+})
+
 const mappingColumns = [
+  {
+    title: '字段名',
+    key: 'fieldName',
+    width: '15%',
+  },
   {
     title: 'DDL字段',
     key: 'ddlField',
@@ -515,17 +746,22 @@ const mappingColumns = [
   {
     title: 'Excel列',
     key: 'excelHeader',
-    width: '40%',
+    width: '20%',
   },
   {
     title: '相似度',
     key: 'similarity',
-    width: '20%',
+    width: '10%',
+  },
+  {
+    title: '函数生成',
+    key: 'generatedByFunction',
+    width: '10%',
   },
   {
     title: '操作',
     key: 'actions',
-    width: '10%',
+    width: '15%',
   },
 ]
 
@@ -545,14 +781,21 @@ const parseDdl = async (forceRefresh = false) => {
 
   try {
     const result = await parseDdlWithParser(ddlStatement.value, forceRefresh)
-    parsedFields.value = result.fields
+    parsedFields.value = result.fields.map((field) => ({
+      ...field,
+      excelIndex: -1,
+    }))
 
     logInfo(`成功解析DDL语句，发现 ${result.fields.length} 个字段`)
     message.success(`DDL解析成功，发现 ${result.fields.length} 个字段`)
 
-    // 如果已有Excel数据，自动执行字段匹配
+    // 立即创建映射记录，确保所有DDL字段都显示
     if (excelHeaders.value.length > 0) {
+      // 如果已有Excel数据，执行自动匹配
       autoMatchFields()
+    } else {
+      // 如果没有Excel数据，创建手动映射模板
+      enhancedMatchFields(parsedFields.value, [], 'manual')
     }
   } catch (error) {
     const friendlyError = logError(error, 'parsing', {
@@ -642,7 +885,98 @@ const clearFile = () => {
   excelData.value = []
   excelHeaders.value = []
   fileList.value = []
+  deduplicationEnabled.value = false
+  deduplicationColumn.value = -1
+  deduplicationStats.value = {
+    originalRows: 0,
+    deduplicatedRows: 0,
+    removedRows: 0,
+  }
   logInfo('已清除上传的文件')
+}
+
+/**
+ * 处理去重开关切换
+ * 当关闭去重时，恢复原始数据
+ */
+const handleDeduplicationToggle = (checked) => {
+  if (!checked) {
+    deduplicationColumn.value = undefined
+    deduplicationStats.value = {
+      originalRows: 0,
+      deduplicatedRows: 0,
+      removedRows: 0,
+    }
+    logInfo('已关闭数据去重')
+  } else {
+    logInfo('已启用数据去重，请选择去重列')
+  }
+}
+
+/**
+ * 应用去重逻辑
+ * 根据选定列的值去除重复数据行，仅保留每组的第一次出现
+ */
+const applyDeduplication = () => {
+  if (deduplicationColumn.value === undefined || deduplicationColumn.value === null) {
+    message.warning('请先选择去重列')
+    return
+  }
+
+  if (!excelData.value || excelData.value.length === 0) {
+    message.warning('没有可去重的数据')
+    return
+  }
+
+  const columnIndex = deduplicationColumn.value
+  const seenValues = new Set()
+  const deduplicatedData = []
+
+  excelData.value.forEach((row) => {
+    const value = row[columnIndex]
+    if (!seenValues.has(value)) {
+      seenValues.add(value)
+      deduplicatedData.push(row)
+    }
+  })
+
+  const originalRows = excelData.value.length
+  const deduplicatedRows = deduplicatedData.length
+  const removedRows = originalRows - deduplicatedRows
+
+  excelData.value = deduplicatedData
+
+  deduplicationStats.value = {
+    originalRows,
+    deduplicatedRows,
+    removedRows,
+  }
+
+  if (removedRows > 0) {
+    logInfo(
+      `数据去重完成: 原始 ${originalRows} 行 → 去重后 ${deduplicatedRows} 行 (去除 ${removedRows} 行重复)`,
+      'deduplication',
+      {
+        operation: 'applyDeduplication',
+        columnIndex,
+        columnName: excelHeaders.value[columnIndex],
+        originalRows,
+        deduplicatedRows,
+        removedRows,
+      },
+    )
+    message.success(`去重完成: 原始 ${originalRows} 行 → 去重后 ${deduplicatedRows} 行`)
+  } else {
+    logInfo('数据去重完成: 未发现重复数据', 'deduplication', {
+      operation: 'applyDeduplication',
+      columnIndex,
+      columnName: excelHeaders.value[columnIndex],
+      originalRows,
+      deduplicatedRows,
+      removedRows,
+    })
+    message.info('未发现重复数据')
+  }
 }
 
 const autoMatchFields = () => {
@@ -660,7 +994,16 @@ const autoMatchFields = () => {
 
   try {
     console.log('开始自动匹配字段...')
-    matchFields(parsedFields.value, excelHeaders.value, 'similarity')
+    enhancedMatchFields(parsedFields.value, excelHeaders.value, 'similarity')
+
+    // 同步更新parsedFields中的excelIndex
+    fieldMappings.value.forEach((mapping) => {
+      const field = parsedFields.value.find((f) => f.name === mapping.ddlField.name)
+      if (field) {
+        field.excelIndex = mapping.excelIndex
+      }
+    })
+
     console.log('自动字段匹配完成')
     logInfo('自动字段匹配完成')
     message.success('字段自动匹配完成')
@@ -682,17 +1025,75 @@ const updateMapping = (ddlFieldName, excelIndex) => {
   logInfo(`手动更新字段映射: ${ddlFieldName} -> ${excelHeader || '未匹配'}`)
 }
 
+const handleGeneratedByFunctionChange = (record) => {
+  const mapping = fieldMappings.value.find((m) => m.ddlField.name === record.ddlField.name)
+  if (mapping) {
+    mapping.generatedByFunction = record.generatedByFunction
+    if (record.generatedByFunction) {
+      logInfo(`字段 ${record.ddlField.name} 标记为通过函数生成，将跳过Excel列映射检查`)
+    } else {
+      logInfo(`字段 ${record.ddlField.name} 取消函数生成标记`)
+    }
+  }
+}
+
 const clearMapping = (ddlFieldName) => {
-  updateFieldMapping(ddlFieldName, null, -1)
-  logInfo(`清除字段映射: ${ddlFieldName}`)
+  console.log('执行clearMapping:', ddlFieldName)
+
+  // 查找字段信息，判断是否为自定义字段
+  const fieldInfo = parsedFields.value.find((field) => field.name === ddlFieldName)
+  console.log('字段信息:', fieldInfo)
+
+  // 从fieldMappings中移除对应的映射记录（无论是自定义字段还是普通字段）
+  const mappingIndex = fieldMappings.value.findIndex(
+    (mapping) => mapping.ddlField.name === ddlFieldName,
+  )
+  if (mappingIndex >= 0) {
+    fieldMappings.value.splice(mappingIndex, 1)
+    console.log('已从fieldMappings移除映射记录:', ddlFieldName)
+  }
+
+  if (fieldInfo && fieldInfo.isCustom) {
+    // 1. 从parsedFields中移除自定义字段
+    const fieldIndex = parsedFields.value.findIndex((field) => field.name === ddlFieldName)
+    if (fieldIndex >= 0) {
+      parsedFields.value.splice(fieldIndex, 1)
+      console.log('已从parsedFields移除自定义字段:', ddlFieldName)
+    }
+
+    // 2. 从customBindingManager中移除自定义字段
+    customBindingManager.removeCustomField(ddlFieldName)
+    console.log('已从customBindingManager移除自定义字段:', ddlFieldName)
+
+    logInfo(`移除自定义字段: ${ddlFieldName}`)
+    message.info(`已移除自定义字段: ${ddlFieldName}`)
+  } else {
+    // 如果是普通字段，从fieldMappings中移除后就不再显示在界面上
+    console.log('已移除普通字段映射记录:', ddlFieldName)
+    logInfo(`移除字段映射记录: ${ddlFieldName}`)
+    message.info(`已移除字段映射记录: ${ddlFieldName}`)
+  }
 }
 
 const clearAllMappings = () => {
+  // 移除所有自定义字段
+  const originalLength = parsedFields.value.length
+  parsedFields.value = parsedFields.value.filter((field) => !field.isCustom)
+  const customFieldsRemoved = originalLength - parsedFields.value.length
+
+  // 清除剩余普通字段的映射关系
   parsedFields.value.forEach((field) => {
     updateFieldMapping(field.name, null, -1)
   })
-  logInfo('清除所有字段映射')
-  message.info('已清除所有字段映射')
+
+  if (customFieldsRemoved > 0) {
+    logInfo(`已移除 ${customFieldsRemoved} 个自定义字段`)
+    logInfo('已清除所有普通字段映射')
+    message.info(`已移除 ${customFieldsRemoved} 个自定义字段并清除所有普通字段映射`)
+  } else {
+    logInfo('清除所有字段映射')
+    message.info('已清除所有字段映射')
+  }
 }
 
 const handleClearCache = () => {
@@ -727,6 +1128,13 @@ const getConfidenceText = (confidence) => {
     manual: '手动',
   }
   return texts[confidence] || '未知'
+}
+
+const getSimilarityColor = (similarity) => {
+  if (similarity >= 0.8) return '#52c41a'
+  if (similarity >= 0.6) return '#1890ff'
+  if (similarity >= 0.4) return '#faad14'
+  return '#ff4d4f'
 }
 
 // SQL美化相关方法
@@ -863,41 +1271,59 @@ const generateSql = async () => {
     return
   }
 
-  // 使用标准验证方法
-  const validation = validateFieldMappings()
+  // 验证映射配置
+  const validation = validateEnhancedMappings()
   if (!validation.isValid) {
-    message.warning('请先完成字段映射配置')
+    Modal.error({
+      title: '字段映射配置不完整',
+      content: h('div', [
+        h('p', '以下字段存在问题，请修复后再生成SQL：'),
+        h('ul', { style: { paddingLeft: '20px', marginTop: '10px' } }, [
+          ...validation.errors.map((error) =>
+            h('li', { style: { marginBottom: '5px', color: '#ff4d4f' } }, error),
+          ),
+        ]),
+        h('p', { style: { marginTop: '15px', color: '#8c8c8c' } }, [
+          '提示：对于通过函数生成的字段（如UUID主键），请在字段映射表格中勾选"函数生成"复选框',
+        ]),
+      ]),
+      okText: '我知道了',
+    })
     return
   }
 
   generating.value = true
 
   try {
-    // 提取表名（简化处理，实际应该从DDL解析结果中获取）
     const tableName = extractTableName(ddlStatement.value)
 
-    // 使用标准字段映射
     const mappingsToUse = fieldMappings.value
+    const customFieldsConfig = customBindingManager.customFields
+    const enableCustomBinding = customBindingEnabled.value
 
+    // 生成SQL
     const sql = generateInsertSql(tableName, mappingsToUse, excelData.value, {
       dbType: databaseType.value,
       format: 'formatted',
       batch: 100,
       comments: includeComments.value,
       beautifyOptions: beautifyOptions.value,
+      customBindingManager: customBindingManager,
     })
 
     generatedSql.value = sql
 
     const beautifyStatus = showBeautifyOptions.value ? '应用美化' : '未美化'
+    const bindingMode = enableCustomBinding ? '自定义绑定模式' : '标准模式'
 
     logInfo(
-      `SQL生成成功（标准模式，${includeComments.value ? '包含注释' : '纯SQL'}，${beautifyStatus}）`,
+      `SQL生成成功（${bindingMode}，${includeComments.value ? '包含注释' : '纯SQL'}，${beautifyStatus}）`,
       'generation',
       {
-        mode: 'standard',
+        mode: enableCustomBinding ? 'custom' : 'standard',
         beautifyOptions: beautifyOptions.value,
         includeComments: includeComments.value,
+        customFieldsCount: customFieldsConfig.length,
       },
     )
     message.success('SQL生成成功')
@@ -994,19 +1420,295 @@ const clearLogs = () => {
   logInfo('操作日志已清除')
 }
 
-const handleSqlValidation = (validationResult) => {
-  if (validationResult.hasErrors) {
-    logWarning('SQL语法验证发现错误', 'validation', {
-      errors: validationResult.errors,
-    })
-  } else {
-    logInfo('SQL语法验证通过')
-  }
-}
-
 const exportLogs = () => {
   // 实现日志导出功能
   message.info('日志导出功能开发中')
+}
+
+// 自定义绑定相关方法
+const openCustomBindingModal = () => {
+  showCustomBindingModal.value = true
+}
+
+const handleCustomBindingToggle = (checked) => {
+  customBindingEnabled.value = checked
+  customBindingManager.setEnableCustomBinding(checked)
+  logInfo(`自定义绑定已${checked ? '启用' : '禁用'}`)
+  message.success(`自定义绑定已${checked ? '启用' : '禁用'}`)
+}
+
+const handleCustomBindingSave = (customFieldsData) => {
+  // 保存自定义绑定配置
+  logInfo('自定义绑定配置已保存')
+  console.log(
+    '保存的自定义绑定配置:==================================================',
+    customBindingManager,
+  )
+
+  try {
+    // 确保自定义绑定已启用
+    if (!customBindingEnabled.value) {
+      customBindingEnabled.value = true
+      customBindingManager.setEnableCustomBinding(true)
+      logInfo('已自动启用自定义绑定')
+    }
+
+    // 1. 首先导入完整的绑定配置到customBindingManager
+    if (customFieldsData && typeof customFieldsData === 'object') {
+      customBindingManager.importBindings(customFieldsData)
+      console.log('已导入完整绑定配置到customBindingManager')
+    }
+
+    // 2. 处理单列绑定（customBindings）- 同步到fieldMappings
+    const customBindings = Array.isArray(customBindingManager.customBindings.value)
+      ? customBindingManager.customBindings.value
+      : []
+
+    console.log('单列绑定数据:', customBindings)
+
+    // 过滤出单列绑定
+    const singleBindings = customBindings.filter((binding) => binding.bindingType === 'single')
+
+    // 遍历单列绑定，更新或创建映射记录
+    singleBindings.forEach((binding) => {
+      const { ddlFieldName, excelIndex } = binding
+
+      // 查找DDL字段
+      let ddlField = parsedFields.value.find((field) => field.name === ddlFieldName)
+
+      // 如果DDL字段不存在（可能是自定义字段名），创建临时字段对象
+      if (!ddlField) {
+        console.warn(`DDL字段 ${ddlFieldName} 不存在，创建临时字段对象`)
+        ddlField = {
+          name: ddlFieldName,
+          type: 'string',
+          nullable: true,
+          isIdentity: false,
+          primaryKey: false,
+          isCustom: true, // 标记为自定义字段
+          customConfig: {
+            fieldName: ddlFieldName,
+            isFromCustomBinding: true, // 标记来自自定义绑定
+          },
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }
+        // 添加到parsedFields中，确保后续可以找到
+        parsedFields.value.push(ddlField)
+        console.log(`已添加临时字段到parsedFields: ${ddlFieldName}`)
+      }
+
+      // 查找现有映射记录
+      const existingIndex = fieldMappings.value.findIndex((m) => m.ddlField?.name === ddlFieldName)
+
+      if (existingIndex >= 0) {
+        // 更新现有映射记录
+        fieldMappings.value[existingIndex] = {
+          ...fieldMappings.value[existingIndex],
+          excelIndex: excelIndex,
+          excelHeader: excelIndex >= 0 ? excelHeaders.value[excelIndex] : null,
+          status: excelIndex >= 0 ? 'bound' : 'unmatched',
+        }
+        console.log(`已更新单列绑定映射: ${ddlFieldName} -> 列${excelIndex + 1}`)
+      } else {
+        // 创建新的映射记录
+        const mapping = {
+          ddlField: ddlField,
+          excelHeader: excelIndex >= 0 ? excelHeaders.value[excelIndex] : null,
+          excelIndex: excelIndex,
+          similarity: 0,
+          confidence: 'manual',
+          status: excelIndex >= 0 ? 'bound' : 'unmatched',
+        }
+        fieldMappings.value.push(mapping)
+        console.log(`已添加单列绑定映射: ${ddlFieldName} -> 列${excelIndex + 1}`)
+      }
+    })
+
+    // 3. 获取自定义字段数据，确保它是数组
+    console.log('customFieldsData:', customFieldsData)
+    console.log('customBindingManager.customFields.value:', customBindingManager.customFields.value)
+
+    let customFields = []
+
+    if (customFieldsData && customFieldsData.customFields) {
+      customFields = Array.isArray(customFieldsData.customFields)
+        ? customFieldsData.customFields
+        : []
+    } else {
+      customFields = Array.isArray(customBindingManager.customFields.value)
+        ? customBindingManager.customFields.value
+        : []
+    }
+
+    console.log('customFields:', customFields)
+
+    // 3. 去重处理：移除空字段名的自定义字段，并根据fieldName去重
+    const validCustomFieldsMap = new Map()
+    customFields.forEach((field) => {
+      if (
+        typeof field === 'object' &&
+        field !== null &&
+        field.fieldName &&
+        field.fieldName.trim() !== ''
+      ) {
+        // 使用Map去重，保留最后一个出现的字段
+        validCustomFieldsMap.set(field.fieldName.trim(), field)
+      }
+    })
+    // 转换为数组
+    const validCustomFields = Array.from(validCustomFieldsMap.values())
+
+    console.log('有效自定义字段（去重后）:', validCustomFields)
+    console.log('有效自定义字段数量:', validCustomFields.length)
+
+    // 4. 先移除所有之前添加的自定义字段
+    const originalLength = parsedFields.value.length
+    parsedFields.value = parsedFields.value.filter((field) => !field.isCustom)
+    logInfo(`已移除 ${originalLength - parsedFields.value.length} 个之前添加的自定义字段`)
+
+    // 5. 遍历有效的自定义字段，整合到DDL解析结果中
+    let addedCount = 0
+    validCustomFields.forEach((customField, index) => {
+      try {
+        console.log(`添加自定义字段${index}:`, customField)
+
+        // 检查是否已存在同名字段
+        const existingFieldIndex = parsedFields.value.findIndex(
+          (field) => field.name === customField.fieldName,
+        )
+
+        if (existingFieldIndex >= 0) {
+          // 更新已存在的字段
+          parsedFields.value[existingFieldIndex] = {
+            ...parsedFields.value[existingFieldIndex],
+            isCustom: true,
+            customConfig: customField,
+            isIdentity: false, // 自定义字段不应该被标记为数据库层的自增字段
+            primaryKey: false, // 自定义字段不应该被标记为主键字段
+            updatedAt: new Date().toISOString(),
+          }
+          console.log(`已更新parsedFields中的字段: ${customField.fieldName}`)
+        } else {
+          // 构建符合DDL解析结果结构的字段对象
+          const ddlField = {
+            name: customField.fieldName,
+            type: customField.dataType || 'string',
+            nullable: customField.nullable !== false,
+            isIdentity: false, // 自定义字段不应该被标记为数据库层的自增字段
+            primaryKey: false, // 自定义字段不应该被标记为主键字段
+            isCustom: true, // 标记为自定义字段
+            customConfig: customField, // 保存原始自定义字段配置
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          }
+
+          // 添加到DDL解析结果集合中
+          parsedFields.value.push(ddlField)
+          console.log(`已添加到parsedFields:`, ddlField.name)
+        }
+
+        addedCount++
+        logInfo(`添加自定义字段: ${customField.fieldName}`)
+      } catch (error) {
+        logError(error, 'custom-field', {
+          operation: 'addCustomField',
+          customField: customField,
+          errorMessage: error.message,
+        })
+        message.error(`处理自定义字段${customField.fieldName}时出错: ${error.message}`)
+      }
+    })
+
+    logInfo(`成功添加 ${addedCount} 个自定义字段`)
+    console.log('最终parsedFields:', parsedFields.value)
+    console.log('最终parsedFields数量:', parsedFields.value.length)
+
+    // 6. 为新添加的自定义字段创建或更新映射记录，并同步到 customBindingManager
+    validCustomFields.forEach((customField) => {
+      const ddlFieldRef = parsedFields.value.find((field) => field.name === customField.fieldName)
+
+      const existingIndex = fieldMappings.value.findIndex(
+        (m) => m.ddlField?.name === customField.fieldName,
+      )
+
+      if (existingIndex >= 0) {
+        fieldMappings.value[existingIndex] = {
+          ...fieldMappings.value[existingIndex],
+          ddlField: ddlFieldRef,
+          customFieldName: customField.fieldName,
+          generatedByFunction: true,
+        }
+      } else {
+        const mapping = {
+          ddlField: ddlFieldRef,
+          customFieldName: customField.fieldName,
+          excelHeader: null,
+          excelIndex: -1,
+          similarity: 0,
+          confidence: 'manual',
+          status: 'unmatched',
+          generatedByFunction: true,
+        }
+        fieldMappings.value.push(mapping)
+      }
+
+      // 将自定义字段添加到 customBindingManager，确保 enhancedMatchFields 能够获取到配置
+      customBindingManager.addCustomField(customField)
+    })
+
+    console.log('最终fieldMappings:', fieldMappings.value)
+    console.log('最终fieldMappings数量:', fieldMappings.value.length)
+
+    if (parsedFields.value && excelHeaders.value) {
+      fieldMappings.value = enhancedMatchFields(
+        parsedFields.value,
+        excelHeaders.value,
+        'similarity',
+        true,
+      )
+    }
+
+    message.success(
+      `自定义绑定配置已保存，成功处理 ${singleBindings.length} 个单列绑定和 ${addedCount} 个自定义字段`,
+    )
+  } catch (error) {
+    logError(error, 'custom-binding', {
+      operation: 'saveCustomBinding',
+      errorMessage: error.message,
+    })
+    message.error(`自定义绑定保存失败: ${error.message}`)
+  }
+}
+
+const handleCustomBindingCancel = () => {
+  showCustomBindingModal.value = false
+  editingCustomField.value = null
+}
+
+const handleEditCustomField = (record) => {
+  logInfo(`编辑自定义字段: ${record.fieldName}`)
+  editingCustomField.value = record
+  openCustomBindingModal()
+}
+
+const handleDeleteCustomField = (record) => {
+  logInfo(`删除自定义字段: ${record.fieldName}`)
+
+  // 从fieldMappings中移除对应的映射记录
+  const mappingIndex = fieldMappings.value.findIndex(
+    (mapping) => mapping.ddlField?.name === record.fieldName,
+  )
+  if (mappingIndex >= 0) {
+    fieldMappings.value.splice(mappingIndex, 1)
+    console.log('已从fieldMappings移除自定义字段映射记录:', record.fieldName)
+  }
+}
+
+const handleRefreshCustomFields = () => {
+  logInfo('刷新自定义字段列表')
+  // 删除自定义字段后不需要重新解析DDL，只需要更新字段映射
+  // parseDdl(false)  // 注释掉，避免覆盖已配置的数据
 }
 
 const resetAll = () => {
@@ -1016,11 +1718,87 @@ const resetAll = () => {
   excelData.value = []
   excelHeaders.value = []
   generatedSql.value = ''
+  previewSql.value = ''
+  previewMode.value = 'original'
   fileList.value = []
   handleClearCache()
+  customBindingEnabled.value = false
+  customBindingManager.resetBindings()
 
   logInfo('所有数据已重置')
   message.success('重置成功')
+}
+
+/**
+ * 处理批量预览
+ * @param {Object} result - 预览结果
+ */
+const handleBatchPreview = (result) => {
+  previewSql.value = generateSqlFromData(result.modifiedData)
+  previewMode.value = 'preview'
+  logInfo(`批量修改预览：将影响 ${result.affectedRows} 行数据`, 'batch-edit', {
+    operation: 'preview',
+    affectedRows: result.affectedRows,
+  })
+  message.info(`预览：将影响 ${result.affectedRows} 行数据`)
+}
+
+/**
+ * 处理批量应用
+ * @param {Object} result - 应用结果
+ */
+const handleBatchApply = (result) => {
+  excelData.value = result.modifiedData
+  generatedSql.value = generateSqlFromData(result.modifiedData)
+  previewSql.value = ''
+  previewMode.value = 'original'
+
+  logInfo(`批量修改应用成功：已修改 ${result.affectedRows} 行数据`, 'batch-edit', {
+    operation: 'apply',
+    affectedRows: result.affectedRows,
+  })
+  message.success(`应用成功，已修改 ${result.affectedRows} 行数据`)
+}
+
+/**
+ * 处理 Excel 数据更新
+ * @param {Array} newData - 新的 Excel 数据
+ */
+const handleExcelDataUpdate = (newData) => {
+  excelData.value = newData
+}
+
+/**
+ * 处理批量修改规则变化
+ * @param {Array} rules - 修改规则列表
+ */
+const handleBatchChange = (rules) => {
+  batchEditRules.value = rules
+}
+
+/**
+ * 从数据生成 SQL
+ * @param {Array} data - 数据数组
+ * @returns {string} 生成的 SQL
+ */
+const generateSqlFromData = (data) => {
+  if (!data || data.length === 0) {
+    return ''
+  }
+
+  const tableName = extractTableName(ddlStatement.value)
+  const mappingsToUse = fieldMappings.value
+
+  const sql = generateInsertSql(tableName, mappingsToUse, data, {
+    dbType: databaseType.value,
+    format: 'formatted',
+    batch: 100,
+    comments: includeComments.value,
+    beautifyOptions: beautifyOptions.value,
+    customBindingManager: customBindingManager,
+  })
+
+  return sql
 }
 
 // 生命周期
@@ -1065,6 +1843,8 @@ onMounted(() => {
   grid-template-columns: 1fr 1fr;
   gap: 24px;
   min-height: 600px;
+  width: 100%;
+  max-width: 100%;
 }
 
 .input-section,
@@ -1072,6 +1852,8 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .input-card,
@@ -1080,6 +1862,8 @@ onMounted(() => {
   border-radius: 8px;
   padding: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  position: relative;
 }
 
 .card-header {
@@ -1107,6 +1891,26 @@ onMounted(() => {
 .field-count {
   color: #666;
   font-size: 12px;
+}
+
+.ddl-fields-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+  overflow: hidden;
+}
+
+.ddl-fields-section .ant-table {
+  font-size: 12px;
+}
+
+.ddl-fields-section .ant-table-container {
+  overflow-x: auto;
+}
+
+.ddl-fields-section .ant-table-thead > tr > th {
+  background: #fafafa;
+  font-weight: 600;
 }
 
 .file-info {
@@ -1170,6 +1974,38 @@ onMounted(() => {
   margin-top: 2px;
 }
 
+.field-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.field-name-cell .ant-input {
+  flex: 1;
+}
+
+.ddl-field-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ddl-field-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.no-excel-hint {
+  padding: 8px;
+  background: #fffbe6;
+  border: 1px solid #ffe58f;
+  border-radius: 4px;
+  color: #fa8c16;
+  text-align: center;
+  margin-top: 8px;
+}
+
 .output-actions,
 .log-actions {
   display: flex;
@@ -1210,6 +2046,18 @@ onMounted(() => {
   border-radius: 6px;
   padding: 16px;
   margin-bottom: 16px;
+}
+
+/* 预览模式切换样式 */
+.preview-mode-switch {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 4px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .option-row {

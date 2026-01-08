@@ -12,7 +12,7 @@ export function useExcelParser() {
       // 检查文件类型
       const fileName = file.name || ''
       const fileExtension = fileName.split('.').pop()?.toLowerCase()
-      
+
       if (!fileExtension) {
         reject(new Error('无法确定文件类型'))
         return
@@ -21,7 +21,11 @@ export function useExcelParser() {
       // 支持的文件格式检查
       const supportedFormats = ['xlsx', 'xls', 'csv']
       if (!supportedFormats.includes(fileExtension)) {
-        reject(new Error(`不支持的文件格式: .${fileExtension}。支持的格式: ${supportedFormats.join(', ')}`))
+        reject(
+          new Error(
+            `不支持的文件格式: .${fileExtension}。支持的格式: ${supportedFormats.join(', ')}`,
+          ),
+        )
         return
       }
 
@@ -30,20 +34,20 @@ export function useExcelParser() {
       reader.onload = (e) => {
         try {
           const data = e.target.result
-          
+
           // 记录文件大小
           const fileSize = file.size || 0
           console.log(`正在解析文件: ${fileName}, 大小: ${fileSize} bytes, 格式: ${fileExtension}`)
-          
+
           // 根据文件类型确定读取选项
-          const readOptions = { 
+          const readOptions = {
             type: 'array',
             cellDates: true, // 自动解析日期
             cellNF: false, // 不保留单元格格式
             cellText: false, // 不强制文本格式
-            sheet: 0 // 只读取第一个工作表
+            sheet: 0, // 只读取第一个工作表
           }
-          
+
           // 尝试解析工作簿
           let workbook
           try {
@@ -61,32 +65,32 @@ export function useExcelParser() {
               return
             }
           }
-          
+
           // 检查工作表
           if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
             reject(new Error('Excel文件中没有找到工作表'))
             return
           }
-          
+
           const firstSheetName = workbook.SheetNames[0]
           console.log(`正在读取工作表: ${firstSheetName}`)
-          
+
           const worksheet = workbook.Sheets[firstSheetName]
-          
+
           // 检查工作表是否为空
           if (!worksheet) {
             reject(new Error(`工作表 "${firstSheetName}" 为空`))
             return
           }
-          
+
           // 尝试不同的解析选项
-          const parseOptions = { 
+          const parseOptions = {
             header: 1, // 第一行作为表头
             defval: '', // 默认值为空字符串
             raw: true, // 保持原始数据类型
-            rawNumbers: true // 保持数字格式
+            rawNumbers: true, // 保持数字格式
           }
-          
+
           // 解析为JSON格式
           let jsonData
           try {
@@ -96,15 +100,15 @@ export function useExcelParser() {
             reject(new Error(`解析工作表数据失败: ${parseError.message}`))
             return
           }
-          
+
           console.log(`解析得到 ${jsonData.length} 行数据`)
-          
+
           // 检查数据是否足够
           if (jsonData.length < 1) {
             reject(new Error('Excel文件中没有数据'))
             return
           }
-          
+
           if (jsonData.length < 2) {
             reject(new Error('Excel文件至少需要包含表头和一行数据'))
             return
@@ -112,7 +116,7 @@ export function useExcelParser() {
 
           const headers = jsonData[0]
           const rows = jsonData.slice(1)
-          
+
           console.log(`表头: ${JSON.stringify(headers)}`)
           console.log(`数据行数: ${rows.length}`)
 
@@ -129,7 +133,7 @@ export function useExcelParser() {
               console.warn(`第${index + 2}行数据格式异常，已转换为数组`)
               row = Array.isArray(row) ? row : [row]
             }
-            
+
             // 如果行长度不够，用空字符串填充
             while (row.length < headers.length) {
               row.push('')
@@ -152,8 +156,8 @@ export function useExcelParser() {
 
             // 检查当前行是否为真正的一对多关系行
             // 一对多关系行的特征：不是空行（至少有一个非空字段），但也不是完整行（至少有一个空字段）
-            const hasAnyValue = currentRow.some(value => value || value === 0 || value === false)
-            const hasAnyEmpty = currentRow.some(value => !value && value !== 0 && value !== false)
+            const hasAnyValue = currentRow.some((value) => value || value === 0 || value === false)
+            const hasAnyEmpty = currentRow.some((value) => !value && value !== 0 && value !== false)
 
             // 如果是真正的一对多关系行，继承上一行的非空值
             if (hasAnyValue && hasAnyEmpty) {
@@ -181,7 +185,7 @@ export function useExcelParser() {
         console.error('文件读取错误:', error)
         reject(new Error('读取文件失败: ' + (error.message || '未知错误')))
       }
-      
+
       reader.onabort = () => {
         reject(new Error('文件读取被中断'))
       }

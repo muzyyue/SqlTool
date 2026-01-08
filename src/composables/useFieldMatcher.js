@@ -37,6 +37,9 @@ export function useFieldMatcher() {
       case 'pinyin':
         mappings = matchByPinyin(ddlFields, excelHeaders)
         break
+      case 'hybrid':
+        mappings = matchByHybrid(ddlFields, excelHeaders)
+        break
       case 'manual':
         mappings = createManualMappings(ddlFields, excelHeaders)
         break
@@ -79,17 +82,23 @@ export function useFieldMatcher() {
 
       if (bestMatch && bestScore > 0.3) {
         // 相似度阈值
-        mappings.push(bestMatch)
+        mappings.push({
+          ...bestMatch,
+          customFieldName: '',
+          generatedByFunction: false,
+        })
         usedExcelIndices.add(bestMatch.excelIndex)
       } else {
         // 没有找到匹配项
         mappings.push({
           ddlField,
+          customFieldName: '',
           excelHeader: null,
           excelIndex: -1,
           similarity: 0,
           confidence: 'low',
           status: 'unmatched',
+          generatedByFunction: false,
         })
       }
     })
@@ -141,16 +150,118 @@ export function useFieldMatcher() {
 
       if (bestMatch && bestScore > 0.5) {
         // 拼音匹配阈值较高
-        mappings.push(bestMatch)
+        mappings.push({
+          ...bestMatch,
+          customFieldName: '',
+          generatedByFunction: false,
+        })
         usedExcelIndices.add(bestMatch.excelIndex)
       } else {
         mappings.push({
           ddlField: ddlItem.field,
+          customFieldName: '',
           excelHeader: null,
           excelIndex: -1,
           similarity: 0,
           confidence: 'low',
           status: 'unmatched',
+          generatedByFunction: false,
+        })
+      }
+    })
+
+    return mappings
+  }
+
+  /**
+   * 混合匹配策略：结合相似度匹配和拼音首字母大写匹配
+   * 优先使用相似度匹配，对于未匹配的字段尝试拼音首字母匹配
+   */
+  const matchByHybrid = (ddlFields, excelHeaders) => {
+    const mappings = []
+    const usedExcelIndices = new Set()
+
+    // 转换为拼音首字母（大写）
+    const ddlPinyinMap = ddlFields.map((field) => ({
+      field,
+      pinyin: convertToPinyinFirstLetter(field.name),
+    }))
+
+    const excelPinyinMap = excelHeaders.map((header, index) => ({
+      header,
+      index,
+      pinyin: convertToPinyinFirstLetter(header),
+    }))
+
+    // 为每个DDL字段找到最匹配的Excel列
+    ddlFields.forEach((ddlField, ddlIndex) => {
+      let bestMatch = null
+      let bestScore = -1
+      let matchType = ''
+
+      excelHeaders.forEach((excelHeader, excelIndex) => {
+        if (usedExcelIndices.has(excelIndex)) return
+
+        // 计算多种匹配方式的相似度
+        const directSimilarity = calculateSimilarity(ddlField.name, excelHeader)
+        const ddlPinyin = ddlPinyinMap[ddlIndex].pinyin
+        const excelPinyin = excelPinyinMap[excelIndex].pinyin
+        const pinyinSimilarity = calculateSimilarity(ddlPinyin, excelPinyin)
+
+        // 检查是否为拼音首字母大写匹配
+        const isPinyinUppercaseMatch =
+          ddlPinyin.length > 0 && excelPinyin.length > 0 && ddlPinyin === excelPinyin.toUpperCase()
+
+        // 综合评分：优先直接匹配，其次拼音匹配
+        let combinedScore = directSimilarity
+
+        // 如果拼音首字母完全匹配，给予额外加分
+        if (isPinyinUppercaseMatch) {
+          combinedScore = Math.max(combinedScore, pinyinSimilarity * 1.2)
+          matchType = 'pinyin-uppercase'
+        } else if (pinyinSimilarity > directSimilarity) {
+          combinedScore = Math.max(combinedScore, pinyinSimilarity * 0.9)
+          matchType = 'pinyin'
+        }
+
+        if (combinedScore > bestScore) {
+          bestScore = combinedScore
+          bestMatch = {
+            ddlField,
+            excelHeader,
+            excelIndex,
+            similarity: directSimilarity,
+            pinyinSimilarity,
+            combinedScore: bestScore,
+            confidence: getConfidenceLevel(bestScore),
+            matchType,
+          }
+        }
+      })
+
+      // 使用较低的阈值，因为混合匹配更灵活
+      const threshold = 0.25
+
+      if (bestMatch && bestScore > threshold) {
+        mappings.push({
+          ...bestMatch,
+          customFieldName: '',
+          generatedByFunction: false,
+        })
+        usedExcelIndices.add(bestMatch.excelIndex)
+      } else {
+        mappings.push({
+          ddlField,
+          customFieldName: '',
+          excelHeader: null,
+          excelIndex: -1,
+          similarity: 0,
+          pinyinSimilarity: 0,
+          combinedScore: 0,
+          confidence: 'low',
+          status: 'unmatched',
+          matchType: 'none',
+          generatedByFunction: false,
         })
       }
     })
@@ -164,11 +275,13 @@ export function useFieldMatcher() {
   const createManualMappings = (ddlFields) => {
     return ddlFields.map((ddlField) => ({
       ddlField,
+      customFieldName: '',
       excelHeader: null,
       excelIndex: -1,
       similarity: 0,
       confidence: 'manual',
       status: 'pending',
+      generatedByFunction: false,
     }))
   }
 
@@ -273,6 +386,7 @@ export function useFieldMatcher() {
     if (mappingIndex !== -1) {
       fieldMappings.value[mappingIndex] = {
         ...fieldMappings.value[mappingIndex],
+        customFieldName: fieldMappings.value[mappingIndex].customFieldName || '',
         excelHeader,
         excelIndex,
         similarity: excelHeader ? calculateSimilarity(ddlFieldName, excelHeader) : 0,
@@ -322,6 +436,16 @@ export function useFieldMatcher() {
     const usedExcelIndices = new Set()
 
     fieldMappings.value.forEach((mapping) => {
+      // 确保映射对象有效
+      if (!mapping) {
+        return
+      }
+
+      // 确保ddlField存在
+      if (!mapping.ddlField) {
+        return
+      }
+
       if (mapping.excelHeader) {
         if (usedExcelIndices.has(mapping.excelIndex)) {
           errors.push(`Excel列"${mapping.excelHeader}"被重复映射`)
@@ -329,7 +453,12 @@ export function useFieldMatcher() {
         usedExcelIndices.add(mapping.excelIndex)
       }
 
-      if (!mapping.excelHeader && mapping.ddlField.nullable === false) {
+      // 检查必填字段
+      const isNullable = mapping.ddlField.nullable !== false
+      const isGeneratedByFunction = mapping.generatedByFunction === true
+
+      // 如果字段标记为通过函数生成，则跳过Excel列映射检查
+      if (!isGeneratedByFunction && !mapping.excelHeader && !isNullable) {
         errors.push(`必填字段"${mapping.ddlField.name}"未映射到Excel列`)
       }
     })
@@ -364,15 +493,70 @@ export function useFieldMatcher() {
 
       return {
         ddlField: ddlField || { name: config.ddlField, type: 'UNKNOWN' },
+        customFieldName: config.customFieldName || '',
         excelHeader: config.excelIndex >= 0 ? excelHeader : null,
         excelIndex: config.excelIndex,
         similarity: config.similarity || 0,
         confidence: config.confidence || 'manual',
         status: config.excelIndex >= 0 ? 'matched' : 'unmatched',
+        generatedByFunction: config.generatedByFunction || false,
       }
     })
 
     fieldMappings.value = newMappings
+  }
+
+  /**
+   * 获取显示的字段名（自定义字段名或原始字段名）
+   * @param {Object} mapping - 字段映射对象
+   * @returns {string} 显示的字段名
+   */
+  const getDisplayFieldName = (mapping) => {
+    return mapping.customFieldName || mapping.ddlField.name
+  }
+
+  /**
+   * 获取SQL使用的字段名（自定义字段名或原始字段名）
+   * @param {Object} mapping - 字段映射对象
+   * @returns {string} SQL使用的字段名
+   */
+  const getSqlFieldName = (mapping) => {
+    return mapping.customFieldName || mapping.ddlField.name
+  }
+
+  /**
+   * 更新字段的自定义字段名
+   * @param {string} ddlFieldName - DDL字段名
+   * @param {string} customFieldName - 自定义字段名
+   */
+  const updateCustomFieldName = (ddlFieldName, customFieldName) => {
+    const mappingIndex = fieldMappings.value.findIndex(
+      (mapping) => mapping.ddlField.name === ddlFieldName,
+    )
+
+    if (mappingIndex !== -1) {
+      fieldMappings.value[mappingIndex] = {
+        ...fieldMappings.value[mappingIndex],
+        customFieldName: customFieldName || '',
+      }
+    }
+  }
+
+  /**
+   * 重置字段的自定义字段名
+   * @param {string} ddlFieldName - DDL字段名
+   */
+  const resetCustomFieldName = (ddlFieldName) => {
+    updateCustomFieldName(ddlFieldName, '')
+  }
+
+  /**
+   * 重置所有字段的自定义字段名
+   */
+  const resetAllCustomFieldNames = () => {
+    fieldMappings.value.forEach((mapping) => {
+      mapping.customFieldName = ''
+    })
   }
 
   /**
@@ -385,12 +569,21 @@ export function useFieldMatcher() {
   /**
    * 增强的字段匹配方法，支持自定义绑定
    */
-  const enhancedMatchFields = (ddlFields, excelHeaders, algorithm = 'similarity') => {
-    // 执行基础匹配
-    const baseMappings = matchFields(ddlFields, excelHeaders, algorithm)
+  const enhancedMatchFields = (
+    ddlFields,
+    excelHeaders,
+    algorithm = 'similarity',
+    skipBaseMatching = false,
+  ) => {
+    let baseMappings
 
-    // 如果启用了自定义绑定，应用自定义绑定规则
-    if (customBindingManager.enableCustomBinding) {
+    if (skipBaseMatching) {
+      baseMappings = fieldMappings.value
+    } else {
+      baseMappings = matchFields(ddlFields, excelHeaders, algorithm)
+    }
+
+    if (customBindingManager.enableCustomBinding.value) {
       return applyCustomBindingsToMappings(baseMappings)
     }
 
@@ -404,7 +597,7 @@ export function useFieldMatcher() {
     const enhancedMappings = [...baseMappings]
 
     // 应用单列自定义绑定
-    customBindingManager.customBindings.forEach((customBinding) => {
+    customBindingManager.customBindings.value.forEach((customBinding) => {
       if (customBinding.bindingType === 'single' && customBinding.excelIndex >= 0) {
         const mappingIndex = enhancedMappings.findIndex(
           (mapping) => mapping.ddlField.name === customBinding.ddlFieldName,
@@ -419,6 +612,54 @@ export function useFieldMatcher() {
             status: 'matched',
           }
         }
+      }
+    })
+
+    customBindingManager.customFields.value.forEach((customField) => {
+      const mappingIndex = enhancedMappings.findIndex(
+        (mapping) => mapping.ddlField.name === customField.fieldName,
+      )
+
+      // 只有当数据源是函数、自增或静态值时，才标记为函数生成
+      // Excel组合字段需要从Excel获取数据，不应标记为函数生成
+      const shouldGenerateByFunction = [
+        'system_function',
+        'auto_increment',
+        'static_value',
+      ].includes(customField.dataSource)
+
+      if (mappingIndex >= 0) {
+        // 保留原有的 excelHeader、excelIndex、similarity、confidence、status 等属性
+        enhancedMappings[mappingIndex] = {
+          ...enhancedMappings[mappingIndex],
+          ddlField: {
+            ...enhancedMappings[mappingIndex].ddlField,
+            isCustom: true,
+            customConfig: customField,
+          },
+          customFieldName: customField.fieldName,
+          generatedByFunction: shouldGenerateByFunction,
+          // 保留原有的 Excel 映射信息
+          excelHeader: enhancedMappings[mappingIndex].excelHeader,
+          excelIndex: enhancedMappings[mappingIndex].excelIndex,
+        }
+      } else {
+        enhancedMappings.push({
+          ddlField: {
+            name: customField.fieldName,
+            type: customField.dataType || 'VARCHAR',
+            nullable: true,
+            isCustom: true,
+            customConfig: customField,
+          },
+          customFieldName: customField.fieldName,
+          excelHeader: null,
+          excelIndex: -1,
+          similarity: 0,
+          confidence: 'manual',
+          status: 'unmatched',
+          generatedByFunction: shouldGenerateByFunction,
+        })
       }
     })
 
@@ -474,6 +715,16 @@ export function useFieldMatcher() {
 
     const allErrors = [...baseValidation.errors, ...customValidation.errors]
 
+    // 添加调试日志
+    if (typeof console !== 'undefined' && console.log) {
+      console.log('=== validateEnhancedMappings 调试信息 ===')
+      console.log('baseValidation.isValid:', baseValidation.isValid)
+      console.log('baseValidation.errors:', baseValidation.errors)
+      console.log('customValidation.isValid:', customValidation.isValid)
+      console.log('customValidation.errors:', customValidation.errors)
+      console.log('allErrors:', allErrors)
+    }
+
     return {
       isValid: baseValidation.isValid && customValidation.isValid,
       errors: allErrors,
@@ -492,6 +743,13 @@ export function useFieldMatcher() {
     exportMappings,
     importMappings,
     resetMappings,
+
+    // 字段名相关方法
+    getDisplayFieldName,
+    getSqlFieldName,
+    updateCustomFieldName,
+    resetCustomFieldName,
+    resetAllCustomFieldNames,
 
     // 增强方法（支持自定义绑定）
     enhancedMatchFields,

@@ -71,7 +71,7 @@ const testSqlStatements = [
   ) ON DUPLICATE KEY UPDATE
     theme = VALUES(theme),
     language = VALUES(language),
-    notifications = VALUES(notifications);`
+    notifications = VALUES(notifications);`,
 ]
 
 /**
@@ -85,7 +85,7 @@ function testSyntaxHighlighting() {
     console.log('原始SQL:')
     console.log(sql)
     console.log('\n高亮后的HTML:')
-    
+
     try {
       const highlightedHtml = sqlHighlighter.highlight(sql)
       console.log(highlightedHtml)
@@ -104,22 +104,22 @@ function validateHighlightResults() {
   console.log('=== 语法高亮结果验证 ===\n')
 
   const testSql = `INSERT INTO users (id, username, email) VALUES (1, 'john_doe', 'john@example.com');`
-  
+
   try {
     const highlightedHtml = sqlHighlighter.highlight(testSql)
-    
+
     // 检查是否包含预期的CSS类
     const expectedClasses = [
-      'sql-keyword',   // INSERT, INTO, VALUES
-      'sql-table',     // users
-      'sql-column',    // id, username, email
-      'sql-number',    // 1
-      'sql-string'     // 'john_doe', 'john@example.com'
+      'sql-keyword', // INSERT, INTO, VALUES
+      'sql-table', // users
+      'sql-column', // id, username, email
+      'sql-number', // 1
+      'sql-string', // 'john_doe', 'john@example.com'
     ]
-    
+
     let validationPassed = true
-    
-    expectedClasses.forEach(className => {
+
+    expectedClasses.forEach((className) => {
       if (highlightedHtml.includes(`class="${className}"`)) {
         console.log(`✓ 找到CSS类: ${className}`)
       } else {
@@ -127,11 +127,11 @@ function validateHighlightResults() {
         validationPassed = false
       }
     })
-    
+
     console.log(`\n验证结果: ${validationPassed ? '通过' : '失败'}`)
     console.log('高亮后的HTML:')
     console.log(highlightedHtml)
-    
+
     return validationPassed
   } catch (error) {
     console.error('验证过程中出现错误:', error.message)
