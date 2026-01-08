@@ -1752,6 +1752,7 @@ const handleBatchApply = (result) => {
   generatedSql.value = generateSqlFromData(result.modifiedData)
   previewSql.value = ''
   previewMode.value = 'original'
+
   logInfo(`批量修改应用成功：已修改 ${result.affectedRows} 行数据`, 'batch-edit', {
     operation: 'apply',
     affectedRows: result.affectedRows,
@@ -1773,7 +1774,6 @@ const handleExcelDataUpdate = (newData) => {
  */
 const handleBatchChange = (rules) => {
   batchEditRules.value = rules
-  console.log('批量修改规则变化:', rules)
 }
 
 /**

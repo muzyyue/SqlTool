@@ -216,39 +216,12 @@ const filterOption = (input, option) => {
 }
 
 const getExcelColumnIndex = (ddlFieldName) => {
-  console.log('--- getExcelColumnIndex ---')
-  console.log('查找 DDL 字段名:', ddlFieldName)
-  console.log('fieldMappings 数据:', props.fieldMappings)
-  console.log('fieldMappings 长度:', props.fieldMappings?.length)
-
-  if (props.fieldMappings && props.fieldMappings.length > 0) {
-    console.log('遍历所有映射:')
-    props.fieldMappings.forEach((m, index) => {
-      const ddlField = m.ddlField
-      const excelHeader = m.excelHeader
-      const excelColumn = m.excelIndex
-      const ddlFieldNameValue = ddlField && typeof ddlField === 'object' ? ddlField.name : ddlField
-      console.log(`  映射 ${index}:`)
-      console.log(`    - ddlField:`, ddlField)
-      console.log(`    - ddlField 类型:`, typeof ddlField)
-      console.log(`    - ddlFieldNameValue:`, ddlFieldNameValue)
-      console.log(`    - excelHeader:`, excelHeader)
-      console.log(`    - excelColumn:`, excelColumn)
-      console.log(`    - excelColumn 类型:`, typeof excelColumn)
-      console.log(`    - 所有属性:`, Object.keys(m))
-    })
-  }
-
   const mapping = props.fieldMappings.find((m) => {
     const ddlField = m.ddlField
     const ddlFieldNameValue = ddlField && typeof ddlField === 'object' ? ddlField.name : ddlField
     return ddlFieldNameValue === ddlFieldName || m.excelHeader === ddlFieldName
   })
-  console.log('找到的映射:', mapping)
-  const excelColumnIndex = mapping ? mapping.excelIndex : -1
-  console.log('Excel 列索引:', excelColumnIndex)
-  console.log('--- getExcelColumnIndex 结束 ---')
-  return excelColumnIndex
+  return mapping ? mapping.excelIndex : -1
 }
 
 const matchCondition = (fieldValue, operator, conditionValue) => {
@@ -284,14 +257,68 @@ const matchCondition = (fieldValue, operator, conditionValue) => {
   }
 }
 
-const applyBatchEditToData = (data, rules) => {
-  console.log('=== 批量修改开始 ===')
-  console.log('数据行数:', data?.length)
-  console.log('规则数量:', rules?.length)
-  console.log('规则详情:', rules)
+const validateFieldType = (fieldName, value) => {
+  const field = props.ddlFields.find((f) => f.name === fieldName)
+  if (!field) {
+    return { valid: true, error: null }
+  }
 
+  const fieldType = (field.type || '').toUpperCase()
+  const strValue = String(value).trim()
+
+  if (strValue === '' || strValue === 'NULL' || strValue === 'NULL'.toLowerCase()) {
+    return { valid: true, error: null }
+  }
+
+  const intTypes = [
+    'INT',
+    'INTEGER',
+    'BIGINT',
+    'SMALLINT',
+    'TINYINT',
+    'MEDIUMINT',
+    'NUMBER',
+    'NUMERIC',
+    'DECIMAL',
+    'FLOAT',
+    'DOUBLE',
+    'REAL',
+    'BIGDECIMAL',
+  ]
+  const dateTypes = ['DATE', 'DATETIME', 'TIMESTAMP', 'TIME', 'YEAR']
+  const boolTypes = ['BOOLEAN', 'BOOL', 'BIT']
+
+  if (intTypes.some((t) => fieldType.includes(t))) {
+    const numValue = Number(strValue)
+    if (isNaN(numValue) || !isFinite(numValue)) {
+      return {
+        valid: false,
+        error: `字段 "${fieldName}" 类型为 ${field.type}，值 "${value}" 不是有效的数字`,
+      }
+    }
+  } else if (dateTypes.some((t) => fieldType.includes(t))) {
+    const dateValue = new Date(strValue)
+    if (isNaN(dateValue.getTime())) {
+      return {
+        valid: false,
+        error: `字段 "${fieldName}" 类型为 ${field.type}，值 "${value}" 不是有效的日期格式`,
+      }
+    }
+  } else if (boolTypes.some((t) => fieldType.includes(t))) {
+    const lowerValue = strValue.toLowerCase()
+    if (!['TRUE', 'FALSE', '1', '0', 'YES', 'NO'].includes(lowerValue)) {
+      return {
+        valid: false,
+        error: `字段 "${fieldName}" 类型为 ${field.type}，值 "${value}" 不是有效的布尔值（可用 TRUE/FALSE/1/0）`,
+      }
+    }
+  }
+
+  return { valid: true, error: null }
+}
+
+const applyBatchEditToData = (data, rules) => {
   if (!data || !rules || rules.length === 0) {
-    console.log('=== 批量修改结束：数据或规则为空 ===')
     return {
       affectedRows: 0,
       modifiedData: data,
@@ -301,69 +328,50 @@ const applyBatchEditToData = (data, rules) => {
   const modifiedData = data.map((row) => ({ ...row }))
   const affectedRowIndices = new Set()
 
-  rules.forEach((rule, ruleIndex) => {
-    console.log(`--- 处理规则 ${ruleIndex + 1} ---`)
-    console.log('规则字段名:', rule.fieldName)
-    console.log('规则新值:', rule.newValue)
-    console.log('规则条件:', rule.condition)
-
+  rules.forEach((rule) => {
     if (!rule.fieldName || rule.newValue === undefined || rule.newValue === '') {
-      console.log('跳过规则：字段名或新值为空')
       return
     }
 
     const columnIndex = getExcelColumnIndex(rule.fieldName)
-    console.log('Excel 列索引:', columnIndex)
-
     if (columnIndex === -1) {
-      console.log('跳过规则：未找到列索引')
       return
+    }
+
+    const typeValidation = validateFieldType(rule.fieldName, rule.newValue)
+    if (!typeValidation.valid) {
+      throw new Error(typeValidation.error)
     }
 
     let rowIndicesToModify = []
 
     if (rule.condition.enabled) {
-      console.log('规则有条件，开始匹配...')
       const conditionColumnIndex = getExcelColumnIndex(rule.condition.fieldName)
-      console.log('条件列索引:', conditionColumnIndex)
-
       if (conditionColumnIndex === -1) {
-        console.log('跳过规则：未找到条件列索引')
         return
       }
 
       rowIndicesToModify = modifiedData
         .map((row, index) => {
           const conditionFieldValue = row[String(conditionColumnIndex)]
-          console.log(`行 ${index} 的条件字段值:`, conditionFieldValue)
           const match = matchCondition(
             conditionFieldValue,
             rule.condition.operator,
             rule.condition.value,
           )
-          console.log(`行 ${index} 条件匹配结果:`, match)
           return match ? index : -1
         })
         .filter((index) => index !== -1)
-      console.log('满足条件的行索引:', rowIndicesToModify)
     } else {
-      console.log('规则无条件，修改所有行')
       rowIndicesToModify = modifiedData.map((_, index) => index)
     }
 
-    console.log('将要修改的行数:', rowIndicesToModify.length)
     rowIndicesToModify.forEach((rowIndex) => {
-      console.log(
-        `修改行 ${rowIndex} 的列 ${columnIndex}，从 "${modifiedData[rowIndex][String(columnIndex)]}" 改为 "${rule.newValue}"`,
-      )
       modifiedData[rowIndex][String(columnIndex)] = rule.newValue
       affectedRowIndices.add(rowIndex)
     })
-    console.log(`--- 规则 ${ruleIndex + 1} 处理完成，受影响行数: ${rowIndicesToModify.length} ---`)
   })
 
-  console.log('=== 批量修改完成 ===')
-  console.log('总受影响行数:', affectedRowIndices.size)
   return {
     affectedRows: affectedRowIndices.size,
     modifiedData,

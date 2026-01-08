@@ -1,5 +1,15 @@
 # 版本变更历史
 
+## 1.2.34 (2025-01-08)
+
+**添加批量修改数据类型验证**
+
+- 添加 validateFieldType 函数，在修改数据前验证数据类型
+- 支持整数类型（INT、INTEGER、BIGINT、NUMBER 等）验证
+- 支持日期类型（DATE、DATETIME、TIMESTAMP 等）验证
+- 支持布尔类型（BOOLEAN、BOOL、BIT 等）验证
+- 不符合类型的数据会被拒绝并提示错误信息，避免无效数据写入
+
 ## 1.2.33 (2025-01-07)
 
 **修复 getExcelColumnIndex 函数属性名错误**
