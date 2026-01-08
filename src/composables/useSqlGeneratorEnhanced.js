@@ -35,6 +35,10 @@ export function useSqlGeneratorEnhanced() {
       customBindingManager = null,
     } = options
 
+    if (customBindingManager && customBindingManager.resetAutoIncrementCounters) {
+      customBindingManager.resetAutoIncrementCounters()
+    }
+
     const sqlStatements = []
 
     // 添加表头注释
@@ -86,6 +90,10 @@ export function useSqlGeneratorEnhanced() {
       updateFields = null,
       customBindingManager = null,
     } = options
+
+    if (customBindingManager && customBindingManager.resetAutoIncrementCounters) {
+      customBindingManager.resetAutoIncrementCounters()
+    }
 
     const sqlStatements = []
 

@@ -425,6 +425,24 @@ export function useCustomBinding() {
   }
 
   /**
+   * 重置所有自增计数器
+   * 在每次生成SQL前调用，确保从初始值开始
+   */
+  const resetAutoIncrementCounters = () => {
+    const countersToReset = {}
+
+    customFields.value.forEach((field) => {
+      if (field.dataSource === 'auto_increment') {
+        countersToReset[field.fieldName] = {
+          current: field.autoIncrementConfig?.start || 0,
+        }
+      }
+    })
+
+    autoIncrementCounters.value = countersToReset
+  }
+
+  /**
    * 应用自定义字段配置到数据行
    * @param {Object} rowData - 原始数据行
    * @param {Array} excelHeaders - Excel表头列表
@@ -528,6 +546,7 @@ export function useCustomBinding() {
     removeCustomField,
     getCustomField,
     generateAutoIncrementValue,
+    resetAutoIncrementCounters,
     applyCustomFields,
 
     // 设置
