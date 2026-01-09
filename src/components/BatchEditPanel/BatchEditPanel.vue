@@ -352,6 +352,7 @@
 
     <TemplateManager
       :current-rules="editRules"
+      :ddl-fields="fieldOptions"
       @load="handleLoadTemplate"
       @export="handleExportTemplate"
     />

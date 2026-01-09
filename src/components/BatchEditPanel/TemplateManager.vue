@@ -147,7 +147,7 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive, watch } from 'vue'
+import { ref, computed, reactive, watch, h } from 'vue'
 import { message } from 'ant-design-vue'
 import {
   PlusOutlined,
@@ -158,10 +158,19 @@ import {
   ClockCircleOutlined,
   UploadOutlined,
 } from '@ant-design/icons-vue'
+import ASelect from 'ant-design-vue/es/select'
+import AInput from 'ant-design-vue/es/input'
 import { useTemplateManager } from '@/composables/useTemplateManager.js'
+
+const Select = ASelect
+const Input = AInput
 
 const props = defineProps({
   currentRules: {
+    type: Array,
+    default: () => [],
+  },
+  ddlFields: {
     type: Array,
     default: () => [],
   },
@@ -193,20 +202,59 @@ const rulePreviewColumns = [
     dataIndex: 'fieldName',
     key: 'fieldName',
     width: '30%',
+    customRender: ({ record }) =>
+      h(Select, {
+        value: record.fieldName,
+        'onUpdate:value': (value) => {
+          record.fieldName = value
+        },
+        placeholder: '选择字段',
+        style: 'width: 100%',
+        showSearch: true,
+        optionFilterProp: 'label',
+        options: ddlFieldOptions.value,
+      }),
   },
   {
     title: '新值',
     dataIndex: 'newValue',
     key: 'newValue',
     width: '30%',
+    customRender: ({ record }) =>
+      h(Input, {
+        value: record.newValue,
+        'onUpdate:value': (value) => {
+          record.newValue = value
+        },
+        placeholder: '输入新值',
+        allowClear: true,
+        style: 'width: 100%',
+      }),
   },
   {
     title: '条件',
     dataIndex: 'condition',
     key: 'condition',
     width: '40%',
+    customRender: ({ record }) => {
+      const cond = record.condition || { enabled: false, fieldName: '', operator: '=', value: '' }
+      return h(
+        'span',
+        { style: 'font-size: 12px; color: #666' },
+        cond.enabled ? `${cond.fieldName} ${cond.operator} ${cond.value}` : '无条件',
+      )
+    },
   },
 ]
+
+const ddlFieldOptions = computed(() => {
+  return props.ddlFields.map((field) => {
+    if (typeof field === 'string') {
+      return { label: field, value: field }
+    }
+    return { label: `${field.name} (${field.type})`, value: field.name }
+  })
+})
 
 const filteredTemplates = computed(() => {
   if (!searchText.value) {
