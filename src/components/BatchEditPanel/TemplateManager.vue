@@ -1,5 +1,10 @@
 <template>
-  <a-drawer v-model:open="templateDrawerVisible" title="规则模板管理" width="400" placement="right">
+  <a-drawer
+    v-model:open="templateManager.templateDrawerVisible.value"
+    title="规则模板管理"
+    width="400"
+    placement="right"
+  >
     <template #extra>
       <a-space>
         <a-button @click="handleExportAll">导出全部</a-button>
@@ -80,7 +85,12 @@
     <div class="template-footer">
       <a-space direction="vertical" style="width: 100%">
         <a-button block @click="handleResetToDefault"> <ReloadOutlined /> 恢复默认模板 </a-button>
-        <a-button block danger @click="handleClearAll" :disabled="templateCount === 0">
+        <a-button
+          block
+          danger
+          @click="handleClearAll"
+          :disabled="templateManager.templateCount.value === 0"
+        >
           <DeleteOutlined /> 清空所有模板
         </a-button>
       </a-space>
@@ -89,7 +99,7 @@
     <a-modal
       v-model:open="saveModalVisible"
       :title="editingTemplate ? '编辑模板' : '新建模板'"
-      :confirm-loading="savingTemplate"
+      :confirm-loading="templateManager.savingTemplate.value"
       @ok="handleSaveTemplate"
       @cancel="closeSaveModal"
     >
@@ -179,8 +189,6 @@ const props = defineProps({
 const emit = defineEmits(['load', 'export'])
 
 const templateManager = useTemplateManager()
-
-const { templateDrawerVisible, savingTemplate, templateCount } = templateManager
 
 const searchText = ref('')
 const saveModalVisible = ref(false)
