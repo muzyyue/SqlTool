@@ -13,7 +13,7 @@
                 <template #icon><ImportOutlined /></template>
                 批量导入
               </a-button>
-              <a-button @click="batchImport.openTemplateDrawer" size="small">
+              <a-button @click="batchImport.openTemplateDrawer()" size="small">
                 <template #icon><FolderOpenOutlined /></template>
                 模板管理
               </a-button>
