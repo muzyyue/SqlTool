@@ -1,10 +1,11 @@
 <template>
   <a-drawer
-    v-model:open="templateManager.templateDrawerVisible"
+    v-model:open="drawerOpen"
     title="规则模板管理"
     width="400"
     placement="right"
     :body-style="{ paddingBottom: '80px' }"
+    :mask-closable="true"
   >
     <template #extra>
       <a-space>
@@ -90,7 +91,9 @@
           block
           danger
           @click="handleClearAll"
-          :disabled="templateManager.templateCount === 0"
+          :disabled="
+            templateManager.templateCount === 0 || templateManager.templateCount.value === 0
+          "
         >
           <DeleteOutlined /> 清空所有模板
         </a-button>
@@ -100,7 +103,7 @@
     <a-modal
       v-model:open="saveModalVisible"
       :title="editingTemplate ? '编辑模板' : '新建模板'"
-      :confirm-loading="templateManager.savingTemplate"
+      :confirm-loading="savingLoading"
       @ok="handleSaveTemplate"
       @cancel="closeSaveModal"
     >
@@ -276,6 +279,10 @@ const filteredTemplates = computed(() => {
       (t.description && t.description.toLowerCase().includes(search)),
   )
 })
+
+const drawerOpen = computed(() => !!templateManager.templateDrawerVisible.value)
+
+const savingLoading = computed(() => !!templateManager.savingTemplate.value)
 
 const formatDate = (dateStr) => {
   if (!dateStr) return ''
