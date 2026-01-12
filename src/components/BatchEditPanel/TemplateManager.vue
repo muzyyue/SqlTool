@@ -1,9 +1,10 @@
 <template>
   <a-drawer
-    v-model:open="templateManager.templateDrawerVisible.value"
+    v-model:open="templateManager.templateDrawerVisible"
     title="规则模板管理"
     width="400"
     placement="right"
+    :body-style="{ paddingBottom: '80px' }"
   >
     <template #extra>
       <a-space>
@@ -89,7 +90,7 @@
           block
           danger
           @click="handleClearAll"
-          :disabled="templateManager.templateCount.value === 0"
+          :disabled="templateManager.templateCount === 0"
         >
           <DeleteOutlined /> 清空所有模板
         </a-button>
@@ -99,7 +100,7 @@
     <a-modal
       v-model:open="saveModalVisible"
       :title="editingTemplate ? '编辑模板' : '新建模板'"
-      :confirm-loading="templateManager.savingTemplate.value"
+      :confirm-loading="templateManager.savingTemplate"
       @ok="handleSaveTemplate"
       @cancel="closeSaveModal"
     >
