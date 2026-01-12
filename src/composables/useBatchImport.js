@@ -6,7 +6,6 @@
 import { reactive, computed } from 'vue'
 import { message } from 'ant-design-vue'
 import { parseImportFile, validateFileFormat, downloadTemplateFile } from './useImportParser.js'
-import { useTemplateManager } from './useTemplateManager.js'
 
 /**
  * 导入配置选项
@@ -472,16 +471,6 @@ export function useBatchImport(options = {}) {
     emit.onImportError = callback
   }
 
-  const templateManager = useTemplateManager()
-
-  const openTemplateDrawer = () => {
-    templateManager.openTemplateDrawer()
-  }
-
-  const closeTemplateDrawer = () => {
-    templateManager.closeTemplateDrawer()
-  }
-
   return {
     importState,
     formatOptions,
@@ -493,9 +482,6 @@ export function useBatchImport(options = {}) {
     ddlFieldOptions,
     canNext,
     formatName,
-    templateManager,
-    openTemplateDrawer,
-    closeTemplateDrawer,
     openImport,
     closeImport,
     nextStep,

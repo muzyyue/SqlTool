@@ -13,7 +13,7 @@
                 <template #icon><ImportOutlined /></template>
                 批量导入
               </a-button>
-              <a-button @click="batchImport.templateManager.openTemplateDrawer()" size="small">
+              <a-button @click="templateManager.openTemplateDrawer()" size="small">
                 <template #icon><FolderOpenOutlined /></template>
                 模板管理
               </a-button>
@@ -380,6 +380,7 @@ import {
   FolderOpenOutlined,
 } from '@ant-design/icons-vue'
 import { useBatchImport } from '@/composables/useBatchImport.js'
+import { useTemplateManager } from '@/composables/useTemplateManager.js'
 import TemplateManager from './TemplateManager.vue'
 
 const props = defineProps({
@@ -422,6 +423,8 @@ const batchImport = useBatchImport({
   skipInvalid: true,
   autoPreview: false,
 })
+
+const templateManager = useTemplateManager()
 
 const fieldOptions = computed(() => {
   return props.ddlFields.map((field) => ({
