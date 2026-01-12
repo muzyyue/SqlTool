@@ -280,7 +280,12 @@ const filteredTemplates = computed(() => {
   )
 })
 
-const drawerOpen = computed(() => !!templateManager.templateDrawerVisible.value)
+const drawerOpen = computed({
+  get: () => !!templateManager.templateDrawerVisible.value,
+  set: (value) => {
+    templateManager.templateDrawerVisible.value = value
+  },
+})
 
 const savingLoading = computed(() => !!templateManager.savingTemplate.value)
 

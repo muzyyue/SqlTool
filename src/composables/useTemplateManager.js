@@ -265,12 +265,16 @@ export function useTemplateManager() {
   })
 
   const openTemplateDrawer = () => {
+    console.log('openTemplateDrawer called')
     initTemplates()
     templateDrawerVisible.value = true
+    console.log('templateDrawerVisible.value:', templateDrawerVisible.value)
   }
 
   const closeTemplateDrawer = () => {
+    console.log('closeTemplateDrawer called')
     templateDrawerVisible.value = false
+    console.log('templateDrawerVisible.value:', templateDrawerVisible.value)
   }
 
   return {
