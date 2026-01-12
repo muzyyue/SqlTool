@@ -1,11 +1,13 @@
 <template>
   <a-drawer
-    v-model:open="templateManager.templateDrawerVisible"
+    v-model:open="drawerVisible"
     title="规则模板管理"
     width="400"
     placement="right"
     :body-style="{ paddingBottom: '80px' }"
     :mask-closable="true"
+    :closable="true"
+    @close="handleDrawerClose"
   >
     <template #extra>
       <a-space>
@@ -161,7 +163,7 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive, watch, h } from 'vue'
+import { ref, computed, reactive, watch, h, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import {
   PlusOutlined,
@@ -193,6 +195,28 @@ const props = defineProps({
 const emit = defineEmits(['load', 'export'])
 
 const templateManager = useTemplateManager()
+
+const drawerVisible = ref(false)
+
+onMounted(() => {
+  templateManager.initTemplates()
+  watch(
+    () => templateManager.templateDrawerVisible.value,
+    (visible) => {
+      drawerVisible.value = visible
+    },
+    { immediate: true },
+  )
+})
+
+const handleDrawerClose = () => {
+  drawerVisible.value = false
+  templateManager.templateDrawerVisible.value = false
+}
+
+watch(drawerVisible, (visible) => {
+  templateManager.templateDrawerVisible.value = visible
+})
 
 const searchText = ref('')
 const saveModalVisible = ref(false)
