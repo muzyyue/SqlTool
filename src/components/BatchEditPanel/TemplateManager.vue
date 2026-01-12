@@ -1,6 +1,6 @@
 <template>
   <a-drawer
-    v-model:open="drawerOpen"
+    v-model:open="templateManager.templateDrawerVisible"
     title="规则模板管理"
     width="400"
     placement="right"
@@ -278,13 +278,6 @@ const filteredTemplates = computed(() => {
       t.name.toLowerCase().includes(search) ||
       (t.description && t.description.toLowerCase().includes(search)),
   )
-})
-
-const drawerOpen = computed({
-  get: () => !!templateManager.templateDrawerVisible.value,
-  set: (value) => {
-    templateManager.templateDrawerVisible.value = value
-  },
 })
 
 const savingLoading = computed(() => !!templateManager.savingTemplate.value)
