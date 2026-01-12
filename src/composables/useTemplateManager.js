@@ -3,7 +3,7 @@
  * 提供规则的保存、加载、删除、导出等模板管理功能
  */
 
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 
 /**
  * 模板类型定义
@@ -272,16 +272,6 @@ export function useTemplateManager() {
   const closeTemplateDrawer = () => {
     templateDrawerVisible.value = false
   }
-
-  watch(
-    templateDrawerVisible,
-    (visible) => {
-      if (visible) {
-        initTemplates()
-      }
-    },
-    { immediate: true },
-  )
 
   return {
     templates,
