@@ -4,14 +4,8 @@ import transformerVariantGroup from '@unocss/transformer-variant-group'
 import transformerDirectives from '@unocss/transformer-directives'
 
 export default defineConfig({
-  presets: [
-    presetUno(),
-    presetAttributify(),
-  ],
-  transformers: [
-    transformerVariantGroup(),
-    transformerDirectives(),
-  ],
+  presets: [presetUno(), presetAttributify()],
+  transformers: [transformerVariantGroup(), transformerDirectives()],
   theme: {
     colors: {
       primary: {
@@ -56,14 +50,10 @@ export default defineConfig({
     },
   },
   shortcuts: {
-    'glass-card': 'bg-glass backdrop-blur-20px shadow-lg rounded-lg border-glass',
-    'gradient-button': 'bg-gradient-primary text-white rounded-sm shadow-sm hover:shadow-md active:scale-95',
-    'gradient-text': 'bg-gradient-primary bg-clip-text text-transparent',
+    'glass-card': 'bg-white/85 backdrop-blur-20px shadow-lg border border-white/50',
+    'gradient-button': 'text-white rounded-sm shadow-sm hover:shadow-md active:scale-95',
+    'gradient-text': 'bg-clip-text text-transparent',
   },
   darkMode: 'class',
-  safelist: [
-    'glass-card',
-    'gradient-button',
-    'gradient-text',
-  ],
+  safelist: ['glass-card', 'gradient-button', 'gradient-text'],
 })

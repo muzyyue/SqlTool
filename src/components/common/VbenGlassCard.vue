@@ -66,9 +66,9 @@ const props = defineProps({
  */
 const emit = defineEmits({
   /** 卡片 hover 事件 */
-  hover: [event: MouseEvent],
+  hover: [event],
   /** 卡片 hover 离开事件 */
-  hoverLeave: [event: MouseEvent],
+  hoverLeave: [event],
 })
 </script>
 

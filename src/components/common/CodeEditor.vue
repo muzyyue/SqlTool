@@ -46,7 +46,7 @@ import { EditorState } from '@codemirror/state'
 import { oneDark } from '@codemirror/theme-one-dark'
 import { json } from '@codemirror/lang-json'
 import { sql } from '@codemirror/lang-sql'
-import { keymap, Prec } from '@codemirror/view'
+import { keymap } from '@codemirror/view'
 import { defaultKeymap, indentWithTab } from '@codemirror/commands'
 
 /**
