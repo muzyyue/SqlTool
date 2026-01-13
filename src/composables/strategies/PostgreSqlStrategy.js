@@ -150,8 +150,7 @@ export class PostgreSqlStrategy extends DatabaseStrategy {
   extractFieldDefinitions(ddlStatement) {
     const fields = []
 
-    // 改进的正则表达式，匹配完整的表定义部分
-    const fieldSectionMatch = ddlStatement.match(/CREATE\s+TABLE[^(]*\(([\s\S]*?)\)\s*;/i)
+    const fieldSectionMatch = ddlStatement.match(/CREATE\s+TABLE[^(]*\(([\s\S]*?)\)(?:\s*;)?$/i)
     if (!fieldSectionMatch) return fields
 
     const fieldSection = fieldSectionMatch[1]
@@ -199,7 +198,6 @@ export class PostgreSqlStrategy extends DatabaseStrategy {
   }
 
   parseFieldDefinition(fieldDef) {
-    // 跳过约束定义（这些不是字段定义）
     if (
       fieldDef.toUpperCase().startsWith('PRIMARY KEY') ||
       fieldDef.toUpperCase().startsWith('FOREIGN KEY') ||
@@ -210,7 +208,6 @@ export class PostgreSqlStrategy extends DatabaseStrategy {
       return null
     }
 
-    // 检查是否是有效的字段定义（包含数据类型）
     const hasDataType = /\s+(\w+(?:\([^)]*\))?)/.test(fieldDef)
     if (!hasDataType) {
       return null
@@ -222,41 +219,35 @@ export class PostgreSqlStrategy extends DatabaseStrategy {
       nullable: true,
       defaultValue: null,
       isIdentity: false,
-      primaryKey: false, // 新增：主键标识
+      primaryKey: false,
       comment: '',
     }
 
-    // 提取字段名（支持引号包围的字段名）
     const nameMatch = fieldDef.match(/^([\w"]+)/)
     if (nameMatch) {
       field.name = nameMatch[1].replace(/"/g, '')
     } else {
-      return null // 没有有效的字段名
+      return null
     }
 
-    // 提取数据类型
     const typeMatch = fieldDef.match(/\s+(\w+(?:\([^)]*\))?)/)
     if (typeMatch) {
       field.type = typeMatch[1].toUpperCase()
     }
 
-    // 检查是否可为空
     field.nullable = !fieldDef.toUpperCase().includes('NOT NULL')
 
-    // 检查自增属性（PostgreSQL的SERIAL类型和IDENTITY语法）
     field.isIdentity =
       fieldDef.toUpperCase().includes('SERIAL') ||
       fieldDef.toUpperCase().includes('GENERATED ALWAYS AS IDENTITY')
 
-    // 提取默认值（支持复杂的默认值表达式）
     const defaultValueMatch = fieldDef.match(
-      /DEFAULT\s+([^,]+?)(?:\s+(?:NOT NULL|PRIMARY KEY|UNIQUE|,|$))/i,
+      /DEFAULT\s+([^,\s)]+?)(?:\s+(?:NOT NULL|PRIMARY KEY|UNIQUE|COLLATE|$))/i,
     )
     if (defaultValueMatch) {
       field.defaultValue = defaultValueMatch[1].trim()
     }
 
-    // 提取注释
     const commentMatch = fieldDef.match(/COMMENT\s+'([^']*)'/i)
     if (commentMatch) {
       field.comment = commentMatch[1]

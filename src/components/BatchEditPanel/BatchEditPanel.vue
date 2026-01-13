@@ -9,6 +9,30 @@
                 <template #icon><PlusOutlined /></template>
                 添加修改规则
               </a-button>
+              <a-button @click="batchImport.openImport" size="small">
+                <template #icon><ImportOutlined /></template>
+                批量导入
+              </a-button>
+              <a-button @click="templateManager.openTemplateDrawer()" size="small">
+                <template #icon><FolderOpenOutlined /></template>
+                模板管理
+              </a-button>
+              <a-button
+                @click="handleExportRules('excel')"
+                size="small"
+                :disabled="editRules.length === 0"
+              >
+                <template #icon><ExportOutlined /></template>
+                导出Excel
+              </a-button>
+              <a-button
+                @click="handleExportRules('json')"
+                size="small"
+                :disabled="editRules.length === 0"
+              >
+                <template #icon><FileExcelOutlined /></template>
+                导出JSON
+              </a-button>
               <a-button @click="handleReset" size="small" :disabled="editRules.length === 0">
                 <template #icon><ReloadOutlined /></template>
                 重置
@@ -147,12 +171,198 @@
         </a-collapse-panel>
       </a-collapse>
     </div>
+
+    <a-modal
+      v-model:open="batchImport.importState.visible"
+      :title="`批量导入修改规则`"
+      width="800px"
+      :footer="null"
+      :mask-closable="false"
+    >
+      <a-steps :current="batchImport.importState.step" size="small" style="margin-bottom: 24px">
+        <a-step title="选择格式" />
+        <a-step title="上传文件" />
+        <a-step title="字段映射" />
+        <a-step title="预览确认" />
+      </a-steps>
+
+      <div class="import-content">
+        <div v-if="batchImport.importState.step === 0" class="import-step step-format">
+          <h4>选择导入格式</h4>
+          <a-radio-group
+            v-model:value="batchImport.importState.format"
+            class="format-options"
+            @change="(e) => batchImport.setFormat(e.target.value)"
+          >
+            <a-card hoverable class="format-card" @click="batchImport.setFormat('excel')">
+              <template #cover>
+                <div class="format-icon">
+                  <FileExcelOutlined style="font-size: 48px; color: #52c41a" />
+                </div>
+              </template>
+              <a-radio-button value="excel" :checked="batchImport.importState.format === 'excel'">
+                Excel 文件
+              </a-radio-button>
+              <p class="format-hint">支持 .xlsx、.xls、.csv 格式</p>
+            </a-card>
+            <a-card hoverable class="format-card" @click="batchImport.setFormat('json')">
+              <template #cover>
+                <div class="format-icon">
+                  <CodeOutlined style="font-size: 48px; color: #1890ff" />
+                </div>
+              </template>
+              <a-radio-button value="json" :checked="batchImport.importState.format === 'json'">
+                JSON 文件
+              </a-radio-button>
+              <p class="format-hint">支持标准 JSON 格式</p>
+            </a-card>
+          </a-radio-group>
+        </div>
+
+        <div v-if="batchImport.importState.step === 1" class="import-step step-upload">
+          <h4>上传 {{ batchImport.formatName }} 文件</h4>
+          <a-upload
+            v-model:file-list="batchImport.importState.fileList"
+            :before-upload="batchImport.beforeUpload"
+            :custom-request="batchImport.customRequest"
+            accept=".xlsx,.xls,.csv,.json"
+            :show-upload-list="true"
+            name="file"
+          >
+            <a-button :loading="batchImport.importState.uploading">
+              <upload-outlined />
+              点击或拖拽文件到此处上传
+            </a-button>
+          </a-upload>
+          <a-divider />
+          <a-button type="link" @click="batchImport.downloadTemplate">
+            <DownloadOutlined /> 下载导入模板
+          </a-button>
+        </div>
+
+        <div v-if="batchImport.importState.step === 2" class="import-step step-mapping">
+          <h4>确认字段映射</h4>
+          <p class="mapping-tip">系统将尝试自动匹配字段名，请确认或修改以下映射关系</p>
+          <a-table
+            :data-source="batchImport.importState.fieldMappings"
+            :columns="batchImport.mappingColumns"
+            :pagination="false"
+            size="small"
+            :scroll="{ y: 300 }"
+          >
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'importField'">
+                {{ record.importField }}
+              </template>
+              <template v-if="column.key === 'status'">
+                <a-tag :color="batchImport.statusColor[record.status]">
+                  {{ batchImport.statusText[record.status] }}
+                </a-tag>
+              </template>
+              <template v-if="column.key === 'ddlField'">
+                <a-select
+                  v-model:value="record.ddlField"
+                  :options="batchImport.ddlFieldOptions"
+                  placeholder="选择 DDL 字段"
+                  style="width: 100%"
+                  show-search
+                  :filter-option="filterOption"
+                  @change="(value) => batchImport.handleFieldMappingChange(record)"
+                  allow-clear
+                />
+              </template>
+              <template v-if="column.key === 'action'">
+                <a-button type="link" size="small" danger @click="batchImport.skipMapping(record)">
+                  跳过
+                </a-button>
+              </template>
+            </template>
+          </a-table>
+          <a-alert
+            v-if="batchImport.importState.fieldMappings.length === 0"
+            message="没有需要映射的字段"
+            type="info"
+            show-icon
+            style="margin-top: 16px"
+          />
+        </div>
+
+        <div v-if="batchImport.importState.step === 3" class="import-step step-preview">
+          <h4>预览即将导入的规则</h4>
+          <a-table
+            :data-source="batchImport.importState.previewRules"
+            :columns="batchImport.previewColumns"
+            :pagination="{ pageSize: 5 }"
+            size="small"
+            :scroll="{ y: 300 }"
+          >
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'condition'">
+                <span v-if="record.condition !== '-'">
+                  <a-tag color="orange">{{ record.condition }}</a-tag>
+                </span>
+                <span v-else>-</span>
+              </template>
+            </template>
+          </a-table>
+          <a-alert
+            message="确认导入"
+            :description="`即将添加 ${batchImport.importState.previewRules.length} 条修改规则，是否继续？`"
+            type="info"
+            show-icon
+            style="margin-top: 16px"
+          />
+        </div>
+
+        <div v-if="batchImport.importState.error" class="import-error">
+          <a-alert :message="batchImport.importState.error" type="error" show-icon />
+        </div>
+      </div>
+
+      <a-divider />
+
+      <div
+        class="import-actions"
+        style="display: flex; justify-content: space-between; align-items: center"
+      >
+        <a-space>
+          <a-button v-if="batchImport.importState.step > 0" @click="batchImport.prevStep">
+            上一步
+          </a-button>
+          <a-button
+            v-if="batchImport.importState.step < 3"
+            type="primary"
+            @click="batchImport.nextStep"
+            :disabled="!batchImport.canNext"
+          >
+            下一步
+          </a-button>
+          <a-button
+            v-if="batchImport.importState.step === 3"
+            type="primary"
+            @click="batchImport.confirmImport"
+            :loading="batchImport.importState.importing"
+          >
+            确认导入
+          </a-button>
+        </a-space>
+        <a-button @click="batchImport.closeImport">取消</a-button>
+      </div>
+    </a-modal>
+
+    <TemplateManager
+      :current-rules="editRules"
+      :ddl-fields="fieldOptions"
+      @load="handleLoadTemplate"
+      @export="handleExportTemplate"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
+import * as XLSX from 'xlsx'
 import {
   PlusOutlined,
   ReloadOutlined,
@@ -161,7 +371,17 @@ import {
   CheckOutlined,
   QuestionCircleOutlined,
   InfoCircleOutlined,
+  ImportOutlined,
+  ExportOutlined,
+  UploadOutlined,
+  DownloadOutlined,
+  FileExcelOutlined,
+  CodeOutlined,
+  FolderOpenOutlined,
 } from '@ant-design/icons-vue'
+import { useBatchImport } from '@/composables/useBatchImport.js'
+import { useTemplateManager } from '@/composables/useTemplateManager.js'
+import TemplateManager from './TemplateManager.vue'
 
 const props = defineProps({
   ddlFields: {
@@ -197,6 +417,15 @@ const previewResult = ref({
   modifiedData: [],
 })
 
+const batchImport = useBatchImport({
+  enableAutoMatch: true,
+  maxRules: 100,
+  skipInvalid: true,
+  autoPreview: false,
+})
+
+const templateManager = useTemplateManager()
+
 const fieldOptions = computed(() => {
   return props.ddlFields.map((field) => ({
     label: `${field.name} (${field.type})`,
@@ -213,6 +442,118 @@ const rulesStats = computed(() => {
 
 const filterOption = (input, option) => {
   return option.label.toLowerCase().includes(input.toLowerCase())
+}
+
+onMounted(() => {
+  batchImport.setDdlFields(props.ddlFields)
+  batchImport.setOnRulesChange((newRules) => {
+    editRules.value = [...editRules.value, ...newRules]
+    emit('change', editRules.value)
+    if (props.autoPreview && props.excelData.length > 0) {
+      handlePreview()
+    }
+  })
+  batchImport.setOnImportComplete((rules) => {
+    message.success(`成功导入 ${rules.length} 条规则`)
+  })
+  batchImport.setOnImportError((error) => {
+    message.error(`导入失败: ${error.message}`)
+  })
+})
+
+watch(
+  () => props.ddlFields,
+  (newFields) => {
+    batchImport.setDdlFields(newFields)
+  },
+  { deep: true },
+)
+
+watch(
+  editRules,
+  () => {
+    if (
+      props.autoPreview &&
+      props.excelData &&
+      props.excelData.length > 0 &&
+      editRules.value.length > 0
+    ) {
+      const result = applyBatchEditToData(props.excelData, editRules.value)
+      emit('preview', result)
+    }
+    emit('change', editRules.value)
+  },
+  { deep: true },
+)
+
+watch(
+  () => props.rules,
+  (newRules) => {
+    if (newRules && newRules.length > 0) {
+      editRules.value = [...newRules]
+    }
+  },
+  { immediate: true },
+)
+
+const handleExportRules = (format = 'excel') => {
+  if (editRules.value.length === 0) {
+    message.warning('没有可导出的规则')
+    return
+  }
+
+  const exportData = editRules.value.map((rule) => ({
+    字段名: rule.fieldName,
+    新值: rule.newValue,
+    条件字段: rule.condition.enabled ? rule.condition.fieldName : '',
+    操作符: rule.condition.enabled ? rule.condition.operator : '',
+    条件值: rule.condition.enabled ? rule.condition.value : '',
+    描述: rule.description || '',
+  }))
+
+  if (format === 'excel') {
+    const worksheet = XLSX.utils.json_to_sheet(exportData)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, '批量修改规则')
+
+    const colWidths = [{ wch: 20 }, { wch: 30 }, { wch: 20 }, { wch: 10 }, { wch: 30 }, { wch: 30 }]
+    worksheet['!cols'] = colWidths
+
+    XLSX.writeFile(workbook, 'batch_edit_rules.xlsx')
+    message.success(`已导出 ${editRules.value.length} 条规则到 Excel`)
+  } else if (format === 'json') {
+    const jsonData = {
+      templateName: '批量修改规则导出',
+      exportedAt: new Date().toISOString(),
+      version: '1.0',
+      ruleCount: editRules.value.length,
+      rules: editRules.value.map((rule) => ({
+        fieldName: rule.fieldName,
+        newValue: rule.newValue,
+        condition: rule.condition.enabled
+          ? {
+              enabled: true,
+              fieldName: rule.condition.fieldName,
+              operator: rule.condition.operator,
+              value: rule.condition.value,
+            }
+          : { enabled: false, fieldName: '', operator: '=', value: '' },
+        description: rule.description || '',
+      })),
+    }
+
+    const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `batch_edit_rules_${new Date().toISOString().slice(0, 10)}.json`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+
+    message.success(`已导出 ${editRules.value.length} 条规则到 JSON`)
+  }
 }
 
 const getExcelColumnIndex = (ddlFieldName) => {
@@ -412,6 +753,24 @@ const handleReset = () => {
   }
   message.info('已重置所有修改规则')
   emit('change', editRules.value)
+}
+
+const handleLoadTemplate = (rules) => {
+  const normalizedRules = rules.map((rule) => ({
+    id: `rule_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    fieldName: rule.fieldName || '',
+    newValue: rule.newValue || '',
+    condition: rule.condition || { enabled: false, fieldName: '', operator: '=', value: '' },
+    description: rule.description || '',
+  }))
+
+  editRules.value = [...editRules.value, ...normalizedRules]
+  emit('change', editRules.value)
+  message.success(`已加载 ${normalizedRules.length} 条规则`)
+}
+
+const handleExportTemplate = (template) => {
+  message.info(`模板 "${template.name}" 已导出`)
 }
 
 const handlePreview = async () => {
@@ -745,5 +1104,68 @@ defineExpose({
 
 .rule-item {
   animation: fadeIn 0.3s ease;
+}
+
+.import-content {
+  min-height: 300px;
+}
+
+.import-step {
+  padding: 16px 0;
+}
+
+.import-step h4 {
+  margin-bottom: 16px;
+  color: #333;
+  font-size: 16px;
+}
+
+.format-options {
+  display: flex;
+  gap: 16px;
+}
+
+.format-card {
+  width: 180px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.format-card:hover {
+  border-color: #1890ff;
+}
+
+.format-icon {
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fafafa;
+  border-radius: 8px 8px 0 0;
+}
+
+.format-hint {
+  margin-top: 8px;
+  color: #999;
+  font-size: 12px;
+}
+
+.mapping-tip {
+  margin-bottom: 16px;
+  color: #666;
+  font-size: 13px;
+}
+
+.import-error {
+  margin-top: 16px;
+}
+
+.import-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
 }
 </style>

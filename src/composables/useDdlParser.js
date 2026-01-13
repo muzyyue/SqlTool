@@ -124,9 +124,12 @@ export function useDdlParser() {
     // 不移除这些语法，而是简化它们以提高解析成功率
     processed = processed.replace(/GENERATED\s+ALWAYS\s+AS\s+IDENTITY/gi, 'IDENTITY')
     processed = processed.replace(/COLLATE\s+"[^"]+"/gi, 'COLLATE')
+    processed = processed.replace(/COLLATE\.["']/gi, 'COLLATE ')
 
     // 8. 移除语句末尾的分号和其他可能干扰解析的字符
-    processed = processed.replace(/;\s*$/, '') // 移除末尾分号
+    // 先清理末尾可能的多余空白和独立分号行
+    processed = processed.replace(/\s*;\s*$/, '') // 移除末尾分号
+    processed = processed.replace(/^[ \t]*;[ \t]*$/gm, '') // 移除单独一行的分号
     processed = processed.replace(/[^\x20-\x7E\n\r]/g, '') // 移除非ASCII字符
 
     console.log('预处理后的DDL语句:', processed)
@@ -754,6 +757,22 @@ export function useDdlParser() {
    */
   const parseFieldDefinitionEnhanced = (definition) => {
     if (!definition || !definition.trim()) return null
+
+    const upperDef = definition.toUpperCase().trim()
+
+    if (
+      upperDef.startsWith('PRIMARY KEY') ||
+      upperDef.startsWith('FOREIGN KEY') ||
+      upperDef.startsWith('UNIQUE') ||
+      upperDef.startsWith('CONSTRAINT') ||
+      upperDef.startsWith('CHECK')
+    ) {
+      return null
+    }
+
+    if (/\bCHECK\s*\(/i.test(definition)) {
+      return null
+    }
 
     // 多种字段定义模式匹配
     const patterns = [

@@ -35,6 +35,10 @@ export function useSqlGeneratorEnhanced() {
       customBindingManager = null,
     } = options
 
+    if (customBindingManager && customBindingManager.resetAutoIncrementCounters) {
+      customBindingManager.resetAutoIncrementCounters()
+    }
+
     const sqlStatements = []
 
     // 添加表头注释
@@ -87,6 +91,10 @@ export function useSqlGeneratorEnhanced() {
       customBindingManager = null,
     } = options
 
+    if (customBindingManager && customBindingManager.resetAutoIncrementCounters) {
+      customBindingManager.resetAutoIncrementCounters()
+    }
+
     const sqlStatements = []
 
     // 添加表头注释
@@ -124,6 +132,24 @@ export function useSqlGeneratorEnhanced() {
     dbType,
     customBindingManager,
   ) => {
+    /**
+     * 获取分组字段值
+     * @param {Object} row - 数据行
+     * @param {string} groupByField - 分组字段名
+     * @returns {string} 分组字段值
+     */
+    const getGroupValue = (row, groupByField) => {
+      if (!groupByField) return ''
+
+      const mapping = fieldMappings.find(
+        (m) => m.ddlField.name === groupByField || m.excelHeader === groupByField,
+      )
+      if (mapping && mapping.excelIndex >= 0) {
+        return String(row[mapping.excelIndex] || '')
+      }
+      return ''
+    }
+
     // 过滤掉自增主键字段和主键字段
     // 保留所有其他字段：有映射的普通字段、无映射的普通字段（值为NULL）、有映射或无映射的自定义字段
     // 注意：标记为"函数生成"的主键字段不会被过滤
@@ -196,9 +222,11 @@ export function useSqlGeneratorEnhanced() {
             } else if (customField.dataSource === 'auto_increment') {
               // 自增字段，调用customBindingManager生成自增值
               if (customBindingManager && customBindingManager.generateAutoIncrementValue) {
+                const groupValue = getGroupValue(row, customField.autoIncrementConfig?.groupBy)
                 const autoIncrementValue = customBindingManager.generateAutoIncrementValue(
                   mapping.ddlField.name,
                   customField.autoIncrementConfig || {},
+                  groupValue,
                 )
                 console.log(`自增字段 ${mapping.ddlField.name} 的值: ${autoIncrementValue}`)
                 return formatValue(autoIncrementValue, mapping.ddlField.type, dbType)
@@ -287,9 +315,11 @@ export function useSqlGeneratorEnhanced() {
           } else if (customField.dataSource === 'auto_increment') {
             // 自增字段，调用customBindingManager生成自增值
             if (customBindingManager && customBindingManager.generateAutoIncrementValue) {
+              const groupValue = getGroupValue(row, customField.autoIncrementConfig?.groupBy)
               const autoIncrementValue = customBindingManager.generateAutoIncrementValue(
                 mapping.ddlField.name,
                 customField.autoIncrementConfig || {},
+                groupValue,
               )
               console.log(`自增字段 ${mapping.ddlField.name} 的值: ${autoIncrementValue}`)
               return formatValue(autoIncrementValue, mapping.ddlField.type, dbType)
@@ -407,6 +437,24 @@ export function useSqlGeneratorEnhanced() {
     updateFields = null,
     customBindingManager = null,
   ) => {
+    /**
+     * 获取分组字段值
+     * @param {Object} rowData - 数据行
+     * @param {string} groupByField - 分组字段名
+     * @returns {string} 分组字段值
+     */
+    const getGroupValue = (rowData, groupByField) => {
+      if (!groupByField) return ''
+
+      const mapping = fieldMappings.find(
+        (m) => m.ddlField.name === groupByField || m.excelHeader === groupByField,
+      )
+      if (mapping && mapping.excelIndex >= 0) {
+        return String(rowData[mapping.excelIndex] || '')
+      }
+      return ''
+    }
+
     const setClauses = []
     const whereClauses = []
 
@@ -459,9 +507,11 @@ export function useSqlGeneratorEnhanced() {
           } else if (customField.dataSource === 'auto_increment') {
             // 自增字段，调用customBindingManager生成自增值
             if (customBindingManager && customBindingManager.generateAutoIncrementValue) {
+              const groupValue = getGroupValue(row, customField.autoIncrementConfig?.groupBy)
               const autoIncrementValue = customBindingManager.generateAutoIncrementValue(
                 mapping.ddlField.name,
                 customField.autoIncrementConfig || {},
+                groupValue,
               )
               console.log(`自增字段 ${mapping.ddlField.name} 的值: ${autoIncrementValue}`)
               value = formatValue(autoIncrementValue, mapping.ddlField.type, dbType)
@@ -543,9 +593,11 @@ export function useSqlGeneratorEnhanced() {
         } else if (customField.dataSource === 'auto_increment') {
           // 自增字段，调用customBindingManager生成自增值
           if (customBindingManager && customBindingManager.generateAutoIncrementValue) {
+            const groupValue = getGroupValue(row, customField.autoIncrementConfig?.groupBy)
             const autoIncrementValue = customBindingManager.generateAutoIncrementValue(
               mapping.ddlField.name,
               customField.autoIncrementConfig || {},
+              groupValue,
             )
             console.log(`自增字段 ${mapping.ddlField.name} 的值: ${autoIncrementValue}`)
             value = formatValue(autoIncrementValue, mapping.ddlField.type, dbType)

@@ -374,7 +374,7 @@
                     </div>
 
                     <div v-else-if="record.dataSource === 'auto_increment'" class="config-section">
-                      <div style="display: flex; gap: 8px">
+                      <div style="display: flex; gap: 8px; margin-bottom: 8px">
                         <a-input-number
                           v-model:value="record.autoIncrementConfig.start"
                           :min="0"
@@ -387,6 +387,24 @@
                           placeholder="步长"
                           @change="handleCustomFieldChange(record)"
                         />
+                      </div>
+                      <a-select
+                        v-model:value="record.autoIncrementConfig.groupBy"
+                        placeholder="选择分组字段（可选）"
+                        allow-clear
+                        style="width: 100%"
+                        @change="handleCustomFieldChange(record)"
+                      >
+                        <a-select-option
+                          v-for="field in availableDdlFields"
+                          :key="field.name"
+                          :value="field.name"
+                        >
+                          {{ field.name }} ({{ field.type }})
+                        </a-select-option>
+                      </a-select>
+                      <div style="color: #999; font-size: 12px; margin-top: 4px">
+                        相同分组值的行会连续递增，不同则重置
                       </div>
                     </div>
                   </div>
@@ -650,6 +668,8 @@ const totalCustomBindings = computed(
  */
 const cascaderOptions = computed(() => {
   const dbTypes = getSupportedDatabaseTypes()
+  const usedValues = new Set()
+
   return dbTypes.map((dbType) => {
     const functions = getDatabaseFunctions(dbType.value)
     const functionOptions = []
@@ -657,13 +677,22 @@ const cascaderOptions = computed(() => {
     if (Array.isArray(functions)) {
       for (const func of functions) {
         if (func && func.name && typeof func.name === 'string') {
+          // 使用数据库类型前缀和类别确保 key 唯一
+          const value = `${dbType.value}_${func.name}_${func.category || 'default'}`
+
+          // 跳过重复的 value
+          if (usedValues.has(value)) {
+            continue
+          }
+          usedValues.add(value)
+
           functionOptions.push({
-            // 使用数据库类型前缀确保 key 唯一
-            value: `${dbType.value}_${func.name}`,
+            value: value,
             label: func.name,
             description: func.description || '',
             databaseType: dbType.value,
             functionName: func.name,
+            functionCategory: func.category || 'default',
           })
         }
       }
@@ -693,7 +722,18 @@ const getCascaderValue = (record) => {
     return []
   }
 
-  // 使用与 cascaderOptions 相同的格式构造 functionKey
+  // 遍历 cascaderOptions 查找匹配的函数
+  for (const dbType of cascaderOptions.value) {
+    if (dbType.value === databaseType) {
+      for (const func of dbType.children || []) {
+        if (func.functionName === functionName) {
+          return [databaseType, func.value]
+        }
+      }
+    }
+  }
+
+  // 如果找不到精确匹配，使用旧格式作为后备（兼容旧数据）
   return [databaseType, `${databaseType}_${functionName}`]
 }
 
@@ -709,8 +749,10 @@ const handleCascaderChange = (value, record) => {
 
   const [databaseType, functionKey] = value
 
-  // 从 functionKey 中提取 functionName（格式: dbType_functionName）
-  const functionName = functionKey.replace(`${databaseType}_`, '')
+  // 从 functionKey 中提取 functionName（格式: dbType_functionName_category）
+  // 分割字符串并取中间的部分作为函数名
+  const parts = functionKey.split('_')
+  const functionName = parts.length >= 2 ? parts[1] : functionKey
 
   if (!record.systemFunctionConfig) {
     record.systemFunctionConfig = {
@@ -980,10 +1022,66 @@ const resetBindings = () => {
   message.info('已重置所有自定义绑定配置')
 }
 
+/**
+ * 检查字段名是否与现有配置冲突
+ * @param {string} fieldName - 要检查的字段名
+ * @returns {Object} 冲突检测结果 { isConflict: boolean, conflictSource: string }
+ */
+const checkFieldConflict = (fieldName) => {
+  if (!fieldName || typeof fieldName !== 'string') {
+    return { isConflict: false, conflictSource: '' }
+  }
+
+  const trimmedName = fieldName.trim()
+  if (!trimmedName) {
+    return { isConflict: false, conflictSource: '' }
+  }
+
+  // 检查DDL字段
+  if (props.ddlFields.some((field) => field.name === trimmedName)) {
+    return { isConflict: true, conflictSource: 'DDL字段' }
+  }
+
+  // 检查单列绑定中的自定义字段名
+  if (singleBindings.value.some((binding) => binding.customFieldName === trimmedName)) {
+    return { isConflict: true, conflictSource: '单列绑定' }
+  }
+
+  // 检查字段拼接规则
+  if (concatenationRules.value.some((rule) => rule.customFieldName === trimmedName)) {
+    return { isConflict: true, conflictSource: '字段拼接规则' }
+  }
+
+  // 检查现有自定义字段
+  if (customFields.value.some((field) => field.fieldName === trimmedName)) {
+    return { isConflict: true, conflictSource: '自定义字段' }
+  }
+
+  return { isConflict: false, conflictSource: '' }
+}
+
 const addCustomField = () => {
-  customFields.value.push({
+  const typeLabels = {
+    system_function: '系统函数',
+    excel_combine: 'Excel组合',
+    auto_increment: '自增',
+  }
+  const defaultFieldName = `${typeLabels['system_function'] || '自定义'}_${Date.now().toString(36)}`
+
+  // 检查生成的默认字段名是否冲突
+  const conflictResult = checkFieldConflict(defaultFieldName)
+  if (conflictResult.isConflict) {
+    Modal.warning({
+      title: '字段名冲突',
+      content: `字段 "${defaultFieldName}" 与现有的${conflictResult.conflictSource}存在冲突，无法添加重复字段。请刷新页面后重试。`,
+      okText: '我知道了',
+    })
+    return
+  }
+
+  const newField = {
     id: generateId(),
-    fieldName: '',
+    fieldName: defaultFieldName,
     dataType: 'string',
     dataSource: 'system_function',
     systemFunctionConfig: {
@@ -999,7 +1097,9 @@ const addCustomField = () => {
       start: 1,
       step: 1,
     },
-  })
+  }
+
+  customFields.value.push(newField)
 }
 
 const removeCustomField = (id) => {
@@ -1016,16 +1116,35 @@ const removeCustomField = (id) => {
 
 // 注意：不直接调用addCustomField，只更新本地状态
 // 最终保存时由saveBindings统一处理
+/**
+ * 处理自定义字段变更
+ * @param {Object} record - 自定义字段记录
+ */
 const handleCustomFieldChange = (record) => {
-  // 只更新本地状态，不立即添加到管理器中
-  // 确保字段名有效
+  if (!record || typeof record !== 'object') {
+    return
+  }
+
   if (!record.fieldName) {
     return
   }
 
-  // 可以在这里添加一些本地验证
+  // 检查字段名是否与其他配置冲突
+  // 只在字段名变更且不为空时检查
+  const conflictResult = checkFieldConflictExcludingCurrent(record.fieldName, record.id)
+  if (conflictResult.isConflict) {
+    Modal.warning({
+      title: '字段名冲突',
+      content: `字段 "${record.fieldName}" 与现有的${conflictResult.conflictSource}存在冲突，请使用其他字段名。`,
+      okText: '我知道了',
+      onOk: () => {
+        record.fieldName = ''
+      },
+    })
+    return
+  }
+
   if (record.dataSource === 'system_function') {
-    // 确保函数配置对象存在
     if (!record.systemFunctionConfig) {
       record.systemFunctionConfig = {
         databaseType: 'mysql',
@@ -1035,6 +1154,47 @@ const handleCustomFieldChange = (record) => {
   }
 
   console.log('自定义字段已更新:', record)
+}
+
+/**
+ * 检查字段名是否与现有配置冲突（排除当前记录）
+ * @param {string} fieldName - 要检查的字段名
+ * @param {string} currentId - 当前记录的ID，排除自己
+ * @returns {Object} 冲突检测结果 { isConflict: boolean, conflictSource: string }
+ */
+const checkFieldConflictExcludingCurrent = (fieldName, currentId) => {
+  if (!fieldName || typeof fieldName !== 'string') {
+    return { isConflict: false, conflictSource: '' }
+  }
+
+  const trimmedName = fieldName.trim()
+  if (!trimmedName) {
+    return { isConflict: false, conflictSource: '' }
+  }
+
+  // 检查DDL字段
+  if (props.ddlFields.some((field) => field.name === trimmedName)) {
+    return { isConflict: true, conflictSource: 'DDL字段' }
+  }
+
+  // 检查单列绑定中的自定义字段名
+  if (singleBindings.value.some((binding) => binding.customFieldName === trimmedName)) {
+    return { isConflict: true, conflictSource: '单列绑定' }
+  }
+
+  // 检查字段拼接规则
+  if (concatenationRules.value.some((rule) => rule.customFieldName === trimmedName)) {
+    return { isConflict: true, conflictSource: '字段拼接规则' }
+  }
+
+  // 检查现有自定义字段（排除当前记录）
+  if (
+    customFields.value.some((field) => field.id !== currentId && field.fieldName === trimmedName)
+  ) {
+    return { isConflict: true, conflictSource: '自定义字段' }
+  }
+
+  return { isConflict: false, conflictSource: '' }
 }
 
 /**

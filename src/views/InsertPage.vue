@@ -642,6 +642,7 @@ const deduplicationStats = ref({
   deduplicatedRows: 0, // 去重后行数
   removedRows: 0, // 去重数量
 }) // 去重统计信息
+const originalExcelData = ref([]) // 保存原始数据，用于多次去重切换
 
 // SQL美化相关数据
 const showBeautifyOptions = ref(false)
@@ -848,6 +849,7 @@ const handleUpload = async (options) => {
 
     excelData.value = result.rows
     excelHeaders.value = result.headers
+    originalExcelData.value = [...result.rows] // 保存原始数据，用于去重功能
 
     console.log('excelData赋值后:', excelData.value?.length || 0)
     console.log('excelHeaders赋值后:', excelHeaders.value?.length || 0)
@@ -884,6 +886,7 @@ const clearFile = () => {
   uploadedFile.value = null
   excelData.value = []
   excelHeaders.value = []
+  originalExcelData.value = [] // 清除原始数据
   fileList.value = []
   deduplicationEnabled.value = false
   deduplicationColumn.value = -1
@@ -916,6 +919,7 @@ const handleDeduplicationToggle = (checked) => {
 /**
  * 应用去重逻辑
  * 根据选定列的值去除重复数据行，仅保留每组的第一次出现
+ * 始终基于原始数据进行去重，切换去重列时会恢复原始数据后再去重
  */
 const applyDeduplication = () => {
   if (deduplicationColumn.value === undefined || deduplicationColumn.value === null) {
@@ -926,6 +930,12 @@ const applyDeduplication = () => {
   if (!excelData.value || excelData.value.length === 0) {
     message.warning('没有可去重的数据')
     return
+  }
+
+  // 如果有原始数据，先恢复原始数据再进行去重
+  // 这样可以确保每次切换去重列时都基于原始数据计算
+  if (originalExcelData.value.length > 0) {
+    excelData.value = [...originalExcelData.value]
   }
 
   const columnIndex = deduplicationColumn.value

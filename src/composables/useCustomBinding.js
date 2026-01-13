@@ -409,11 +409,20 @@ export function useCustomBinding() {
    * 生成自增数字
    * @param {string} fieldName - 自定义字段名
    * @param {Object} config - 自增配置
+   * @param {string} groupValue - 分组字段值，为空则全局递增
    */
-  const generateAutoIncrementValue = (fieldName, config) => {
-    if (!autoIncrementCounters.value[fieldName]) {
+  const generateAutoIncrementValue = (fieldName, config, groupValue = '') => {
+    const counter = autoIncrementCounters.value[fieldName]
+
+    if (!counter) {
       autoIncrementCounters.value[fieldName] = {
         current: config.start || 0,
+        groupValue: groupValue,
+      }
+    } else {
+      if (config.groupBy && counter.groupValue !== groupValue) {
+        counter.current = config.start || 0
+        counter.groupValue = groupValue
       }
     }
 
@@ -422,6 +431,25 @@ export function useCustomBinding() {
     autoIncrementCounters.value[fieldName].current = nextValue
 
     return currentValue
+  }
+
+  /**
+   * 重置所有自增计数器
+   * 在每次生成SQL前调用，确保从初始值开始
+   */
+  const resetAutoIncrementCounters = () => {
+    const countersToReset = {}
+
+    customFields.value.forEach((field) => {
+      if (field.dataSource === 'auto_increment') {
+        countersToReset[field.fieldName] = {
+          current: field.autoIncrementConfig?.start || 0,
+          groupValue: '',
+        }
+      }
+    })
+
+    autoIncrementCounters.value = countersToReset
   }
 
   /**
@@ -528,6 +556,7 @@ export function useCustomBinding() {
     removeCustomField,
     getCustomField,
     generateAutoIncrementValue,
+    resetAutoIncrementCounters,
     applyCustomFields,
 
     // 设置

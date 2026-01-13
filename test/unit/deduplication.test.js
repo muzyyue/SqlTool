@@ -6,12 +6,14 @@ import { ref } from 'vue'
  */
 describe('Excel数据去重功能测试', () => {
   let excelData
+  let originalExcelData
   let deduplicationEnabled
   let deduplicationColumn
   let deduplicationStats
 
   beforeEach(() => {
     excelData = ref([])
+    originalExcelData = ref([])
     deduplicationEnabled = ref(false)
     deduplicationColumn = ref(-1)
     deduplicationStats = ref({
@@ -22,8 +24,9 @@ describe('Excel数据去重功能测试', () => {
   })
 
   /**
-   * 应用去重逻辑
+   * 应用去重逻辑（修复版本）
    * 根据选定列的值去除重复数据行，仅保留每组的第一次出现
+   * 始终基于原始数据进行去重，切换去重列时会恢复原始数据后再去重
    */
   const applyDeduplication = () => {
     if (deduplicationColumn.value === -1) {
@@ -32,6 +35,12 @@ describe('Excel数据去重功能测试', () => {
 
     if (!excelData.value || excelData.value.length === 0) {
       throw new Error('没有可去重的数据')
+    }
+
+    // 如果有原始数据，先恢复原始数据再进行去重
+    // 这样可以确保每次切换去重列时都基于原始数据计算
+    if (originalExcelData.value.length > 0) {
+      excelData.value = [...originalExcelData.value]
     }
 
     const columnIndex = deduplicationColumn.value
@@ -343,6 +352,122 @@ describe('Excel数据去重功能测试', () => {
 
       expect(deduplicationColumn.value).toBe(-1)
       expect(deduplicationStats.value.removedRows).toBe(0)
+    })
+  })
+
+  describe('多次去重切换测试（修复验证）', () => {
+    it('切换去重列时应该始终基于原始数据，不丢失数据', () => {
+      // 原始数据：10行
+      const rawData = [
+        { 0: '张三', 1: 'zhangsan@example.com', 2: '北京' },
+        { 0: '李四', 1: 'lisi@example.com', 2: '上海' },
+        { 0: '张三', 1: 'zhangsan2@example.com', 2: '北京' }, // 姓名重复
+        { 0: '王五', 1: 'wangwu@example.com', 2: '广州' },
+        { 0: '赵六', 1: 'zhao@example.com', 2: '深圳' },
+        { 0: '李四', 1: 'lisi_new@example.com', 2: '上海' }, // 姓名重复
+        { 0: '张三', 1: 'zhangsan3@example.com', 2: '北京' }, // 姓名重复
+        { 0: '孙七', 1: 'sunqi@example.com', 2: '杭州' },
+        { 0: '周八', 1: 'zhouba@example.com', 2: '南京' },
+        { 0: '吴九', 1: 'wujiu@example.com', 2: '武汉' },
+      ]
+
+      excelData.value = [...rawData]
+      originalExcelData.value = [...rawData] // 保存原始数据
+
+      // 第一次根据姓名去重（姓名重复3次，应该保留1次）
+      deduplicationColumn.value = 0
+      applyDeduplication()
+
+      expect(excelData.value.length).toBe(7) // 姓名有3个重复，保留7个
+      expect(deduplicationStats.value.originalRows).toBe(10)
+      expect(deduplicationStats.value.deduplicatedRows).toBe(7)
+      expect(deduplicationStats.value.removedRows).toBe(3)
+
+      // 切换到邮箱列去重，应该还是基于原始10行数据
+      deduplicationColumn.value = 1
+      applyDeduplication()
+
+      // 所有邮箱都是唯一的，应该还是10行（因为基于原始数据重新计算）
+      expect(excelData.value.length).toBe(10)
+      expect(deduplicationStats.value.originalRows).toBe(10)
+      expect(deduplicationStats.value.deduplicatedRows).toBe(10)
+      expect(deduplicationStats.value.removedRows).toBe(0)
+
+      // 再切换回姓名列，应该还是7行
+      deduplicationColumn.value = 0
+      applyDeduplication()
+
+      expect(excelData.value.length).toBe(7)
+      expect(deduplicationStats.value.originalRows).toBe(10)
+      expect(deduplicationStats.value.deduplicatedRows).toBe(7)
+      expect(deduplicationStats.value.removedRows).toBe(3)
+    })
+
+    it('切换到不同去重列时应该正确统计每次的原始行数', () => {
+      const rawData = [
+        { 0: 'A', 1: 100 },
+        { 0: 'B', 1: 100 }, // 列1重复
+        { 0: 'A', 1: 200 }, // 列0重复
+        { 0: 'C', 1: 300 },
+        { 0: 'B', 1: 400 }, // 列0重复，列1重复
+      ]
+
+      excelData.value = [...rawData]
+      originalExcelData.value = [...rawData]
+
+      // 根据列0去重
+      deduplicationColumn.value = 0
+      applyDeduplication()
+
+      expect(excelData.value.length).toBe(3) // A, B, C
+      expect(deduplicationStats.value.originalRows).toBe(5)
+      expect(deduplicationStats.value.deduplicatedRows).toBe(3)
+      expect(deduplicationStats.value.removedRows).toBe(2)
+
+      // 切换到列1去重
+      deduplicationColumn.value = 1
+      applyDeduplication()
+
+      // 列1的值有重复：100出现2次
+      expect(excelData.value.length).toBe(4) // 100, 200, 300, 400（100保留第一个）
+      expect(deduplicationStats.value.originalRows).toBe(5) // 始终基于原始5行
+      expect(deduplicationStats.value.deduplicatedRows).toBe(4)
+      expect(deduplicationStats.value.removedRows).toBe(1)
+    })
+
+    it('当没有原始数据时应该正常工作', () => {
+      const testData = [
+        { 0: 'A', 1: 1 },
+        { 0: 'B', 1: 2 },
+        { 0: 'A', 1: 3 },
+      ]
+
+      excelData.value = [...testData]
+      originalExcelData.value = [] // 没有原始数据
+
+      deduplicationColumn.value = 0
+      applyDeduplication()
+
+      expect(excelData.value.length).toBe(2)
+      expect(deduplicationStats.value.originalRows).toBe(3)
+      expect(deduplicationStats.value.deduplicatedRows).toBe(2)
+      expect(deduplicationStats.value.removedRows).toBe(1)
+    })
+
+    it('清除文件后原始数据应该被正确清除', () => {
+      const rawData = [
+        { 0: 'A', 1: 1 },
+        { 0: 'B', 1: 2 },
+      ]
+
+      excelData.value = [...rawData]
+      originalExcelData.value = [...rawData]
+
+      expect(originalExcelData.value.length).toBe(2)
+
+      originalExcelData.value = []
+
+      expect(originalExcelData.value.length).toBe(0)
     })
   })
 })
