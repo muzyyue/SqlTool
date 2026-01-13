@@ -999,7 +999,7 @@ const resetBindings = () => {
 }
 
 const addCustomField = () => {
-  customFields.value.push({
+  const newField = {
     id: generateId(),
     fieldName: '',
     dataType: 'string',
@@ -1017,7 +1017,23 @@ const addCustomField = () => {
       start: 1,
       step: 1,
     },
-  })
+  }
+
+  if (!newField.fieldName || newField.fieldName.trim() === '') {
+    message.warning('字段名不能为空')
+    return
+  }
+
+  const isFieldNameExists = customFields.value.some(
+    (field) => field.fieldName === newField.fieldName,
+  )
+
+  if (isFieldNameExists) {
+    message.warning('字段名已存在，请使用不同的名称')
+    return
+  }
+
+  customFields.value.push(newField)
 }
 
 const removeCustomField = (id) => {

@@ -351,6 +351,70 @@ export function useCustomBinding() {
   }
 
   /**
+   * 检查字段名是否唯一
+   * @param {string} fieldName - 待检查的字段名
+   * @param {Array} fieldMappings - 字段映射配置数组
+   * @param {Array} parsedFields - DDL 解析后的字段数组
+   * @param {Array} customFields - 自定义字段数组
+   * @param {string} excludeFieldName - 排除的字段名（编辑时使用）
+   * @returns {boolean} - 字段名是否唯一
+   */
+  const isFieldNameUnique = (
+    fieldName,
+    fieldMappings = [],
+    parsedFields = [],
+    customFields = [],
+    excludeFieldName = null,
+  ) => {
+    if (!fieldName || typeof fieldName !== 'string' || fieldName.trim() === '') {
+      return false
+    }
+
+    const normalizedFieldName = fieldName.trim().toLowerCase()
+
+    const customFieldsData = Array.isArray(customFields) ? customFields : []
+    const fieldMappingsData = Array.isArray(fieldMappings) ? fieldMappings : []
+    const parsedFieldsData = Array.isArray(parsedFields) ? parsedFields : []
+
+    for (const field of customFieldsData) {
+      if (
+        field &&
+        field.fieldName &&
+        field.fieldName.trim().toLowerCase() === normalizedFieldName
+      ) {
+        if (excludeFieldName && field.fieldName === excludeFieldName) {
+          continue
+        }
+        return false
+      }
+    }
+
+    for (const mapping of fieldMappingsData) {
+      if (
+        mapping &&
+        mapping.ddlFieldName &&
+        mapping.ddlFieldName.trim().toLowerCase() === normalizedFieldName
+      ) {
+        if (excludeFieldName && mapping.ddlFieldName === excludeFieldName) {
+          continue
+        }
+        return false
+      }
+    }
+
+    for (const field of parsedFieldsData) {
+      if (field && field.name && field.name.trim().toLowerCase() === normalizedFieldName) {
+        if (excludeFieldName && field.name === excludeFieldName) {
+          continue
+        }
+        return false
+      }
+    }
+
+    return true
+  }
+
+  /**
    * 添加自定义字段
    * @param {Object} fieldConfig - 自定义字段配置
    */
@@ -558,6 +622,7 @@ export function useCustomBinding() {
     generateAutoIncrementValue,
     resetAutoIncrementCounters,
     applyCustomFields,
+    isFieldNameUnique,
 
     // 设置
     setEnableCustomBinding: (value) => {
