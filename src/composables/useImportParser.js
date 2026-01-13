@@ -177,17 +177,52 @@ const normalizeHeaders = (headers) => {
 
   headers.forEach((header, index) => {
     const normalizedHeader = header.toLowerCase().replace(/[_\s]/g, '')
+    let headerMatched = false
 
     for (const [key, patterns] of Object.entries(headerPatterns)) {
+      if (headerMatched) {
+        break
+      }
+
       for (const pattern of patterns) {
         const normalizedPattern = pattern.toLowerCase().replace(/[_\s]/g, '')
-        if (
-          normalizedHeader === normalizedPattern ||
-          normalizedHeader.includes(normalizedPattern)
-        ) {
+
+        if (normalizedHeader === normalizedPattern) {
           if (!mapping[key]) {
             mapping[key] = index
           }
+          headerMatched = true
+          break
+        }
+      }
+
+      if (headerMatched) {
+        break
+      }
+    }
+
+    if (!headerMatched) {
+      for (const [key, patterns] of Object.entries(headerPatterns)) {
+        if (headerMatched) {
+          break
+        }
+
+        for (const pattern of patterns) {
+          const normalizedPattern = pattern.toLowerCase().replace(/[_\s]/g, '')
+
+          if (
+            normalizedHeader.includes(normalizedPattern) &&
+            normalizedHeader !== normalizedPattern
+          ) {
+            if (!mapping[key]) {
+              mapping[key] = index
+            }
+            headerMatched = true
+            break
+          }
+        }
+
+        if (headerMatched) {
           break
         }
       }
