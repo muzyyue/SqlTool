@@ -29,7 +29,7 @@
   </button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 /**
  * GradientButton 组件
  * 渐变按钮组件，支持主渐变和次级样式
@@ -41,57 +41,50 @@
  *   点击按钮
  * </GradientButton>
  */
-
-import { defineProps, withDefaults, defineEmits } from 'vue'
+import { defineProps, defineEmits } from 'vue'
 import { LoadingOutlined } from '@ant-design/icons-vue'
-
-/**
- * 按钮类型枚举
- */
-export type ButtonType = 'primary' | 'secondary'
-
-/**
- * 按钮尺寸枚举
- */
-export type ButtonSize = 'sm' | 'md' | 'lg'
 
 /**
  * 组件属性定义
  */
-interface GradientButtonProps {
+const props = defineProps({
   /** 按钮类型：primary（主渐变）、secondary（次级） */
-  type?: ButtonType
+  type: {
+    type: String,
+    default: 'primary',
+    validator: (value) => ['primary', 'secondary'].includes(value),
+  },
   /** 按钮尺寸：sm（小）、md（中）、lg（大） */
-  size?: ButtonSize
+  size: {
+    type: String,
+    default: 'md',
+    validator: (value) => ['sm', 'md', 'lg'].includes(value),
+  },
   /** 是否禁用 */
-  disabled?: boolean
+  disabled: {
+    type: Boolean,
+    default: false,
+  },
   /** 是否加载中 */
-  loading?: boolean
-}
-
-/**
- * 组件属性默认值
- */
-const props = withDefaults(defineProps<GradientButtonProps>(), {
-  type: 'primary',
-  size: 'md',
-  disabled: false,
-  loading: false,
+  loading: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 /**
  * 组件事件定义
  */
-const emit = defineEmits<{
+const emit = defineEmits({
   /** 点击事件 */
-  click: [event: MouseEvent]
-}>()
+  click: [event],
+})
 
 /**
  * 处理点击事件
  * @param event - 鼠标事件对象
  */
-const handleClick = (event: MouseEvent) => {
+const handleClick = (event) => {
   if (!props.disabled && !props.loading) {
     emit('click', event)
   }

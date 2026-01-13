@@ -23,7 +23,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup>
 /**
  * CodeEditor 组件
  * 基于 CodeMirror 6 的代码编辑器组件
@@ -38,8 +38,7 @@
  *   @change="handleChange"
  * />
  */
-
-import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { CopyOutlined, DownloadOutlined, ClearOutlined } from '@ant-design/icons-vue'
 import { EditorView, basicSetup } from 'codemirror'
@@ -51,74 +50,74 @@ import { keymap, Prec } from '@codemirror/view'
 import { defaultKeymap, indentWithTab } from '@codemirror/commands'
 
 /**
- * 支持的语言类型
- */
-export type EditorLanguage = 'json' | 'sql'
-
-/**
- * 编辑器主题类型
- */
-export type EditorTheme = 'light' | 'dark'
-
-/**
  * 组件属性定义
  */
-interface CodeEditorProps {
+const props = defineProps({
   /** 编辑器值（v-model） */
-  modelValue: string
+  modelValue: {
+    type: String,
+    default: '',
+  },
   /** 语言类型：json、sql */
-  language?: EditorLanguage
+  language: {
+    type: String,
+    default: 'sql',
+    validator: (value) => ['json', 'sql'].includes(value),
+  },
   /** 主题：light、dark */
-  theme?: EditorTheme
+  theme: {
+    type: String,
+    default: 'light',
+    validator: (value) => ['light', 'dark'].includes(value),
+  },
   /** 是否只读 */
-  readonly?: boolean
+  readonly: {
+    type: Boolean,
+    default: false,
+  },
   /** 最小行数 */
-  minLines?: number
+  minLines: {
+    type: Number,
+    default: 5,
+  },
   /** 最大行数 */
-  maxLines?: number
+  maxLines: {
+    type: Number,
+    default: 20,
+  },
   /** 占位符文本 */
-  placeholder?: string
-}
-
-/**
- * 组件属性默认值
- */
-const props = withDefaults(defineProps<CodeEditorProps>(), {
-  modelValue: '',
-  language: 'sql',
-  theme: 'light',
-  readonly: false,
-  minLines: 5,
-  maxLines: 20,
-  placeholder: '请输入代码...',
+  placeholder: {
+    type: String,
+    default: '请输入代码...',
+  },
 })
 
 /**
  * 组件事件定义
  */
-const emit = defineEmits<{
+const emit = defineEmits({
   /** 值更新事件（v-model） */
-  'update:modelValue': [value: string]
+  'update:modelValue': [value],
   /** 内容变化事件 */
-  change: [value: string]
-}>()
+  change: [value],
+})
 
 /**
  * 编辑器容器引用
  */
-const editorContainer = ref<HTMLElement | null>(null)
+const editorContainer = ref(null)
 
 /**
  * CodeMirror 编辑器实例
  */
-let editorView: EditorView | null = null
+let editorView = null
 
 /**
  * 获取语言扩展
  * @param language - 语言类型
  * @returns CodeMirror 语言扩展
  */
-const getLanguageExtension = (language: EditorLanguage) => {
+const getLanguageExtension = (language) => {
   switch (language) {
     case 'json':
       return json()
@@ -134,7 +133,7 @@ const getLanguageExtension = (language: EditorLanguage) => {
  * @param theme - 主题类型
  * @returns CodeMirror 主题扩展
  */
-const getThemeExtension = (theme: EditorTheme) => {
+const getThemeExtension = (theme) => {
   switch (theme) {
     case 'dark':
       return oneDark
@@ -149,7 +148,7 @@ const getThemeExtension = (theme: EditorTheme) => {
  * @param content - 编辑器内容
  * @returns EditorState 对象
  */
-const createEditorState = (content: string): EditorState => {
+const createEditorState = (content) => {
   return EditorState.create({
     doc: content,
     extensions: [
@@ -497,7 +496,7 @@ defineExpose({
 }
 
 [data-theme='dark'] .code-editor-wrapper::-webkit-scrollbar-thumb:hover {
-  background: #5a5a5c;
+  background: #5a5a5a;
 }
 
 /* 响应式设计 */

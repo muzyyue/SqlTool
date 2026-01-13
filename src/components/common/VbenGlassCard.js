@@ -27,7 +27,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup>
 /**
  * VbenGlassCard 组件
  * 玻璃卡片容器组件，支持亮色和暗色主题
@@ -38,39 +38,38 @@
  *   <p>卡片内容</p>
  * </VbenGlassCard>
  */
-
-import { defineProps, withDefaults } from 'vue'
+import { defineProps } from 'vue'
 
 /**
  * 组件属性定义
  */
-interface GlassCardProps {
+const props = defineProps({
   /** 卡片标题 */
-  title?: string
+  title: {
+    type: String,
+    default: '',
+  },
   /** 卡片描述 */
-  description?: string
+  description: {
+    type: String,
+    default: '',
+  },
   /** 是否启用 hover 效果（抬高 2px + 阴影增强） */
-  hoverable?: boolean
-}
-
-/**
- * 组件属性默认值
- */
-const props = withDefaults(defineProps<GlassCardProps>(), {
-  title: '',
-  description: '',
-  hoverable: true,
+  hoverable: {
+    type: Boolean,
+    default: true,
+  },
 })
 
 /**
  * 组件事件定义
  */
-// const emit = defineEmits<{
-//   /** 卡片 hover 事件 */
-//   hover: [event: MouseEvent]
-//   /** 卡片 hover 离开事件 */
-//   hoverLeave: [event: MouseEvent]
-// }>()
+const emit = defineEmits({
+  /** 卡片 hover 事件 */
+  hover: [event: MouseEvent],
+  /** 卡片 hover 离开事件 */
+  hoverLeave: [event: MouseEvent],
+})
 </script>
 
 <style scoped>
@@ -80,13 +79,13 @@ const props = withDefaults(defineProps<GlassCardProps>(), {
  */
 .vben-glass-card {
   position: relative;
-  background: var(--card-bg, rgba(255, 255, 255, 0.85));
-  backdrop-filter: blur(var(--backdrop-blur, 20px));
-  -webkit-backdrop-filter: blur(var(--backdrop-blur, 20px));
-  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.5));
-  border-radius: var(--border-radius-md, 12px);
-  box-shadow: var(--shadow-lg, 0 8px 32px 0 rgba(22, 119, 255, 0.12));
-  transition: all var(--transition-normal, 200ms) ease;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(22, 119, 255, 0.12);
+  transition: all 200ms ease;
   overflow: hidden;
 }
 
@@ -96,7 +95,7 @@ const props = withDefaults(defineProps<GlassCardProps>(), {
  */
 .vben-glass-card.glass-card-hover:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 40px 0 rgba(22, 119, 255, 0.18);
+  box-shadow: 0 12px 40px rgba(22, 119, 255, 0.18);
 }
 
 /**
@@ -107,7 +106,7 @@ const props = withDefaults(defineProps<GlassCardProps>(), {
   justify-content: space-between;
   align-items: flex-start;
   padding: 16px 20px;
-  border-bottom: 1px solid var(--card-border, rgba(255, 255, 255, 0.3));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .header-content {
@@ -119,17 +118,17 @@ const props = withDefaults(defineProps<GlassCardProps>(), {
 }
 
 .header-title .title {
-  margin: 0 0 4px 0;
+  margin: 0 4px 0;
   font-size: 16px;
   font-weight: 600;
-  color: var(--text-primary, #1f2937);
+  color: #1f2937;
   line-height: 1.5;
 }
 
 .header-title .description {
   margin: 0;
   font-size: 13px;
-  color: var(--text-secondary, #6b7280);
+  color: #6b7280;
   line-height: 1.5;
 }
 
@@ -151,31 +150,31 @@ const props = withDefaults(defineProps<GlassCardProps>(), {
  */
 .glass-card-footer {
   padding: 12px 20px;
-  border-top: 1px solid var(--card-border, rgba(255, 255, 255, 0.3));
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
   background: rgba(255, 255, 255, 0.3);
 }
 
 /* 暗色主题支持 */
 [data-theme='dark'] .vben-glass-card {
-  background: var(--card-bg, rgba(30, 41, 59, 0.6));
-  border-color: var(--card-border, rgba(255, 255, 255, 0.1));
+  background: rgba(30, 41, 59, 0.6);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 [data-theme='dark'] .glass-card-header {
-  border-bottom-color: var(--card-border, rgba(255, 255, 255, 0.1));
+  border-bottom-color: rgba(255, 255, 255, 0.1);
 }
 
 [data-theme='dark'] .glass-card-footer {
-  border-top-color: var(--card-border, rgba(255, 255, 255, 0.1));
+  border-top-color: rgba(255, 255, 255, 0.1);
   background: rgba(30, 41, 59, 0.3);
 }
 
 [data-theme='dark'] .header-title .title {
-  color: var(--text-primary, #f3f4f6);
+  color: #f3f4f6;
 }
 
 [data-theme='dark'] .header-title .description {
-  color: var(--text-secondary, #9ca3af);
+  color: #9ca3af;
 }
 
 /* 响应式设计 */

@@ -6,7 +6,7 @@ import Antd from 'ant-design-vue'
 import * as Icons from '@ant-design/icons-vue'
 import 'ant-design-vue/dist/reset.css'
 import 'uno.css'
-import { applyTheme, getCurrentTheme } from './design/theme'
+import { applyTheme, getCurrentTheme } from './design/theme.js'
 
 const app = createApp(App)
 

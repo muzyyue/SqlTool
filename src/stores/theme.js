@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
-import { applyTheme, getCurrentTheme, toggleTheme as toggleThemeUtil } from '@/design/theme'
+import { applyTheme, getCurrentTheme, toggleTheme as toggleThemeUtil } from '@/design/theme.js'
 
 /**
  * 主题管理 Store
@@ -20,7 +20,7 @@ export const useThemeStore = defineStore('theme', () => {
    * 设置主题
    * @param theme - 主题名称（'light' 或 'dark'）
    */
-  const setTheme = (theme: 'light' | 'dark') => {
+  const setTheme = (theme) => {
     isDark.value = theme === 'dark'
   }
 

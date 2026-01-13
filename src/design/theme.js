@@ -2,7 +2,6 @@
  * 主题变量定义
  * 定义亮色和暗色模式的所有 CSS 变量
  */
-
 export const themeVars = {
   light: {
     '--bg-primary': '#FFFFFF',
@@ -58,7 +57,7 @@ export const themeVars = {
  * 应用主题到 DOM
  * @param theme - 主题名称（'light' 或 'dark'）
  */
-export function applyTheme(theme: 'light' | 'dark' = 'light') {
+export function applyTheme(theme = 'light') {
   const vars = themeVars[theme]
   const root = document.documentElement
 
@@ -73,8 +72,8 @@ export function applyTheme(theme: 'light' | 'dark' = 'light') {
  * 获取当前主题
  * @returns 当前主题名称
  */
-export function getCurrentTheme(): 'light' | 'dark' {
-  const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null
+export function getCurrentTheme() {
+  const savedTheme = localStorage.getItem('theme')
   if (savedTheme) {
     return savedTheme
   }
