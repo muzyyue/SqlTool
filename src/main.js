@@ -1,18 +1,21 @@
 import { createApp } from 'vue'
+import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 import Antd from 'ant-design-vue'
 import * as Icons from '@ant-design/icons-vue'
 import 'ant-design-vue/dist/reset.css'
+import 'uno.css'
+import { applyTheme, getCurrentTheme } from './design/theme'
 
 const app = createApp(App)
 
-// 全局注册所有图标
-for (const [key, component] of Object.entries(Icons)) {
-  app.component(key, component)
-}
+app.use(createPinia())
 
 app.use(router)
+
 app.use(Antd)
 
 app.mount('#app')
+
+applyTheme(getCurrentTheme())
