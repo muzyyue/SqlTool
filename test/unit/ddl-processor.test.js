@@ -27,6 +27,58 @@ const testDropDdl = `
 DROP TABLE IF EXISTS users CASCADE;
 `
 
+const testPostgreSqlDdl = `
+CREATE TABLE "public"."file_info" (
+  "file_id" int8 NOT NULL,
+  "file_name" varchar(255) COLLATE."default" NOT NULL,
+  "file_path" text COLLATE."default" NOT NULL,
+  "file_size" int8 DEFAULT 0,
+  "file_type" varchar(100) COLLATE."default",
+  "file_suffix" varchar(50) COLLATE."default",
+  "upload_user_id" int8,
+  "storage_bucket" varchar(100) COLLATE."default" DEFAULT 'default'::character varying,
+  "file_status" int2 DEFAULT 1,
+  "create_time" timestamptz(6) DEFAULT CURRENT_TIMESTAMP,
+  "update_time" timestamptz(6) DEFAULT CURRENT_TIMESTAMP,
+  "remark" text COLLATE."default",
+  CONSTRAINT "file_info_pkey" PRIMARY KEY ("file_id"),
+  CONSTRAINT "file_info_file_status_check" CHECK (file_status = ANY (ARRAY"0, 1, 2]))
+)
+`
+
+const testPostgreSqlDdlWithNewlineSemicolon = `
+CREATE TABLE "public"."file_info" (
+   "file_id" int8 NOT NULL,
+   "file_name" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
+   "file_path" text COLLATE "pg_catalog"."default" NOT NULL,
+   "file_size" int8 DEFAULT 0,
+   "file_type" varchar(100) COLLATE "pg_catalog"."default",
+   "file_suffix" varchar(50) COLLATE "pg_catalog"."default",
+   "upload_user_id" int8,
+   "storage_bucket" varchar(100) COLLATE "pg_catalog"."default" DEFAULT 'default'::character varying,
+   "file_status" int2 DEFAULT 1,
+   "create_time" timestamptz(6) DEFAULT CURRENT_TIMESTAMP,
+   "update_time" timestamptz(6) DEFAULT CURRENT_TIMESTAMP,
+   "remark" text COLLATE "pg_catalog"."default",
+   CONSTRAINT "file_info_pkey" PRIMARY KEY ("file_id"),
+   CONSTRAINT "file_info_file_status_check" CHECK (file_status = ANY (ARRAY[0, 1, 2]))
+ )
+ ;
+`
+
+const testPostgreSqlDdlWithCheckConstraints = `
+CREATE TABLE "public"."test_table" (
+  "id" int4 NOT NULL,
+  "status" varchar(20) NOT NULL,
+  "amount" decimal(10,2) DEFAULT 0,
+  "created_at" timestamptz DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "test_table_pkey" PRIMARY KEY ("id"),
+  CONSTRAINT "test_table_status_check" CHECK (status IN ('active', 'inactive', 'pending')),
+  CONSTRAINT "test_table_amount_check" CHECK (amount >= 0),
+  CONSTRAINT "test_table_complex_check" CHECK (status = 'active' OR amount > 100)
+)
+`
+
 describe('DDL处理模块测试', () => {
   let typeParser
   let ddlProcessor
@@ -195,6 +247,65 @@ describe('DDL处理模块测试', () => {
 
       expect(result.type).toBe('DROP_TABLE')
       expect(result.success).toBe(true)
+    })
+
+    it('应该正确解析PostgreSQL DDL包含COLLATE语法且无末尾分号', async () => {
+      const result = await ddlProcessor.parseDdl(testPostgreSqlDdl)
+
+      expect(result).toHaveProperty('type')
+      expect(result).toHaveProperty('tableName')
+      expect(result).toHaveProperty('details')
+      expect(result).toHaveProperty('success')
+
+      expect(result.type).toBe(typeParser.DdlStatementType.CREATE_TABLE)
+      expect(result.tableName).toBe('public.file_info')
+      expect(result.success).toBe(true)
+      expect(result.details.fields).toBeInstanceOf(Array)
+      expect(result.details.fields.length).toBeGreaterThan(0)
+      expect(result.details.fields.length).toBe(12)
+    })
+
+    it('应该正确解析PostgreSQL DDL末尾有换行和分号的情况', async () => {
+      const result = await ddlProcessor.parseDdl(testPostgreSqlDdlWithNewlineSemicolon)
+
+      expect(result).toHaveProperty('type')
+      expect(result).toHaveProperty('tableName')
+      expect(result).toHaveProperty('details')
+      expect(result).toHaveProperty('success')
+
+      expect(result.type).toBe(typeParser.DdlStatementType.CREATE_TABLE)
+      expect(result.tableName).toBe('public.file_info')
+      expect(result.success).toBe(true)
+      expect(result.details.fields).toBeInstanceOf(Array)
+      expect(result.details.fields.length).toBeGreaterThan(0)
+      expect(result.details.fields.length).toBe(12)
+    })
+
+    it('应该正确解析包含多种CHECK约束的PostgreSQL DDL，不将约束值识别为字段', async () => {
+      const result = await ddlProcessor.parseDdl(testPostgreSqlDdlWithCheckConstraints)
+
+      expect(result).toHaveProperty('type')
+      expect(result).toHaveProperty('tableName')
+      expect(result).toHaveProperty('details')
+      expect(result).toHaveProperty('success')
+
+      expect(result.type).toBe(typeParser.DdlStatementType.CREATE_TABLE)
+      expect(result.tableName).toBe('public.test_table')
+      expect(result.success).toBe(true)
+      expect(result.details.fields).toBeInstanceOf(Array)
+      expect(result.details.fields.length).toBe(4)
+
+      const fieldNames = result.details.fields.map((f) => f.name)
+      expect(fieldNames).toContain('id')
+      expect(fieldNames).toContain('status')
+      expect(fieldNames).toContain('amount')
+      expect(fieldNames).toContain('created_at')
+
+      expect(fieldNames).not.toContain('active')
+      expect(fieldNames).not.toContain('inactive')
+      expect(fieldNames).not.toContain('pending')
+      expect(fieldNames).not.toContain('0')
+      expect(fieldNames).not.toContain('100')
     })
   })
 

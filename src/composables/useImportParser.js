@@ -171,7 +171,7 @@ const normalizeHeaders = (headers) => {
     newValue: ['新值', 'new_value', 'newvalue', 'new value', '值', 'value', '修改值'],
     conditionField: ['条件字段', 'condition_field', 'conditionfield', 'condition field', '条件列'],
     conditionOperator: ['操作符', 'operator', '条件操作符'],
-    conditionValue: ['条件值', 'condition_value', 'conditionvalue', 'condition value', '条件'],
+    conditionValue: ['条件值', 'condition_value', 'conditionvalue', 'condition value'],
     description: ['描述', 'description', 'remark', 'note', '说明'],
   }
 
@@ -181,7 +181,10 @@ const normalizeHeaders = (headers) => {
     for (const [key, patterns] of Object.entries(headerPatterns)) {
       for (const pattern of patterns) {
         const normalizedPattern = pattern.toLowerCase().replace(/[_\s]/g, '')
-        if (normalizedHeader === normalizedPattern || normalizedHeader.includes(normalizedPattern)) {
+        if (
+          normalizedHeader === normalizedPattern ||
+          normalizedHeader.includes(normalizedPattern)
+        ) {
           if (!mapping[key]) {
             mapping[key] = index
           }
@@ -209,7 +212,8 @@ const parseRow = (row, headerMap, rowIndex) => {
     return null
   }
 
-  const conditionEnabled = headerMap.conditionField !== null && getCellValue(row, headerMap.conditionField)
+  const conditionEnabled =
+    headerMap.conditionField !== null && getCellValue(row, headerMap.conditionField)
   const conditionField = conditionEnabled ? getCellValue(row, headerMap.conditionField) : ''
   const conditionOperator = conditionEnabled
     ? getCellValue(row, headerMap.conditionOperator) || '='
@@ -226,7 +230,10 @@ const parseRow = (row, headerMap, rowIndex) => {
       operator: conditionOperator || '=',
       value: conditionEnabled ? String(conditionValue).trim() : '',
     },
-    description: headerMap.description !== null ? String(getCellValue(row, headerMap.description) || '').trim() : '',
+    description:
+      headerMap.description !== null
+        ? String(getCellValue(row, headerMap.description) || '').trim()
+        : '',
   }
 }
 
@@ -473,3 +480,5 @@ const downloadBlob = (blob, filename) => {
   document.body.removeChild(link)
   URL.revokeObjectURL(url)
 }
+
+export { normalizeHeaders }
