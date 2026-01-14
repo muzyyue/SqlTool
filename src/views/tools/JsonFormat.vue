@@ -90,7 +90,7 @@ const copyOutput = async () => {
   try {
     await navigator.clipboard.writeText(outputJson.value)
     message.success('已复制到剪贴板')
-  } catch (error) {
+  } catch (_) {
     message.error('复制失败')
   }
 }

@@ -95,12 +95,7 @@ const props = defineProps({
 /**
  * 组件事件定义
  */
-const emit = defineEmits({
-  /** 值更新事件（v-model） */
-  'update:modelValue': [value],
-  /** 内容变化事件 */
-  change: [value],
-})
+const emit = defineEmits(['update:modelValue', 'change'])
 
 /**
  * 编辑器容器引用

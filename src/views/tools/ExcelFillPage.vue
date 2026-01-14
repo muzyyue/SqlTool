@@ -407,7 +407,6 @@ const handleProcess = async () => {
 
         if (cellInfo.type === 'merged') {
           if (config.value.keepMergedFormat) {
-            const merge = cellInfo.range
             for (let row = cellInfo.startRow - 1; row < cellInfo.endRow; row++) {
               const colLetter = XLSX.utils.encode_col(targetColNum - 1)
               const cellAddress = colLetter + (row + 1)

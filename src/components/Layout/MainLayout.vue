@@ -122,8 +122,6 @@ import { useRouter, useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import {
   HomeOutlined,
-  InsertRowAboveOutlined,
-  EditOutlined,
   BulbOutlined,
   BulbFilled,
   SettingOutlined,

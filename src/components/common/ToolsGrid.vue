@@ -18,11 +18,7 @@
 
       <div class="category-filter">
         <a-radio-group v-model:value="selectedCategory" size="large">
-          <a-radio-button
-            v-for="category in categories"
-            :key="category.id"
-            :value="category.id"
-          >
+          <a-radio-button v-for="category in categories" :key="category.id" :value="category.id">
             <component :is="category.iconComponent" class="category-icon" />
             {{ category.name }}
           </a-radio-button>
@@ -32,12 +28,18 @@
       <div class="view-toggle">
         <a-button-group>
           <a-tooltip title="网格视图">
-            <a-button :type="viewMode === 'grid' ? 'primary' : 'default'" @click="viewMode = 'grid'">
+            <a-button
+              :type="viewMode === 'grid' ? 'primary' : 'default'"
+              @click="viewMode = 'grid'"
+            >
               <AppstoreOutlined />
             </a-button>
           </a-tooltip>
           <a-tooltip title="列表视图">
-            <a-button :type="viewMode === 'list' ? 'primary' : 'default'" @click="viewMode = 'list'">
+            <a-button
+              :type="viewMode === 'list' ? 'primary' : 'default'"
+              @click="viewMode = 'list'"
+            >
               <BarsOutlined />
             </a-button>
           </a-tooltip>
@@ -50,17 +52,10 @@
       <div class="section-title">
         <StarFilled class="title-icon" />
         <h3>我的收藏</h3>
-        <a-button type="link" size="small" @click="clearFavorites">
-          清空
-        </a-button>
+        <a-button type="link" size="small" @click="clearFavorites"> 清空 </a-button>
       </div>
       <div :class="['tools-container', `tools-container-${viewMode}`]">
-        <ToolCard
-          v-for="tool in favorites"
-          :key="tool.id"
-          :tool="tool"
-          @click="handleToolClick"
-        />
+        <ToolCard v-for="tool in favorites" :key="tool.id" :tool="tool" @click="handleToolClick" />
       </div>
     </div>
 
@@ -106,12 +101,12 @@ import {
   PlusSquareOutlined,
   CodeOutlined as CodeOutlinedIcon,
 } from '@ant-design/icons-vue'
-import { tools, categories, searchTools, filterToolsByCategory } from '@/config/tools.js'
+import { categories, searchTools, filterToolsByCategory } from '@/config/tools.js'
 import { useFavorites } from '@/composables/useFavorites.js'
 import ToolCard from '@/components/common/ToolCard.vue'
 
 const router = useRouter()
-const { favorites, clearFavorites, getFavoriteTools } = useFavorites()
+const { favorites, clearFavorites } = useFavorites()
 
 const searchQuery = ref('')
 const selectedCategory = ref('all')
@@ -132,8 +127,9 @@ const categoryIconMap = {
 }
 
 /**
- * 带图标的分类列表
+ * 带图标的分类列表（计算属性保留，用于后续扩展）
  */
+// eslint-disable-next-line no-unused-vars
 const categoriesWithIcons = computed(() => {
   return categories.map((category) => ({
     ...category,
@@ -146,11 +142,11 @@ const categoriesWithIcons = computed(() => {
  */
 const filteredTools = computed(() => {
   let result = filterToolsByCategory(selectedCategory.value)
-  
+
   if (searchQuery.value) {
     result = searchTools(searchQuery.value)
   }
-  
+
   return result
 })
 

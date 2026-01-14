@@ -92,6 +92,7 @@ import GradientButton from '@/components/common/GradientButton.vue'
 import { useThemeStore } from '@/stores/theme.js'
 
 const themeStore = useThemeStore()
+// eslint-disable-next-line no-unused-vars
 const { isDark } = storeToRefs(themeStore)
 
 const timestampInput = ref('')
@@ -144,7 +145,7 @@ const copyTimestampResult = async () => {
   try {
     await navigator.clipboard.writeText(timestampResult.value)
     message.success('已复制到剪贴板')
-  } catch (error) {
+  } catch {
     message.error('复制失败')
   }
 }
@@ -157,7 +158,7 @@ const copyDateTimeResult = async () => {
   try {
     await navigator.clipboard.writeText(dateTimeResult.value)
     message.success('已复制到剪贴板')
-  } catch (error) {
+  } catch {
     message.error('复制失败')
   }
 }
@@ -166,7 +167,7 @@ const copyCurrentTimestamp = async () => {
   try {
     await navigator.clipboard.writeText(currentTime.value.timestamp)
     message.success('已复制时间戳')
-  } catch (error) {
+  } catch {
     message.error('复制失败')
   }
 }
@@ -175,7 +176,7 @@ const copyCurrentDateTime = async () => {
   try {
     await navigator.clipboard.writeText(currentTime.value.datetime)
     message.success('已复制日期时间')
-  } catch (error) {
+  } catch {
     message.error('复制失败')
   }
 }

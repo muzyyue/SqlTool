@@ -40,10 +40,7 @@
  */
 import { defineProps } from 'vue'
 
-/**
- * 组件属性定义
- */
-const props = defineProps({
+defineProps({
   /** 卡片标题 */
   title: {
     type: String,
@@ -61,15 +58,7 @@ const props = defineProps({
   },
 })
 
-/**
- * 组件事件定义
- */
-const emit = defineEmits({
-  /** 卡片 hover 事件 */
-  hover: [event],
-  /** 卡片 hover 离开事件 */
-  hoverLeave: [event],
-})
+defineEmits(['hover', 'hoverLeave'])
 </script>
 
 <style scoped>
