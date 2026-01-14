@@ -1,23 +1,23 @@
 # 版本变更历史
 
-## 1.2.52 (2026-01-13)
+## 1.3.1 (2026-01-14)
 
-**添加自定义字段名冲突检测功能**
+**修复自定义字段与映射配置冲突检测问题**
 
-- 在useCustomBinding.js中添加isFieldNameUnique函数，用于检查字段名是否唯一
-- 在CustomBindingModal.vue的addCustomField函数中添加验证逻辑
-- 验证字段名是否为空，如果为空则显示警告并阻止添加
-- 验证字段名是否已存在，如果存在则显示警告并阻止添加
-- 确保一个header只能匹配一个key，避免字段映射冲突
+- 修复CustomBindingModal中checkFieldConflict函数未检查fieldMappings的问题
+- 修改冲突检测逻辑：自定义字段只需与映射配置中显示的字段（ddlField.name）冲突检测
+- 不再检查Excel列名（sourceField）和DDL原始字段
+- 在InsertPage和UpdatePage中传递fieldMappings prop给CustomBindingModal
 
-## 1.2.51 (2026-01-13)
+## 1.3.0 (2026-01-13)
 
-**修复批量导入表头匹配逻辑错误**
+**工具箱页面重构与Excel数据填充工具**
 
-- 修复normalizeHeaders函数中表头匹配逻辑错误，导致一个header可能匹配多个key的问题
-- 优化匹配策略，优先使用完全匹配，只有在没有完全匹配时才使用部分匹配
-- 确保一个header只能匹配一个key，避免字段映射冲突
-- 修复测试失败问题，所有26个测试用例全部通过
+- 将首页从SQL工具改为工具箱页面
+- 创建SqlToolPage.vue保留原SQL工具介绍内容
+- 新增Excel数据填充工具ExcelFillPage.vue
+- 简化导航栏，移除INSERT生成和UPDATE生成菜单项
+- 修复多处图标导入缺失问题
 
 ## 1.2.50 (2026-01-13)
 

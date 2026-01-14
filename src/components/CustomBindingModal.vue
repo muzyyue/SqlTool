@@ -490,6 +490,10 @@ const props = defineProps({
     type: Object,
     default: null,
   },
+  fieldMappings: {
+    type: Array,
+    default: () => [],
+  },
 })
 
 // Emits
@@ -1037,9 +1041,12 @@ const checkFieldConflict = (fieldName) => {
     return { isConflict: false, conflictSource: '' }
   }
 
-  // 检查DDL字段
-  if (props.ddlFields.some((field) => field.name === trimmedName)) {
-    return { isConflict: true, conflictSource: 'DDL字段' }
+  // 检查字段映射中显示的DDL字段名（映射配置中显示的字段）
+  if (
+    props.fieldMappings &&
+    props.fieldMappings.some((mapping) => mapping.ddlField?.name === trimmedName)
+  ) {
+    return { isConflict: true, conflictSource: '字段映射' }
   }
 
   // 检查单列绑定中的自定义字段名
@@ -1172,9 +1179,12 @@ const checkFieldConflictExcludingCurrent = (fieldName, currentId) => {
     return { isConflict: false, conflictSource: '' }
   }
 
-  // 检查DDL字段
-  if (props.ddlFields.some((field) => field.name === trimmedName)) {
-    return { isConflict: true, conflictSource: 'DDL字段' }
+  // 检查字段映射中显示的DDL字段名（映射配置中显示的字段）
+  if (
+    props.fieldMappings &&
+    props.fieldMappings.some((mapping) => mapping.ddlField?.name === trimmedName)
+  ) {
+    return { isConflict: true, conflictSource: '字段映射' }
   }
 
   // 检查单列绑定中的自定义字段名

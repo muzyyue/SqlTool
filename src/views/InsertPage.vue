@@ -512,6 +512,7 @@
       :excel-headers="excelHeaders"
       :custom-binding-manager="customBindingManager"
       :editing-field="editingCustomField"
+      :field-mappings="fieldMappings"
       @save="handleCustomBindingSave"
       @cancel="handleCustomBindingCancel"
     />
