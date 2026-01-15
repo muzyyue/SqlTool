@@ -7,12 +7,8 @@
       <h1 class="error-title">404</h1>
       <p class="error-message">抱歉，您访问的页面不存在</p>
       <div class="error-actions">
-        <GradientButton type="primary" size="lg" @click="goHome">
-          返回首页
-        </GradientButton>
-        <GradientButton type="secondary" size="lg" @click="goBack">
-          返回上页
-        </GradientButton>
+        <GradientButton type="primary" size="lg" @click="goHome"> 返回首页 </GradientButton>
+        <GradientButton type="secondary" size="lg" @click="goBack"> 返回上页 </GradientButton>
       </div>
       <div class="quick-links">
         <h3>快速链接</h3>

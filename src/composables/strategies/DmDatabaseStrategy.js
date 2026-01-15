@@ -368,25 +368,52 @@ export class DmDatabaseStrategy extends DatabaseStrategy {
   // ========== DDL解析核心方法 ==========
 
   extractTableName(ddlStatement) {
-    const tableNameRegex = /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([\w.`[\]]+)/i
+    // 匹配 CREATE TABLE 语句，支持多种表名格式
+    // 格式1: CREATE TABLE table_name (...)
+    // 格式2: CREATE TABLE "table_name" (...)
+    // 格式3: CREATE TABLE `table_name` (...)
+    // 格式4: CREATE TABLE [table_name] (...)
+    // 格式5: CREATE TABLE IF NOT EXISTS table_name (...)
+    const tableNameRegex = /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?["`[]?([\w]+)["`\]]?/i
     const match = ddlStatement.match(tableNameRegex)
-
     if (match && match[1]) {
-      // 移除反引号
-      return match[1].replace(/`/g, '')
+      return match[1]
     }
-
     return ''
   }
 
   extractFieldDefinitions(ddlStatement) {
     const fields = []
 
-    // 提取字段定义部分 - 匹配到最后一个右括号
-    const fieldSectionMatch = ddlStatement.match(/CREATE\s+TABLE[^(]*\(([\s\S]*)\)[^)]*$/i)
-    if (!fieldSectionMatch) return fields
+    // 达梦数据库 DDL 可能在字段定义后包含 STORAGE 等子句，需要特殊处理
+    // 找到字段定义部分的结束位置（主表定义最后一个右括号之后）
+    // DDL 结构: CREATE TABLE "table_name" ( 字段定义 [, 约束定义] ) [存储参数]
 
-    const fieldSection = fieldSectionMatch[1]
+    // 找到 CREATE TABLE 后第一个 ( 的位置
+    const createTableMatch = ddlStatement.match(/CREATE\s+TABLE\s+["`]?[\w]+["`]?\s*\(/i)
+    if (!createTableMatch) return fields
+
+    const tableParenStart = ddlStatement.indexOf('(', createTableMatch.index)
+
+    // 找到对应的闭合括号（处理嵌套括号）
+    let parenDepth = 0
+    let tableParenEnd = -1
+    for (let i = tableParenStart; i < ddlStatement.length; i++) {
+      if (ddlStatement[i] === '(') {
+        parenDepth++
+      } else if (ddlStatement[i] === ')') {
+        parenDepth--
+        if (parenDepth === 0) {
+          tableParenEnd = i
+          break
+        }
+      }
+    }
+
+    if (tableParenEnd === -1) return fields
+
+    // 提取字段定义部分（括号内的内容）
+    const fieldSection = ddlStatement.substring(tableParenStart + 1, tableParenEnd)
 
     // 分割字段定义
     const fieldDefinitions = this.splitFieldDefinitions(fieldSection)

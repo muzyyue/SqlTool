@@ -47,15 +47,13 @@
           title="INSERT 语句生成"
           description="根据 Excel 数据和 DDL 语句生成 INSERT 语句"
           hoverable
-          @click="navigateTo('/insert')"
+          @click="navigateTo('/sql/insert')"
         >
           <template #icon>
             <InsertRowAboveOutlined class="card-icon" />
           </template>
           <template #extra>
-            <a-button type="primary" size="small">
-              开始使用 <RightOutlined />
-            </a-button>
+            <a-button type="primary" size="small"> 开始使用 <RightOutlined /> </a-button>
           </template>
         </VbenGlassCard>
 
@@ -63,15 +61,13 @@
           title="UPDATE 语句生成"
           description="根据 Excel 数据和 DDL 语句生成 UPDATE 语句"
           hoverable
-          @click="navigateTo('/update')"
+          @click="navigateTo('/sql/update')"
         >
           <template #icon>
             <EditOutlined class="card-icon" />
           </template>
           <template #extra>
-            <a-button type="primary" size="small">
-              开始使用 <RightOutlined />
-            </a-button>
+            <a-button type="primary" size="small"> 开始使用 <RightOutlined /> </a-button>
           </template>
         </VbenGlassCard>
 
@@ -79,15 +75,13 @@
           title="DDL 语句生成"
           description="根据 Excel 数据生成 DDL 语句"
           hoverable
-          @click="navigateTo('/ddl')"
+          @click="navigateTo('/sql/ddl')"
         >
           <template #icon>
             <CodeOutlined class="card-icon" />
           </template>
           <template #extra>
-            <a-button type="primary" size="small">
-              开始使用 <RightOutlined />
-            </a-button>
+            <a-button type="primary" size="small"> 开始使用 <RightOutlined /> </a-button>
           </template>
         </VbenGlassCard>
       </div>

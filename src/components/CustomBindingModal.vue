@@ -390,7 +390,7 @@
                       </div>
                       <a-select
                         v-model:value="record.autoIncrementConfig.groupBy"
-                        placeholder="选择分组字段（可选）"
+                        placeholder="选择分组字段（可选--字段是映射部分的）"
                         allow-clear
                         style="width: 100%"
                         @change="handleCustomFieldChange(record)"
@@ -662,7 +662,23 @@ const customFieldColumns = [
 ]
 
 // 计算属性
-const availableDdlFields = computed(() => props.ddlFields)
+/**
+ * 获取可用的DDL字段列表
+ * 从字段映射配置中获取，确保与映射配置部分显示的字段一致
+ */
+const availableDdlFields = computed(() => {
+  if (props.fieldMappings && props.fieldMappings.length > 0) {
+    // 从字段映射中提取 DDL 字段信息
+    return props.fieldMappings
+      .filter((mapping) => mapping.ddlField && mapping.ddlField.name)
+      .map((mapping) => ({
+        name: mapping.ddlField.name,
+        type: mapping.ddlField.type || 'UNKNOWN',
+      }))
+  }
+  // 如果没有字段映射，回退到 ddlFields
+  return props.ddlFields || []
+})
 const totalCustomBindings = computed(
   () => singleBindings.value.length + concatenationRules.value.length + customFields.value.length,
 )

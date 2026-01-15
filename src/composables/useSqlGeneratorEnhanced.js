@@ -437,6 +437,17 @@ export function useSqlGeneratorEnhanced() {
     updateFields = null,
     customBindingManager = null,
   ) => {
+    // 调试日志
+    console.log('=== generateSingleUpdateSql 调试 ===')
+    console.log('tableName:', tableName)
+    console.log('whereFields:', whereFields)
+    console.log('updateFields:', updateFields)
+    console.log('fieldMappings 数量:', fieldMappings.length)
+    console.log(
+      'fieldMappings:',
+      fieldMappings.map((m) => ({ name: m.ddlField?.name, excelIndex: m.excelIndex })),
+    )
+
     /**
      * 获取分组字段值
      * @param {Object} rowData - 数据行
@@ -459,6 +470,10 @@ export function useSqlGeneratorEnhanced() {
     const whereClauses = []
 
     fieldMappings.forEach((mapping) => {
+      console.log(
+        `处理字段: ${mapping.ddlField?.name}, excelIndex: ${mapping.excelIndex}, isWhereField: ${whereFields?.includes(mapping.ddlField?.name)}`,
+      )
+
       // 排除自增主键字段和主键字段（除非它们是WHERE条件字段）
       // 注意：标记为"函数生成"的字段不会被过滤
       const isWhereField = whereFields && whereFields.includes(mapping.ddlField.name)
@@ -467,15 +482,19 @@ export function useSqlGeneratorEnhanced() {
         !mapping.generatedByFunction &&
         (mapping.ddlField.isIdentity || mapping.ddlField.primaryKey)
       ) {
+        console.log(`跳过自增/主键字段: ${mapping.ddlField.name}`)
         return // 跳过自增主键字段和主键字段
       }
 
       // 如果指定了updateFields，只更新用户选择的字段
       if (updateFields && updateFields.length > 0 && !isWhereField) {
         if (!updateFields.includes(mapping.ddlField.name)) {
+          console.log(`跳过未选择的字段: ${mapping.ddlField.name}`)
           return // 跳过未选择的字段
         }
       }
+
+      console.log(`字段 ${mapping.ddlField.name} 将被添加到 SET 或 WHERE 子句`)
 
       let value
       const fieldName = mapping.customFieldName || mapping.ddlField.name
@@ -642,7 +661,16 @@ export function useSqlGeneratorEnhanced() {
           value = 'NULL'
         }
       } else if (!mapping.excelHeader || mapping.excelIndex < 0) {
-        return // 跳过未映射到Excel列的普通字段
+        // 如果字段不在 updateFields 中，跳过未映射到Excel列的普通字段
+        // 如果字段在 updateFields 中（用户选择要更新的字段），允许使用 NULL 值
+        const shouldInclude = updateFields && updateFields.includes(mapping.ddlField.name)
+        if (!shouldInclude) {
+          console.log(`跳过未映射字段: ${mapping.ddlField.name}（不在updateFields中）`)
+          return // 跳过未映射到Excel列的普通字段
+        }
+        // 字段在 updateFields 中，但未映射到 Excel 列，使用 NULL
+        console.log(`字段 ${mapping.ddlField.name} 未映射到Excel列，使用NULL值`)
+        value = 'NULL'
       } else {
         value = row[mapping.excelIndex]
         value = formatValue(value, mapping.ddlField.type, dbType)
@@ -657,6 +685,10 @@ export function useSqlGeneratorEnhanced() {
 
     if (setClauses.length === 0) {
       console.warn('没有可更新的字段')
+      console.log('setClauses 为空，可能的原因：')
+      console.log('- updateFields 为空或未正确传递')
+      console.log('- 所有字段都被跳过了（自增/主键/未选择）')
+      console.log('- fieldMappings 中的字段状态不正确')
       return null
     }
 
@@ -664,6 +696,10 @@ export function useSqlGeneratorEnhanced() {
       console.warn('没有WHERE条件字段，UPDATE语句可能影响所有记录')
       return null
     }
+
+    console.log('=== 生成UPDATE语句 ===')
+    console.log('setClauses:', setClauses)
+    console.log('whereClauses:', whereClauses)
 
     return `UPDATE ${escapeFieldName(tableName, dbType)}\nSET\n  ${setClauses.join(',\n  ')}\nWHERE ${whereClauses.join(' AND ')};`
   }

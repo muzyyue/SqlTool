@@ -4,18 +4,29 @@ import { createRouter, createWebHashHistory } from 'vue-router'
  * 动态导入工具页面
  * 自动扫描 views/tools 目录
  */
-const toolModules = import.meta.glob('../views/tools/*.vue')
+const toolModules = import.meta.glob('../views/tools/**/*.vue')
 
 /**
  * 生成工具路由
  */
 const toolRoutes = Object.entries(toolModules)
   .map(([path, component]) => {
-    const match = path.match(/\.\/views\/tools\/(.*)\.vue$/)
-    if (!match) return null
+    // 匹配 tools/sql/*.vue 或 tools/*.vue
+    const sqlMatch = path.match(/\.\/views\/tools\/sql\/(.*)\.vue$/)
+    const toolMatch = path.match(/\.\/views\/tools\/(.*)\.vue$/)
 
-    const toolName = match[1]
-    const routePath = `/tools/${toolName.toLowerCase()}`
+    if (!sqlMatch && !toolMatch) return null
+
+    let toolName, routePath
+    if (sqlMatch) {
+      // SQL 相关页面
+      toolName = sqlMatch[1]
+      routePath = `/sql/${toolName.toLowerCase().replace('page', '')}`
+    } else {
+      // 其他工具页面
+      toolName = toolMatch[1]
+      routePath = `/tools/${toolName.toLowerCase().replace('page', '')}`
+    }
 
     return {
       path: routePath,
@@ -46,30 +57,6 @@ const staticRoutes = [
     component: () => import('../views/SqlToolPage.vue'),
     meta: {
       title: 'SQL 生成工具',
-    },
-  },
-  {
-    path: '/insert',
-    name: 'insert',
-    component: () => import('../views/InsertPage.vue'),
-    meta: {
-      title: 'INSERT 语句生成',
-    },
-  },
-  {
-    path: '/update',
-    name: 'update',
-    component: () => import('../views/UpdatePage.vue'),
-    meta: {
-      title: 'UPDATE 语句生成',
-    },
-  },
-  {
-    path: '/ddl',
-    name: 'ddl',
-    component: () => import('../views/DdlPage.vue'),
-    meta: {
-      title: 'DDL 语句生成',
     },
   },
 ]

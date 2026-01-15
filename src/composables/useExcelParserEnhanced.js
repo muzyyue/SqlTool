@@ -15,6 +15,14 @@ export function useExcelParserEnhanced() {
    * 解析Excel文件
    * @param {File} file - Excel文件
    * @param {Object} options - 解析选项
+   * @param {number} options.sheetIndex - 工作表索引，默认0
+   * @param {number} options.maxRows - 最大处理行数，默认10000
+   * @param {number} options.chunkSize - 分块大小，默认1000
+   * @param {Function} options.onProgress - 进度回调
+   * @param {Function} options.onWorksheetChange - 工作表切换回调
+   * @param {number} options.startRow - 起始行（包含表头为1），默认null表示从第一行开始
+   * @param {number} options.endRow - 结束行，默认null表示到最后一行
+   * @param {boolean} options.includeHeader - 是否包含表头，默认true
    * @returns {Promise} 解析结果
    */
   const parseExcel = async (file, options = {}) => {
@@ -33,6 +41,9 @@ export function useExcelParserEnhanced() {
       chunkSize: 1000, // 分块大小
       onProgress: null, // 进度回调
       onWorksheetChange: null, // 工作表切换回调
+      startRow: null, // 起始行（包含表头为1）
+      endRow: null, // 结束行
+      includeHeader: true, // 是否包含表头
     }
 
     const finalOptions = { ...defaultOptions, ...options }
@@ -198,6 +209,9 @@ export function useExcelParserEnhanced() {
 
   /**
    * 解析工作表数据
+   * @param {Object} selectedSheet - 选中的工作表对象
+   * @param {Object} options - 解析选项
+   * @returns {Promise} 解析结果
    */
   const parseWorksheet = async (selectedSheet, options) => {
     const { worksheet, rowCount, name: sheetName } = selectedSheet
@@ -206,29 +220,57 @@ export function useExcelParserEnhanced() {
       throw new Error(`工作表 "${sheetName}" 为空`)
     }
 
-    totalRows.value = Math.min(rowCount, options.maxRows)
+    // 验证行范围参数
+    const { startRow, endRow } = options
+    const actualStartRow = startRow !== null ? Math.max(1, startRow) : 1
+    const actualEndRow = endRow !== null ? Math.min(rowCount, endRow) : rowCount
+
+    if (actualStartRow > actualEndRow) {
+      throw new Error(`起始行 (${actualStartRow}) 不能大于结束行 (${actualEndRow})`)
+    }
+
+    if (actualStartRow > rowCount) {
+      throw new Error(`起始行 (${actualStartRow}) 超出文件总行数 (${rowCount})`)
+    }
+
+    // 计算实际需要处理的行数
+    const rowsToProcess = actualEndRow - actualStartRow + 1
+    totalRows.value = Math.min(rowsToProcess, options.maxRows)
     processedRows.value = 0
 
-    console.log(`开始解析工作表 "${sheetName}"，共 ${totalRows.value} 行数据`)
+    console.log(
+      `开始解析工作表 "${sheetName}"，总行数: ${rowCount}，选择范围: ${actualStartRow}-${actualEndRow}，共 ${totalRows.value} 行数据`,
+    )
 
     // 分块处理大型文件
     if (totalRows.value > options.chunkSize) {
-      return await parseWorksheetChunked(worksheet, totalRows.value, options)
+      return await parseWorksheetChunked(worksheet, actualStartRow, actualEndRow, options)
     } else {
-      return await parseWorksheetDirect(worksheet, options)
+      return await parseWorksheetDirect(worksheet, actualStartRow, actualEndRow, options)
     }
   }
 
   /**
    * 直接解析工作表（小型文件）
+   * @param {Object} worksheet - 工作表对象
+   * @param {number} startRow - 起始行（1-based）
+   * @param {number} endRow - 结束行（1-based）
+   * @param {Object} options - 解析选项
+   * @returns {Promise} 解析结果
    */
-  const parseWorksheetDirect = async (worksheet) => {
+  const parseWorksheetDirect = async (worksheet, startRow, endRow, options) => {
+    const { includeHeader } = options
+
     const parseOptions = {
       header: 1,
       defval: '',
       raw: true,
       rawNumbers: true,
       blankrows: false, // 跳过空行
+      range:
+        startRow === 1 && endRow === null
+          ? undefined
+          : `${XLSX.utils.encode_cell({ r: startRow - 1, c: 0 })}:${XLSX.utils.encode_cell({ r: endRow - 1, c: 999 })}`, // 指定行范围
     }
 
     const jsonData = XLSX.utils.sheet_to_json(worksheet, parseOptions)
@@ -237,52 +279,79 @@ export function useExcelParserEnhanced() {
       throw new Error('工作表中没有数据')
     }
 
-    if (jsonData.length < 2) {
+    if (jsonData.length < 2 && includeHeader) {
       throw new Error('工作表至少需要包含表头和一行数据')
     }
 
-    processedRows.value = jsonData.length - 1
+    processedRows.value = jsonData.length - (includeHeader ? 1 : 0)
     processingProgress.value = 100
 
-    return processExcelData(jsonData)
+    return processExcelData(jsonData, includeHeader)
   }
 
   /**
    * 分块解析工作表（大型文件）
+   * @param {Object} worksheet - 工作表对象
+   * @param {number} startRow - 起始行（1-based）
+   * @param {number} endRow - 结束行（1-based）
+   * @param {number} totalRows - 总行数
+   * @param {number} chunkSize - 分块大小
+   * @param {Object} options - 解析选项
+   * @returns {Promise} 解析结果
    */
-  const parseWorksheetChunked = async (worksheet, totalRows, chunkSize) => {
-    const headers = extractHeaders(worksheet)
+  const parseWorksheetChunked = async (
+    worksheet,
+    startRow,
+    endRow,
+    totalRows,
+    chunkSize,
+    options,
+  ) => {
+    const { includeHeader } = options
+
+    const headers = extractHeaders(worksheet, startRow - 1)
     const allRows = []
 
-    // 处理表头
-    allRows.push(headers)
+    // 处理表头（如果包含表头）
+    if (includeHeader) {
+      allRows.push(headers)
+    }
+
+    // 计算数据行的起始位置
+    const dataStartRow = includeHeader ? startRow : startRow + 1
+    const dataEndRow = includeHeader ? endRow : endRow
 
     // 分块处理数据行
-    for (let startRow = 1; startRow < totalRows; startRow += chunkSize) {
-      const endRow = Math.min(startRow + chunkSize, totalRows)
+    for (let row = dataStartRow; row <= dataEndRow; row += chunkSize) {
+      const chunkEndRow = Math.min(row + chunkSize - 1, dataEndRow)
 
-      const chunkData = extractChunkData(worksheet, headers.length, startRow, endRow)
+      const chunkData = extractChunkData(worksheet, headers.length, row - 1, chunkEndRow - 1)
       allRows.push(...chunkData)
 
-      processedRows.value = endRow - 1
-      processingProgress.value = Math.round((endRow / totalRows) * 100)
+      processedRows.value = chunkEndRow - dataStartRow + 1
+      processingProgress.value = Math.round(
+        ((chunkEndRow - dataStartRow + 1) / (dataEndRow - dataStartRow + 1)) * 100,
+      )
 
       // 短暂延迟以避免阻塞UI
       await new Promise((resolve) => setTimeout(resolve, 0))
     }
 
-    return processExcelData(allRows)
+    return processExcelData(allRows, includeHeader)
   }
 
   /**
    * 提取表头
+   * @param {Object} worksheet - 工作表对象
+   * @param {number} headerRowIndex - 表头所在行索引（0-based），默认0
+   * @returns {Array} 表头数组
    */
-  const extractHeaders = (worksheet) => {
+  const extractHeaders = (worksheet, headerRowIndex = 0) => {
     const headers = []
     let col = 0
 
     while (true) {
-      const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col })
+      const cellAddress = XLSX.utils.encode_cell({ r: headerRowIndex, c: col })
       const cell = worksheet[cellAddress]
 
       if (!cell) break
@@ -331,14 +400,19 @@ export function useExcelParserEnhanced() {
 
   /**
    * 处理Excel数据
+   * @param {Array} jsonData - Excel解析后的JSON数据
+   * @param {boolean} includeHeader - 是否包含表头，默认true
+   * @returns {Object} 处理后的数据对象
    */
-  const processExcelData = (jsonData) => {
-    const headers = jsonData[0]
-    const rawRows = jsonData.slice(1)
+  const processExcelData = (jsonData, includeHeader = true) => {
+    const headers = includeHeader ? jsonData[0] : []
+    const rawRows = includeHeader ? jsonData.slice(1) : jsonData
 
     // 验证表头
-    if (!headers || !Array.isArray(headers) || headers.length === 0) {
-      throw new Error('无法识别表头信息')
+    if (includeHeader) {
+      if (!headers || !Array.isArray(headers) || headers.length === 0) {
+        throw new Error('无法识别表头信息')
+      }
     }
 
     // 标准化数据行

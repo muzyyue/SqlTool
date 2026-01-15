@@ -251,7 +251,8 @@ const handleClick = (event) => {
   box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.3);
 }
 
-[data-theme='dark'] .gradient-button:hover:not(.gradient-button-disabled):not(.gradient-button-loading) {
+[data-theme='dark']
+  .gradient-button:hover:not(.gradient-button-disabled):not(.gradient-button-loading) {
   box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.4);
 }
 

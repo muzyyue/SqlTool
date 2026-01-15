@@ -27,10 +27,14 @@ export const useThemeStore = defineStore('theme', () => {
   /**
    * 监听主题变化，自动应用到 DOM
    */
-  watch(isDark, (newIsDark) => {
-    const theme = newIsDark ? 'dark' : 'light'
-    applyTheme(theme)
-  }, { immediate: true })
+  watch(
+    isDark,
+    (newIsDark) => {
+      const theme = newIsDark ? 'dark' : 'light'
+      applyTheme(theme)
+    },
+    { immediate: true },
+  )
 
   return {
     isDark,

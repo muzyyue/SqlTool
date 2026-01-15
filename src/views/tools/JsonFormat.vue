@@ -3,12 +3,8 @@
     <div class="page-header">
       <h2>JSON 格式化</h2>
       <div class="header-actions">
-        <GradientButton type="secondary" size="md" @click="clearAll">
-          清空
-        </GradientButton>
-        <GradientButton type="primary" size="md" @click="formatJson">
-          格式化
-        </GradientButton>
+        <GradientButton type="secondary" size="md" @click="clearAll"> 清空 </GradientButton>
+        <GradientButton type="primary" size="md" @click="formatJson"> 格式化 </GradientButton>
       </div>
     </div>
 

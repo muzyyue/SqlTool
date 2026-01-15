@@ -137,6 +137,61 @@
             </div>
           </div>
 
+          <!-- 行范围选择配置 -->
+          <div v-if="excelData && excelData.length > 0" class="row-range-config">
+            <a-divider style="margin: 12px 0" />
+            <div class="row-range-header">
+              <a-checkbox v-model:checked="rowRangeEnabled" @change="handleRowRangeToggle">
+                启用行范围选择
+              </a-checkbox>
+              <a-tooltip title="只处理指定范围内的Excel行，提高处理效率">
+                <QuestionCircleOutlined />
+              </a-tooltip>
+            </div>
+            <div v-if="rowRangeEnabled" class="row-range-controls">
+              <div class="row-range-inputs">
+                <div class="row-range-input">
+                  <label>起始行:</label>
+                  <a-input-number
+                    v-model:value="startRow"
+                    :min="1"
+                    :max="totalExcelRows"
+                    :placeholder="`1-${totalExcelRows}`"
+                    style="width: 100%"
+                  />
+                </div>
+                <div class="row-range-input">
+                  <label>结束行:</label>
+                  <a-input-number
+                    v-model:value="endRow"
+                    :min="1"
+                    :max="totalExcelRows"
+                    :placeholder="`1-${totalExcelRows}`"
+                    style="width: 100%"
+                  />
+                </div>
+              </div>
+              <div class="row-range-options">
+                <a-checkbox v-model:checked="includeHeader"> 包含表头 </a-checkbox>
+                <a-tag color="blue">文件总行数: {{ totalExcelRows }}</a-tag>
+              </div>
+              <div class="row-range-actions">
+                <a-button type="primary" size="small" @click="applyRowRange">
+                  <template #icon><CheckOutlined /></template>
+                  应用行范围
+                </a-button>
+                <a-button size="small" @click="resetRowRange">
+                  <template #icon><ReloadOutlined /></template>
+                  重置范围
+                </a-button>
+              </div>
+              <div v-if="startRow && endRow" class="row-range-stats">
+                <a-tag color="green">选择范围: {{ startRow }} - {{ endRow }}</a-tag>
+                <a-tag color="orange">将处理 {{ endRow - startRow + 1 }} 行</a-tag>
+              </div>
+            </div>
+          </div>
+
           <div v-if="excelData && excelData.length > 0" class="data-preview">
             <a-collapse>
               <a-collapse-panel key="preview" header="数据预览">
@@ -529,6 +584,7 @@ import {
   UploadOutlined,
   SettingOutlined,
   ClockCircleOutlined,
+  CheckOutlined,
 } from '@ant-design/icons-vue'
 
 // 导入核心功能模块
@@ -645,6 +701,13 @@ const deduplicationStats = ref({
 }) // 去重统计信息
 const originalExcelData = ref([]) // 保存原始数据，用于多次去重切换
 
+// 行范围选择相关状态
+const rowRangeEnabled = ref(false) // 是否启用行范围选择
+const startRow = ref(null) // 起始行
+const endRow = ref(null) // 结束行
+const includeHeader = ref(true) // 是否包含表头
+const totalExcelRows = ref(0) // Excel文件总行数
+
 // SQL美化相关数据
 const showBeautifyOptions = ref(false)
 const beautifyOptions = ref({
@@ -672,42 +735,48 @@ const showFieldMapping = computed(() => {
   return result
 })
 
+/**
+ * 优化后的数据预览计算属性
+ * 使用缓存和限制数据量来提升性能
+ */
 const previewData = computed(() => {
-  console.log('previewData计算属性调用:')
-  console.log('excelData.length:', excelData.value?.length || 0)
-
+  // 如果没有数据，直接返回空数组
   if (!excelData.value || excelData.value.length === 0) {
-    console.log('excelData为空，返回空数组')
     return []
   }
 
-  const data = excelData.value.slice(0, 10).map((row, index) => ({
-    key: index,
+  // 只预览前10行数据，避免大量数据影响性能
+  const previewLimit = 10
+  const data = excelData.value.slice(0, previewLimit).map((row, index) => ({
+    key: `preview-${index}-${Date.now()}`, // 添加唯一key，避免Vue警告
     ...row,
   }))
 
-  console.log('预览数据行数:', data.length)
   return data
 })
 
+/**
+ * 优化后的预览列配置计算属性
+ * 添加缓存和错误处理
+ */
 const previewColumns = computed(() => {
-  console.log('previewColumns计算属性调用:')
-  console.log('excelHeaders:', excelHeaders.value)
-  console.log('excelHeaders.length:', excelHeaders.value?.length || 0)
-
+  // 如果没有表头，返回空数组
   if (!excelHeaders.value || excelHeaders.value.length === 0) {
-    console.log('excelHeaders为空，返回空数组')
     return []
   }
 
-  const columns = excelHeaders.value.map((header, index) => ({
+  // 限制列数量，避免过多列影响性能
+  const maxColumns = 20
+  const headersToDisplay = excelHeaders.value.slice(0, maxColumns)
+
+  const columns = headersToDisplay.map((header, index) => ({
     title: `${header} (列${index + 1})`,
     dataIndex: index,
-    key: index,
+    key: `col-${index}`,
     ellipsis: true,
+    width: 150, // 固定列宽，提升渲染性能
   }))
 
-  console.log('生成的列配置:', columns)
   return columns
 })
 
@@ -841,7 +910,33 @@ const handleUpload = async (options) => {
     uploadedFile.value = file
 
     console.log('开始解析Excel文件...')
-    const result = await parseExcelEnhanced(file)
+
+    // 先解析一次获取总行数
+    const initialResult = await parseExcelEnhanced(file, {
+      sheetIndex: 0,
+      maxRows: 10000,
+    })
+
+    totalExcelRows.value = initialResult.totalRows
+    console.log('Excel文件总行数:', totalExcelRows.value)
+
+    // 根据行范围设置解析参数
+    const parseOptions = {
+      sheetIndex: 0,
+      maxRows: 10000,
+    }
+
+    // 如果启用了行范围选择，添加行范围参数
+    if (rowRangeEnabled.value && startRow.value && endRow.value) {
+      parseOptions.startRow = startRow.value
+      parseOptions.endRow = endRow.value
+      parseOptions.includeHeader = includeHeader.value
+      console.log(
+        `应用行范围: ${startRow.value} - ${endRow.value}, 包含表头: ${includeHeader.value}`,
+      )
+    }
+
+    const result = await parseExcelEnhanced(file, parseOptions)
 
     console.log('Excel解析结果:', result)
     console.log('解析出的数据行数:', result.rows?.length || 0)
@@ -987,6 +1082,145 @@ const applyDeduplication = () => {
       removedRows,
     })
     message.info('未发现重复数据')
+  }
+}
+
+/**
+ * 处理行范围开关切换
+ * 当关闭行范围选择时，重置行范围参数
+ */
+const handleRowRangeToggle = (checked) => {
+  if (!checked) {
+    startRow.value = null
+    endRow.value = null
+    logInfo('已关闭行范围选择')
+  } else {
+    logInfo('已启用行范围选择，请设置起始行和结束行')
+  }
+}
+
+/**
+ * 应用行范围
+ * 根据用户设置的行范围重新解析Excel文件
+ */
+const applyRowRange = async () => {
+  if (!uploadedFile.value) {
+    message.warning('请先上传Excel文件')
+    return
+  }
+
+  if (!startRow.value || !endRow.value) {
+    message.warning('请设置起始行和结束行')
+    return
+  }
+
+  if (startRow.value > endRow.value) {
+    message.error('起始行不能大于结束行')
+    return
+  }
+
+  if (startRow.value > totalExcelRows.value || endRow.value > totalExcelRows.value) {
+    message.error(`行数超出范围，文件总行数为 ${totalExcelRows.value}`)
+    return
+  }
+
+  uploading.value = true
+
+  try {
+    console.log(`应用行范围: ${startRow.value} - ${endRow.value}, 包含表头: ${includeHeader.value}`)
+
+    const parseOptions = {
+      sheetIndex: 0,
+      maxRows: 10000,
+      startRow: startRow.value,
+      endRow: endRow.value,
+      includeHeader: includeHeader.value,
+    }
+
+    const result = await parseExcelEnhanced(uploadedFile.value, parseOptions)
+
+    excelData.value = result.rows
+    excelHeaders.value = result.headers
+
+    const selectedRowCount = endRow.value - startRow.value + 1
+    logInfo(
+      `行范围应用成功: ${startRow.value}-${endRow.value}，共 ${result.rows.length} 行数据`,
+      'row-range',
+      {
+        operation: 'applyRowRange',
+        startRow: startRow.value,
+        endRow: endRow.value,
+        includeHeader: includeHeader.value,
+        selectedRowCount,
+        actualRowCount: result.rows.length,
+      },
+    )
+    message.success(`行范围应用成功，共 ${result.rows.length} 行数据`)
+
+    // 如果已有DDL字段，自动执行字段匹配
+    if (parsedFields.value.length > 0) {
+      autoMatchFields()
+    }
+  } catch (error) {
+    console.error('应用行范围失败:', error)
+    const friendlyError = logError(error, 'row-range', {
+      operation: 'applyRowRange',
+      startRow: startRow.value,
+      endRow: endRow.value,
+      errorMessage: error.message,
+    })
+    message.error(friendlyError)
+  } finally {
+    uploading.value = false
+  }
+}
+
+/**
+ * 重置行范围
+ * 恢复到处理所有行
+ */
+const resetRowRange = async () => {
+  if (!uploadedFile.value) {
+    message.warning('请先上传Excel文件')
+    return
+  }
+
+  uploading.value = true
+
+  try {
+    console.log('重置行范围，处理所有数据')
+
+    const result = await parseExcelEnhanced(uploadedFile.value, {
+      sheetIndex: 0,
+      maxRows: 10000,
+    })
+
+    excelData.value = result.rows
+    excelHeaders.value = result.headers
+    originalExcelData.value = [...result.rows]
+
+    startRow.value = null
+    endRow.value = null
+
+    logInfo(`行范围已重置，共 ${result.rows.length} 行数据`, 'row-range', {
+      operation: 'resetRowRange',
+      totalRowCount: result.rows.length,
+    })
+    message.success(`行范围已重置，共 ${result.rows.length} 行数据`)
+
+    // 如果已有DDL字段，自动执行字段匹配
+    if (parsedFields.value.length > 0) {
+      autoMatchFields()
+    }
+  } catch (error) {
+    console.error('重置行范围失败:', error)
+    const friendlyError = logError(error, 'row-range', {
+      operation: 'resetRowRange',
+      errorMessage: error.message,
+    })
+    message.error(friendlyError)
+  } finally {
+    uploading.value = false
   }
 }
 
@@ -1822,6 +2056,7 @@ onMounted(() => {
 .insert-page {
   padding: 0;
   min-height: 100%;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
 }
 
 .page-header {
@@ -1870,33 +2105,48 @@ onMounted(() => {
 .input-card,
 .output-card {
   background: white;
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.08),
+    0 2px 4px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   overflow: hidden;
   position: relative;
+  transition: all 0.2s ease;
+}
+
+.input-card:hover,
+.output-card:hover {
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.1),
+    0 3px 6px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
 }
 
 .card-header h3 {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
+  color: #1e293b;
 }
 
 .card-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid #f0f0f0;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f1f5f9;
 }
 
 .field-count {
@@ -2161,7 +2411,7 @@ onMounted(() => {
 @media (max-width: 480px) {
   .input-card,
   .output-card {
-    padding: 12px;
+    padding: 16px;
   }
 
   .card-header {
@@ -2174,6 +2424,364 @@ onMounted(() => {
   .log-actions {
     width: 100%;
     justify-content: space-between;
+  }
+}
+
+/* 去重配置样式 - 优化版 */
+.deduplication-config {
+  margin-top: 16px;
+}
+
+.deduplication-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--card-bg, rgba(255, 255, 255, 0.85));
+  backdrop-filter: blur(var(--backdrop-blur, 20px));
+  -webkit-backdrop-filter: blur(var(--backdrop-blur, 20px));
+  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.5));
+  border-radius: var(--border-radius-md, 12px);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
+  transition: all var(--transition-normal, 200ms) ease;
+}
+
+.deduplication-header:hover {
+  box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.1));
+}
+
+.deduplication-controls {
+  margin-top: 16px;
+  padding: 20px;
+  background: var(--card-bg, rgba(255, 255, 255, 0.85));
+  backdrop-filter: blur(var(--backdrop-blur, 20px));
+  -webkit-backdrop-filter: blur(var(--backdrop-blur, 20px));
+  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.5));
+  border-radius: var(--border-radius-md, 12px);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
+  transition: all var(--transition-normal, 200ms) ease;
+}
+
+.deduplication-controls:hover {
+  box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.1));
+}
+
+.deduplication-controls .ant-select {
+  transition: all var(--transition-fast, 120ms) ease;
+}
+
+.deduplication-controls .ant-select:hover {
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
+}
+
+.deduplication-controls .ant-select-focused {
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.3);
+}
+
+.deduplication-stats {
+  margin-top: 16px;
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(22, 119, 255, 0.05) 0%, rgba(20, 201, 201, 0.05) 100%);
+  border: 1px solid rgba(22, 119, 255, 0.1);
+  border-radius: var(--border-radius-sm, 8px);
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  transition: all var(--transition-normal, 200ms) ease;
+}
+
+.deduplication-stats:hover {
+  background: linear-gradient(135deg, rgba(22, 119, 255, 0.08) 0%, rgba(20, 201, 201, 0.08) 100%);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
+}
+
+.deduplication-stats .ant-tag {
+  background: white;
+  border: 1px solid rgba(22, 119, 255, 0.2);
+  color: var(--text-primary, #1f2937);
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: var(--border-radius-xs, 4px);
+  transition: all var(--transition-fast, 120ms) ease;
+}
+
+.deduplication-stats .ant-tag:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
+}
+
+.deduplication-stats .ant-tag.ant-tag-blue {
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #3b82f6;
+}
+
+.deduplication-stats .ant-tag.ant-tag-green {
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #10b981;
+}
+
+.deduplication-stats .ant-tag.ant-tag-orange {
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #f59e0b;
+}
+
+/* 暗色主题支持 */
+[data-theme='dark'] .deduplication-header {
+  background: var(--card-bg, rgba(30, 41, 59, 0.6));
+  border-color: var(--card-border, rgba(255, 255, 255, 0.1));
+}
+
+[data-theme='dark'] .deduplication-controls {
+  background: var(--card-bg, rgba(30, 41, 59, 0.6));
+  border-color: var(--card-border, rgba(255, 255, 255, 0.1));
+}
+
+[data-theme='dark'] .deduplication-stats {
+  background: linear-gradient(135deg, rgba(22, 119, 255, 0.1) 0%, rgba(20, 201, 201, 0.1) 100%);
+  border-color: rgba(22, 119, 255, 0.2);
+}
+
+[data-theme='dark'] .deduplication-stats .ant-tag {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: rgba(22, 119, 255, 0.3);
+  color: var(--text-primary, #f3f4f6);
+}
+
+/* 行范围选择样式 - 优化版 */
+.row-range-config {
+  margin-top: 16px;
+}
+
+.row-range-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--card-bg, rgba(255, 255, 255, 0.85));
+  backdrop-filter: blur(var(--backdrop-blur, 20px));
+  -webkit-backdrop-filter: blur(var(--backdrop-blur, 20px));
+  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.5));
+  border-radius: var(--border-radius-md, 12px);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
+  transition: all var(--transition-normal, 200ms) ease;
+}
+
+.row-range-header:hover {
+  box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.1));
+}
+
+.row-range-controls {
+  margin-top: 16px;
+  padding: 20px;
+  background: var(--card-bg, rgba(255, 255, 255, 0.85));
+  backdrop-filter: blur(var(--backdrop-blur, 20px));
+  -webkit-backdrop-filter: blur(var(--backdrop-blur, 20px));
+  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.5));
+  border-radius: var(--border-radius-md, 12px);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
+  transition: all var(--transition-normal, 200ms) ease;
+}
+
+.row-range-controls:hover {
+  box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.1));
+}
+
+.row-range-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.row-range-input {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.row-range-input label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary, #1f2937);
+  transition: color var(--transition-fast, 120ms) ease;
+}
+
+.row-range-input .ant-input-number {
+  transition: all var(--transition-fast, 120ms) ease;
+}
+
+.row-range-input .ant-input-number:hover {
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
+}
+
+.row-range-input .ant-input-number:focus-within {
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.3);
+}
+
+.row-range-options {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--card-border, rgba(255, 255, 255, 0.5));
+  transition: all var(--transition-fast, 120ms) ease;
+}
+
+.row-range-options .ant-checkbox-wrapper {
+  transition: all var(--transition-fast, 120ms) ease;
+}
+
+.row-range-options .ant-checkbox-wrapper:hover {
+  color: var(--primary-gradient, linear-gradient(135deg, #1677ff 0%, #14c9c9 100%));
+}
+
+.row-range-options .ant-tag {
+  background: linear-gradient(135deg, rgba(22, 119, 255, 0.1) 0%, rgba(20, 201, 201, 0.1) 100%);
+  border: 1px solid rgba(22, 119, 255, 0.2);
+  color: #1677ff;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: var(--border-radius-xs, 4px);
+  transition: all var(--transition-fast, 120ms) ease;
+}
+
+.row-range-options .ant-tag:hover {
+  background: linear-gradient(135deg, rgba(22, 119, 255, 0.15) 0%, rgba(20, 201, 201, 0.15) 100%);
+  transform: translateY(-1px);
+}
+
+.row-range-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.row-range-actions .ant-btn {
+  transition: all var(--transition-fast, 120ms) ease;
+}
+
+.row-range-actions .ant-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
+}
+
+.row-range-actions .ant-btn:active {
+  transform: scale(0.98);
+}
+
+.row-range-stats {
+  margin-top: 16px;
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(22, 119, 255, 0.05) 0%, rgba(20, 201, 201, 0.05) 100%);
+  border: 1px solid rgba(22, 119, 255, 0.1);
+  border-radius: var(--border-radius-sm, 8px);
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  transition: all var(--transition-normal, 200ms) ease;
+}
+
+.row-range-stats:hover {
+  background: linear-gradient(135deg, rgba(22, 119, 255, 0.08) 0%, rgba(20, 201, 201, 0.08) 100%);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
+}
+
+.row-range-stats .ant-tag {
+  background: white;
+  border: 1px solid rgba(22, 119, 255, 0.2);
+  color: var(--text-primary, #1f2937);
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: var(--border-radius-xs, 4px);
+  transition: all var(--transition-fast, 120ms) ease;
+}
+
+.row-range-stats .ant-tag:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
+}
+
+.row-range-stats .ant-tag.ant-tag-green {
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #10b981;
+}
+
+.row-range-stats .ant-tag.ant-tag-orange {
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #f59e0b;
+}
+
+/* 暗色主题支持 */
+[data-theme='dark'] .row-range-header {
+  background: var(--card-bg, rgba(30, 41, 59, 0.6));
+  border-color: var(--card-border, rgba(255, 255, 255, 0.1));
+}
+
+[data-theme='dark'] .row-range-controls {
+  background: var(--card-bg, rgba(30, 41, 59, 0.6));
+  border-color: var(--card-border, rgba(255, 255, 255, 0.1));
+}
+
+[data-theme='dark'] .row-range-input label {
+  color: var(--text-primary, #f3f4f6);
+}
+
+[data-theme='dark'] .row-range-options {
+  border-bottom-color: var(--card-border, rgba(255, 255, 255, 0.1));
+}
+
+[data-theme='dark'] .row-range-stats {
+  background: linear-gradient(135deg, rgba(22, 119, 255, 0.1) 0%, rgba(20, 201, 201, 0.1) 100%);
+  border-color: rgba(22, 119, 255, 0.2);
+}
+
+[data-theme='dark'] .row-range-stats .ant-tag {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: rgba(22, 119, 255, 0.3);
+  color: var(--text-primary, #f3f4f6);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .row-range-inputs {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .row-range-options {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .row-range-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .row-range-actions .ant-btn {
+    width: 100%;
+  }
+
+  .row-range-stats {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .row-range-header,
+  .row-range-controls {
+    padding: 16px 12px;
+  }
+
+  .row-range-input label {
+    font-size: 13px;
+  }
+
+  .row-range-stats {
+    padding: 12px;
   }
 }
 </style>

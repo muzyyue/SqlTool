@@ -289,7 +289,7 @@ export function useFieldMatcher() {
    * 计算字符串相似度（Levenshtein距离）
    */
   const calculateSimilarity = (str1, str2) => {
-    if (!str1 || !str2) return 0
+    if (!str1 || !str2 || typeof str1 !== 'string' || typeof str2 !== 'string') return 0
 
     const s1 = str1.toLowerCase().replace(/[^\w\u4e00-\u9fa5]/g, '')
     const s2 = str2.toLowerCase().replace(/[^\w\u4e00-\u9fa5]/g, '')

@@ -27,7 +27,7 @@ export const tools = [
     description: '基于数据快速生成 INSERT、UPDATE 等 SQL 语句',
     icon: 'DatabaseOutlined',
     category: 'database',
-    route: '/tools/sql-generator',
+    route: '/sql-tool',
     tags: ['sql', 'generator', 'database'],
   },
   {
