@@ -1,5 +1,12 @@
 # 版本变更历史
 
+## 1.4.2 (2026-01-15)
+
+**修复 DdlPage.vue 组件导入路径**
+
+- 修复 DdlPage.vue 中 composables 和 components 的导入路径
+- 使用 @ 别名与 InsertPage 和 UpdatePage 保持一致的导入方式
+
 ## 1.4.1 (2026-01-15)
 
 **修复构建路径错误**
