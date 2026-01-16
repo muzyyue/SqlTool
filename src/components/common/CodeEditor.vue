@@ -48,6 +48,8 @@ import { json } from '@codemirror/lang-json'
 import { sql } from '@codemirror/lang-sql'
 import { keymap } from '@codemirror/view'
 import { defaultKeymap, indentWithTab } from '@codemirror/commands'
+import { search, highlightSelectionMatches } from '@codemirror/search'
+import { foldGutter, indentUnit } from '@codemirror/language'
 
 /**
  * 组件属性定义
@@ -89,6 +91,16 @@ const props = defineProps({
   placeholder: {
     type: String,
     default: '请输入代码...',
+  },
+  /** 是否启用代码折叠 */
+  enableFold: {
+    type: Boolean,
+    default: false,
+  },
+  /** 是否启用搜索 */
+  enableSearch: {
+    type: Boolean,
+    default: false,
   },
 })
 
@@ -144,62 +156,79 @@ const getThemeExtension = (theme) => {
  * @returns EditorState 对象
  */
 const createEditorState = (content) => {
+  const extensions = [
+    basicSetup,
+    keymap.of([...defaultKeymap, indentWithTab]),
+    getLanguageExtension(props.language),
+    ...getThemeExtension(props.theme),
+    EditorView.editable.of(!props.readonly),
+    EditorState.readOnly.of(props.readonly),
+    indentUnit.of('  '),
+    EditorView.theme({
+      '&': {
+        fontSize: '13px',
+        fontFamily: "'Consolas', 'Monaco', 'Courier New', monospace",
+      },
+      '&.cm-focused': {
+        outline: 'none',
+      },
+      '.cm-scroller': {
+        overflow: 'auto',
+      },
+      '.cm-content': {
+        padding: '12px',
+        minHeight: `${props.minLines * 20}px`,
+        maxHeight: `${props.maxLines * 20}px`,
+      },
+      '.cm-gutters': {
+        backgroundColor: props.theme === 'dark' ? '#1e1e1e' : '#f5f5f5',
+        color: props.theme === 'dark' ? '#858585' : '#999',
+        border: 'none',
+      },
+      '.cm-activeLineGutter': {
+        backgroundColor: props.theme === 'dark' ? '#2c2c2c' : '#e0e0e0',
+        color: props.theme === 'dark' ? '#c6c6c6' : '#333',
+      },
+      '.cm-lineNumbers': {
+        padding: '0 8px',
+      },
+      '.cm-foldGutter': {
+        width: '20px',
+      },
+      '.cm-foldGutter span': {
+        padding: '0 1px',
+        cursor: 'pointer',
+      },
+      '.cm-foldGutter span:hover': {
+        color: '#666',
+      },
+    }),
+    EditorView.updateListener.of((update) => {
+      if (update.docChanged) {
+        const newValue = update.state.doc.toString()
+        emit('update:modelValue', newValue)
+        emit('change', newValue)
+      }
+    }),
+  ]
+
+  if (props.enableSearch) {
+    extensions.push(search({ top: true }))
+    extensions.push(highlightSelectionMatches())
+  }
+
+  if (props.enableFold) {
+    extensions.push(
+      foldGutter({
+        openText: '▼',
+        closedText: '▶',
+      }),
+    )
+  }
+
   return EditorState.create({
     doc: content,
-    extensions: [
-      basicSetup,
-      keymap.of([
-        ...defaultKeymap,
-        // Tab 键插入 2 个空格
-        indentWithTab,
-      ]),
-      // 语言支持
-      getLanguageExtension(props.language),
-      // 主题支持
-      ...getThemeExtension(props.theme),
-      // 只读模式
-      EditorView.editable.of(!props.readonly),
-      // 禁用只读时的光标
-      EditorState.readOnly.of(props.readonly),
-      // 自定义样式
-      EditorView.theme({
-        '&': {
-          fontSize: '13px',
-          fontFamily: "'Consolas', 'Monaco', 'Courier New', monospace",
-        },
-        '&.cm-focused': {
-          outline: 'none',
-        },
-        '.cm-scroller': {
-          overflow: 'auto',
-        },
-        '.cm-content': {
-          padding: '12px',
-          minHeight: `${props.minLines * 20}px`,
-          maxHeight: `${props.maxLines * 20}px`,
-        },
-        '.cm-gutters': {
-          backgroundColor: props.theme === 'dark' ? '#1e1e1e' : '#f5f5f5',
-          color: props.theme === 'dark' ? '#858585' : '#999',
-          border: 'none',
-        },
-        '.cm-activeLineGutter': {
-          backgroundColor: props.theme === 'dark' ? '#2c2c2c' : '#e0e0e0',
-          color: props.theme === 'dark' ? '#c6c6c6' : '#333',
-        },
-        '.cm-lineNumbers': {
-          padding: '0 8px',
-        },
-      }),
-      // 变更监听
-      EditorView.updateListener.of((update) => {
-        if (update.docChanged) {
-          const newValue = update.state.doc.toString()
-          emit('update:modelValue', newValue)
-          emit('change', newValue)
-        }
-      }),
-    ],
+    extensions,
   })
 }
 

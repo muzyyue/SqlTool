@@ -55,7 +55,12 @@
         <a-button type="link" size="small" @click="clearFavorites"> 清空 </a-button>
       </div>
       <div :class="['tools-container', `tools-container-${viewMode}`]">
-        <ToolCard v-for="tool in favorites" :key="tool.id" :tool="tool" @click="handleToolClick" />
+        <ToolCard
+          v-for="tool in favorites.filter((t) => t && t.id)"
+          :key="tool.id"
+          :tool="tool"
+          @click="handleToolClick"
+        />
       </div>
     </div>
 

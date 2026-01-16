@@ -1,5 +1,31 @@
 # 版本变更历史
 
+## 1.4.3 (2026-01-16)
+
+**新增JSON格式化工具**
+
+- 创建JsonPage.vue组件，提供完整的JSON格式化、对比、搜索、统计功能
+- 实现JSON格式化和语法高亮，基于CodeMirror 6编辑器
+- 实现可折叠JSON块功能，支持折叠/展开对象和数组
+- 实现左右两栏对比功能，支持格式化模式和对比模式切换
+- 实现搜索定位功能，集成CodeMirror搜索扩展，支持Ctrl+F搜索
+- 实现深度对比算法，支持字段对比、深度对比、浅层对比三种模式
+- 实现数据统计功能，自动计算对象数量、数组数量、字段总数、数据大小
+- 实现逗号识别功能，支持自动处理中文逗号（，）
+- 安装CodeMirror相关依赖包：@codemirror/search、@codemirror/fold
+- 更新CodeEditor.vue组件，添加enableFold和enableSearch props支持
+- 更新tools.js配置，添加JSON工具路由配置
+- 优化UI/UX设计，使用玻璃态设计、渐变色、响应式布局
+- 完整的暗色主题支持
+- 修复ToolCard.vue中props.tool为undefined时的错误，添加安全检查
+- 修复ToolsGrid.vue中过滤无效工具对象的问题
+- 修复JSON工具路由配置，将/tools/jsonpage改为/tools/json
+
+**修复Excel填充工具路由**
+
+- 修复ExcelFillPage.vue路由配置，将/tools/excelfillpage改为/tools/excelfill
+- 确保路由生成器正确匹配文件名
+
 ## 1.4.2 (2026-01-15)
 
 **修复 DdlPage.vue 组件导入路径**

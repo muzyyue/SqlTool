@@ -11,10 +11,15 @@
     </div>
 
     <div class="tool-card-body">
-      <h3 class="tool-name">{{ props.tool.name }}</h3>
-      <p class="tool-description">{{ props.tool.description }}</p>
-      <div class="tool-tags">
-        <a-tag v-for="tag in props.tool.tags.slice(0, 3)" :key="tag" size="small" color="blue">
+      <h3 class="tool-name">{{ props.tool?.name }}</h3>
+      <p class="tool-description">{{ props.tool?.description }}</p>
+      <div class="tool-tags" v-if="props.tool?.tags">
+        <a-tag
+          v-for="tag in (props.tool.tags || []).slice(0, 3)"
+          :key="tag"
+          size="small"
+          color="blue"
+        >
           {{ tag }}
         </a-tag>
       </div>
@@ -81,7 +86,7 @@ const iconMap = {
  * 图标组件
  */
 const iconComponent = computed(() => {
-  const iconName = props.tool.icon
+  const iconName = props.tool?.icon
   return iconMap[iconName] || CodeOutlined
 })
 
@@ -89,13 +94,14 @@ const iconComponent = computed(() => {
  * 是否已收藏
  */
 const isFavorited = computed(() => {
-  return isFavorite(props.tool)
+  return props.tool && isFavorite(props.tool)
 })
 
 /**
  * 处理点击事件
  */
 const handleClick = () => {
+  if (!props.tool) return
   emit('click', props.tool)
   router.push(props.tool.route)
 }

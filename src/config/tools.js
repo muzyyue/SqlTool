@@ -9,7 +9,7 @@ export const tools = [
     description: '将源列数据填充到目标列，支持合并单元格',
     icon: 'FileExcelOutlined',
     category: 'data',
-    route: '/tools/excelfillpage',
+    route: '/tools/excelfill',
     tags: ['excel', 'fill', 'merge', 'data'],
   },
   {
@@ -18,8 +18,17 @@ export const tools = [
     description: '格式化和美化 JSON 数据，支持语法高亮和错误检查',
     icon: 'CodeOutlined',
     category: 'data',
-    route: '/tools/json-format',
+    route: '/tools/jsonformat',
     tags: ['json', 'format', 'beautify'],
+  },
+  {
+    id: 'json-tool',
+    name: 'JSON 工具',
+    description: 'JSON格式化、对比、搜索、统计等高级功能',
+    icon: 'CodeOutlined',
+    category: 'data',
+    route: '/tools/json',
+    tags: ['json', 'format', 'compare', 'search', 'statistics'],
   },
   {
     id: 'sql-generator',
