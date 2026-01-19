@@ -1,5 +1,11 @@
 # 版本变更历史
 
+## 1.4.5 (2026-01-19)
+
+**修复构建失败问题**
+
+- 添加缺失的CodeMirror依赖包：@codemirror/commands、@codemirror/view
+
 ## 1.4.4 (2026-01-19)
 
 **修复SQL生成相关问题**
