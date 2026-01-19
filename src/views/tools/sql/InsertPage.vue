@@ -118,7 +118,7 @@
               <a-select
                 v-model:value="deduplicationColumn"
                 placeholder="请选择去重列"
-                style="width: 100%"
+                style="width: 100%; max-width: 300px"
                 @change="applyDeduplication"
               >
                 <a-select-option
@@ -279,7 +279,7 @@
                   <a-select
                     v-if="excelHeaders && excelHeaders.length > 0"
                     v-model:value="record.excelIndex"
-                    style="width: 100%; margin-top: 8px"
+                    style="width: 100%; max-width: 280px; margin-top: 8px"
                     placeholder="选择Excel列"
                     size="small"
                     @change="(value) => updateMapping(record.ddlField.name, value)"
@@ -600,9 +600,29 @@ import CustomBindingModal from '@/components/CustomBindingModal.vue'
 import CustomFieldManager from '@/components/CustomFieldManager/CustomFieldManager.vue'
 import BatchEditPanel from '@/components/BatchEditPanel/BatchEditPanel.vue'
 
+/**
+ * 简单的防抖函数
+ * @param {Function} func - 要防抖的函数
+ * @param {number} wait - 等待时间（毫秒）
+ * @returns {Function} 防抖后的函数
+ */
+const createDebounce = (func, wait) => {
+  let timeout = null
+  return function executedFunction(...args) {
+    const later = () => {
+      timeout = null
+      func.apply(this, args)
+    }
+    if (timeout) {
+      clearTimeout(timeout)
+    }
+    timeout = setTimeout(later, wait)
+  }
+}
+
 // 初始化核心功能模块
 const { parseDdl: parseDdlWithParser, clearCache } = useDdlParser()
-const { parseExcel: parseExcelEnhanced } = useExcelParserEnhanced()
+const { parseExcel: parseExcelEnhanced, getHeaders } = useExcelParserEnhanced()
 const {
   fieldMappings,
   enhancedMatchFields,
@@ -727,12 +747,7 @@ const currentErrors = ref([])
 
 // 计算属性
 const showFieldMapping = computed(() => {
-  console.log('showFieldMapping计算属性调用:')
-  console.log('parsedFields.length:', parsedFields.value?.length || 0)
-  console.log('excelHeaders.length:', excelHeaders.value?.length || 0)
-  const result = parsedFields.value.length > 0 && excelHeaders.value.length > 0
-  console.log('showFieldMapping结果:', result)
-  return result
+  return parsedFields.value.length > 0 && excelHeaders.value.length > 0
 })
 
 /**
@@ -740,19 +755,15 @@ const showFieldMapping = computed(() => {
  * 使用缓存和限制数据量来提升性能
  */
 const previewData = computed(() => {
-  // 如果没有数据，直接返回空数组
   if (!excelData.value || excelData.value.length === 0) {
     return []
   }
 
-  // 只预览前10行数据，避免大量数据影响性能
   const previewLimit = 10
-  const data = excelData.value.slice(0, previewLimit).map((row, index) => ({
-    key: `preview-${index}-${Date.now()}`, // 添加唯一key，避免Vue警告
+  return excelData.value.slice(0, previewLimit).map((row, index) => ({
+    key: `preview-${index}`,
     ...row,
   }))
-
-  return data
 })
 
 /**
@@ -1127,24 +1138,62 @@ const applyRowRange = async () => {
   uploading.value = true
 
   try {
-    console.log(`应用行范围: ${startRow.value} - ${endRow.value}, 包含表头: ${includeHeader.value}`)
+    // 如果需要保留原始表头，使用快速方法获取表头
+    let headers = []
+    let rows = []
 
-    const parseOptions = {
-      sheetIndex: 0,
-      maxRows: 10000,
-      startRow: startRow.value,
-      endRow: endRow.value,
-      includeHeader: includeHeader.value,
+    if (includeHeader.value) {
+      // 优先使用已解析的excelHeaders作为表头
+      if (excelHeaders.value && excelHeaders.value.length > 0) {
+        headers = excelHeaders.value
+        console.log('[applyRowRange] 使用已解析的excelHeaders:', headers)
+      } else if (excelData.value && excelData.value.length > 0) {
+        // 备用方案：从第一行数据中提取
+        const firstRow = excelData.value[0]
+        headers = Object.keys(firstRow)
+        console.log('[applyRowRange] 从已解析数据中提取表头:', headers)
+      } else {
+        // 如果没有已解析数据，使用getHeaders
+        headers = await getHeaders(uploadedFile.value, {
+          sheetIndex: 0,
+        })
+      }
+
+      // 如果设置了行范围，从原始数据中截取指定范围
+      if (
+        startRow.value &&
+        endRow.value &&
+        originalExcelData.value &&
+        originalExcelData.value.length > 0
+      ) {
+        // originalExcelData.value是从第2行开始的数据（不包含表头）
+        // 如果startRow=2, endRow=5，应该取originalExcelData.value的第1-4行（索引0-3）
+        const startIndex = startRow.value - 1
+        const endIndex = endRow.value - 1
+        rows = originalExcelData.value.slice(startIndex, endIndex + 1)
+      } else {
+        // 没有设置行范围，使用原始数据
+        rows = originalExcelData.value || []
+      }
+    } else {
+      // 不包含表头的情况，直接解析数据范围
+      const result = await parseExcelEnhanced(uploadedFile.value, {
+        sheetIndex: 0,
+        maxRows: 10000,
+        startRow: startRow.value,
+        endRow: endRow.value,
+        includeHeader: false,
+      })
+      headers = result.headers
+      rows = result.rows
     }
 
-    const result = await parseExcelEnhanced(uploadedFile.value, parseOptions)
+    excelData.value = rows
+    excelHeaders.value = headers
 
-    excelData.value = result.rows
-    excelHeaders.value = result.headers
-
-    const selectedRowCount = endRow.value - startRow.value + 1
+    const selectedRowCount = rows.length
     logInfo(
-      `行范围应用成功: ${startRow.value}-${endRow.value}，共 ${result.rows.length} 行数据`,
+      `行范围应用成功: ${startRow.value}-${endRow.value}，共 ${rows.length} 行数据`,
       'row-range',
       {
         operation: 'applyRowRange',
@@ -1152,24 +1201,37 @@ const applyRowRange = async () => {
         endRow: endRow.value,
         includeHeader: includeHeader.value,
         selectedRowCount,
-        actualRowCount: result.rows.length,
+        actualRowCount: rows.length,
       },
     )
-    message.success(`行范围应用成功，共 ${result.rows.length} 行数据`)
+    message.success(`行范围应用成功，共 ${rows.length} 行数据`)
 
-    // 如果已有DDL字段，自动执行字段匹配
+    // 如果已有DDL字段，使用防抖延迟执行字段匹配，避免频繁UI更新
     if (parsedFields.value.length > 0) {
-      autoMatchFields()
+      if (autoMatchFieldsDebounced) {
+        autoMatchFieldsDebounced()
+      }
     }
   } catch (error) {
     console.error('应用行范围失败:', error)
-    const friendlyError = logError(error, 'row-range', {
-      operation: 'applyRowRange',
-      startRow: startRow.value,
-      endRow: endRow.value,
-      errorMessage: error.message,
-    })
-    message.error(friendlyError)
+
+    let errorMessage = error.message || '未知错误'
+    let userFriendlyMessage = errorMessage
+
+    // 提供更友好的错误提示
+    if (errorMessage.includes('无法识别表头信息')) {
+      userFriendlyMessage =
+        'Excel文件所有行都没有有效的表头数据，请检查文件内容或选择包含表头的行范围'
+    } else if (errorMessage.includes('获取表头超时')) {
+      userFriendlyMessage = '读取Excel表头超时，请检查文件是否过大或损坏'
+    } else if (errorMessage.includes('工作表') && errorMessage.includes('为空')) {
+      userFriendlyMessage = '所选工作表为空，请选择其他工作表'
+    } else if (errorMessage.includes('没有找到有效的工作表')) {
+      userFriendlyMessage = 'Excel文件中没有有效的工作表，请检查文件格式'
+    } else if (errorMessage.includes('获取表头失败')) {
+      userFriendlyMessage = '无法读取Excel表头，请检查文件格式和内容'
+    }
+    message.error(userFriendlyMessage)
   } finally {
     uploading.value = false
   }
@@ -1225,20 +1287,12 @@ const resetRowRange = async () => {
 }
 
 const autoMatchFields = () => {
-  console.log('=== 自动字段匹配调试信息开始 ===')
-  console.log('parsedFields:', parsedFields.value)
-  console.log('parsedFields数量:', parsedFields.value?.length || 0)
-  console.log('excelHeaders:', excelHeaders.value)
-  console.log('excelHeaders数量:', excelHeaders.value?.length || 0)
-
   if (parsedFields.value.length === 0 || excelHeaders.value.length === 0) {
-    console.error('自动匹配失败: parsedFields或excelHeaders为空')
     message.warning('请先解析DDL语句和上传Excel文件')
     return
   }
 
   try {
-    console.log('开始自动匹配字段...')
     enhancedMatchFields(parsedFields.value, excelHeaders.value, 'similarity')
 
     // 同步更新parsedFields中的excelIndex
@@ -1249,10 +1303,8 @@ const autoMatchFields = () => {
       }
     })
 
-    console.log('自动字段匹配完成')
     logInfo('自动字段匹配完成')
     message.success('字段自动匹配完成')
-    console.log('=== 自动字段匹配调试信息结束 ===')
   } catch (error) {
     console.error('自动字段匹配失败:', error)
     const friendlyError = logError(error, 'matching', {
@@ -1263,6 +1315,13 @@ const autoMatchFields = () => {
     message.error(friendlyError)
   }
 }
+
+// 防抖版本的自动字段匹配（延迟500ms执行，避免频繁UI更新）
+const autoMatchFieldsDebounced = createDebounce(() => {
+  if (parsedFields.value.length > 0 && excelHeaders.value.length > 0) {
+    autoMatchFields()
+  }
+}, 500)
 
 const updateMapping = (ddlFieldName, excelIndex) => {
   const excelHeader = excelIndex >= 0 ? excelHeaders.value[excelIndex] : null
@@ -1411,6 +1470,7 @@ const applyBeautifyOptions = async () => {
         batch: 100,
         comments: includeComments.value,
         beautifyOptions: beautifyOptions.value,
+        customBindingManager: customBindingManager, // 添加customBindingManager参数
       })
       generatedSql.value = sql
     }

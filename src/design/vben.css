@@ -420,3 +420,37 @@
     max-height: 250px;
   }
 }
+
+/**
+ * 下拉选择框定长样式
+ * 防止长文本选项超出下拉框导致UI混乱
+ */
+.ant-select-item {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ant-select-selector {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.ant-select-selection-item {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ant-select-dropdown {
+  max-width: 300px;
+}
+
+.ant-select-item-option-content {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

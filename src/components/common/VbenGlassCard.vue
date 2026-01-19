@@ -38,8 +38,6 @@
  *   <p>卡片内容</p>
  * </VbenGlassCard>
  */
-import { defineProps } from 'vue'
-
 defineProps({
   /** 卡片标题 */
   title: {

@@ -18,38 +18,41 @@
       </a-space>
     </div>
 
-    <!-- 编辑器容器 -->
-    <div ref="editorContainer" class="code-editor-wrapper"></div>
+    <!-- 编辑器 -->
+    <codemirror
+      v-model="internalValue"
+      :style="{
+        height: `${minLines * 20}px`,
+        minHeight: `${minLines * 20}px`,
+        maxHeight: `${maxLines * 20}px`,
+      }"
+      :placeholder="placeholder"
+      :autofocus="false"
+      :disabled="readonly"
+      :indent-with-tab="true"
+      :tab-size="2"
+      :extensions="extensions"
+      @ready="handleReady"
+      @change="handleChange"
+      @focus="handleFocus"
+      @blur="handleBlur"
+    />
   </div>
 </template>
 
 <script setup>
-/**
- * CodeEditor 组件
- * 基于 CodeMirror 6 的代码编辑器组件
- *
- * @component
- * @example
- * <CodeEditor
- *   v-model="code"
- *   language="sql"
- *   theme="light"
- *   :readonly="false"
- *   @change="handleChange"
- * />
- */
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { CopyOutlined, DownloadOutlined, ClearOutlined } from '@ant-design/icons-vue'
-import { EditorView, basicSetup } from 'codemirror'
-import { EditorState } from '@codemirror/state'
-import { oneDark } from '@codemirror/theme-one-dark'
+import { Codemirror } from 'vue-codemirror'
+import { basicSetup } from 'codemirror'
+import { defaultKeymap, indentWithTab } from '@codemirror/commands'
+import { keymap } from '@codemirror/view'
+import { search, highlightSelectionMatches } from '@codemirror/search'
+import { foldGutter } from '@codemirror/language'
 import { json } from '@codemirror/lang-json'
 import { sql } from '@codemirror/lang-sql'
-import { keymap } from '@codemirror/view'
-import { defaultKeymap, indentWithTab } from '@codemirror/commands'
-import { search, highlightSelectionMatches } from '@codemirror/search'
-import { foldGutter, indentUnit } from '@codemirror/language'
+import { oneDark } from '@codemirror/theme-one-dark'
 
 /**
  * 组件属性定义
@@ -107,118 +110,41 @@ const props = defineProps({
 /**
  * 组件事件定义
  */
-const emit = defineEmits(['update:modelValue', 'change'])
+const emit = defineEmits(['update:modelValue', 'change', 'focus', 'blur'])
 
 /**
- * 编辑器容器引用
+ * 内部值（用于v-model）
  */
-const editorContainer = ref(null)
+const internalValue = ref(props.modelValue)
 
 /**
- * CodeMirror 编辑器实例
+ * 编辑器实例
  */
-let editorView = null
+const view = ref(null)
 
 /**
- * 获取语言扩展
- * @param language - 语言类型
- * @returns CodeMirror 语言扩展
+ * 扩展配置
  */
-const getLanguageExtension = (language) => {
-  switch (language) {
-    case 'json':
-      return json()
-    case 'sql':
-      return sql()
-    default:
-      return sql()
+const extensions = computed(() => {
+  const exts = [basicSetup, keymap.of([defaultKeymap, indentWithTab])]
+
+  if (props.language === 'json') {
+    exts.push(json())
+  } else if (props.language === 'sql') {
+    exts.push(sql())
   }
-}
 
-/**
- * 获取主题扩展
- * @param theme - 主题类型
- * @returns CodeMirror 主题扩展
- */
-const getThemeExtension = (theme) => {
-  switch (theme) {
-    case 'dark':
-      return oneDark
-    case 'light':
-    default:
-      return []
+  if (props.theme === 'dark') {
+    exts.push(oneDark)
   }
-}
-
-/**
- * 创建编辑器状态
- * @param content - 编辑器内容
- * @returns EditorState 对象
- */
-const createEditorState = (content) => {
-  const extensions = [
-    basicSetup,
-    keymap.of([...defaultKeymap, indentWithTab]),
-    getLanguageExtension(props.language),
-    ...getThemeExtension(props.theme),
-    EditorView.editable.of(!props.readonly),
-    EditorState.readOnly.of(props.readonly),
-    indentUnit.of('  '),
-    EditorView.theme({
-      '&': {
-        fontSize: '13px',
-        fontFamily: "'Consolas', 'Monaco', 'Courier New', monospace",
-      },
-      '&.cm-focused': {
-        outline: 'none',
-      },
-      '.cm-scroller': {
-        overflow: 'auto',
-      },
-      '.cm-content': {
-        padding: '12px',
-        minHeight: `${props.minLines * 20}px`,
-        maxHeight: `${props.maxLines * 20}px`,
-      },
-      '.cm-gutters': {
-        backgroundColor: props.theme === 'dark' ? '#1e1e1e' : '#f5f5f5',
-        color: props.theme === 'dark' ? '#858585' : '#999',
-        border: 'none',
-      },
-      '.cm-activeLineGutter': {
-        backgroundColor: props.theme === 'dark' ? '#2c2c2c' : '#e0e0e0',
-        color: props.theme === 'dark' ? '#c6c6c6' : '#333',
-      },
-      '.cm-lineNumbers': {
-        padding: '0 8px',
-      },
-      '.cm-foldGutter': {
-        width: '20px',
-      },
-      '.cm-foldGutter span': {
-        padding: '0 1px',
-        cursor: 'pointer',
-      },
-      '.cm-foldGutter span:hover': {
-        color: '#666',
-      },
-    }),
-    EditorView.updateListener.of((update) => {
-      if (update.docChanged) {
-        const newValue = update.state.doc.toString()
-        emit('update:modelValue', newValue)
-        emit('change', newValue)
-      }
-    }),
-  ]
 
   if (props.enableSearch) {
-    extensions.push(search({ top: true }))
-    extensions.push(highlightSelectionMatches())
+    exts.push(search({ top: true }))
+    exts.push(highlightSelectionMatches())
   }
 
   if (props.enableFold) {
-    extensions.push(
+    exts.push(
       foldGutter({
         openText: '▼',
         closedText: '▶',
@@ -226,28 +152,36 @@ const createEditorState = (content) => {
     )
   }
 
-  return EditorState.create({
-    doc: content,
-    extensions,
-  })
+  return exts
+})
+
+/**
+ * 处理编辑器就绪事件
+ */
+const handleReady = (payload) => {
+  view.value = payload.view
 }
 
 /**
- * 初始化编辑器
+ * 处理值变化事件
  */
-const initEditor = () => {
-  if (!editorContainer.value) return
+const handleChange = (value) => {
+  emit('update:modelValue', value)
+  emit('change', value)
+}
 
-  // 销毁旧实例
-  if (editorView) {
-    editorView.destroy()
-  }
+/**
+ * 处理焦点事件
+ */
+const handleFocus = (viewUpdate) => {
+  emit('focus', viewUpdate)
+}
 
-  // 创建新实例
-  editorView = new EditorView({
-    state: createEditorState(props.modelValue),
-    parent: editorContainer.value,
-  })
+/**
+ * 处理失焦事件
+ */
+const handleBlur = (viewUpdate) => {
+  emit('blur', viewUpdate)
 }
 
 /**
@@ -302,16 +236,9 @@ const handleClear = () => {
     return
   }
 
-  if (editorView) {
-    const transaction = editorView.state.update({
-      changes: {
-        from: 0,
-        to: editorView.state.doc.length,
-        insert: '',
-      },
-    })
-    editorView.dispatch(transaction)
-  }
+  internalValue.value = ''
+  emit('update:modelValue', '')
+  emit('change', '')
   message.success('内容已清空')
 }
 
@@ -321,65 +248,11 @@ const handleClear = () => {
 watch(
   () => props.modelValue,
   (newValue) => {
-    if (editorView && editorView.state.doc.toString() !== newValue) {
-      const transaction = editorView.state.update({
-        changes: {
-          from: 0,
-          to: editorView.state.doc.length,
-          insert: newValue,
-        },
-      })
-      editorView.dispatch(transaction)
+    if (newValue !== internalValue.value) {
+      internalValue.value = newValue
     }
   },
 )
-
-/**
- * 监听 language 变化
- */
-watch(
-  () => props.language,
-  () => {
-    initEditor()
-  },
-)
-
-/**
- * 监听 theme 变化
- */
-watch(
-  () => props.theme,
-  () => {
-    initEditor()
-  },
-)
-
-/**
- * 监听 readonly 变化
- */
-watch(
-  () => props.readonly,
-  () => {
-    initEditor()
-  },
-)
-
-/**
- * 组件挂载时初始化编辑器
- */
-onMounted(() => {
-  initEditor()
-})
-
-/**
- * 组件卸载前销毁编辑器
- */
-onBeforeUnmount(() => {
-  if (editorView) {
-    editorView.destroy()
-    editorView = null
-  }
-})
 
 /**
  * 暴露方法给父组件
@@ -392,7 +265,7 @@ defineExpose({
   /** 清空内容 */
   clear: handleClear,
   /** 获取编辑器实例 */
-  getEditor: () => editorView,
+  getEditor: () => view.value,
 })
 </script>
 
@@ -423,80 +296,72 @@ defineExpose({
 }
 
 /**
- * 编辑器包装器
- */
-.code-editor-wrapper {
-  position: relative;
-  min-height: 100px;
-  max-height: 400px;
-  overflow: auto;
-}
-
-/**
  * CodeMirror 样式覆盖
  */
-.code-editor-wrapper :deep(.cm-editor) {
+.code-editor-container :deep(.cm-editor) {
   height: 100%;
-}
-
-.code-editor-wrapper :deep(.cm-scroller) {
-  overflow: auto;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
 }
 
-.code-editor-wrapper :deep(.cm-content) {
+.code-editor-container :deep(.cm-scroller) {
+  overflow: auto;
+}
+
+.code-editor-container :deep(.cm-content) {
   padding: 12px;
   font-size: 13px;
   line-height: 1.5;
 }
 
-.code-editor-wrapper :deep(.cm-gutters) {
+.code-editor-container :deep(.cm-gutters) {
   background: #f5f5f5;
   color: #999;
   border: none;
   border-right: 1px solid #e0e0e0;
 }
 
-.code-editor-wrapper :deep(.cm-activeLineGutter) {
+.code-editor-container :deep(.cm-activeLineGutter) {
   background: #e0e0e0;
   color: #333;
 }
 
-.code-editor-wrapper :deep(.cm-lineNumbers) {
+.code-editor-container :deep(.cm-lineNumbers) {
   padding: 0 8px;
 }
 
-.code-editor-wrapper :deep(.cm-line) {
+.code-editor-container :deep(.cm-line) {
   padding: 0;
 }
 
-.code-editor-wrapper :deep(.cm-focused) {
+.code-editor-container :deep(.cm-focused) {
   outline: none;
 }
 
 /**
  * 滚动条样式优化
  */
-.code-editor-wrapper::-webkit-scrollbar {
+.code-editor-container :deep(.cm-scroller::-webkit-scrollbar) {
   width: 8px;
   height: 8px;
 }
 
-.code-editor-wrapper::-webkit-scrollbar-track {
+.code-editor-container :deep(.cm-scroller::-webkit-scrollbar-track) {
   background: #f1f1f1;
   border-radius: 4px;
 }
 
-.code-editor-wrapper::-webkit-scrollbar-thumb {
+.code-editor-container :deep(.cm-scroller::-webkit-scrollbar-thumb) {
   background: #c1c1c1;
   border-radius: 4px;
 }
 
-.code-editor-wrapper::-webkit-scrollbar-thumb:hover {
+.code-editor-container :deep(.cm-scroller::-webkit-scrollbar-thumb:hover) {
   background: #a8a8a8;
 }
 
-/* 暗色主题支持 */
+/**
+ * 暗色主题支持
+ */
 [data-theme='dark'] .code-editor-container {
   background: #1e1e1e;
   border-color: #3c3c3c;
@@ -507,36 +372,49 @@ defineExpose({
   border-bottom-color: #3c3c3c;
 }
 
-[data-theme='dark'] .code-editor-wrapper :deep(.cm-scroller) {
+[data-theme='dark'] .code-editor-container :deep(.cm-scroller) {
   background: #1e1e1e;
 }
 
-[data-theme='dark'] .code-editor-wrapper::-webkit-scrollbar-track {
-  background: #2d2d30;
+[data-theme='dark'] .code-editor-container :deep(.cm-gutters) {
+  background: #1e1e1e;
+  color: #858585;
+  border-right-color: #3c3c3c;
 }
 
-[data-theme='dark'] .code-editor-wrapper::-webkit-scrollbar-thumb {
+[data-theme='dark'] .code-editor-container :deep(.cm-activeLineGutter) {
+  background: #2c2c2c;
+  color: #c6c6c6;
+}
+
+[data-theme='dark'] .code-editor-container :deep(.cm-lineNumbers) {
+  color: #858585;
+}
+
+[data-theme='dark'] .code-editor-container :deep(.cm-scroller::-webkit-scrollbar-track) {
+  background: #2d2d2d;
+}
+
+[data-theme='dark'] .code-editor-container :deep(.cm-scroller::-webkit-scrollbar-thumb) {
   background: #464647;
 }
 
-[data-theme='dark'] .code-editor-wrapper::-webkit-scrollbar-thumb:hover {
+[data-theme='dark'] .code-editor-container :deep(.cm-scroller::-webkit-scrollbar-thumb:hover) {
   background: #5a5a5a;
 }
 
-/* 响应式设计 */
+/**
+ * 响应式设计
+ */
 @media (max-width: 768px) {
   .code-editor-toolbar {
     flex-wrap: wrap;
     gap: 8px;
   }
-
-  .code-editor-wrapper {
-    max-height: 300px;
-  }
 }
 
 @media (max-width: 480px) {
-  .code-editor-wrapper {
+  .code-editor-container :deep(.cm-scroller) {
     max-height: 250px;
   }
 }

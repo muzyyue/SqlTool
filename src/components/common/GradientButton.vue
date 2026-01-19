@@ -41,7 +41,6 @@
  *   点击按钮
  * </GradientButton>
  */
-import { defineProps, defineEmits } from 'vue'
 import { LoadingOutlined } from '@ant-design/icons-vue'
 
 /**

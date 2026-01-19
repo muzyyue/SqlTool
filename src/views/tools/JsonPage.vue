@@ -39,10 +39,10 @@
           <!-- 格式化模式 -->
           <div v-if="mode === 'format'" class="json-input-section">
             <div class="form-row">
-              <a-checkbox v-model:value="handleChineseComma"> 自动处理中文逗号（，） </a-checkbox>
+              <a-checkbox v-model:checked="handleChineseComma"> 自动处理中文逗号（，） </a-checkbox>
             </div>
             <div class="form-row">
-              <a-checkbox v-model:value="enableFold"> 启用代码折叠 </a-checkbox>
+              <a-checkbox v-model:checked="enableFold"> 启用代码折叠 </a-checkbox>
             </div>
             <div class="editor-wrapper">
               <CodeEditor
@@ -95,7 +95,7 @@
                     style="width: 100%"
                   />
                 </div>
-                <a-checkbox v-model:value="deepCompare">
+                <a-checkbox v-model:checked="deepCompare">
                   深度对比（递归检查所有嵌套字段）
                 </a-checkbox>
               </a-space>

@@ -592,6 +592,8 @@ export function useFieldMatcher() {
 
   /**
    * 应用自定义绑定到映射结果
+   * @param {Array} baseMappings - 基础映射数组
+   * @returns {Array} 增强后的映射数组
    */
   const applyCustomBindingsToMappings = (baseMappings) => {
     const enhancedMappings = [...baseMappings]
@@ -616,6 +618,12 @@ export function useFieldMatcher() {
     })
 
     customBindingManager.customFields.value.forEach((customField) => {
+      // 验证自定义字段名不为空
+      if (!customField.fieldName || String(customField.fieldName).trim() === '') {
+        console.warn('跳过空字段名的自定义字段:', customField)
+        return
+      }
+
       const mappingIndex = enhancedMappings.findIndex(
         (mapping) => mapping.ddlField.name === customField.fieldName,
       )

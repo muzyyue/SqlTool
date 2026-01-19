@@ -179,10 +179,23 @@ export function useSqlGeneratorEnhanced() {
       throw new Error('没有有效的字段映射关系（所有字段都是自增主键、主键字段或未映射）')
     }
 
+    // 生成字段名列表，并验证字段名不为空
     const fieldNames = mappedFields.map((mapping) => {
       const fieldName = mapping.customFieldName || mapping.ddlField.name
+
+      // 验证字段名不为空
+      if (!fieldName || String(fieldName).trim() === '') {
+        throw new Error(`字段名不能为空（DDL字段: ${mapping.ddlField?.name || 'unknown'}）`)
+      }
+
       return escapeFieldName(fieldName, dbType)
     })
+
+    // 验证字段名列表中没有空字符串
+    const emptyFieldIndex = fieldNames.findIndex((name) => !name || String(name).trim() === '')
+    if (emptyFieldIndex !== -1) {
+      throw new Error(`字段名列表中包含空字段名（索引: ${emptyFieldIndex}）`)
+    }
     const valuesList = []
 
     // 处理每行数据
@@ -421,6 +434,14 @@ export function useSqlGeneratorEnhanced() {
     // 确保VALUES子句格式正确，每行单独处理
     const valuesClause =
       valuesList.length > 1 ? `VALUES\n  ${valuesList.join(',\n  ')}` : `VALUES ${valuesList[0]}`
+
+    // 调试日志：输出valuesList和valuesClause
+    console.log('=== VALUES子句生成调试 ===')
+    console.log('valuesList长度:', valuesList.length)
+    console.log('valuesList:', valuesList)
+    console.log('valuesList[0]:', valuesList[0])
+    console.log('valuesClause:', valuesClause)
+    console.log('=== 结束 ===')
 
     return `INSERT INTO ${escapeFieldName(tableName, dbType)} (${fieldNames.join(', ')})\n${valuesClause};`
   }
@@ -753,9 +774,17 @@ export function useSqlGeneratorEnhanced() {
 
   /**
    * 转义字段名（根据数据库类型）
+   * @param {string} fieldName - 字段名
+   * @param {string} dbType - 数据库类型
+   * @returns {string} 转义后的字段名
    */
   const escapeFieldName = (fieldName, dbType) => {
     const name = String(fieldName).trim()
+
+    // 验证字段名不为空
+    if (!name) {
+      throw new Error('字段名不能为空')
+    }
 
     // 检查字段名是否已经包含引号
     const hasQuotes =
@@ -1126,24 +1155,47 @@ export function useSqlGeneratorEnhanced() {
    * 格式化SQL语句
    */
   const formatSql = (sql, format, beautifyOptions = {}) => {
+    console.log('=== formatSql 调试 ===')
+    console.log('输入SQL:', sql)
+    console.log('format:', format)
+
     if (format === 'minified') {
-      return sql
+      const minified = sql
         .replace(/\s+/g, ' ')
         .replace(/\s*([(),;])\s*/g, '$1')
         .replace(/\s+/g, ' ')
         .trim()
+
+      // 修复：确保VALUES子句中的逗号正确保留
+      // 检查是否有类似 '...value'4) 或 '...value',4) 的模式
+      const fixedMinified = minified.replace(
+        /'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[^']*)'(\d+)/g,
+        "$1',$2",
+      )
+
+      console.log('输出SQL:', fixedMinified)
+      console.log('=== 结束 ===')
+
+      return fixedMinified
     }
 
     // 应用高级美化功能
     if (format === 'formatted') {
-      return beautifySql(sql, beautifyOptions)
+      const result = beautifySql(sql, beautifyOptions)
+      console.log('美化后SQL:', result)
+      console.log('=== 结束 ===')
+      return result
     }
 
     // 基础格式化（兼容旧版本）
-    return sql
-      .replace(/\n\s*\n/g, '\n\n') // 压缩空行
-      .replace(/\s+/g, ' ') // 压缩连续空格
-      .replace(/;\s*/g, ';\n\n') // 语句间添加空行
+    const result = sql
+      .replace(/\n\s*\n/g, '\n\n')
+      .replace(/\s+/g, ' ')
+      .replace(/;\s*/g, ';\n\n')
+
+    console.log('基础格式化SQL:', result)
+    console.log('=== 结束 ===')
+    return result
   }
 
   /**

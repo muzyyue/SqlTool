@@ -118,7 +118,7 @@
               <a-select
                 v-model:value="deduplicationColumn"
                 placeholder="选择去重列"
-                style="width: 100%"
+                style="width: 100%; max-width: 300px"
                 @change="applyDeduplication"
               >
                 <a-select-option
@@ -279,7 +279,7 @@
                   <a-select
                     v-if="excelHeaders && excelHeaders.length > 0"
                     v-model:value="record.excelIndex"
-                    style="width: 100%; margin-top: 8px"
+                    style="width: 100%; max-width: 280px; margin-top: 8px"
                     placeholder="选择Excel列"
                     size="small"
                     @change="(value) => updateMapping(record.ddlField.name, value)"
@@ -409,7 +409,7 @@
               <a-select
                 v-model:value="conditionFields"
                 mode="multiple"
-                style="width: 100%"
+                style="width: 100%; max-width: 300px"
                 placeholder="请选择条件字段"
                 :max-tag-count="3"
               >
@@ -682,7 +682,7 @@ import CustomFieldManager from '@/components/CustomFieldManager/CustomFieldManag
 
 // 初始化核心功能模块
 const { parseDdl: parseDdlWithParser, clearCache } = useDdlParser()
-const { parseExcel: parseExcelEnhanced } = useExcelParserEnhanced()
+const { parseExcel: parseExcelEnhanced, getHeaders } = useExcelParserEnhanced()
 const {
   fieldMappings,
   matchFields,
@@ -1480,21 +1480,69 @@ const applyRowRange = async () => {
   uploading.value = true
 
   try {
-    const parseOptions = {
-      sheetIndex: 0,
-      maxRows: 10000,
-      startRow: startRow.value,
-      endRow: endRow.value,
-      includeHeader: includeHeader.value,
+    // 如果需要保留原始表头，使用快速方法获取表头
+    let headers = []
+    let rows = []
+
+    if (includeHeader.value) {
+      // 直接从已解析的excelData中提取第一行作为表头
+      if (excelData.value && excelData.value.length > 0) {
+        // 使用第一行数据作为表头
+        const firstRow = excelData.value[0]
+        headers = Object.keys(firstRow).map((key) => {
+          // 如果key是数字（如"0", "1"），转换为列名
+          const colIndex = parseInt(key)
+          if (!isNaN(colIndex)) {
+            return key
+          }
+          // 如果key是数字，说明是默认列名，使用excelHeaders
+          if (excelHeaders.value && excelHeaders.value.length > colIndex) {
+            return excelHeaders.value[colIndex]
+          }
+          return `Column_${colIndex + 1}`
+        })
+
+        console.log('[applyRowRange] 从已解析数据中提取表头:', headers)
+
+        // 使用已解析的数据
+        rows = excelData.value
+      } else {
+        // 如果没有已解析数据，使用getHeaders
+        headers = await getHeaders(uploadedFile.value, {
+          sheetIndex: 0,
+        })
+      }
+
+      // 如果需要获取数据范围，重新解析
+      if (rows.length === 0 && startRow.value && endRow.value) {
+        const dataResult = await parseExcelEnhanced(uploadedFile.value, {
+          sheetIndex: 0,
+          maxRows: 10000,
+          startRow: startRow.value,
+          endRow: endRow.value,
+          includeHeader: false, // 数据范围不包含表头
+        })
+        rows = dataResult.rows
+      }
+    } else {
+      // 不包含表头的情况，直接解析数据范围
+      const result = await parseExcelEnhanced(uploadedFile.value, {
+        sheetIndex: 0,
+        maxRows: 10000,
+        startRow: startRow.value,
+        endRow: endRow.value,
+        includeHeader: false,
+      })
+      headers = result.headers
+      rows = result.rows
     }
 
-    const result = await parseExcelEnhanced(uploadedFile.value, parseOptions)
-    excelData.value = result.rows
-    excelHeaders.value = result.headers
+    excelData.value = rows
+    excelHeaders.value = headers
 
-    const selectedRowCount = endRow.value - startRow.value + 1
+    const selectedRowCount = rows.length
     logInfo(
-      `行范围应用成功: ${startRow.value}-${endRow.value}，共 ${result.rows.length} 行数据`,
+      `行范围应用成功: ${startRow.value}-${endRow.value}，共 ${rows.length} 行数据`,
       'row-range',
       {
         operation: 'applyRowRange',
@@ -1502,10 +1550,10 @@ const applyRowRange = async () => {
         endRow: endRow.value,
         includeHeader: includeHeader.value,
         selectedRowCount,
-        actualRowCount: result.rows.length,
+        actualRowCount: rows.length,
       },
     )
-    message.success(`行范围应用成功，共 ${result.rows.length} 行数据`)
+    message.success(`行范围应用成功，共 ${rows.length} 行数据`)
 
     // 如果已有DDL字段，自动执行字段匹配
     if (parsedFields.value.length > 0) {
@@ -1513,13 +1561,24 @@ const applyRowRange = async () => {
     }
   } catch (error) {
     console.error('应用行范围失败:', error)
-    const friendlyError = logError(error, 'row-range', {
-      operation: 'applyRowRange',
-      startRow: startRow.value,
-      endRow: endRow.value,
-      errorMessage: error.message,
-    })
-    message.error(friendlyError)
+
+    let errorMessage = error.message || '未知错误'
+    let userFriendlyMessage = errorMessage
+
+    // 提供更友好的错误提示
+    if (errorMessage.includes('无法识别表头信息')) {
+      userFriendlyMessage =
+        'Excel文件所有行都没有有效的表头数据，请检查文件内容或选择包含表头的行范围'
+    } else if (errorMessage.includes('获取表头超时')) {
+      userFriendlyMessage = '读取Excel表头超时，请检查文件是否过大或损坏'
+    } else if (errorMessage.includes('工作表') && errorMessage.includes('为空')) {
+      userFriendlyMessage = '所选工作表为空，请选择其他工作表'
+    } else if (errorMessage.includes('没有找到有效的工作表')) {
+      userFriendlyMessage = 'Excel文件中没有有效的工作表，请检查文件格式'
+    } else if (errorMessage.includes('获取表头失败')) {
+      userFriendlyMessage = '无法读取Excel表头，请检查文件格式和内容'
+    }
+    message.error(userFriendlyMessage)
   } finally {
     uploading.value = false
   }
