@@ -632,7 +632,10 @@ const {
   customBindingManager,
 } = useFieldMatcher()
 
-// 增强匹配统计信息，用于UI显示
+/**
+ * 增强匹配统计，使用DDL原始字段列表数据
+ * 统计DDL原始字段列表中来自字段拼接规则的字段数量
+ */
 const enhancedMatchingStats = computed(() => {
   return {
     matchRate: matchingStats.value.matchRate || 0,
@@ -642,16 +645,29 @@ const enhancedMatchingStats = computed(() => {
     confidenceStats: matchingStats.value.confidenceStats || {},
     customBindings: customBindingManager.customBindingCount.value || 0,
     concatenationRules: customBindingManager.concatenationRuleCount.value || 0,
-    customFields: customBindingManager.customFieldCount.value || 0,
+    customFields: parsedFields.value.filter((field) => {
+      return (
+        field.isCustom &&
+        field.customConfig?.dataSource === 'excel_combine' &&
+        field.customConfig?.isFromConcatenationRule
+      )
+    }).length,
   }
 })
 
 /**
- * 过滤后的字段映射，排除来自字段拼接规则的excel_combine类型字段
+ * 过滤后的字段映射，使用DDL原始字段列表数据
+ * 只保留DDL原始字段列表中存在的字段映射，排除来自字段拼接规则的excel_combine类型字段
  * 字段拼接规则创建的字段不出现在DDL原始字段列表中
  */
 const filteredFieldMappings = computed(() => {
   return fieldMappings.value.filter((mapping) => {
+    // 检查DDL字段是否存在于parsedFields中
+    const ddlFieldExists = parsedFields.value.some((field) => field.name === mapping.ddlField?.name)
+    if (!ddlFieldExists) {
+      return false
+    }
+
     // 如果是自定义字段且数据源类型为excel_combine，并且来自字段拼接规则，则过滤掉
     if (
       mapping.ddlField?.isCustom &&
