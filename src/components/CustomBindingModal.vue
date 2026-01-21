@@ -664,19 +664,9 @@ const customFieldColumns = [
 // 计算属性
 /**
  * 获取可用的DDL字段列表
- * 从字段映射配置中获取，确保与映射配置部分显示的字段一致
+ * 从DDL原始字段列表中获取，避免因映射配置字段变更导致的问题
  */
 const availableDdlFields = computed(() => {
-  if (props.fieldMappings && props.fieldMappings.length > 0) {
-    // 从字段映射中提取 DDL 字段信息
-    return props.fieldMappings
-      .filter((mapping) => mapping.ddlField && mapping.ddlField.name)
-      .map((mapping) => ({
-        name: mapping.ddlField.name,
-        type: mapping.ddlField.type || 'UNKNOWN',
-      }))
-  }
-  // 如果没有字段映射，回退到 ddlFields
   return props.ddlFields || []
 })
 const totalCustomBindings = computed(
