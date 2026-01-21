@@ -287,6 +287,7 @@ const handleRemove = () => {
   previewData.value = []
   result.value = null
   outputBlob.value = null
+  fileList.value = []
   config.value = {
     sheetName: '',
     targetSheetName: '',
@@ -560,8 +561,24 @@ const handleDownload = () => {
 }
 
 const handleReset = () => {
+  workbook.value = null
+  worksheet.value = null
+  targetWorksheet.value = null
+  sheetNames.value = []
+  columns.value = []
+  targetColumns.value = []
+  previewData.value = []
   result.value = null
   outputBlob.value = null
+  fileList.value = []
+  config.value = {
+    sheetName: '',
+    targetSheetName: '',
+    sourceColumn: '',
+    targetColumn: '',
+    startRow: 2,
+    keepMergedFormat: true,
+  }
   message.info('已重置，可以重新处理')
 }
 </script>
