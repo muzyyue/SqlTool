@@ -25,7 +25,11 @@
       <VbenGlassCard title="参数配置" class="config-card" v-if="workbook">
         <a-form :model="config" layout="vertical">
           <a-form-item label="工作表">
-            <a-select v-model:value="config.sheetName" placeholder="选择工作表">
+            <a-select
+              v-model:value="config.sheetName"
+              placeholder="选择源工作表"
+              @change="handleSheetChange"
+            >
               <a-select-option v-for="sheet in sheetNames" :key="sheet" :value="sheet">
                 {{ sheet }}
               </a-select-option>
@@ -45,6 +49,18 @@
             </a-select>
           </a-form-item>
 
+          <a-form-item label="目标工作表">
+            <a-select
+              v-model:value="config.targetSheetName"
+              placeholder="选择目标工作表"
+              @change="handleTargetSheetChange"
+            >
+              <a-select-option v-for="sheet in sheetNames" :key="sheet" :value="sheet">
+                {{ sheet }}
+              </a-select-option>
+            </a-select>
+          </a-form-item>
+
           <a-form-item label="目标列">
             <a-select
               v-model:value="config.targetColumn"
@@ -52,7 +68,7 @@
               show-search
               :filter-option="filterOption"
             >
-              <a-select-option v-for="col in columns" :key="col.letter" :value="col.letter">
+              <a-select-option v-for="col in targetColumns" :key="col.letter" :value="col.letter">
                 {{ col.letter }} ({{ col.name }})
               </a-select-option>
             </a-select>
@@ -116,8 +132,11 @@
           <a-descriptions-item label="输出文件">
             {{ result.outputFile }}
           </a-descriptions-item>
-          <a-descriptions-item label="工作表">
-            {{ result.sheetName }}
+          <a-descriptions-item label="源工作表">
+            {{ result.sourceSheetName }}
+          </a-descriptions-item>
+          <a-descriptions-item label="目标工作表">
+            {{ result.targetSheetName }}
           </a-descriptions-item>
           <a-descriptions-item label="源列">
             {{ result.sourceColumn }} (列号: {{ result.sourceColumnNum }})
@@ -185,8 +204,10 @@ import * as XLSX from 'xlsx'
 const fileList = ref([])
 const workbook = ref(null)
 const worksheet = ref(null)
+const targetWorksheet = ref(null)
 const sheetNames = ref([])
 const columns = ref([])
+const targetColumns = ref([])
 const previewData = ref([])
 const processing = ref(false)
 const result = ref(null)
@@ -194,6 +215,7 @@ const outputBlob = ref(null)
 
 const config = ref({
   sheetName: '',
+  targetSheetName: '',
   sourceColumn: '',
   targetColumn: '',
   startRow: 2,
@@ -204,6 +226,7 @@ const canProcess = computed(() => {
   return (
     workbook.value &&
     config.value.sheetName &&
+    config.value.targetSheetName &&
     config.value.sourceColumn &&
     config.value.targetColumn
   )
@@ -240,7 +263,9 @@ const beforeUpload = (file) => {
 
     if (wb.SheetNames && wb.SheetNames.length > 0) {
       config.value.sheetName = wb.SheetNames[0]
+      config.value.targetSheetName = wb.SheetNames[0]
       loadSheet(wb.SheetNames[0])
+      loadTargetSheet(wb.SheetNames[0])
     }
 
     message.success('文件上传成功！')
@@ -255,13 +280,16 @@ const beforeUpload = (file) => {
 const handleRemove = () => {
   workbook.value = null
   worksheet.value = null
+  targetWorksheet.value = null
   sheetNames.value = []
   columns.value = []
+  targetColumns.value = []
   previewData.value = []
   result.value = null
   outputBlob.value = null
   config.value = {
     sheetName: '',
+    targetSheetName: '',
     sourceColumn: '',
     targetColumn: '',
     startRow: 2,
@@ -291,6 +319,36 @@ const loadSheet = (sheetName) => {
   }
 
   loadPreview()
+}
+
+const loadTargetSheet = (sheetName) => {
+  const ws = workbook.value.Sheets[sheetName]
+  targetWorksheet.value = ws
+
+  const range = XLSX.utils.decode_range(ws['!ref'])
+  const maxCol = range.e.c + 1
+
+  targetColumns.value = []
+  for (let i = 0; i < maxCol; i++) {
+    const colLetter = XLSX.utils.encode_col(i)
+    const cellAddress = colLetter + '1'
+    const cell = ws[cellAddress]
+    const colName = cell ? cell.v : `列${i + 1}`
+
+    targetColumns.value.push({
+      letter: colLetter,
+      name: colName,
+      index: i,
+    })
+  }
+}
+
+const handleSheetChange = (sheetName) => {
+  loadSheet(sheetName)
+}
+
+const handleTargetSheetChange = (sheetName) => {
+  loadTargetSheet(sheetName)
 }
 
 const loadPreview = () => {
@@ -327,31 +385,32 @@ const handleProcess = async () => {
   processing.value = true
 
   try {
-    const ws = worksheet.value
+    const sourceWs = worksheet.value
+    const targetWs = targetWorksheet.value
 
     const sourceColNum =
       columns.value.find((c) => c.letter === config.value.sourceColumn)?.index + 1
     const targetColNum =
-      columns.value.find((c) => c.letter === config.value.targetColumn)?.index + 1
+      targetColumns.value.find((c) => c.letter === config.value.targetColumn)?.index + 1
 
     if (!sourceColNum || !targetColNum) {
       throw new Error('无效的列选择')
     }
 
-    const range = XLSX.utils.decode_range(ws['!ref'])
-    const maxRow = range.e.r + 1
+    const sourceRange = XLSX.utils.decode_range(sourceWs['!ref'])
+    const maxSourceRow = sourceRange.e.r + 1
 
     const sourceData = []
-    for (let row = config.value.startRow - 1; row < maxRow; row++) {
+    for (let row = config.value.startRow - 1; row < maxSourceRow; row++) {
       const colLetter = XLSX.utils.encode_col(sourceColNum - 1)
       const cellAddress = colLetter + (row + 1)
-      const cell = ws[cellAddress]
+      const cell = sourceWs[cellAddress]
       if (cell && cell.v !== undefined && cell.v !== '') {
         sourceData.push(cell.v)
       }
     }
 
-    const merges = ws['!merges'] || []
+    const merges = targetWs['!merges'] || []
     const targetMergedCells = []
     const targetMergedRows = new Set()
 
@@ -370,6 +429,9 @@ const handleProcess = async () => {
       }
     }
 
+    const targetRange = XLSX.utils.decode_range(targetWs['!ref'])
+    const maxTargetRow = targetRange.e.r + 1
+
     const allTargetCells = []
 
     targetMergedCells.sort((a, b) => a.startRow - b.startRow)
@@ -382,7 +444,7 @@ const handleProcess = async () => {
       })
     }
 
-    for (let row = config.value.startRow - 1; row < maxRow; row++) {
+    for (let row = config.value.startRow - 1; row < maxTargetRow; row++) {
       if (!targetMergedRows.has(row)) {
         allTargetCells.push({
           type: 'normal',
@@ -410,29 +472,29 @@ const handleProcess = async () => {
             for (let row = cellInfo.startRow - 1; row < cellInfo.endRow; row++) {
               const colLetter = XLSX.utils.encode_col(targetColNum - 1)
               const cellAddress = colLetter + (row + 1)
-              if (!ws[cellAddress]) {
-                ws[cellAddress] = {}
+              if (!targetWs[cellAddress]) {
+                targetWs[cellAddress] = {}
               }
-              ws[cellAddress].v = value
-              ws[cellAddress].t = 's'
+              targetWs[cellAddress].v = value
+              targetWs[cellAddress].t = 's'
             }
           } else {
             const colLetter = XLSX.utils.encode_col(targetColNum - 1)
             const cellAddress = colLetter + cellInfo.startRow
-            if (!ws[cellAddress]) {
-              ws[cellAddress] = {}
+            if (!targetWs[cellAddress]) {
+              targetWs[cellAddress] = {}
             }
-            ws[cellAddress].v = value
-            ws[cellAddress].t = 's'
+            targetWs[cellAddress].v = value
+            targetWs[cellAddress].t = 's'
           }
         } else {
           const colLetter = XLSX.utils.encode_col(targetColNum - 1)
           const cellAddress = colLetter + cellInfo.row
-          if (!ws[cellAddress]) {
-            ws[cellAddress] = {}
+          if (!targetWs[cellAddress]) {
+            targetWs[cellAddress] = {}
           }
-          ws[cellAddress].v = value
-          ws[cellAddress].t = 's'
+          targetWs[cellAddress].v = value
+          targetWs[cellAddress].t = 's'
         }
 
         dataFilledCount++
@@ -442,7 +504,9 @@ const handleProcess = async () => {
     }
 
     const newWb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(newWb, ws, config.value.sheetName)
+    for (const sheetName of sheetNames.value) {
+      XLSX.utils.book_append_sheet(newWb, workbook.value.Sheets[sheetName], sheetName)
+    }
 
     const excelBuffer = XLSX.write(newWb, { bookType: 'xlsx', type: 'array' })
     outputBlob.value = new Blob([excelBuffer], {
@@ -452,7 +516,8 @@ const handleProcess = async () => {
     result.value = {
       inputFile: fileList.value[0]?.name || 'unknown',
       outputFile: `filled_${fileList.value[0]?.name || 'output.xlsx'}`,
-      sheetName: config.value.sheetName,
+      sourceSheetName: config.value.sheetName,
+      targetSheetName: config.value.targetSheetName,
       sourceColumn: config.value.sourceColumn,
       sourceColumnNum: sourceColNum,
       targetColumn: config.value.targetColumn,
