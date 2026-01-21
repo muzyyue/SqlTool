@@ -249,8 +249,26 @@ const canProcess = computed(() => {
 })
 
 const previewColumns = computed(() => {
-  if (!columns.value || !columns.value.length) return []
-  return columns.value.map((col) => ({
+  if (!previewWorksheet.value) return []
+  const ws = previewWorksheet.value
+  const range = XLSX.utils.decode_range(ws['!ref'])
+  const maxCol = range.e.c + 1
+
+  const cols = []
+  for (let i = 0; i < maxCol; i++) {
+    const colLetter = XLSX.utils.encode_col(i)
+    const cellAddress = colLetter + '1'
+    const cell = ws[cellAddress]
+    const colName = cell ? cell.v : `列${i + 1}`
+
+    cols.push({
+      letter: colLetter,
+      name: colName,
+      index: i,
+    })
+  }
+
+  return cols.map((col) => ({
     title: `${col.letter} (${col.name})`,
     dataIndex: col.letter,
     key: col.letter,
@@ -578,6 +596,12 @@ const handleProcess = async () => {
     message.error(`处理失败: ${error.message}`)
   } finally {
     processing.value = false
+
+    if (result.value) {
+      previewWorksheet.value = workbook.value.Sheets[result.value.targetSheetName]
+      config.value.previewSheetName = result.value.targetSheetName
+      loadPreview()
+    }
   }
 }
 
