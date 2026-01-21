@@ -1,5 +1,15 @@
 # 版本变更历史
 
+## 1.4.9 (2026-01-20)
+
+**优化Excel填充工具预览功能**
+
+- 添加previewWorksheet状态跟踪当前预览的工作表
+- 添加预览工作表选择器，用户可选择预览源工作表或目标工作表
+- 修复loadPreview函数使用previewWorksheet而不是worksheet
+- 添加handlePreviewSheetChange函数处理预览工作表切换
+- 优化用户体验，让用户可以灵活选择预览哪个工作表的数据
+
 ## 1.4.8 (2026-01-20)
 
 **修复Excel填充工具数据填充和预览问题**

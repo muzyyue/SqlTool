@@ -93,6 +93,20 @@
       </VbenGlassCard>
 
       <VbenGlassCard title="数据预览" class="preview-card" v-if="workbook">
+        <a-form layout="inline" style="margin-bottom: 16px">
+          <a-form-item label="预览工作表">
+            <a-select
+              v-model:value="previewSheetName"
+              placeholder="选择预览工作表"
+              @change="handlePreviewSheetChange"
+              style="width: 200px"
+            >
+              <a-select-option v-for="sheet in sheetNames" :key="sheet" :value="sheet">
+                {{ sheet }}
+              </a-select-option>
+            </a-select>
+          </a-form-item>
+        </a-form>
         <a-table
           :columns="previewColumns"
           :data-source="previewData"
@@ -205,6 +219,7 @@ const fileList = ref([])
 const workbook = ref(null)
 const worksheet = ref(null)
 const targetWorksheet = ref(null)
+const previewWorksheet = ref(null)
 const sheetNames = ref([])
 const columns = ref([])
 const targetColumns = ref([])
@@ -216,6 +231,7 @@ const outputBlob = ref(null)
 const config = ref({
   sheetName: '',
   targetSheetName: '',
+  previewSheetName: '',
   sourceColumn: '',
   targetColumn: '',
   startRow: 2,
@@ -264,6 +280,7 @@ const beforeUpload = (file) => {
     if (wb.SheetNames && wb.SheetNames.length > 0) {
       config.value.sheetName = wb.SheetNames[0]
       config.value.targetSheetName = wb.SheetNames[0]
+      config.value.previewSheetName = wb.SheetNames[0]
       loadSheet(wb.SheetNames[0])
       loadTargetSheet(wb.SheetNames[0])
     }
@@ -281,6 +298,7 @@ const handleRemove = () => {
   workbook.value = null
   worksheet.value = null
   targetWorksheet.value = null
+  previewWorksheet.value = null
   sheetNames.value = []
   columns.value = []
   targetColumns.value = []
@@ -301,6 +319,7 @@ const handleRemove = () => {
 const loadSheet = (sheetName) => {
   const ws = workbook.value.Sheets[sheetName]
   worksheet.value = ws
+  previewWorksheet.value = ws
 
   const range = XLSX.utils.decode_range(ws['!ref'])
   const maxCol = range.e.c + 1
@@ -352,10 +371,17 @@ const handleTargetSheetChange = (sheetName) => {
   loadTargetSheet(sheetName)
 }
 
-const loadPreview = () => {
-  if (!worksheet.value) return
+const handlePreviewSheetChange = (sheetName) => {
+  if (sheetName) {
+    previewWorksheet.value = workbook.value.Sheets[sheetName]
+    loadPreview()
+  }
+}
 
-  const ws = worksheet.value
+const loadPreview = () => {
+  if (!previewWorksheet.value) return
+
+  const ws = previewWorksheet.value
   const range = XLSX.utils.decode_range(ws['!ref'])
   const maxRow = Math.min(range.e.r + 1, 20)
   const maxCol = range.e.c + 1
