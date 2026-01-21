@@ -664,7 +664,12 @@ const filteredFieldMappings = computed(() => {
   return fieldMappings.value.filter((mapping) => {
     // 检查DDL字段是否存在于parsedFields中
     const ddlFieldExists = parsedFields.value.some((field) => field.name === mapping.ddlField?.name)
+
+    // 如果字段不在parsedFields中，但标记为自定义字段，则保留
     if (!ddlFieldExists) {
+      if (mapping.ddlField?.isCustom) {
+        return true
+      }
       return false
     }
 
