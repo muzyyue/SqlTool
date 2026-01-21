@@ -357,8 +357,8 @@ const loadPreview = () => {
 
   const ws = worksheet.value
   const range = XLSX.utils.decode_range(ws['!ref'])
-  const maxRow = Math.min(range.e.r + 1, 10)
-  const maxCol = Math.min(range.e.c + 1, 10)
+  const maxRow = Math.min(range.e.r + 1, 20)
+  const maxCol = range.e.c + 1
 
   previewData.value = []
   for (let row = 0; row < maxRow; row++) {
@@ -375,6 +375,16 @@ const loadPreview = () => {
 
 const filterOption = (input, option) => {
   return option.value.toLowerCase().includes(input.toLowerCase())
+}
+
+const getCellType = (value) => {
+  if (typeof value === 'number') {
+    return 'n'
+  }
+  if (typeof value === 'boolean') {
+    return 'b'
+  }
+  return 's'
 }
 
 const handleProcess = async () => {
@@ -407,7 +417,10 @@ const handleProcess = async () => {
       const cellAddress = colLetter + (row + 1)
       const cell = sourceWs[cellAddress]
       if (cell && cell.v !== undefined && cell.v !== '') {
-        sourceData.push(cell.v)
+        sourceData.push({
+          value: cell.v,
+          type: cell.t || getCellType(cell.v),
+        })
       }
     }
 
@@ -465,7 +478,7 @@ const handleProcess = async () => {
 
     for (let i = 0; i < allTargetCells.length; i++) {
       if (i < sourceData.length) {
-        const value = sourceData[i]
+        const { value, type: cellType } = sourceData[i]
         const cellInfo = allTargetCells[i]
 
         if (cellInfo.type === 'merged') {
@@ -477,7 +490,7 @@ const handleProcess = async () => {
                 targetWs[cellAddress] = {}
               }
               targetWs[cellAddress].v = value
-              targetWs[cellAddress].t = 's'
+              targetWs[cellAddress].t = cellType
             }
           } else {
             const colLetter = XLSX.utils.encode_col(targetColNum - 1)
@@ -486,7 +499,7 @@ const handleProcess = async () => {
               targetWs[cellAddress] = {}
             }
             targetWs[cellAddress].v = value
-            targetWs[cellAddress].t = 's'
+            targetWs[cellAddress].t = cellType
           }
         } else {
           const colLetter = XLSX.utils.encode_col(targetColNum - 1)
@@ -495,7 +508,7 @@ const handleProcess = async () => {
             targetWs[cellAddress] = {}
           }
           targetWs[cellAddress].v = value
-          targetWs[cellAddress].t = 's'
+          targetWs[cellAddress].t = cellType
         }
 
         dataFilledCount++
