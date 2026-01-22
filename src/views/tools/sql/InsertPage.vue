@@ -106,7 +106,7 @@
             <div class="deduplication-header">
               <a-checkbox
                 v-model:checked="deduplicationEnabled"
-                @change="handleDeduplicationToggle"
+                @change="(e) => handleDeduplicationToggle(e.target.checked)"
               >
                 启用数据去重
               </a-checkbox>
@@ -141,7 +141,10 @@
           <div v-if="excelData && excelData.length > 0" class="row-range-config">
             <a-divider style="margin: 12px 0" />
             <div class="row-range-header">
-              <a-checkbox v-model:checked="rowRangeEnabled" @change="handleRowRangeToggle">
+              <a-checkbox
+                v-model:checked="rowRangeEnabled"
+                @change="(e) => handleRowRangeToggle(e.target.checked)"
+              >
                 启用行范围选择
               </a-checkbox>
               <a-tooltip title="只处理指定范围内的Excel行，提高处理效率">
@@ -1010,37 +1013,85 @@ const handleUpload = async (options) => {
   }
 }
 
+/**
+ * 清除上传的文件及相关数据
+ * 重置Excel数据、表头、去重设置等所有文件相关状态
+ */
 const clearFile = () => {
   uploadedFile.value = null
   excelData.value = []
   excelHeaders.value = []
-  originalExcelData.value = [] // 清除原始数据
+  originalExcelData.value = []
   fileList.value = []
+
+  // 清除去重相关状态
   deduplicationEnabled.value = false
-  deduplicationColumn.value = -1
+  deduplicationColumn.value = undefined
   deduplicationStats.value = {
     originalRows: 0,
     deduplicatedRows: 0,
     removedRows: 0,
   }
-  logInfo('已清除上传的文件')
+
+  // 清除行范围相关状态
+  rowRangeEnabled.value = false
+  startRow.value = null
+  endRow.value = null
+  includeHeader.value = true
+  totalExcelRows.value = 0
+
+  logInfo('已清除上传的文件及相关数据', 'file', {
+    operation: 'clearFile',
+    resetDeduplication: true,
+    resetRowRange: true,
+  })
+  message.info('文件已清除')
 }
 
 /**
  * 处理去重开关切换
- * 当关闭去重时，恢复原始数据
+ * 当关闭去重时，恢复原始数据并清除所有去重相关设置
+ * @param {boolean} checked - 去重开关状态
  */
 const handleDeduplicationToggle = (checked) => {
   if (!checked) {
+    // 恢复原始数据
+    if (originalExcelData.value.length > 0) {
+      const previousRowCount = excelData.value.length
+      excelData.value = [...originalExcelData.value]
+      const restoredRowCount = excelData.value.length
+
+      logInfo(
+        `数据去重已关闭，已恢复原始数据（${previousRowCount} 行 → ${restoredRowCount} 行）`,
+        'deduplication',
+        {
+          operation: 'resetDeduplication',
+          previousRowCount,
+          restoredRowCount,
+          restored: true,
+        },
+      )
+      message.success(`数据去重已关闭，已恢复原始数据（${restoredRowCount} 行）`)
+    } else {
+      logInfo('数据去重已关闭（无原始数据可恢复）', 'deduplication', {
+        operation: 'resetDeduplication',
+        restored: false,
+      })
+      message.info('数据去重已关闭')
+    }
+
+    // 清除去重相关设置
     deduplicationColumn.value = undefined
     deduplicationStats.value = {
       originalRows: 0,
       deduplicatedRows: 0,
       removedRows: 0,
     }
-    logInfo('已关闭数据去重')
   } else {
-    logInfo('已启用数据去重，请选择去重列')
+    logInfo('已启用数据去重，请选择去重列', 'deduplication', {
+      operation: 'enableDeduplication',
+    })
+    message.info('已启用数据去重，请选择去重列')
   }
 }
 
@@ -1119,15 +1170,45 @@ const applyDeduplication = () => {
 
 /**
  * 处理行范围开关切换
- * 当关闭行范围选择时，重置行范围参数
+ * 当关闭行范围选择时，恢复原始数据并清除所有行范围相关设置
+ * @param {boolean} checked - 行范围开关状态
  */
 const handleRowRangeToggle = (checked) => {
   if (!checked) {
+    // 恢复原始数据
+    if (originalExcelData.value.length > 0) {
+      const previousRowCount = excelData.value.length
+      excelData.value = [...originalExcelData.value]
+      const restoredRowCount = excelData.value.length
+
+      logInfo(
+        `行范围选择已关闭，已恢复原始数据（${previousRowCount} 行 → ${restoredRowCount} 行）`,
+        'row-range',
+        {
+          operation: 'resetRowRange',
+          previousRowCount,
+          restoredRowCount,
+          restored: true,
+        },
+      )
+      message.success(`行范围选择已关闭，已恢复原始数据（${restoredRowCount} 行）`)
+    } else {
+      logInfo('行范围选择已关闭（无原始数据可恢复）', 'row-range', {
+        operation: 'resetRowRange',
+        restored: false,
+      })
+      message.info('行范围选择已关闭')
+    }
+
+    // 清除行范围相关设置
     startRow.value = null
     endRow.value = null
-    logInfo('已关闭行范围选择')
+    includeHeader.value = true
   } else {
-    logInfo('已启用行范围选择，请设置起始行和结束行')
+    logInfo('已启用行范围选择，请设置起始行和结束行', 'row-range', {
+      operation: 'enableRowRange',
+    })
+    message.info('已启用行范围选择，请设置起始行和结束行')
   }
 }
 
@@ -2037,21 +2118,48 @@ const handleRefreshCustomFields = () => {
   // parseDdl(false)  // 注释掉，避免覆盖已配置的数据
 }
 
+/**
+ * 重置所有数据和配置
+ * 清除DDL、Excel数据、去重设置、自定义绑定等所有状态
+ */
 const resetAll = () => {
   ddlStatement.value = ''
   parsedFields.value = []
   uploadedFile.value = null
   excelData.value = []
   excelHeaders.value = []
+  originalExcelData.value = []
   generatedSql.value = ''
   previewSql.value = ''
   previewMode.value = 'original'
   fileList.value = []
+
+  // 清除去重相关状态
+  deduplicationEnabled.value = false
+  deduplicationColumn.value = undefined
+  deduplicationStats.value = {
+    originalRows: 0,
+    deduplicatedRows: 0,
+    removedRows: 0,
+  }
+
+  // 清除行范围相关状态
+  rowRangeEnabled.value = false
+  startRow.value = null
+  endRow.value = null
+  includeHeader.value = true
+  totalExcelRows.value = 0
+
   handleClearCache()
   customBindingEnabled.value = false
   customBindingManager.resetBindings()
 
-  logInfo('所有数据已重置')
+  logInfo('所有数据已重置', 'reset', {
+    operation: 'resetAll',
+    resetDeduplication: true,
+    resetRowRange: true,
+    resetCustomBinding: true,
+  })
   message.success('重置成功')
 }
 
