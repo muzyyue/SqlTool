@@ -1,5 +1,20 @@
 # 版本变更历史
 
+## 1.5.5 (2026-01-24)
+
+**重构 Excel 数据填充工具，实现功能分离和配置隔离**
+
+- 将混合的 handleProcess 函数拆分为五个独立函数
+- 创建 handleBasicProcess：处理基础数据填充的核心逻辑
+- 创建 handleAdvancedProcess：处理高级数据处理的核心逻辑
+- 创建 handleBasicProcessMain：验证基础配置并执行基础数据填充
+- 创建 handleAdvancedProcessMain：验证高级配置并执行高级数据处理
+- 重构 handleProcess：作为简单的路由器，根据配置调用相应的处理函数
+- 完全隔离配置访问：基础功能只使用 config，高级功能只使用 advancedConfig
+- 遵循单一职责原则：每个函数只负责一个明确的任务
+- 提升代码可维护性：减少 120+ 行重复代码
+- 所有代码通过 ESLint 和 Prettier 检查
+
 ## 1.5.4 (2026-01-22)
 
 **修复数据去重和行范围选择的重置功能**
