@@ -919,11 +919,18 @@ const addConcatenationRule = () => {
 const removeConcatenationRule = (id) => {
   const index = concatenationRules.value.findIndex((rule) => rule.id === id)
   if (index >= 0) {
-    concatenationRules.value.splice(index, 1)
-    // 从管理器中也移除
     const rule = concatenationRules.value[index]
-    if (rule) {
-      props.customBindingManager.removeConcatenationRule(rule.ddlFieldName)
+    const ddlFieldName = rule.ddlFieldName
+    const customFieldName = rule.customFieldName
+
+    concatenationRules.value.splice(index, 1)
+
+    if (ddlFieldName) {
+      props.customBindingManager.removeConcatenationRule(ddlFieldName)
+    }
+
+    if (customFieldName) {
+      props.customBindingManager.removeCustomField(customFieldName)
     }
   }
 }
@@ -1060,7 +1067,7 @@ const checkFieldConflict = (fieldName) => {
     return { isConflict: true, conflictSource: '单列绑定' }
   }
 
-  // 检查字段拼接规则
+  // 检查字段拼接规则中的自定义字段名
   if (concatenationRules.value.some((rule) => rule.customFieldName === trimmedName)) {
     return { isConflict: true, conflictSource: '字段拼接规则' }
   }
@@ -1198,7 +1205,7 @@ const checkFieldConflictExcludingCurrent = (fieldName, currentId) => {
     return { isConflict: true, conflictSource: '单列绑定' }
   }
 
-  // 检查字段拼接规则
+  // 检查字段拼接规则中的自定义字段名
   if (concatenationRules.value.some((rule) => rule.customFieldName === trimmedName)) {
     return { isConflict: true, conflictSource: '字段拼接规则' }
   }
@@ -1330,8 +1337,36 @@ const saveBindings = () => {
     }
   })
 
+  // 核心修复：将本地字段拼接规则同步到customBindingManager
+  // 3. 先清空管理器中现有的字段拼接规则
+  const currentConcatenationRules = Array.isArray(
+    props.customBindingManager.fieldConcatenationRules.value,
+  )
+    ? props.customBindingManager.fieldConcatenationRules.value
+    : []
+
+  // 记录需要删除的拼接规则的DDL字段名
+  const ddlFieldNamesToRemoveFromConcat = currentConcatenationRules.map((rule) => rule.ddlFieldName)
+
+  // 逐个删除字段拼接规则
+  ddlFieldNamesToRemoveFromConcat.forEach((ddlFieldName) => {
+    props.customBindingManager.removeConcatenationRule(ddlFieldName)
+  })
+
+  // 4. 将本地字段拼接规则添加到管理器中
+  concatenationRules.value.forEach((rule) => {
+    if (rule.ddlFieldName && rule.sourceColumns && rule.sourceColumns.length > 0) {
+      props.customBindingManager.addConcatenationRule(
+        rule.ddlFieldName,
+        rule.sourceColumns,
+        rule.separator || '',
+        rule.format || '',
+      )
+    }
+  })
+
   // 核心修复：将本地自定义字段同步到customBindingManager
-  // 3. 先清空管理器中现有的自定义字段
+  // 5. 先清空管理器中现有的自定义字段
   const currentCustomFields = Array.isArray(props.customBindingManager.customFields.value)
     ? props.customBindingManager.customFields.value
     : []
@@ -1348,7 +1383,7 @@ const saveBindings = () => {
     }
   })
 
-  // 4. 处理字段拼接规则中的自定义字段名称
+  // 6. 处理字段拼接规则中的自定义字段名称
   concatenationRules.value.forEach((rule) => {
     if (rule.customFieldName && rule.customFieldName.trim() !== '') {
       // 创建独立的自定义字段
@@ -1366,7 +1401,7 @@ const saveBindings = () => {
     }
   })
 
-  // 5. 将本地所有自定义字段添加到管理器中
+  // 7. 将本地所有自定义字段添加到管理器中
   console.log('准备添加自定义字段到管理器:', customFields.value)
   customFields.value.forEach((field) => {
     console.log('检查字段:', field)

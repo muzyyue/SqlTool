@@ -18,8 +18,16 @@
             <InboxOutlined />
           </p>
           <p class="ant-upload-text">点击或拖拽文件到此区域上传</p>
-          <p class="ant-upload-hint">支持 .xlsx、.xlsm 格式</p>
+          <p class="ant-upload-hint">支持 .xlsx、.xlsm 格式，文件大小限制 50MB</p>
         </a-upload-dragger>
+        <div v-if="uploadProgress > 0" class="upload-progress-container">
+          <a-progress
+            :percent="uploadProgress"
+            :status="uploadProgress === 100 ? 'success' : 'active'"
+            :stroke-color="uploadProgress === 100 ? '#52c41a' : '#1890ff'"
+          />
+          <p class="upload-status-text">{{ uploadStatusText }}</p>
+        </div>
       </VbenGlassCard>
 
       <VbenGlassCard title="基础配置" class="config-card" v-if="workbook">
@@ -42,6 +50,7 @@
               placeholder="选择源列"
               show-search
               :filter-option="filterOption"
+              @change="handleSourceColumnChange"
             >
               <a-select-option v-for="col in columns" :key="col.letter" :value="col.letter">
                 {{ col.letter }} ({{ col.name }})
@@ -67,6 +76,7 @@
               placeholder="选择目标列"
               show-search
               :filter-option="filterOption"
+              @change="handleTargetColumnChange"
             >
               <a-select-option v-for="col in targetColumns" :key="col.letter" :value="col.letter">
                 {{ col.letter }} ({{ col.name }})
@@ -110,8 +120,48 @@
               type="warning"
               show-icon
               style="margin-bottom: 16px"
-              :message="`请完成以下配置后才能开始处理：${!advancedConfig.sourceColumnForSplit ? '选择源数据列' : ''}${!advancedConfig.splitDelimiter ? '设置数据分割符' : ''}${!advancedConfig.matchColumn ? '选择查询匹配列' : ''}${!advancedConfig.extractColumns || advancedConfig.extractColumns.length === 0 ? '选择提取列（至少一列）' : ''}`"
+              :message="`请完成以下配置后才能开始处理：${!advancedConfig.sourceSheetName ? '选择源数据工作表' : ''}${!advancedConfig.sourceColumnForSplit ? '选择源数据列' : ''}${!advancedConfig.splitDelimiter ? '设置数据分割符' : ''}${!advancedConfig.matchColumn ? '选择查询匹配列' : ''}${!advancedConfig.extractColumns || advancedConfig.extractColumns.length === 0 ? '选择提取列（至少一列）' : ''}`"
             />
+
+            <a-form-item label="源数据工作表" v-if="hasMultipleSheets">
+              <a-select
+                v-model:value="advancedConfig.sourceSheetName"
+                placeholder="选择源数据工作表"
+                @change="handleSourceSheetChange"
+                style="width: 300px"
+              >
+                <a-select-option v-for="sheet in sheetNames" :key="sheet" :value="sheet">
+                  {{ sheet }}
+                </a-select-option>
+              </a-select>
+              <template #extra>
+                <span class="hint-text"> 选择包含源数据列的工作表 </span>
+              </template>
+            </a-form-item>
+
+            <a-alert
+              v-if="advancedConfig.sourceSheetName && sourceWorksheet"
+              type="info"
+              show-icon
+              style="margin-bottom: 16px"
+            >
+              <template #message>
+                <div class="sheet-info">
+                  <div class="sheet-info-item">
+                    <span class="sheet-info-label">工作表名称:</span>
+                    <span class="sheet-info-value">{{ advancedConfig.sourceSheetName }}</span>
+                  </div>
+                  <div class="sheet-info-item">
+                    <span class="sheet-info-label">列数:</span>
+                    <span class="sheet-info-value">{{ sourceColumns.length }}</span>
+                  </div>
+                  <div class="sheet-info-item">
+                    <span class="sheet-info-label">行数:</span>
+                    <span class="sheet-info-value">{{ getSheetRowCount(sourceWorksheet) }}</span>
+                  </div>
+                </div>
+              </template>
+            </a-alert>
 
             <a-form-item label="源数据列">
               <a-select
@@ -120,8 +170,9 @@
                 show-search
                 :filter-option="filterOption"
                 style="width: 300px"
+                @change="handleSourceColumnForSplitChange"
               >
-                <a-select-option v-for="col in columns" :key="col.letter" :value="col.letter">
+                <a-select-option v-for="col in sourceColumns" :key="col.letter" :value="col.letter">
                   {{ col.letter }} ({{ col.name }})
                 </a-select-option>
               </a-select>
@@ -131,13 +182,28 @@
             </a-form-item>
 
             <a-form-item label="数据分割符">
-              <a-input
-                v-model:value="advancedConfig.splitDelimiter"
-                placeholder="请输入分割符，如：, 或 ; 或 空格"
+              <a-select
+                v-model:value="advancedConfig.splitDelimiterType"
+                placeholder="选择分割符"
                 style="width: 300px"
+                @change="handleSplitDelimiterTypeChange"
+              >
+                <a-select-option
+                  v-for="option in splitDelimiterOptions"
+                  :key="option.value"
+                  :value="option.value"
+                >
+                  {{ option.label }}
+                </a-select-option>
+              </a-select>
+              <a-input
+                v-if="isCustomSplitDelimiter"
+                v-model:value="advancedConfig.customSplitDelimiter"
+                placeholder="请输入自定义分割符"
+                style="width: 300px; margin-top: 8px"
               />
               <template #extra>
-                <span class="hint-text"> 用于分割源列中的多个数据项，支持自定义字符 </span>
+                <span class="hint-text"> 用于分割源列中的多个数据项 </span>
               </template>
             </a-form-item>
 
@@ -148,6 +214,7 @@
                 show-search
                 :filter-option="filterOption"
                 style="width: 300px"
+                @change="handleMatchColumnChange"
               >
                 <a-select-option v-for="col in targetColumns" :key="col.letter" :value="col.letter">
                   {{ col.letter }} ({{ col.name }})
@@ -166,6 +233,7 @@
                 show-search
                 :filter-option="filterOption"
                 style="width: 100%"
+                @change="handleExtractColumnsChange"
               >
                 <a-select-option v-for="col in targetColumns" :key="col.letter" :value="col.letter">
                   {{ col.letter }} ({{ col.name }})
@@ -195,8 +263,9 @@
                 :filter-option="filterOption"
                 allow-clear
                 style="width: 300px"
+                @change="handleResultColumnChange"
               >
-                <a-select-option v-for="col in columns" :key="col.letter" :value="col.letter">
+                <a-select-option v-for="col in sourceColumns" :key="col.letter" :value="col.letter">
                   {{ col.letter }} ({{ col.name }})
                 </a-select-option>
               </a-select>
@@ -306,6 +375,9 @@
           </a-descriptions-item>
           <a-descriptions-item label="源工作表">
             {{ result.sourceSheetName }}
+          </a-descriptions-item>
+          <a-descriptions-item label="源数据工作表" v-if="result.advancedEnabled">
+            {{ result.sourceSheetNameForSplit || '无' }}
           </a-descriptions-item>
           <a-descriptions-item label="目标工作表">
             {{ result.targetSheetName }}
@@ -421,12 +493,32 @@ const previewSheetName = ref('')
 const sheetNames = ref([])
 const columns = ref([])
 const targetColumns = ref([])
+const sourceColumns = ref([])
+const sourceWorksheet = ref(null)
 const previewData = ref([])
 const processing = ref(false)
 const result = ref(null)
 const outputBlob = ref(null)
 const processingProgress = ref(0)
 const processingStatusText = ref('')
+const uploadProgress = ref(0)
+const uploadStatusText = ref('')
+
+const hasMultipleSheets = computed(() => {
+  return sheetNames.value.length > 1
+})
+
+const splitDelimiterOptions = [
+  { label: '逗号 (,)', value: 'comma', delimiter: ',' },
+  { label: '分号 (;)', value: 'semicolon', delimiter: ';' },
+  { label: '空格 ( )', value: 'space', delimiter: ' ' },
+  { label: '换行 (\\n)', value: 'newline', delimiter: '\n' },
+  { label: '自定义', value: 'custom', delimiter: '' },
+]
+
+const isCustomSplitDelimiter = computed(() => {
+  return advancedConfig.value.splitDelimiterType === 'custom'
+})
 
 const config = ref({
   sheetName: '',
@@ -439,8 +531,11 @@ const config = ref({
 
 const advancedConfig = ref({
   enabled: false,
+  sourceSheetName: '',
   sourceColumnForSplit: '',
   splitDelimiter: ',',
+  splitDelimiterType: 'comma',
+  customSplitDelimiter: '',
   matchColumn: '',
   extractColumns: [],
   joinDelimiter: ',',
@@ -455,6 +550,8 @@ const canProcessAdvanced = computed(() => {
   if (!workbook.value) return false
 
   return (
+    advancedConfig.value.sourceSheetName &&
+    advancedConfig.value.sourceSheetName !== '' &&
     advancedConfig.value.sourceColumnForSplit &&
     advancedConfig.value.splitDelimiter &&
     advancedConfig.value.splitDelimiter !== '' &&
@@ -529,7 +626,7 @@ const previewColumns = computed(() => {
  * @param {File} file - 上传的文件对象
  * @returns {boolean} 是否继续上传
  */
-const beforeUpload = (file) => {
+const beforeUpload = async (file) => {
   const isExcel =
     file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
     file.name.endsWith('.xlsx') ||
@@ -540,36 +637,103 @@ const beforeUpload = (file) => {
     return false
   }
 
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    const data = new Uint8Array(e.target.result)
-    const wb = XLSX.read(data, { type: 'array' })
-
-    workbook.value = wb
-    sheetNames.value = wb.SheetNames
-
-    if (wb.SheetNames && wb.SheetNames.length > 0) {
-      config.value.sheetName = wb.SheetNames[0]
-      config.value.targetSheetName = wb.SheetNames[0]
-      previewSheetName.value = wb.SheetNames[0]
-      loadSheet(wb.SheetNames[0])
-      loadTargetSheet(wb.SheetNames[0])
-
-      advancedConfig.value.sourceColumnForSplit = ''
-      advancedConfig.value.splitDelimiter = ','
-      advancedConfig.value.matchColumn = ''
-      advancedConfig.value.extractColumns = []
-      advancedConfig.value.joinDelimiter = ','
-      advancedConfig.value.resultColumn = ''
-      advancedConfig.value.noMatchAction = 'skip'
-      advancedConfig.value.defaultValue = ''
-    }
-
-    message.success('文件上传成功！')
+  const maxSize = 50 * 1024 * 1024
+  if (file.size > maxSize) {
+    message.error(`文件大小超过限制: ${(file.size / 1024 / 1024).toFixed(2)}MB > 50MB`)
+    return false
   }
 
-  reader.readAsArrayBuffer(file)
+  uploadProgress.value = 0
+  uploadStatusText.value = '正在读取文件...'
+
+  try {
+    const reader = new FileReader()
+
+    const readFilePromise = new Promise((resolve, reject) => {
+      reader.onload = async (e) => {
+        try {
+          uploadProgress.value = 50
+          uploadStatusText.value = '正在解析文件...'
+
+          await new Promise((resolve) => requestAnimationFrame(resolve))
+
+          const data = new Uint8Array(e.target.result)
+          const wb = XLSX.read(data, { type: 'array' })
+
+          await new Promise((resolve) => requestAnimationFrame(resolve))
+
+          workbook.value = wb
+          sheetNames.value = wb.SheetNames
+
+          if (wb.SheetNames && wb.SheetNames.length > 0) {
+            config.value.sheetName = wb.SheetNames[0]
+            config.value.targetSheetName = wb.SheetNames[0]
+            previewSheetName.value = wb.SheetNames[0]
+            loadSheet(wb.SheetNames[0])
+            loadTargetSheet(wb.SheetNames[0])
+            loadSourceSheet(wb.SheetNames[0])
+
+            advancedConfig.value.sourceSheetName = wb.SheetNames[0]
+            advancedConfig.value.sourceColumnForSplit = ''
+            advancedConfig.value.splitDelimiter = ','
+            advancedConfig.value.matchColumn = ''
+            advancedConfig.value.extractColumns = []
+            advancedConfig.value.joinDelimiter = ','
+            advancedConfig.value.resultColumn = ''
+            advancedConfig.value.noMatchAction = 'skip'
+            advancedConfig.value.defaultValue = ''
+          }
+
+          uploadProgress.value = 100
+          uploadStatusText.value = '文件上传成功！'
+          message.success('文件上传成功！')
+          resolve()
+        } catch (error) {
+          console.error('文件解析失败:', error)
+          message.error(`文件解析失败: ${error.message}`)
+          uploadStatusText.value = '解析失败'
+          reject(error)
+        }
+      }
+
+      reader.onerror = (error) => {
+        console.error('文件读取错误:', error)
+        message.error(`文件读取失败: ${error.message || '未知错误'}`)
+        uploadStatusText.value = '读取失败'
+        reject(error)
+      }
+
+      reader.onabort = () => {
+        message.error('文件读取被中断')
+        uploadStatusText.value = '读取被中断'
+        reject(new Error('文件读取被中断'))
+      }
+
+      reader.readAsArrayBuffer(file)
+    })
+
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('文件上传超时，请检查文件格式或尝试重新上传')), 30000)
+    })
+
+    await Promise.race([readFilePromise, timeoutPromise])
+  } catch (error) {
+    console.error('文件上传失败:', error)
+    if (error.message.includes('超时')) {
+      message.error('文件上传超时，可能是文件过大或格式异常，请尝试重新上传或使用较小的文件')
+    } else {
+      message.error(`文件上传失败: ${error.message}`)
+    }
+    uploadStatusText.value = '上传失败'
+    return false
+  }
+
   fileList.value = [file]
+
+  setTimeout(() => {
+    uploadProgress.value = 0
+    uploadStatusText.value = ''
+  }, 3000)
 
   return false
 }
@@ -592,6 +756,8 @@ const handleRemove = () => {
   fileList.value = []
   processingProgress.value = 0
   processingStatusText.value = ''
+  uploadProgress.value = 0
+  uploadStatusText.value = ''
   config.value = {
     sheetName: '',
     targetSheetName: '',
@@ -663,6 +829,33 @@ const loadTargetSheet = (sheetName) => {
     const colName = cell ? cell.v : `列${i + 1}`
 
     targetColumns.value.push({
+      letter: colLetter,
+      name: colName,
+      index: i,
+    })
+  }
+}
+
+/**
+ * 加载源数据工作表
+ * 读取源数据工作表并提取列信息
+ * @param {string} sheetName - 工作表名称
+ */
+const loadSourceSheet = (sheetName) => {
+  const ws = workbook.value.Sheets[sheetName]
+  sourceWorksheet.value = ws
+
+  const range = XLSX.utils.decode_range(ws['!ref'])
+  const maxCol = range.e.c + 1
+
+  sourceColumns.value = []
+  for (let i = 0; i < maxCol; i++) {
+    const colLetter = XLSX.utils.encode_col(i)
+    const cellAddress = colLetter + '1'
+    const cell = ws[cellAddress]
+    const colName = cell ? cell.v : `列${i + 1}`
+
+    sourceColumns.value.push({
       letter: colLetter,
       name: colName,
       index: i,
@@ -752,6 +945,106 @@ const handlePreviewSheetChange = (sheetName) => {
 }
 
 /**
+ * 处理源列变更
+ * @param {string} value - 选中的列值
+ */
+const handleSourceColumnChange = (value) => {
+  console.log('源列已选择:', value)
+}
+
+/**
+ * 处理目标列变更
+ * @param {string} value - 选中的列值
+ */
+const handleTargetColumnChange = (value) => {
+  console.log('目标列已选择:', value)
+}
+
+/**
+ * 处理源数据列变更
+ * @param {string} value - 选中的列值
+ */
+const handleSourceColumnForSplitChange = (value) => {
+  console.log('源数据列已选择:', value)
+}
+
+/**
+ * 处理源数据工作表变更
+ * @param {string} sheetName - 新的工作表名称
+ */
+const handleSourceSheetChange = (sheetName) => {
+  loadSourceSheet(sheetName)
+
+  if (advancedConfig.value.sourceColumnForSplit) {
+    const columnExists = sourceColumns.value.some(
+      (c) => c.letter === advancedConfig.value.sourceColumnForSplit,
+    )
+    if (!columnExists) {
+      advancedConfig.value.sourceColumnForSplit = ''
+    }
+  }
+
+  if (advancedConfig.value.resultColumn) {
+    const columnExists = sourceColumns.value.some(
+      (c) => c.letter === advancedConfig.value.resultColumn,
+    )
+    if (!columnExists) {
+      advancedConfig.value.resultColumn = ''
+    }
+  }
+}
+
+/**
+ * 获取工作表行数
+ * @param {Object} worksheet - 工作表对象
+ * @returns {number} 行数
+ */
+const getSheetRowCount = (worksheet) => {
+  if (!worksheet || !worksheet['!ref']) return 0
+  const range = XLSX.utils.decode_range(worksheet['!ref'])
+  return range.e.r + 1
+}
+
+/**
+ * 处理查询匹配列变更
+ * @param {string} value - 选中的列值
+ */
+const handleMatchColumnChange = (value) => {
+  console.log('查询匹配列已选择:', value)
+}
+
+/**
+ * 处理提取列变更
+ * @param {Array} value - 选中的列值数组
+ */
+const handleExtractColumnsChange = (value) => {
+  console.log('提取列已选择:', value)
+}
+
+/**
+ * 处理结果填充列变更
+ * @param {string} value - 选中的列值
+ */
+const handleResultColumnChange = (value) => {
+  console.log('结果填充列已选择:', value)
+}
+
+/**
+ * 处理分割符类型变更
+ * @param {string} type - 分割符类型
+ */
+const handleSplitDelimiterTypeChange = (type) => {
+  const option = splitDelimiterOptions.find((opt) => opt.value === type)
+  if (option) {
+    if (type === 'custom') {
+      advancedConfig.value.splitDelimiter = advancedConfig.value.customSplitDelimiter
+    } else {
+      advancedConfig.value.splitDelimiter = option.delimiter
+    }
+  }
+}
+
+/**
  * 加载预览数据
  * 从工作表中提取前20行数据用于预览
  */
@@ -809,7 +1102,17 @@ const getCellType = (value) => {
 const splitData = (value, delimiter) => {
   if (!value || value === '') return []
   if (!delimiter || delimiter === '') return [value]
-  return String(value)
+
+  const strValue = String(value)
+
+  if (delimiter === '\n') {
+    return strValue
+      .split(/\r?\n|\r/)
+      .map((item) => item.trim())
+      .filter((item) => item !== '')
+  }
+
+  return strValue
     .split(delimiter)
     .map((item) => item.trim())
     .filter((item) => item !== '')
@@ -1096,9 +1399,8 @@ const handleAdvancedProcess = (sourceData, sourceWs, sourceColNum, progressRef, 
     }
 
     const joinedValue = joinData(extractedValues, advancedConfig.value.joinDelimiter)
-
     const resultColNum = advancedConfig.value.resultColumn
-      ? columns.value.find((c) => c.letter === advancedConfig.value.resultColumn)?.index + 1
+      ? sourceColumns.value.find((c) => c.letter === advancedConfig.value.resultColumn)?.index + 1
       : sourceColNum
 
     if (resultColNum) {
@@ -1199,14 +1501,15 @@ const handleAdvancedProcessMain = async () => {
     return null
   }
 
-  const sourceWs = worksheet.value
+  const sourceWs = sourceWorksheet.value
 
   const sourceColNum =
-    columns.value.find((c) => c.letter === advancedConfig.value.sourceColumnForSplit)?.index + 1
+    sourceColumns.value.find((c) => c.letter === advancedConfig.value.sourceColumnForSplit)?.index +
+    1
 
   if (!sourceColNum) {
     throw new Error(
-      `无效的源列选择：${advancedConfig.value.sourceColumnForSplit}。请确保在工作表"${config.value.sheetName}"中选择有效的列。`,
+      `无效的源列选择：${advancedConfig.value.sourceColumnForSplit}。请确保在工作表"${advancedConfig.value.sourceSheetName}"中选择有效的列。`,
     )
   }
 
@@ -1225,6 +1528,7 @@ const handleAdvancedProcessMain = async () => {
     ...processResult,
     sourceColumn: '',
     sourceColumnForSplit: advancedConfig.value.sourceColumnForSplit,
+    sourceSheetNameForSplit: advancedConfig.value.sourceSheetName,
     sourceColumnNum: sourceColNum,
     targetColumn: '',
     targetColumnNum: 0,
@@ -1332,12 +1636,16 @@ const handleReset = () => {
   sheetNames.value = []
   columns.value = []
   targetColumns.value = []
+  sourceColumns.value = []
+  sourceWorksheet.value = null
   previewData.value = []
   result.value = null
   outputBlob.value = null
   fileList.value = []
   processingProgress.value = 0
   processingStatusText.value = ''
+  uploadProgress.value = 0
+  uploadStatusText.value = ''
   config.value = {
     sheetName: '',
     targetSheetName: '',
@@ -1348,7 +1656,11 @@ const handleReset = () => {
   }
   advancedConfig.value = {
     enabled: false,
+    sourceSheetName: '',
+    sourceColumnForSplit: '',
     splitDelimiter: ',',
+    splitDelimiterType: 'comma',
+    customSplitDelimiter: '',
     matchColumn: '',
     extractColumns: [],
     joinDelimiter: ',',
@@ -1356,6 +1668,7 @@ const handleReset = () => {
     noMatchAction: 'skip',
     defaultValue: '',
   }
+
   message.info('已重置，可以重新处理')
 }
 </script>
@@ -1413,6 +1726,41 @@ const handleReset = () => {
 .hint-text {
   font-size: 12px;
   color: #999;
+}
+
+.upload-progress-container {
+  margin-top: 16px;
+  padding: 16px;
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+.upload-status-text {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #666;
+  text-align: center;
+}
+
+.sheet-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sheet-info-item {
+  display: flex;
+  gap: 8px;
+}
+
+.sheet-info-label {
+  font-weight: 500;
+  color: #666;
+}
+
+.sheet-info-value {
+  font-weight: 600;
+  color: #1890ff;
 }
 
 .result-actions {
