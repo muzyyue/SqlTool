@@ -1,3 +1,4 @@
+switch
 <template>
   <a-modal
     v-model:open="visible"
@@ -161,7 +162,7 @@
                 :data-source="concatenationRules"
                 :columns="concatenationColumns"
                 :pagination="false"
-                size="small"
+                size="medium"
                 :scroll="{ x: 'max-content' }"
               >
                 <template #bodyCell="{ column, record }">
@@ -627,11 +628,13 @@ const singleBindingColumns = [
   {
     title: 'DDL字段',
     key: 'ddlField',
+    width: 200,
     minWidth: 200,
   },
   {
     title: 'Excel列',
     key: 'excelColumn',
+    width: 200,
     minWidth: 200,
   },
   {
@@ -648,31 +651,37 @@ const concatenationColumns = [
   {
     title: '自定义字段名称',
     key: 'customFieldName',
+    width: 200,
     minWidth: 200,
   },
   {
     title: '数据类型',
     key: 'dataType',
+    width: 100,
     minWidth: 100,
   },
   {
     title: '源Excel列',
     key: 'sourceColumns',
+    width: 200,
     minWidth: 200,
   },
   {
     title: '分隔符',
     key: 'separator',
+    width: 80,
     minWidth: 80,
   },
   {
     title: '格式化模板',
     key: 'format',
+    width: 150,
     minWidth: 150,
   },
   {
     title: '预览',
     key: 'preview',
+    width: 120,
     minWidth: 120,
   },
   {
@@ -721,16 +730,19 @@ const customFieldColumns = [
   {
     title: '字段名',
     key: 'fieldName',
+    width: 120,
     minWidth: 120,
   },
   {
     title: '数据类型',
     key: 'dataType',
+    width: 100,
     minWidth: 100,
   },
   {
     title: '数据来源',
     key: 'dataSource',
+    width: 150,
     minWidth: 150,
     customRender: ({ record }) => {
       if (!record) return '未知'
@@ -755,11 +767,13 @@ const customFieldColumns = [
   {
     title: '配置',
     key: 'config',
+    width: 200,
     minWidth: 200,
   },
   {
     title: '预览',
     key: 'preview',
+    width: 120,
     minWidth: 120,
   },
   {
