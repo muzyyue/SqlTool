@@ -122,9 +122,7 @@ export function useCustomBinding() {
    * @param {string} fieldName - 字段名称
    */
   const removeConcatenationRule = (fieldName) => {
-    const index = fieldConcatenationRules.value.findIndex(
-      (rule) => rule.ddlFieldName === fieldName,
-    )
+    const index = fieldConcatenationRules.value.findIndex((rule) => rule.ddlFieldName === fieldName)
     if (index >= 0) {
       fieldConcatenationRules.value.splice(index, 1)
     }
@@ -192,7 +190,7 @@ export function useCustomBinding() {
     const rules = Array.isArray(fieldConcatenationRules.value) ? fieldConcatenationRules.value : []
     const fields = Array.isArray(customFields.value) ? customFields.value : []
 
-    // 检查重复绑定
+    // 检查重复绑定（单列绑定之间）
     const fieldBindings = new Set()
     bindings.forEach((binding) => {
       if (binding && binding.ddlFieldName) {
@@ -203,6 +201,7 @@ export function useCustomBinding() {
       }
     })
 
+    // 检查字段拼接规则之间的重复
     rules.forEach((rule) => {
       if (rule && rule.ddlFieldName) {
         if (fieldBindings.has(rule.ddlFieldName)) {
@@ -212,14 +211,9 @@ export function useCustomBinding() {
       }
     })
 
-    fields.forEach((field) => {
-      if (field && field.fieldName) {
-        if (fieldBindings.has(field.fieldName)) {
-          errors.push(`自定义字段"${field.fieldName}"与现有绑定字段冲突`)
-        }
-        fieldBindings.add(field.fieldName)
-      }
-    })
+    // 注意：不检查 customFields 与 fieldConcatenationRules 的冲突
+    // 因为字段拼接规则中的自定义字段名称会同时创建对应的 customField
+    // 这种情况下两者的字段名相同是正常行为，不需要报错
 
     // 检查无效的Excel列索引
     bindings.forEach((binding) => {

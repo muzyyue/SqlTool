@@ -977,6 +977,8 @@ const handleConcatenationChange = (record) => {
 }
 
 const isFieldBound = (fieldName, currentBindingId) => {
+  // 字段拼接规则可以重复选择同一字段（可能是编辑已有规则）
+  // 只检查单列绑定中的字段
   return singleBindings.value.some(
     (binding) => binding.id !== currentBindingId && binding.ddlFieldName === fieldName,
   )
