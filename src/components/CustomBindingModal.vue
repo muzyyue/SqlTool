@@ -43,6 +43,7 @@
                 :columns="singleBindingColumns"
                 :pagination="false"
                 size="small"
+                :scroll="{ x: 'max-content' }"
               >
                 <template #bodyCell="{ column, record }">
                   <div v-if="column.key === 'ddlField'">
@@ -161,6 +162,7 @@
                 :columns="concatenationColumns"
                 :pagination="false"
                 size="small"
+                :scroll="{ x: 'max-content' }"
               >
                 <template #bodyCell="{ column, record }">
                   <div v-if="column.key === 'customFieldName'">
@@ -335,6 +337,7 @@
                 :columns="customFieldColumns"
                 :pagination="false"
                 size="small"
+                :scroll="{ x: 'max-content' }"
               >
                 <template #bodyCell="{ column, record }">
                   <div v-if="column.key === 'fieldName'">
@@ -570,17 +573,18 @@ const singleBindingColumns = [
   {
     title: 'DDL字段',
     key: 'ddlField',
-    width: '30%',
+    minWidth: 200,
   },
   {
     title: 'Excel列',
     key: 'excelColumn',
-    width: '40%',
+    minWidth: 200,
   },
   {
     title: '操作',
     key: 'actions',
-    width: '30%',
+    width: 100,
+    fixed: 'right',
   },
 ]
 
@@ -590,32 +594,38 @@ const concatenationColumns = [
   {
     title: '自定义字段名称',
     key: 'customFieldName',
-    width: '20%',
+    minWidth: 150,
   },
   {
     title: '数据类型',
     key: 'dataType',
-    width: '12%',
+    minWidth: 100,
   },
   {
     title: '源Excel列',
     key: 'sourceColumns',
-    width: '25%',
+    minWidth: 200,
   },
   {
     title: '分隔符',
     key: 'separator',
-    width: '10%',
+    minWidth: 80,
   },
   {
     title: '格式化模板',
     key: 'format',
-    width: '18%',
+    minWidth: 150,
   },
   {
     title: '预览',
     key: 'preview',
-    width: '15%',
+    minWidth: 120,
+  },
+  {
+    title: '操作',
+    key: 'actions',
+    width: 100,
+    fixed: 'right',
   },
 ]
 
@@ -657,17 +667,17 @@ const customFieldColumns = [
   {
     title: '字段名',
     key: 'fieldName',
-    width: '15%',
+    minWidth: 120,
   },
   {
     title: '数据类型',
     key: 'dataType',
-    width: '15%',
+    minWidth: 100,
   },
   {
     title: '数据来源',
     key: 'dataSource',
-    width: '20%',
+    minWidth: 150,
     customRender: ({ record }) => {
       if (!record) return '未知'
       if (record.dataSource === 'system_function' && record.systemFunctionConfig?.functionName) {
@@ -691,17 +701,18 @@ const customFieldColumns = [
   {
     title: '配置',
     key: 'config',
-    width: '30%',
+    minWidth: 200,
   },
   {
     title: '预览',
     key: 'preview',
-    width: '20%',
+    minWidth: 120,
   },
   {
     title: '操作',
     key: 'actions',
-    width: '10%',
+    width: 100,
+    fixed: 'right',
   },
 ]
 
@@ -1529,6 +1540,18 @@ const generateId = () => {
 
 .tab-content {
   min-height: 300px;
+}
+
+.tab-content :deep(.ant-table) {
+  overflow-x: auto;
+}
+
+.tab-content :deep(.ant-table-container) {
+  overflow-x: auto;
+}
+
+.tab-content :deep(.ant-table-body) {
+  overflow-x: auto;
 }
 
 .preview-value {
