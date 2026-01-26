@@ -597,6 +597,11 @@ const concatenationColumns = [
     key: 'preview',
     width: '15%',
   },
+  {
+    title: '操作',
+    key: 'actions',
+    width: '10%',
+  },
 ]
 
 // 自定义字段数据
