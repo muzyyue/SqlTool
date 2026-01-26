@@ -171,7 +171,7 @@
                         v-model:value="record.inputMode"
                         size="small"
                         button-style="solid"
-                        style="margin-bottom: 8px"
+                        style="margin-bottom: 8px; width: 200px"
                       >
                         <a-radio-button value="select">选择</a-radio-button>
                         <a-radio-button value="custom">自定义</a-radio-button>
@@ -341,11 +341,62 @@
               >
                 <template #bodyCell="{ column, record }">
                   <div v-if="column.key === 'fieldName'">
-                    <a-input
-                      v-model:value="record.fieldName"
-                      placeholder="字段名"
-                      @change="handleCustomFieldChange(record)"
-                    />
+                    <div class="ddl-field-input-wrapper">
+                      <a-radio-group
+                        v-model:value="record.inputMode"
+                        size="small"
+                        button-style="solid"
+                        style="margin-bottom: 8px; width: 200px"
+                      >
+                        <a-radio-button value="select">选择</a-radio-button>
+                        <a-radio-button value="custom">自定义</a-radio-button>
+                      </a-radio-group>
+
+                      <a-select
+                        v-if="record.inputMode === 'select'"
+                        v-model:value="record.fieldName"
+                        style="width: 100%"
+                        placeholder="选择DDL字段"
+                        @change="handleCustomFieldChange(record)"
+                      >
+                        <a-select-option
+                          v-for="field in availableDdlFields"
+                          :key="field.name"
+                          :value="field.name"
+                          :disabled="isFieldBound(field.name)"
+                        >
+                          {{ field.name }} ({{ field.type }})
+                        </a-select-option>
+                      </a-select>
+
+                      <a-input
+                        v-else
+                        v-model:value="record.fieldName"
+                        placeholder="输入自定义字段名"
+                        @change="handleCustomFieldChange(record)"
+                      >
+                        <template #suffix>
+                          <a-tooltip v-if="record.fieldName" title="清空自定义字段名">
+                            <CloseCircleOutlined
+                              style="cursor: pointer; color: #999"
+                              @click="clearCustomFieldName(record)"
+                            />
+                          </a-tooltip>
+                        </template>
+                      </a-input>
+
+                      <a-alert
+                        v-if="
+                          record.inputMode === 'custom' &&
+                          record.fieldName &&
+                          !isFieldInDdl(record.fieldName)
+                        "
+                        type="warning"
+                        :message="`字段 '${record.fieldName}' 不在DDL中`"
+                        show-icon
+                        style="margin-top: 8px"
+                      />
+                    </div>
                   </div>
 
                   <div v-else-if="column.key === 'dataType'">
@@ -388,12 +439,6 @@
                     </div>
 
                     <div v-else-if="record.dataSource === 'excel_combine'" class="config-section">
-                      <a-input
-                        v-model:value="record.fieldName"
-                        placeholder="请输入自定义字段名称"
-                        style="width: 100%; margin-bottom: 8px"
-                        @change="handleCustomFieldChange(record)"
-                      />
                       <a-select
                         v-model:value="record.excelCombineConfig.columns"
                         mode="multiple"
@@ -594,7 +639,7 @@ const concatenationColumns = [
   {
     title: '自定义字段名称',
     key: 'customFieldName',
-    minWidth: 150,
+    minWidth: 200,
   },
   {
     title: '数据类型',
@@ -888,6 +933,7 @@ const loadBindings = () => {
     : []
   customFields.value = customFieldsData.map((field) => ({
     id: field.id,
+    inputMode: 'select',
     fieldName: field.fieldName,
     dataSource: field.dataSource || 'system_function',
     systemFunctionConfig: {
@@ -1152,6 +1198,7 @@ const addCustomField = () => {
 
   const newField = {
     id: generateId(),
+    inputMode: 'custom',
     fieldName: defaultFieldName,
     dataType: 'string',
     dataSource: 'system_function',
@@ -1460,7 +1507,15 @@ const saveBindings = () => {
     console.log('检查字段:', field)
     if (field.fieldName) {
       console.log('添加字段:', field.fieldName)
-      props.customBindingManager.addCustomField(field)
+      const fieldToSave = {
+        fieldName: field.fieldName,
+        dataType: field.dataType,
+        dataSource: field.dataSource,
+        systemFunctionConfig: field.systemFunctionConfig,
+        excelCombineConfig: field.excelCombineConfig,
+        autoIncrementConfig: field.autoIncrementConfig,
+      }
+      props.customBindingManager.addCustomField(fieldToSave)
     } else {
       console.log('跳过字段，因为fieldName为空')
     }
