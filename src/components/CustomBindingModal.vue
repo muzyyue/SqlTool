@@ -286,9 +286,10 @@
                       overlay-class-name="numeric-input"
                       title="格式化模板，支持{value1}, {value2}, {value3}等变量引用，或使用{value}表示所有列的拼接结果"
                     >
-                      <a-input
+                      <a-textarea
                         v-model:value="record.format"
                         placeholder="格式化模板，如：前缀{value1}后缀"
+                        :auto-size="{ minRows: 1, maxRows: 4 }"
                         @change="handleConcatenationChange(record)"
                       />
                     </a-tooltip>
@@ -461,12 +462,20 @@
                           style="width: 100px"
                           @change="handleCustomFieldChange(record)"
                         />
-                        <a-input
-                          v-model:value="record.excelCombineConfig.format"
-                          placeholder="格式化模板，如：前缀{value}后缀"
-                          style="flex: 1"
-                          @change="handleCustomFieldChange(record)"
-                        />
+                        <a-tooltip
+                          trigger="focus"
+                          placement="topLeft"
+                          overlay-class-name="numeric-input"
+                          title="格式化模板，支持{value1}, {value2}, {value3}等变量引用，或使用{value}表示所有列的拼接结果"
+                        >
+                          <a-textarea
+                            v-model:value="record.excelCombineConfig.format"
+                            placeholder="格式化模板，如：前缀{value}后缀"
+                            :auto-size="{ minRows: 1, maxRows: 4 }"
+                            style="flex: 1"
+                            @change="handleCustomFieldChange(record)"
+                          />
+                        </a-tooltip>
                       </div>
                     </div>
 
