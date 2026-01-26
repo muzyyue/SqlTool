@@ -1,5 +1,18 @@
 # 版本变更历史
 
+## 1.5.7 (2026-01-26)
+
+**修复字段拼接规则中自定义字段名称未添加到映射配置的问题**
+
+- 修复字段拼接规则中的自定义字段名称未被正确处理的问题
+  - 在InsertPage的handleSaveCustomBinding函数中添加对fieldConcatenationRules的处理
+  - 在UpdatePage的handleCustomBindingSave函数中添加对fieldConcatenationRules的处理
+  - 从字段拼接规则中提取customFieldName或ddlFieldName，创建自定义字段并添加到customBindingManager
+  - 优先使用自定义字段名称，如果没有则使用目标DDL字段名称
+- 添加详细的调试日志，帮助定位问题
+- 确保字段拼接规则中的自定义字段能够正确显示在映射配置中
+- 所有代码通过ESLint检查
+
 ## 1.5.6 (2026-01-26)
 
 **修复自定义字段-字段拼接功能的添加和删除问题**

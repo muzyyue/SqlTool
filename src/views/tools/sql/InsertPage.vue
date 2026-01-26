@@ -1932,6 +1932,49 @@ const handleCustomBindingSave = (customFieldsData) => {
       }
     })
 
+    // 2.5. 处理字段拼接规则中的自定义字段名称
+    const fieldConcatenationRules = Array.isArray(
+      customBindingManager.fieldConcatenationRules.value,
+    )
+      ? customBindingManager.fieldConcatenationRules.value
+      : []
+
+    console.log('字段拼接规则数据:', fieldConcatenationRules)
+
+    // 从字段拼接规则中提取自定义字段
+    fieldConcatenationRules.forEach((rule) => {
+      console.log('处理字段拼接规则:', rule)
+      console.log('  customFieldName:', rule.customFieldName)
+      console.log('  ddlFieldName:', rule.ddlFieldName)
+      console.log('  sourceColumns:', rule.sourceColumns)
+
+      // 优先使用自定义字段名称，如果没有则使用目标DDL字段名称
+      const fieldName =
+        rule.customFieldName && rule.customFieldName.trim() !== ''
+          ? rule.customFieldName.trim()
+          : rule.ddlFieldName
+
+      if (fieldName && fieldName.trim() !== '') {
+        const customField = {
+          fieldName: fieldName,
+          dataType: 'string',
+          dataSource: 'excel_combine',
+          excelCombineConfig: {
+            columns: rule.sourceColumns || [],
+            separator: rule.separator || '',
+            format: rule.format || '',
+            isFromConcatenationRule: true,
+          },
+        }
+
+        // 将自定义字段添加到 customBindingManager
+        customBindingManager.addCustomField(customField)
+        console.log(`从字段拼接规则添加自定义字段: ${customField.fieldName}`)
+      } else {
+        console.log('跳过规则，字段名称为空')
+      }
+    })
+
     // 3. 获取自定义字段数据，确保它是数组
     console.log('customFieldsData:', customFieldsData)
     console.log('customBindingManager.customFields.value:', customBindingManager.customFields.value)
