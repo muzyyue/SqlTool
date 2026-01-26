@@ -1727,7 +1727,7 @@ const handleCustomBindingSave = (customFieldsData) => {
       if (rule.ddlFieldName && rule.ddlFieldName.trim() !== '') {
         const customField = {
           fieldName: rule.ddlFieldName,
-          dataType: 'string',
+          dataType: rule.dataType || 'string',
           dataSource: 'excel_combine',
           excelCombineConfig: {
             columns: rule.sourceColumns || [],

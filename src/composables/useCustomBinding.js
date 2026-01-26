@@ -88,8 +88,15 @@ export function useCustomBinding() {
    * @param {Array} sourceColumns - 源Excel列索引数组
    * @param {string} separator - 分隔符
    * @param {string} format - 格式化模板
+   * @param {string} dataType - 数据类型（string、int、decimal、datetime、boolean）
    */
-  const addConcatenationRule = (fieldName, sourceColumns, separator = '', format = null) => {
+  const addConcatenationRule = (
+    fieldName,
+    sourceColumns,
+    separator = '',
+    format = null,
+    dataType = 'string',
+  ) => {
     const existingIndex = fieldConcatenationRules.value.findIndex(
       (rule) => rule.ddlFieldName === fieldName,
     )
@@ -101,6 +108,7 @@ export function useCustomBinding() {
         sourceColumns,
         separator,
         format,
+        dataType,
         updatedAt: new Date().toISOString(),
       }
     } else {
@@ -111,6 +119,7 @@ export function useCustomBinding() {
         sourceColumns,
         separator,
         format,
+        dataType,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })

@@ -223,6 +223,21 @@
                     </div>
                   </div>
 
+                  <div v-else-if="column.key === 'dataType'">
+                    <a-select
+                      v-model:value="record.dataType"
+                      style="width: 100%"
+                      placeholder="数据类型"
+                      @change="handleConcatenationChange(record)"
+                    >
+                      <a-select-option value="string">字符串</a-select-option>
+                      <a-select-option value="int">整数</a-select-option>
+                      <a-select-option value="decimal">小数</a-select-option>
+                      <a-select-option value="datetime">日期时间</a-select-option>
+                      <a-select-option value="boolean">布尔值</a-select-option>
+                    </a-select>
+                  </div>
+
                   <div v-else-if="column.key === 'sourceColumns'">
                     <a-select
                       v-model:value="record.sourceColumns"
@@ -575,12 +590,17 @@ const concatenationColumns = [
   {
     title: '自定义字段名称',
     key: 'customFieldName',
-    width: '25%',
+    width: '20%',
+  },
+  {
+    title: '数据类型',
+    key: 'dataType',
+    width: '12%',
   },
   {
     title: '源Excel列',
     key: 'sourceColumns',
-    width: '30%',
+    width: '25%',
   },
   {
     title: '分隔符',
@@ -590,17 +610,12 @@ const concatenationColumns = [
   {
     title: '格式化模板',
     key: 'format',
-    width: '20%',
+    width: '18%',
   },
   {
     title: '预览',
     key: 'preview',
     width: '15%',
-  },
-  {
-    title: '操作',
-    key: 'actions',
-    width: '10%',
   },
 ]
 
@@ -849,6 +864,7 @@ const loadBindings = () => {
     id: rule.id,
     inputMode: 'select',
     customFieldName: rule.ddlFieldName || '',
+    dataType: rule.dataType || 'string',
     sourceColumns: rule.sourceColumns,
     columnVariables: rule.columnVariables || {},
     separator: rule.separator || '',
@@ -938,6 +954,7 @@ const addConcatenationRule = () => {
     id: generateId(),
     inputMode: 'select',
     customFieldName: '',
+    dataType: 'string',
     sourceColumns: [],
     columnVariables: {},
     separator: '',
@@ -1384,6 +1401,7 @@ const saveBindings = () => {
         rule.sourceColumns,
         rule.separator || '',
         rule.format || '',
+        rule.dataType || 'string',
       )
     }
   })
@@ -1412,6 +1430,7 @@ const saveBindings = () => {
       // 创建独立的自定义字段
       const customField = {
         fieldName: rule.customFieldName,
+        dataType: rule.dataType || 'string',
         dataSource: 'excel_combine',
         excelCombineConfig: {
           columns: rule.sourceColumns || [],
