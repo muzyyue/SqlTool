@@ -657,8 +657,8 @@ const concatenationColumns = [
   {
     title: '数据类型',
     key: 'dataType',
-    width: 100,
-    minWidth: 100,
+    width: 150,
+    minWidth: 150,
   },
   {
     title: '源Excel列',
@@ -669,14 +669,14 @@ const concatenationColumns = [
   {
     title: '分隔符',
     key: 'separator',
-    width: 80,
-    minWidth: 80,
+    width: 120,
+    minWidth: 120,
   },
   {
     title: '格式化模板',
     key: 'format',
-    width: 150,
-    minWidth: 150,
+    width: 300,
+    minWidth: 300,
   },
   {
     title: '预览',
@@ -767,8 +767,8 @@ const customFieldColumns = [
   {
     title: '配置',
     key: 'config',
-    width: 200,
-    minWidth: 200,
+    width: 400,
+    minWidth: 400,
   },
   {
     title: '预览',
