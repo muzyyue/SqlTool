@@ -1,5 +1,33 @@
 # 版本变更历史
 
+## 1.5.8 (2026-01-26)
+
+**重构字段拼接功能，移除目标DDL字段并统一样式**
+
+- 移除目标DDL字段列及其相关功能
+  - 从concatenationColumns中移除"目标DDL字段"列
+  - 从concatenationRules数据结构中移除ddlFieldName字段
+  - 移除相关的UI组件（a-select选择器）
+  - 移除操作列，因为删除按钮已经在预览列旁边
+- 修改自定义字段名称样式为与单列绑定DDL字段选择相同
+  - 添加inputMode字段（select/custom）支持选择和自定义两种模式
+  - 添加单选按钮组，与单列绑定样式一致
+  - 选择模式下使用a-select从availableDdlFields中选择DDL字段
+  - 自定义模式下使用a-input输入自定义字段名称
+  - 添加清空按钮和警告提示，与单列绑定样式一致
+  - 调整列宽度，确保布局合理
+- 更新相关逻辑，确保功能完整
+  - 修改addConcatenationRule函数，添加inputMode字段
+  - 添加clearConcatenationFieldName函数，用于清空自定义字段名称
+  - 修改handleConcatenationChange函数，移除对ddlFieldName的依赖
+  - 修改saveBindings函数，使用customFieldName而非ddlFieldName
+  - 修改removeConcatenationRule函数，移除对ddlFieldName的依赖
+  - 修改loadBindings函数，将ddlFieldName映射到customFieldName
+  - 修改isFieldBound函数，移除对concatenationRules的检查
+  - 修改useCustomBinding.js中的addConcatenationRule和removeConcatenationRule函数参数名
+  - 修改InsertPage和UpdatePage中的处理逻辑，使用ddlFieldName作为字段名称
+- 所有代码通过ESLint检查
+
 ## 1.5.7 (2026-01-26)
 
 **修复字段拼接规则中自定义字段名称未添加到映射配置的问题**

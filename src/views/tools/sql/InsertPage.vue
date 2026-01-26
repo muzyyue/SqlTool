@@ -1944,19 +1944,13 @@ const handleCustomBindingSave = (customFieldsData) => {
     // 从字段拼接规则中提取自定义字段
     fieldConcatenationRules.forEach((rule) => {
       console.log('处理字段拼接规则:', rule)
-      console.log('  customFieldName:', rule.customFieldName)
       console.log('  ddlFieldName:', rule.ddlFieldName)
       console.log('  sourceColumns:', rule.sourceColumns)
 
-      // 优先使用自定义字段名称，如果没有则使用目标DDL字段名称
-      const fieldName =
-        rule.customFieldName && rule.customFieldName.trim() !== ''
-          ? rule.customFieldName.trim()
-          : rule.ddlFieldName
-
-      if (fieldName && fieldName.trim() !== '') {
+      // 使用 ddlFieldName 作为自定义字段名称
+      if (rule.ddlFieldName && rule.ddlFieldName.trim() !== '') {
         const customField = {
-          fieldName: fieldName,
+          fieldName: rule.ddlFieldName,
           dataType: 'string',
           dataSource: 'excel_combine',
           excelCombineConfig: {
@@ -1971,7 +1965,7 @@ const handleCustomBindingSave = (customFieldsData) => {
         customBindingManager.addCustomField(customField)
         console.log(`从字段拼接规则添加自定义字段: ${customField.fieldName}`)
       } else {
-        console.log('跳过规则，字段名称为空')
+        console.log('跳过规则，ddlFieldName为空')
       }
     })
 

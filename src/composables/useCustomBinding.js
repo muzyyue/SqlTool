@@ -84,14 +84,14 @@ export function useCustomBinding() {
 
   /**
    * 添加字段拼接规则
-   * @param {string} ddlFieldName - 目标DDL字段名
+   * @param {string} fieldName - 字段名称（可以是DDL字段名或自定义字段名）
    * @param {Array} sourceColumns - 源Excel列索引数组
    * @param {string} separator - 分隔符
    * @param {string} format - 格式化模板
    */
-  const addConcatenationRule = (ddlFieldName, sourceColumns, separator = '', format = null) => {
+  const addConcatenationRule = (fieldName, sourceColumns, separator = '', format = null) => {
     const existingIndex = fieldConcatenationRules.value.findIndex(
-      (rule) => rule.ddlFieldName === ddlFieldName,
+      (rule) => rule.ddlFieldName === fieldName,
     )
 
     if (existingIndex >= 0) {
@@ -107,7 +107,7 @@ export function useCustomBinding() {
       // 添加新规则
       fieldConcatenationRules.value.push({
         id: generateId(),
-        ddlFieldName,
+        ddlFieldName: fieldName,
         sourceColumns,
         separator,
         format,
@@ -119,11 +119,11 @@ export function useCustomBinding() {
 
   /**
    * 移除字段拼接规则
-   * @param {string} ddlFieldName - DDL字段名
+   * @param {string} fieldName - 字段名称
    */
-  const removeConcatenationRule = (ddlFieldName) => {
+  const removeConcatenationRule = (fieldName) => {
     const index = fieldConcatenationRules.value.findIndex(
-      (rule) => rule.ddlFieldName === ddlFieldName,
+      (rule) => rule.ddlFieldName === fieldName,
     )
     if (index >= 0) {
       fieldConcatenationRules.value.splice(index, 1)

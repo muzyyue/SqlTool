@@ -164,29 +164,63 @@
               >
                 <template #bodyCell="{ column, record }">
                   <div v-if="column.key === 'customFieldName'">
-                    <a-input
-                      v-model:value="record.customFieldName"
-                      placeholder="输入自定义字段名称"
-                      @change="handleConcatenationChange(record)"
-                    />
-                  </div>
-
-                  <div v-else-if="column.key === 'ddlField'">
-                    <a-select
-                      v-model:value="record.ddlFieldName"
-                      style="width: 100%"
-                      placeholder="选择目标DDL字段"
-                      @change="handleConcatenationChange(record)"
-                    >
-                      <a-select-option
-                        v-for="field in availableDdlFields"
-                        :key="field.name"
-                        :value="field.name"
-                        :disabled="isFieldBound(field.name)"
+                    <div class="ddl-field-input-wrapper">
+                      <a-radio-group
+                        v-model:value="record.inputMode"
+                        size="small"
+                        button-style="solid"
+                        style="margin-bottom: 8px"
                       >
-                        {{ field.name }} ({{ field.type }})
-                      </a-select-option>
-                    </a-select>
+                        <a-radio-button value="select">选择</a-radio-button>
+                        <a-radio-button value="custom">自定义</a-radio-button>
+                      </a-radio-group>
+
+                      <a-select
+                        v-if="record.inputMode === 'select'"
+                        v-model:value="record.customFieldName"
+                        style="width: 100%"
+                        placeholder="选择DDL字段"
+                        @change="handleConcatenationChange(record)"
+                      >
+                        <a-select-option
+                          v-for="field in availableDdlFields"
+                          :key="field.name"
+                          :value="field.name"
+                          :disabled="isFieldBound(field.name)"
+                        >
+                          {{ field.name }} ({{ field.type }})
+                        </a-select-option>
+                      </a-select>
+
+                      <a-input
+                        v-else
+                        v-model:value="record.customFieldName"
+                        placeholder="输入自定义字段名称"
+                        @change="handleConcatenationChange(record)"
+                      >
+                        <template #suffix>
+                          <a-tooltip v-if="record.customFieldName" title="清空自定义字段名">
+                            <CloseCircleOutlined
+                              style="cursor: pointer; color: #999"
+                              @click="clearConcatenationFieldName(record)"
+                            />
+                          </a-tooltip>
+                        </template>
+                      </a-input>
+
+                      <a-alert
+                        v-if="
+                          record.inputMode === 'custom' &&
+                          record.customFieldName &&
+                          !isFieldInDdl(record.customFieldName)
+                        "
+                        type="warning"
+                        :message="`字段 '${record.customFieldName}' 不在DDL中`"
+                        show-icon
+                        size="small"
+                        style="margin-top: 4px"
+                      />
+                    </div>
                   </div>
 
                   <div v-else-if="column.key === 'sourceColumns'">
@@ -541,17 +575,12 @@ const concatenationColumns = [
   {
     title: '自定义字段名称',
     key: 'customFieldName',
-    width: '20%',
-  },
-  {
-    title: '目标DDL字段',
-    key: 'ddlField',
-    width: '20%',
+    width: '25%',
   },
   {
     title: '源Excel列',
     key: 'sourceColumns',
-    width: '25%',
+    width: '30%',
   },
   {
     title: '分隔符',
@@ -561,17 +590,12 @@ const concatenationColumns = [
   {
     title: '格式化模板',
     key: 'format',
-    width: '15%',
+    width: '20%',
   },
   {
     title: '预览',
     key: 'preview',
-    width: '10%',
-  },
-  {
-    title: '操作',
-    key: 'actions',
-    width: '10%',
+    width: '15%',
   },
 ]
 
@@ -818,8 +842,8 @@ const loadBindings = () => {
     : []
   concatenationRules.value = fieldConcatenationRules.map((rule) => ({
     id: rule.id,
-    customFieldName: rule.customFieldName || '',
-    ddlFieldName: rule.ddlFieldName,
+    inputMode: 'select',
+    customFieldName: rule.ddlFieldName || '',
     sourceColumns: rule.sourceColumns,
     columnVariables: rule.columnVariables || {},
     separator: rule.separator || '',
@@ -907,8 +931,8 @@ const handleSingleBindingChange = (record) => {
 const addConcatenationRule = () => {
   concatenationRules.value.push({
     id: generateId(),
+    inputMode: 'select',
     customFieldName: '',
-    ddlFieldName: '',
     sourceColumns: [],
     columnVariables: {},
     separator: '',
@@ -916,48 +940,40 @@ const addConcatenationRule = () => {
   })
 }
 
+const clearConcatenationFieldName = (record) => {
+  record.customFieldName = ''
+  console.log('自定义字段名已清空:', record)
+}
+
 const removeConcatenationRule = (id) => {
   const index = concatenationRules.value.findIndex((rule) => rule.id === id)
   if (index >= 0) {
     const rule = concatenationRules.value[index]
-    const ddlFieldName = rule.ddlFieldName
     const customFieldName = rule.customFieldName
 
     concatenationRules.value.splice(index, 1)
 
-    if (ddlFieldName) {
-      props.customBindingManager.removeConcatenationRule(ddlFieldName)
-    }
-
     if (customFieldName) {
+      props.customBindingManager.removeConcatenationRule(customFieldName)
       props.customBindingManager.removeCustomField(customFieldName)
     }
   }
 }
 
 const handleConcatenationChange = (record) => {
-  if (record.ddlFieldName && record.sourceColumns.length > 0) {
+  if (record.customFieldName && record.sourceColumns.length > 0) {
     // 自动分配变量名：value1, value2, value3...
     const newColumnVariables = {}
     record.sourceColumns.forEach((colIndex, index) => {
       newColumnVariables[colIndex] = `value${index + 1}`
     })
     record.columnVariables = newColumnVariables
-
-    props.customBindingManager.addConcatenationRule(
-      record.ddlFieldName,
-      record.sourceColumns,
-      record.separator,
-      record.format,
-    )
   }
 }
 
 const isFieldBound = (fieldName, currentBindingId) => {
-  return (
-    singleBindings.value.some(
-      (binding) => binding.id !== currentBindingId && binding.ddlFieldName === fieldName,
-    ) || concatenationRules.value.some((rule) => rule.ddlFieldName === fieldName)
+  return singleBindings.value.some(
+    (binding) => binding.id !== currentBindingId && binding.ddlFieldName === fieldName,
   )
 }
 
@@ -1355,9 +1371,9 @@ const saveBindings = () => {
 
   // 4. 将本地字段拼接规则添加到管理器中
   concatenationRules.value.forEach((rule) => {
-    if (rule.ddlFieldName && rule.sourceColumns && rule.sourceColumns.length > 0) {
+    if (rule.customFieldName && rule.sourceColumns && rule.sourceColumns.length > 0) {
       props.customBindingManager.addConcatenationRule(
-        rule.ddlFieldName,
+        rule.customFieldName,
         rule.sourceColumns,
         rule.separator || '',
         rule.format || '',
