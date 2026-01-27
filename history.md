@@ -1,5 +1,18 @@
 # 版本变更历史
 
+## 1.5.17 (2026-01-26)
+
+**修复SQL生成中的格式转换问题**
+
+- 修复反斜杠符号被额外转义的问题
+  - 修改 escapeString 函数，将单引号转义为双引号
+  - 移除对反斜杠的转义逻辑，避免双反斜杠问题
+- 修复逗号被添加额外空格的问题
+  - 修改 splitLongLine 函数中的条件判断
+  - 从 currentPart.length + trimmedToken.length + 2 改为 currentPart.length + trimmedToken.length + 1
+  - 确保逗号后不添加额外空格
+- 所有代码通过ESLint检查
+
 ## 1.5.16 (2026-01-26)
 
 **修复分隔符列宽度不生效的问题**

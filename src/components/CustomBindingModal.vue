@@ -736,8 +736,8 @@ const customFieldColumns = [
   {
     title: '数据类型',
     key: 'dataType',
-    width: 100,
-    minWidth: 100,
+    width: 150,
+    minWidth: 150,
   },
   {
     title: '数据来源',

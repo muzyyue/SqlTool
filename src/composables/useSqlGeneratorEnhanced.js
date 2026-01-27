@@ -891,21 +891,23 @@ export function useSqlGeneratorEnhanced() {
    * 转义字符串中的特殊字符
    */
   const escapeString = (str, dbType) => {
-    let escaped = str.replace(/'/g, "''")
+    let escaped = str
 
     // 不同数据库的特殊转义规则
     switch (dbType) {
       case 'mysql':
-        escaped = escaped.replace(/\\/g, '\\\\')
+        // MySQL: 单引号需要转义为双引号
+        escaped = escaped.replace(/'/g, "''")
         break
       case 'postgresql':
-        escaped = escaped.replace(/\\/g, '\\\\')
+        // PostgreSQL: 单引号需要转义为双引号
+        escaped = escaped.replace(/'/g, "''")
         break
       case 'sqlserver':
-        // SQL Server使用单引号转义
+        // SQL Server: 单引号需要转义为双引号
+        escaped = escaped.replace(/'/g, "''")
         break
     }
-
     return escaped
   }
 
@@ -1078,12 +1080,12 @@ export function useSqlGeneratorEnhanced() {
 
     tokens.forEach((token, index) => {
       const trimmedToken = token.trim()
-      if (currentPart.length + trimmedToken.length + 2 > maxLineLength && currentPart) {
+      if (currentPart.length + trimmedToken.length + 1 > maxLineLength && currentPart) {
         parts.push(indent + currentPart + (index < tokens.length - 1 ? ',' : ''))
         currentPart = trimmedToken
       } else {
         if (currentPart) {
-          currentPart += ', ' + trimmedToken
+          currentPart += ',' + trimmedToken
         } else {
           currentPart = trimmedToken
         }
