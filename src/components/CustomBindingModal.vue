@@ -736,8 +736,8 @@ const customFieldColumns = [
   {
     title: '数据类型',
     key: 'dataType',
-    width: 100,
-    minWidth: 100,
+    width: 150,
+    minWidth: 150,
   },
   {
     title: '数据来源',
@@ -1201,12 +1201,7 @@ const checkFieldConflict = (fieldName) => {
 }
 
 const addCustomField = () => {
-  const typeLabels = {
-    system_function: '系统函数',
-    excel_combine: 'Excel组合',
-    auto_increment: '自增',
-  }
-  const defaultFieldName = `${typeLabels['system_function'] || '自定义'}_${Date.now().toString(36)}`
+  const defaultFieldName = `custom_field_${Date.now().toString(36)}`
 
   // 检查生成的默认字段名是否冲突
   const conflictResult = checkFieldConflict(defaultFieldName)
