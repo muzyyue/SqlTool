@@ -67,6 +67,11 @@
           复制SQL
         </a-button>
 
+        <a-button @click="copyRawSql" :disabled="!sql" :loading="copyingRaw">
+          <template #icon><CopyOutlined /></template>
+          复制原始SQL
+        </a-button>
+
         <a-button @click="downloadSql" :disabled="!sql">
           <template #icon><DownloadOutlined /></template>
           下载文件
@@ -139,6 +144,7 @@ const previewMode = ref('formatted')
 const syntaxHighlight = ref(true)
 const showLineNumbers = ref(true)
 const copying = ref(false)
+const copyingRaw = ref(false)
 
 // 保存格式化模式下的原始状态
 const originalSyntaxHighlight = ref(true)
@@ -318,6 +324,28 @@ const copySql = async () => {
     logError(error, 'system', { operation: 'copySql' })
   } finally {
     copying.value = false
+  }
+}
+
+const copyRawSql = async () => {
+  if (!props.sql) {
+    message.warning('没有SQL语句可复制')
+    return
+  }
+
+  copyingRaw.value = true
+
+  try {
+    const rawSql = sqlGenerator.formatSql(props.sql, 'minified')
+    await navigator.clipboard.writeText(rawSql)
+    message.success('原始SQL（不换行）已复制到剪贴板')
+    logInfo('原始SQL语句已复制到剪贴板')
+    emit('copy', rawSql)
+  } catch (error) {
+    message.error('复制失败，请检查浏览器权限')
+    logError(error, 'system', { operation: 'copyRawSql' })
+  } finally {
+    copyingRaw.value = false
   }
 }
 
