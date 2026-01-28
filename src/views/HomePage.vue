@@ -3,267 +3,109 @@
     <!-- 英雄区域 -->
     <div class="hero-section">
       <div class="hero-content">
-        <h1 class="hero-title">SQL生成工具</h1>
-        <p class="hero-subtitle">基于DDL语句和Excel数据，快速生成规范的INSERT和UPDATE SQL语句</p>
-        <div class="hero-actions">
-          <a-button type="primary" size="large" @click="navigateToInsert">
-            <template #icon><PlusCircleOutlined /></template>
-            开始生成INSERT
-          </a-button>
-          <a-button size="large" @click="navigateToUpdate">
-            <template #icon><EditOutlined /></template>
-            开始生成UPDATE
-          </a-button>
+        <h1 class="hero-title">在线工具箱</h1>
+        <p class="hero-subtitle">提供多种实用工具，满足不同场景需求</p>
+        <div class="hero-stats">
+          <div class="stat-item">
+            <span class="stat-number">{{ tools.length }}</span>
+            <span class="stat-label">个工具</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number">{{ categories.length }}</span>
+            <span class="stat-label">个分类</span>
+          </div>
         </div>
       </div>
       <div class="hero-image">
-        <div class="code-preview">
-          <pre class="sql-example">{{ sqlExample }}</pre>
+        <div class="icon-grid">
+          <component :is="DatabaseOutlined" class="hero-icon" />
+          <component :is="CodeOutlined" class="hero-icon" />
+          <component :is="ClockCircleOutlined" class="hero-icon" />
+          <component :is="LockOutlined" class="hero-icon" />
         </div>
       </div>
     </div>
 
-    <!-- 功能特性区域 -->
-    <div class="features-section">
+    <!-- 工具网格区域 -->
+    <div class="tools-section">
+      <ToolsGrid />
+    </div>
+
+    <!-- 快速访问区域 -->
+    <div class="quick-access-section">
       <div class="section-header">
-        <h2>核心功能特性</h2>
-        <p>提供全面的SQL生成解决方案，满足不同场景需求</p>
+        <h2>快速访问</h2>
+        <p>最近使用的工具和热门工具</p>
       </div>
-
-      <div class="features-grid">
-        <div class="feature-card">
-          <div class="feature-icon">
-            <DatabaseOutlined />
+      <div class="quick-access-grid">
+        <VbenGlassCard
+          v-for="tool in popularTools"
+          :key="tool.id"
+          :title="tool.name"
+          :description="tool.description"
+          hoverable
+          @click="navigateToTool(tool)"
+        >
+          <div class="quick-access-content">
+            <component :is="iconMap[tool.icon] || DatabaseOutlined" class="tool-icon" />
+            <a-button type="link" size="small"> 立即使用 <RightOutlined /> </a-button>
           </div>
-          <h3>智能DDL解析</h3>
-          <p>支持多种数据库语法，自动解析表结构和字段信息，准确提取数据类型和约束</p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-icon">
-            <FileExcelOutlined />
-          </div>
-          <h3>Excel数据导入</h3>
-          <p>支持.xlsx、.xls、.csv格式，处理大型文件，自动识别表头和多工作表</p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-icon">
-            <LinkOutlined />
-          </div>
-          <h3>智能字段匹配</h3>
-          <p>基于名称相似度和拼音首字母，自动建立字段映射关系，支持手动调整</p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-icon">
-            <CodeOutlined />
-          </div>
-          <h3>多数据库支持</h3>
-          <p>生成符合MySQL、PostgreSQL、SQL Server等主流数据库语法的SQL语句</p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-icon">
-            <SafetyCertificateOutlined />
-          </div>
-          <h3>语法验证</h3>
-          <p>内置SQL语法检查，确保生成的语句符合ANSI SQL标准，避免语法错误</p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-icon">
-            <DownloadOutlined />
-          </div>
-          <h3>多种导出方式</h3>
-          <p>支持复制到剪贴板、下载SQL文件、实时预览等多种输出方式</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- 使用流程区域 -->
-    <div class="workflow-section">
-      <div class="section-header">
-        <h2>使用流程</h2>
-        <p>简单四步，快速生成符合需求的SQL语句</p>
-      </div>
-
-      <div class="workflow-steps">
-        <div class="step">
-          <div class="step-number">1</div>
-          <div class="step-content">
-            <h3>输入DDL语句</h3>
-            <p>输入CREATE TABLE语句，系统自动解析表结构</p>
-          </div>
-        </div>
-
-        <div class="step">
-          <div class="step-number">2</div>
-          <div class="step-content">
-            <h3>上传Excel文件</h3>
-            <p>上传包含数据的Excel文件，支持多工作表</p>
-          </div>
-        </div>
-
-        <div class="step">
-          <div class="step-number">3</div>
-          <div class="step-content">
-            <h3>配置字段映射</h3>
-            <p>自动或手动建立DDL字段与Excel列的映射关系</p>
-          </div>
-        </div>
-
-        <div class="step">
-          <div class="step-number">4</div>
-          <div class="step-content">
-            <h3>生成SQL语句</h3>
-            <p>一键生成规范的SQL语句，支持预览和导出</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 快速开始区域 -->
-    <div class="quick-start-section">
-      <div class="section-header">
-        <h2>快速开始</h2>
-        <p>选择适合您需求的SQL生成方式</p>
-      </div>
-
-      <div class="quick-start-cards">
-        <div class="start-card insert-card" @click="navigateToInsert">
-          <div class="card-header">
-            <PlusCircleOutlined class="card-icon" />
-            <h3>INSERT语句生成</h3>
-          </div>
-          <div class="card-content">
-            <p>适用于批量插入新数据</p>
-            <ul>
-              <li>生成多行INSERT语句</li>
-              <li>支持批量插入优化</li>
-              <li>自动处理数据类型转换</li>
-            </ul>
-          </div>
-          <div class="card-footer">
-            <a-button type="primary" block>开始使用</a-button>
-          </div>
-        </div>
-
-        <div class="start-card update-card" @click="navigateToUpdate">
-          <div class="card-header">
-            <EditOutlined class="card-icon" />
-            <h3>UPDATE语句生成</h3>
-          </div>
-          <div class="card-content">
-            <p>适用于批量更新现有数据</p>
-            <ul>
-              <li>生成带条件的UPDATE语句</li>
-              <li>支持多种条件逻辑</li>
-              <li>灵活配置更新字段</li>
-            </ul>
-          </div>
-          <div class="card-footer">
-            <a-button type="primary" block>开始使用</a-button>
-          </div>
-        </div>
-
-        <div class="start-card ddl-card" @click="navigateToDdl">
-          <div class="card-header">
-            <TableOutlined class="card-icon" />
-            <h3>DDL语句生成</h3>
-          </div>
-          <div class="card-content">
-            <p>适用于数据库表结构管理</p>
-            <ul>
-              <li>支持多种DDL语句类型</li>
-              <li>多数据库语法兼容</li>
-              <li>可视化表结构设计</li>
-            </ul>
-          </div>
-          <div class="card-footer">
-            <a-button type="primary" block>开始使用</a-button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 统计数据区域 -->
-    <div class="stats-section">
-      <div class="stats-grid">
-        <div class="stat-item">
-          <a-statistic title="已处理文件" :value="stats.filesProcessed" />
-        </div>
-        <div class="stat-item">
-          <a-statistic title="生成语句数" :value="stats.statementsGenerated" />
-        </div>
-        <div class="stat-item">
-          <a-statistic title="用户满意度" :value="stats.userSatisfaction" suffix="%" />
-        </div>
-        <div class="stat-item">
-          <a-statistic title="平均处理时间" :value="stats.avgProcessingTime" suffix="ms" />
-        </div>
+        </VbenGlassCard>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  PlusCircleOutlined,
-  EditOutlined,
   DatabaseOutlined,
-  FileExcelOutlined,
-  LinkOutlined,
   CodeOutlined,
+  ClockCircleOutlined,
+  LockOutlined,
+  RightOutlined,
+  FileExcelOutlined,
+  SwapOutlined,
+  PlusSquareOutlined,
+  AppstoreOutlined,
+  SearchOutlined,
+  KeyOutlined,
+  LinkOutlined,
   SafetyCertificateOutlined,
-  DownloadOutlined,
-  TableOutlined,
+  QrcodeOutlined,
+  BgColorsOutlined,
 } from '@ant-design/icons-vue'
+import VbenGlassCard from '@/components/common/VbenGlassCard.vue'
+import ToolsGrid from '@/components/common/ToolsGrid.vue'
+import { tools, categories } from '@/config/tools.js'
 
 const router = useRouter()
 
-// 示例SQL代码
-const sqlExample = ref(`-- 示例：生成的INSERT语句
-INSERT INTO users (id, name, email, created_at) VALUES
-(1, '张三', 'zhangsan@example.com', '2024-01-15 10:30:00'),
-(2, '李四', 'lisi@example.com', '2024-01-15 11:00:00'),
-(3, '王五', 'wangwu@example.com', '2024-01-15 11:30:00');
-
--- 示例：生成的UPDATE语句
-UPDATE products SET
-  price = 99.99,
-  stock = 50,
-  updated_at = NOW()
-WHERE category = 'electronics';`)
-
-// 统计数据
-const stats = ref({
-  filesProcessed: 1234,
-  statementsGenerated: 56789,
-  userSatisfaction: 98.5,
-  avgProcessingTime: 250,
+const popularTools = computed(() => {
+  return tools.slice(0, 4)
 })
 
-// 导航方法
-const navigateToInsert = () => {
-  router.push('/insert')
+const iconMap = {
+  DatabaseOutlined,
+  CodeOutlined,
+  ClockCircleOutlined,
+  LockOutlined,
+  FileExcelOutlined,
+  SearchOutlined,
+  KeyOutlined,
+  LinkOutlined,
+  SafetyCertificateOutlined,
+  QrcodeOutlined,
+  BgColorsOutlined,
+  SwapOutlined,
+  PlusSquareOutlined,
+  AppstoreOutlined,
 }
 
-const navigateToUpdate = () => {
-  router.push('/update')
+const navigateToTool = (tool) => {
+  router.push(tool.route)
 }
-
-const navigateToDdl = () => {
-  router.push('/ddl')
-}
-
-// 生命周期
-onMounted(() => {
-  // 可以在这里加载实际的统计数据
-  console.log('首页已加载')
-})
 </script>
 
 <style scoped>
@@ -272,7 +114,7 @@ onMounted(() => {
   background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
 }
 
-/* 英雄区域样式 */
+/* 英雄区域 */
 .hero-section {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -302,44 +144,76 @@ onMounted(() => {
   line-height: 1.6;
 }
 
-.hero-actions {
+.hero-stats {
   display: flex;
-  gap: 16px;
+  gap: 32px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.stat-number {
+  font-size: 36px;
+  font-weight: 700;
+  color: #1890ff;
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: #666;
+  margin-top: 4px;
 }
 
 .hero-image {
   padding-right: 40px;
 }
 
-.code-preview {
-  background: #1e1e1e;
-  border-radius: 8px;
-  padding: 24px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+.icon-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
 }
 
-.sql-example {
-  color: #d4d4d4;
-  font-family: 'Courier New', monospace;
-  font-size: 14px;
-  line-height: 1.5;
-  margin: 0;
-  white-space: pre-wrap;
-}
-
-/* 功能特性区域 */
-.features-section {
+.hero-icon {
+  font-size: 48px;
+  color: #1890ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
   background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* 工具网格区域 */
+.tools-section {
+  background: white;
+  padding: 80px 0;
+}
+
+/* 快速访问区域 */
+.quick-access-section {
+  background: #f8f9fa;
   padding: 80px 0;
 }
 
 .section-header {
   text-align: center;
-  margin-bottom: 60px;
+  margin-bottom: 48px;
 }
 
 .section-header h2 {
-  font-size: 36px;
+  font-size: 32px;
   font-weight: 600;
   color: #333;
   margin-bottom: 16px;
@@ -352,232 +226,84 @@ onMounted(() => {
   margin: 0 auto;
 }
 
-.features-grid {
+.quick-access-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 30px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 40px;
 }
 
-.feature-card {
-  background: #f8f9fa;
-  border-radius: 12px;
-  padding: 30px;
-  text-align: center;
-  transition:
-    transform 0.3s ease,
-    box-shadow 0.3s ease;
-}
-
-.feature-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-}
-
-.feature-icon {
-  font-size: 48px;
-  color: #1890ff;
-  margin-bottom: 20px;
-}
-
-.feature-card h3 {
-  font-size: 20px;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 12px;
-}
-
-.feature-card p {
-  color: #666;
-  line-height: 1.6;
-}
-
-/* 使用流程区域 */
-.workflow-section {
-  background: #f8f9fa;
-  padding: 80px 0;
-}
-
-.workflow-steps {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 40px;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 40px;
-}
-
-.step {
+.quick-access-content {
   display: flex;
-  align-items: flex-start;
-  gap: 20px;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.step-number {
-  background: #1890ff;
-  color: white;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+.quick-access-content .tool-icon {
+  font-size: 32px;
+  color: #1890ff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
-  font-weight: 600;
-  flex-shrink: 0;
-}
-
-.step-content h3 {
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 8px;
-}
-
-.step-content p {
-  color: #666;
-  line-height: 1.6;
-}
-
-/* 快速开始区域 */
-.quick-start-section {
-  background: white;
-  padding: 80px 0;
-}
-
-.quick-start-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: 40px;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 40px;
-}
-
-.start-card {
-  background: white;
-  border: 2px solid #f0f0f0;
+  width: 56px;
+  height: 56px;
+  background: #e6f7ff;
   border-radius: 12px;
-  padding: 0;
-  overflow: hidden;
-  transition: all 0.3s ease;
-  cursor: pointer;
 }
 
-.start-card:hover {
-  border-color: #1890ff;
-  transform: translateY(-5px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+/* 暗色主题支持 */
+[data-theme='dark'] .home-page {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
 }
 
-.insert-card:hover {
-  border-color: #52c41a;
+[data-theme='dark'] .hero-title {
+  color: #60a5fa;
 }
 
-.update-card:hover {
-  border-color: #faad14;
+[data-theme='dark'] .hero-subtitle {
+  color: #9ca3af;
 }
 
-.ddl-card:hover {
-  border-color: #722ed1;
+[data-theme='dark'] .stat-item {
+  background: #1f2937;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
-.card-header {
-  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
-  color: white;
-  padding: 30px;
-  text-align: center;
+[data-theme='dark'] .stat-number {
+  color: #60a5fa;
 }
 
-.insert-card .card-header {
-  background: linear-gradient(135deg, #52c41a 0%, #389e0d 100%);
+[data-theme='dark'] .stat-label {
+  color: #9ca3af;
 }
 
-.update-card .card-header {
-  background: linear-gradient(135deg, #faad14 0%, #d48806 100%);
+[data-theme='dark'] .hero-icon {
+  background: #1e2937;
+  color: #60a5fa;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
-.ddl-card .card-header {
-  background: linear-gradient(135deg, #722ed1 0%, #531dab 100%);
+[data-theme='dark'] .tools-section {
+  background: #1f2937;
 }
 
-.card-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
+[data-theme='dark'] .quick-access-section {
+  background: #0f172a;
 }
 
-.card-header h3 {
-  font-size: 24px;
-  font-weight: 600;
-  margin: 0;
+[data-theme='dark'] .section-header h2 {
+  color: #f3f4f6;
 }
 
-.card-content {
-  padding: 30px;
+[data-theme='dark'] .section-header p {
+  color: #9ca3af;
 }
 
-.card-content p {
-  font-size: 16px;
-  color: #666;
-  margin-bottom: 20px;
-}
-
-.card-content ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.card-content li {
-  padding: 8px 0;
-  color: #666;
-  position: relative;
-  padding-left: 20px;
-}
-
-.card-content li::before {
-  content: '✓';
-  position: absolute;
-  left: 0;
-  color: #52c41a;
-  font-weight: bold;
-}
-
-.card-footer {
-  padding: 0 30px 30px;
-}
-
-/* 统计数据区域 */
-.stats-section {
-  background: #001529;
-  color: white;
-  padding: 60px 0;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 40px;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 40px;
-}
-
-.stat-item {
-  text-align: center;
-}
-
-.stat-item :deep(.ant-statistic-title) {
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 16px;
-}
-
-.stat-item :deep(.ant-statistic-content) {
-  color: white;
-  font-size: 32px;
-  font-weight: 600;
+[data-theme='dark'] .quick-access-content .tool-icon {
+  background: #1e40af;
+  color: #60a5fa;
 }
 
 /* 响应式设计 */
@@ -597,15 +323,14 @@ onMounted(() => {
     padding-right: 0;
   }
 
-  .features-grid,
-  .quick-start-cards {
-    grid-template-columns: 1fr;
-    gap: 20px;
+  .icon-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
   }
 
-  .workflow-steps {
+  .quick-access-grid {
     grid-template-columns: 1fr;
-    gap: 30px;
+    gap: 16px;
   }
 }
 
@@ -618,9 +343,14 @@ onMounted(() => {
     font-size: 18px;
   }
 
-  .hero-actions {
+  .hero-stats {
     flex-direction: column;
-    align-items: center;
+    gap: 16px;
+  }
+
+  .icon-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
   }
 
   .section-header h2 {
@@ -631,14 +361,8 @@ onMounted(() => {
     font-size: 16px;
   }
 
-  .features-grid,
-  .quick-start-cards {
+  .quick-access-grid {
     padding: 0 20px;
-  }
-
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 30px;
   }
 }
 
@@ -655,19 +379,12 @@ onMounted(() => {
     font-size: 16px;
   }
 
-  .features-grid,
-  .quick-start-cards {
+  .icon-grid {
     grid-template-columns: 1fr;
   }
 
-  .feature-card,
-  .start-card {
-    padding: 20px;
-  }
-
-  .stats-grid {
-    grid-template-columns: 1fr;
-    gap: 20px;
+  .stat-number {
+    font-size: 28px;
   }
 }
 </style>

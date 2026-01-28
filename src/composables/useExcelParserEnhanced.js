@@ -15,6 +15,14 @@ export function useExcelParserEnhanced() {
    * 解析Excel文件
    * @param {File} file - Excel文件
    * @param {Object} options - 解析选项
+   * @param {number} options.sheetIndex - 工作表索引，默认0
+   * @param {number} options.maxRows - 最大处理行数，默认10000
+   * @param {number} options.chunkSize - 分块大小，默认1000
+   * @param {Function} options.onProgress - 进度回调
+   * @param {Function} options.onWorksheetChange - 工作表切换回调
+   * @param {number} options.startRow - 起始行（包含表头为1），默认null表示从第一行开始
+   * @param {number} options.endRow - 结束行，默认null表示到最后一行
+   * @param {boolean} options.includeHeader - 是否包含表头，默认true
    * @returns {Promise} 解析结果
    */
   const parseExcel = async (file, options = {}) => {
@@ -33,6 +41,9 @@ export function useExcelParserEnhanced() {
       chunkSize: 1000, // 分块大小
       onProgress: null, // 进度回调
       onWorksheetChange: null, // 工作表切换回调
+      startRow: null, // 起始行（包含表头为1）
+      endRow: null, // 结束行
+      includeHeader: true, // 是否包含表头
     }
 
     const finalOptions = { ...defaultOptions, ...options }
@@ -198,6 +209,9 @@ export function useExcelParserEnhanced() {
 
   /**
    * 解析工作表数据
+   * @param {Object} selectedSheet - 选中的工作表对象
+   * @param {Object} options - 解析选项
+   * @returns {Promise} 解析结果
    */
   const parseWorksheet = async (selectedSheet, options) => {
     const { worksheet, rowCount, name: sheetName } = selectedSheet
@@ -206,29 +220,57 @@ export function useExcelParserEnhanced() {
       throw new Error(`工作表 "${sheetName}" 为空`)
     }
 
-    totalRows.value = Math.min(rowCount, options.maxRows)
+    // 验证行范围参数
+    const { startRow, endRow } = options
+    const actualStartRow = startRow !== null ? Math.max(1, startRow) : 1
+    const actualEndRow = endRow !== null ? Math.min(rowCount, endRow) : rowCount
+
+    if (actualStartRow > actualEndRow) {
+      throw new Error(`起始行 (${actualStartRow}) 不能大于结束行 (${actualEndRow})`)
+    }
+
+    if (actualStartRow > rowCount) {
+      throw new Error(`起始行 (${actualStartRow}) 超出文件总行数 (${rowCount})`)
+    }
+
+    // 计算实际需要处理的行数
+    const rowsToProcess = actualEndRow - actualStartRow + 1
+    totalRows.value = Math.min(rowsToProcess, options.maxRows)
     processedRows.value = 0
 
-    console.log(`开始解析工作表 "${sheetName}"，共 ${totalRows.value} 行数据`)
+    console.log(
+      `开始解析工作表 "${sheetName}"，总行数: ${rowCount}，选择范围: ${actualStartRow}-${actualEndRow}，共 ${totalRows.value} 行数据`,
+    )
 
     // 分块处理大型文件
     if (totalRows.value > options.chunkSize) {
-      return await parseWorksheetChunked(worksheet, totalRows.value, options)
+      return await parseWorksheetChunked(worksheet, actualStartRow, actualEndRow, options)
     } else {
-      return await parseWorksheetDirect(worksheet, options)
+      return await parseWorksheetDirect(worksheet, actualStartRow, actualEndRow, options)
     }
   }
 
   /**
    * 直接解析工作表（小型文件）
+   * @param {Object} worksheet - 工作表对象
+   * @param {number} startRow - 起始行（1-based）
+   * @param {number} endRow - 结束行（1-based）
+   * @param {Object} options - 解析选项
+   * @returns {Promise} 解析结果
    */
-  const parseWorksheetDirect = async (worksheet) => {
+  const parseWorksheetDirect = async (worksheet, startRow, endRow, options) => {
+    const { includeHeader } = options
+
     const parseOptions = {
       header: 1,
       defval: '',
       raw: true,
       rawNumbers: true,
       blankrows: false, // 跳过空行
+      range:
+        startRow === 1 && endRow === null
+          ? undefined
+          : `${XLSX.utils.encode_cell({ r: startRow - 1, c: 0 })}:${XLSX.utils.encode_cell({ r: endRow - 1, c: 999 })}`, // 指定行范围
     }
 
     const jsonData = XLSX.utils.sheet_to_json(worksheet, parseOptions)
@@ -237,52 +279,83 @@ export function useExcelParserEnhanced() {
       throw new Error('工作表中没有数据')
     }
 
-    if (jsonData.length < 2) {
+    if (jsonData.length < 2 && includeHeader) {
       throw new Error('工作表至少需要包含表头和一行数据')
     }
 
-    processedRows.value = jsonData.length - 1
+    processedRows.value = jsonData.length - (includeHeader ? 1 : 0)
     processingProgress.value = 100
 
-    return processExcelData(jsonData)
+    return processExcelData(jsonData, includeHeader)
   }
 
   /**
    * 分块解析工作表（大型文件）
+   * @param {Object} worksheet - 工作表对象
+   * @param {number} startRow - 起始行（1-based）
+   * @param {number} endRow - 结束行（1-based）
+   * @param {number} totalRows - 总行数
+   * @param {number} chunkSize - 分块大小
+   * @param {Object} options - 解析选项
+   * @returns {Promise} 解析结果
    */
-  const parseWorksheetChunked = async (worksheet, totalRows, chunkSize) => {
-    const headers = extractHeaders(worksheet)
+  const parseWorksheetChunked = async (
+    worksheet,
+    startRow,
+    endRow,
+    totalRows,
+    chunkSize,
+    options,
+  ) => {
+    const { includeHeader } = options
+
+    const headers = extractHeaders(worksheet, startRow - 1)
     const allRows = []
 
-    // 处理表头
-    allRows.push(headers)
-
-    // 分块处理数据行
-    for (let startRow = 1; startRow < totalRows; startRow += chunkSize) {
-      const endRow = Math.min(startRow + chunkSize, totalRows)
-
-      const chunkData = extractChunkData(worksheet, headers.length, startRow, endRow)
-      allRows.push(...chunkData)
-
-      processedRows.value = endRow - 1
-      processingProgress.value = Math.round((endRow / totalRows) * 100)
-
-      // 短暂延迟以避免阻塞UI
-      await new Promise((resolve) => setTimeout(resolve, 0))
+    // 处理表头（如果包含表头）
+    if (includeHeader) {
+      allRows.push(headers)
     }
 
-    return processExcelData(allRows)
+    // 计算数据行的起始位置
+    const dataStartRow = includeHeader ? startRow : startRow + 1
+    const dataEndRow = includeHeader ? endRow : endRow
+
+    // 分块处理数据行
+    for (let row = dataStartRow; row <= dataEndRow; row += chunkSize) {
+      const chunkEndRow = Math.min(row + chunkSize - 1, dataEndRow)
+
+      const chunkData = extractChunkData(worksheet, headers.length, row - 1, chunkEndRow - 1)
+      allRows.push(...chunkData)
+
+      processedRows.value = chunkEndRow - dataStartRow + 1
+      processingProgress.value = Math.round(
+        ((chunkEndRow - dataStartRow + 1) / (dataEndRow - dataStartRow + 1)) * 100,
+      )
+
+      // 使用requestAnimationFrame和更长的延迟以避免阻塞UI，特别是在Win7上
+      await new Promise((resolve) => {
+        requestAnimationFrame(() => {
+          setTimeout(resolve, 10)
+        })
+      })
+    }
+
+    return processExcelData(allRows, includeHeader)
   }
 
   /**
    * 提取表头
+   * @param {Object} worksheet - 工作表对象
+   * @param {number} headerRowIndex - 表头所在行索引（0-based），默认0
+   * @returns {Array} 表头数组
    */
-  const extractHeaders = (worksheet) => {
+  const extractHeaders = (worksheet, headerRowIndex = 0) => {
     const headers = []
     let col = 0
 
     while (true) {
-      const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col })
+      const cellAddress = XLSX.utils.encode_cell({ r: headerRowIndex, c: col })
       const cell = worksheet[cellAddress]
 
       if (!cell) break
@@ -304,7 +377,7 @@ export function useExcelParserEnhanced() {
   const extractChunkData = (worksheet, columnCount, startRow, endRow) => {
     const chunkData = []
 
-    for (let row = startRow; row < endRow; row++) {
+    for (let row = startRow; row <= endRow; row++) {
       const rowData = []
       let hasData = false
 
@@ -330,30 +403,78 @@ export function useExcelParserEnhanced() {
   }
 
   /**
-   * 处理Excel数据
+   * 找到最后一列有数据的列索引
+   * @param {Array} headers - 表头数组
+   * @param {Array} rows - 数据行数组
+   * @returns {number} 最后一列有数据的列索引
    */
-  const processExcelData = (jsonData) => {
-    const headers = jsonData[0]
-    const rawRows = jsonData.slice(1)
-
-    // 验证表头
-    if (!headers || !Array.isArray(headers) || headers.length === 0) {
-      throw new Error('无法识别表头信息')
+  const findLastNonEmptyColumn = (headers, rows) => {
+    // 检查表头，找到最后一列有数据的列索引
+    let maxIndex = -1
+    for (let i = 0; i < headers.length; i++) {
+      const header = headers[i]
+      if (header !== '' && header !== null && header !== undefined) {
+        maxIndex = i
+      }
     }
 
+    // 如果表头没有数据，检查数据行（只检查前100行，避免遍历所有行）
+    if (maxIndex === -1 && rows.length > 0) {
+      const checkRows = Math.min(rows.length, 100)
+      for (let i = 0; i < checkRows; i++) {
+        const row = rows[i]
+        if (Array.isArray(row)) {
+          for (let j = 0; j < row.length; j++) {
+            const value = row[j]
+            if (value !== '' && value !== null && value !== undefined) {
+              maxIndex = Math.max(maxIndex, j)
+            }
+          }
+        }
+      }
+    }
+
+    // 如果所有列都为空，至少保留1列
+    return maxIndex === -1 ? 0 : maxIndex
+  }
+
+  /**
+   * 处理Excel数据
+   * @param {Array} jsonData - Excel解析后的JSON数据
+   * @param {boolean} includeHeader - 是否包含表头，默认true
+   * @returns {Object} 处理后的数据对象
+   */
+  const processExcelData = (jsonData, includeHeader = true) => {
+    const headers = includeHeader ? jsonData[0] : []
+    const rawRows = includeHeader ? jsonData.slice(1) : jsonData
+
+    // 验证表头
+    if (includeHeader) {
+      if (!headers || !Array.isArray(headers) || headers.length === 0) {
+        throw new Error('无法识别表头信息')
+      }
+    }
+
+    // 找到最后一列有数据的列索引，优化性能
+    const maxColumnIndex = findLastNonEmptyColumn(headers, rawRows)
+
+    // 截取到最大列数
+    const trimmedHeaders = headers.slice(0, maxColumnIndex + 1)
+    const trimmedRows = rawRows.map((row) => row.slice(0, maxColumnIndex + 1))
+
     // 标准化数据行
-    const standardizedRows = standardizeRows(rawRows, headers.length)
+    const standardizedRows = standardizeRows(trimmedRows, trimmedHeaders.length)
 
     // 处理一对多关系
     const processedRows = processOneToManyRelations(standardizedRows)
 
-    console.log(`Excel解析完成: ${headers.length} 列, ${processedRows.length} 行`)
+    console.log(`Excel解析完成: ${trimmedHeaders.length} 列, ${processedRows.length} 行`)
 
     return {
-      headers,
+      headers: trimmedHeaders,
       rows: processedRows,
       totalRows: processedRows.length,
-      totalColumns: headers.length,
+      totalColumns: trimmedHeaders.length,
     }
   }
 
@@ -441,8 +562,115 @@ export function useExcelParserEnhanced() {
     }
   }
 
+  /**
+   * 快速获取表头（只读取第一行，不要求有数据行）
+   * @param {File} file - Excel文件
+   * @param {Object} options - 解析选项
+   * @param {number} options.sheetIndex - 工作表索引，默认0
+   * @returns {Promise} 表头数组
+   */
+  const getHeaders = async (file, options = {}) => {
+    resetProgress()
+
+    const defaultOptions = {
+      sheetIndex: 0,
+    }
+
+    const finalOptions = { ...defaultOptions, ...options }
+
+    try {
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('获取表头超时')), 10000)
+      })
+
+      const workbook = await Promise.race([readWorkbook(file), timeoutPromise])
+
+      const worksheetInfo = getWorksheetInfo(workbook)
+
+      if (worksheetInfo.length === 0) {
+        throw new Error('Excel文件中没有找到有效的工作表')
+      }
+
+      const selectedSheet = selectWorksheet(workbook, worksheetInfo, finalOptions.sheetIndex)
+      const worksheet = selectedSheet.worksheet
+
+      if (!worksheet) {
+        throw new Error(`工作表 "${selectedSheet.name}" 为空`)
+      }
+
+      // 直接提取第一行作为表头，不使用完整的解析流程
+      const headers = []
+      const range = worksheet['!ref'] ? XLSX.utils.decode_range(worksheet['!ref']) : null
+      const maxCol = range ? range.e.c + 1 : 100
+      const totalRows = range ? range.e.r + 1 : 0
+      const maxRow = Math.min(totalRows, 20) // 检查所有行，最多20行
+
+      console.log(
+        '[getHeaders] 工作表范围:',
+        range,
+        '最大列数:',
+        maxCol,
+        '总行数:',
+        totalRows,
+        '最大检查行数:',
+        maxRow,
+      )
+
+      // 尝试从前10行中找到包含数据的行作为表头
+      for (let row = 0; row < maxRow; row++) {
+        console.log(`[getHeaders] 尝试第 ${row + 1} 行作为表头`)
+
+        const rowHeaders = []
+        let col = 0
+
+        while (col < maxCol) {
+          const cellAddress = XLSX.utils.encode_cell({ r: row, c: col })
+          const cell = worksheet[cellAddress]
+
+          console.log(`[getHeaders] 第${row + 1}行列 ${col} (${cellAddress}):`, cell)
+
+          // 参考extractHeaders的逻辑：遇到空单元格就停止
+          if (!cell) break
+
+          // 使用cell.v（原始值），与extractHeaders保持一致
+          const value = cell.v !== undefined ? String(cell.v) : `Column_${col + 1}`
+
+          console.log(`[getHeaders] 第${row + 1}行列 ${col} 值:`, value, '(v:', cell.v, ')')
+
+          rowHeaders.push(value)
+          col++
+        }
+
+        console.log(`[getHeaders] 第${row + 1}行获取到 ${rowHeaders.length} 个表头:`, rowHeaders)
+
+        // 如果这一行有表头数据，使用它
+        if (rowHeaders.length > 0) {
+          headers.push(...rowHeaders)
+          console.log(`[getHeaders] 使用第 ${row + 1} 行作为表头`)
+          break
+        }
+      }
+
+      console.log('[getHeaders] 最终表头:', headers)
+
+      if (headers.length === 0) {
+        // 提供详细的错误信息
+        const errorMsg = `无法识别表头信息。工作表有 ${totalRows} 行，但所有行都为空或无效。请检查Excel文件内容。`
+        console.error('[getHeaders]', errorMsg)
+        throw new Error(errorMsg)
+      }
+
+      processingProgress.value = 100
+      return headers
+    } catch (error) {
+      console.error('获取表头失败:', error)
+      throw new Error(`获取表头失败: ${error.message}`)
+    }
+  }
+
   return {
     parseExcel,
+    getHeaders,
     getProgress,
     resetProgress,
   }

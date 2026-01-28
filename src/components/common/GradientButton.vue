@@ -1,0 +1,284 @@
+<template>
+  <button
+    class="gradient-button"
+    :class="[
+      `gradient-button-${type}`,
+      `gradient-button-${size}`,
+      {
+        'gradient-button-disabled': disabled,
+        'gradient-button-loading': loading,
+      },
+    ]"
+    :disabled="disabled || loading"
+    @click="handleClick"
+  >
+    <!-- Loading 图标 -->
+    <span v-if="loading" class="gradient-button-loading-icon">
+      <LoadingOutlined />
+    </span>
+
+    <!-- 图标插槽 -->
+    <span v-if="$slots.icon && !loading" class="gradient-button-icon">
+      <slot name="icon"></slot>
+    </span>
+
+    <!-- 默认内容插槽 -->
+    <span class="gradient-button-content">
+      <slot></slot>
+    </span>
+  </button>
+</template>
+
+<script setup>
+/**
+ * GradientButton 组件
+ * 渐变按钮组件，支持主渐变和次级样式
+ *
+ * @component
+ * @example
+ * <GradientButton type="primary" size="md" @click="handleClick">
+ *   <template #icon><PlusOutlined /></template>
+ *   点击按钮
+ * </GradientButton>
+ */
+import { LoadingOutlined } from '@ant-design/icons-vue'
+
+/**
+ * 组件属性定义
+ */
+const props = defineProps({
+  /** 按钮类型：primary（主渐变）、secondary（次级） */
+  type: {
+    type: String,
+    default: 'primary',
+    validator: (value) => ['primary', 'secondary'].includes(value),
+  },
+  /** 按钮尺寸：sm（小）、md（中）、lg（大） */
+  size: {
+    type: String,
+    default: 'md',
+    validator: (value) => ['sm', 'md', 'lg'].includes(value),
+  },
+  /** 是否禁用 */
+  disabled: {
+    type: Boolean,
+    default: false,
+  },
+  /** 是否加载中 */
+  loading: {
+    type: Boolean,
+    default: false,
+  },
+})
+
+/**
+ * 组件事件定义
+ */
+const emit = defineEmits({
+  /** 点击事件 */
+  click: [event],
+})
+
+/**
+ * 处理点击事件
+ * @param event - 鼠标事件对象
+ */
+const handleClick = (event) => {
+  if (!props.disabled && !props.loading) {
+    emit('click', event)
+  }
+}
+</script>
+
+<style scoped>
+/**
+ * 渐变按钮基础样式
+ */
+.gradient-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: #ffffff;
+  background: var(--primary-gradient, linear-gradient(135deg, #1677ff 0%, #14c9c9 100%));
+  border: none;
+  border-radius: var(--border-radius-sm, 8px);
+  box-shadow: var(--shadow-sm, 0 2px 8px 0 rgba(0, 0, 0, 0.08));
+  cursor: pointer;
+  transition: all var(--transition-fast, 120ms) ease;
+  user-select: none;
+  outline: none;
+}
+
+/**
+ * Hover 效果：亮度 +10%
+ */
+.gradient-button:hover:not(.gradient-button-disabled):not(.gradient-button-loading) {
+  filter: brightness(1.1);
+  box-shadow: var(--shadow-md, 0 4px 16px 0 rgba(0, 0, 0, 0.1));
+}
+
+/**
+ * Active 效果：缩放 0.98
+ */
+.gradient-button:active:not(.gradient-button-disabled):not(.gradient-button-loading) {
+  transform: scale(0.98);
+}
+
+/**
+ * Focus 状态：显示焦点环
+ */
+.gradient-button:focus-visible:not(.gradient-button-disabled) {
+  box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.3);
+}
+
+/**
+ * 禁用状态
+ */
+.gradient-button-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  filter: grayscale(0.3);
+}
+
+/**
+ * 加载状态
+ */
+.gradient-button-loading {
+  cursor: wait;
+  opacity: 0.8;
+}
+
+/**
+ * Loading 图标
+ */
+.gradient-button-loading-icon {
+  display: inline-flex;
+  align-items: center;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/**
+ * 图标插槽
+ */
+.gradient-button-icon {
+  display: inline-flex;
+  align-items: center;
+  font-size: 16px;
+}
+
+/**
+ * 内容插槽
+ */
+.gradient-button-content {
+  display: inline-flex;
+  align-items: center;
+}
+
+/**
+ * 按钮类型：primary（主渐变）
+ */
+.gradient-button-primary {
+  background: var(--primary-gradient, linear-gradient(135deg, #1677ff 0%, #14c9c9 100%));
+}
+
+/**
+ * 按钮类型：secondary（次级样式）
+ */
+.gradient-button-secondary {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+}
+
+/**
+ * 按钮尺寸：sm（小）
+ */
+.gradient-button-sm {
+  height: 28px;
+  padding: 0 12px;
+  font-size: 12px;
+  border-radius: var(--border-radius-xs, 4px);
+}
+
+.gradient-button-sm .gradient-button-icon {
+  font-size: 14px;
+}
+
+/**
+ * 按钮尺寸：md（中）
+ */
+.gradient-button-md {
+  height: 36px;
+  padding: 0 16px;
+  font-size: 14px;
+  border-radius: var(--border-radius-sm, 8px);
+}
+
+.gradient-button-md .gradient-button-icon {
+  font-size: 16px;
+}
+
+/**
+ * 按钮尺寸：lg（大）
+ */
+.gradient-button-lg {
+  height: 44px;
+  padding: 0 24px;
+  font-size: 16px;
+  border-radius: var(--border-radius-md, 12px);
+}
+
+.gradient-button-lg .gradient-button-icon {
+  font-size: 18px;
+}
+
+/* 暗色主题支持 */
+[data-theme='dark'] .gradient-button {
+  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.3);
+}
+
+[data-theme='dark']
+  .gradient-button:hover:not(.gradient-button-disabled):not(.gradient-button-loading) {
+  box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.4);
+}
+
+[data-theme='dark'] .gradient-button:focus-visible:not(.gradient-button-disabled) {
+  box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.5);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .gradient-button-lg {
+    height: 40px;
+    padding: 0 20px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .gradient-button-md {
+    height: 32px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+
+  .gradient-button-lg {
+    height: 36px;
+    padding: 0 18px;
+    font-size: 14px;
+  }
+}
+</style>

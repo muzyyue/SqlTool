@@ -118,7 +118,7 @@
               <a-select
                 v-model:value="deduplicationColumn"
                 placeholder="选择去重列"
-                style="width: 100%"
+                style="width: 100%; max-width: 300px"
                 @change="applyDeduplication"
               >
                 <a-select-option
@@ -133,6 +133,61 @@
                 <a-tag color="blue">原始: {{ deduplicationStats.originalRows }} 行</a-tag>
                 <a-tag color="green">去重后: {{ deduplicationStats.deduplicatedRows }} 行</a-tag>
                 <a-tag color="orange">去重: {{ deduplicationStats.removedRows }} 行</a-tag>
+              </div>
+            </div>
+          </div>
+
+          <!-- 行范围选择配置 -->
+          <div v-if="excelData && excelData.length > 0" class="row-range-config">
+            <a-divider style="margin: 12px 0" />
+            <div class="row-range-header">
+              <a-checkbox v-model:checked="rowRangeEnabled" @change="handleRowRangeToggle">
+                启用行范围选择
+              </a-checkbox>
+              <a-tooltip title="只处理指定范围内的Excel行，提高处理效率">
+                <QuestionCircleOutlined />
+              </a-tooltip>
+            </div>
+            <div v-if="rowRangeEnabled" class="row-range-controls">
+              <div class="row-range-inputs">
+                <div class="row-range-input">
+                  <label>起始行:</label>
+                  <a-input-number
+                    v-model:value="startRow"
+                    :min="1"
+                    :max="totalExcelRows"
+                    :placeholder="`1-${totalExcelRows}`"
+                    style="width: 100%"
+                  />
+                </div>
+                <div class="row-range-input">
+                  <label>结束行:</label>
+                  <a-input-number
+                    v-model:value="endRow"
+                    :min="1"
+                    :max="totalExcelRows"
+                    :placeholder="`1-${totalExcelRows}`"
+                    style="width: 100%"
+                  />
+                </div>
+              </div>
+              <div class="row-range-options">
+                <a-checkbox v-model:checked="includeHeader"> 包含表头 </a-checkbox>
+                <a-tag color="blue">文件总行数: {{ totalExcelRows }}</a-tag>
+              </div>
+              <div class="row-range-actions">
+                <a-button type="primary" size="small" @click="applyRowRange">
+                  <template #icon><CheckOutlined /></template>
+                  应用行范围
+                </a-button>
+                <a-button size="small" @click="resetRowRange">
+                  <template #icon><ReloadOutlined /></template>
+                  重置范围
+                </a-button>
+              </div>
+              <div v-if="startRow && endRow" class="row-range-stats">
+                <a-tag color="green">选择范围: {{ startRow }} - {{ endRow }}</a-tag>
+                <a-tag color="orange">将处理 {{ endRow - startRow + 1 }} 行</a-tag>
               </div>
             </div>
           </div>
@@ -224,7 +279,7 @@
                   <a-select
                     v-if="excelHeaders && excelHeaders.length > 0"
                     v-model:value="record.excelIndex"
-                    style="width: 100%; margin-top: 8px"
+                    style="width: 100%; max-width: 280px; margin-top: 8px"
                     placeholder="选择Excel列"
                     size="small"
                     @change="(value) => updateMapping(record.ddlField.name, value)"
@@ -354,7 +409,7 @@
               <a-select
                 v-model:value="conditionFields"
                 mode="multiple"
-                style="width: 100%"
+                style="width: 100%; max-width: 300px"
                 placeholder="请选择条件字段"
                 :max-tag-count="3"
               >
@@ -593,6 +648,7 @@
       :excel-headers="excelHeaders"
       :custom-binding-manager="customBindingManager"
       :editing-field="editingCustomField"
+      :field-mappings="fieldMappings"
       @save="handleCustomBindingSave"
       @cancel="handleCustomBindingCancel"
     />
@@ -600,7 +656,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, h } from 'vue'
+import { ref, computed, watch, onMounted, h } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import {
   ReloadOutlined,
@@ -609,6 +665,7 @@ import {
   UploadOutlined,
   ClockCircleOutlined,
   SettingOutlined,
+  CheckOutlined,
 } from '@ant-design/icons-vue'
 
 // 导入核心功能模块
@@ -625,7 +682,7 @@ import CustomFieldManager from '@/components/CustomFieldManager/CustomFieldManag
 
 // 初始化核心功能模块
 const { parseDdl: parseDdlWithParser, clearCache } = useDdlParser()
-const { parseExcel: parseExcelEnhanced } = useExcelParserEnhanced()
+const { parseExcel: parseExcelEnhanced, getHeaders } = useExcelParserEnhanced()
 const {
   fieldMappings,
   matchFields,
@@ -664,6 +721,13 @@ const deduplicationStats = ref({
   deduplicatedRows: 0,
   removedRows: 0,
 })
+
+// 行范围选择相关状态
+const rowRangeEnabled = ref(false) // 是否启用行范围选择
+const startRow = ref(null) // 起始行
+const endRow = ref(null) // 结束行
+const includeHeader = ref(true) // 是否包含表头
+const totalExcelRows = ref(0) // Excel文件总行数
 
 // 自定义绑定相关
 const customBindingEnabled = ref(false)
@@ -731,17 +795,49 @@ const showFieldMapping = computed(() => {
   return parsedFields.value.length > 0 && excelHeaders.value.length > 0
 })
 
+/**
+ * 优化后的数据预览计算属性
+ * 使用缓存和限制数据量来提升性能
+ */
 const previewData = computed(() => {
-  return excelData.value.slice(0, 10)
+  // 如果没有数据，直接返回空数组
+  if (!excelData.value || excelData.value.length === 0) {
+    return []
+  }
+
+  // 只预览前10行数据，避免大量数据影响性能
+  const previewLimit = 10
+  const data = excelData.value.slice(0, previewLimit).map((row, index) => ({
+    key: `preview-${index}-${Date.now()}`, // 添加唯一key，避免Vue警告
+    ...row,
+  }))
+
+  return data
 })
 
+/**
+ * 优化后的预览列配置计算属性
+ * 添加缓存和错误处理
+ */
 const previewColumns = computed(() => {
-  return excelHeaders.value.map((header, index) => ({
+  // 如果没有表头，返回空数组
+  if (!excelHeaders.value || excelHeaders.value.length === 0) {
+    return []
+  }
+
+  // 限制列数量，避免过多列影响性能
+  const maxColumns = 20
+  const headersToDisplay = excelHeaders.value.slice(0, maxColumns)
+
+  const columns = headersToDisplay.map((header, index) => ({
     title: `${header} (列${index + 1})`,
     dataIndex: index,
-    key: index,
+    key: `col-${index}`,
     ellipsis: true,
+    width: 150, // 固定列宽，提升渲染性能
   }))
+
+  return columns
 })
 
 const sqlStats = computed(() => {
@@ -779,6 +875,41 @@ const conditionDescription = computed(() => {
 
   return `已选择 ${conditionFields.value.length} 个条件字段，使用 ${conditionLogic.value} 逻辑连接`
 })
+
+/**
+ * 监听字段选择变化，更新字段映射状态
+ * 当用户选择/取消选择条件字段或更新字段时，同步更新映射状态
+ */
+watch(
+  [() => conditionFields.value, () => updateFields.value],
+  ([newConditionFields, newUpdateFields], [oldConditionFields, oldUpdateFields]) => {
+    // 只有当数据已加载时才处理
+    if (parsedFields.value.length === 0 || excelHeaders.value.length === 0) {
+      return
+    }
+
+    // 检测是否有变化
+    const conditionChanged =
+      !oldConditionFields ||
+      JSON.stringify(newConditionFields.sort()) !== JSON.stringify(oldConditionFields.sort())
+    const updateChanged =
+      !oldUpdateFields ||
+      JSON.stringify(newUpdateFields.sort()) !== JSON.stringify(oldUpdateFields.sort())
+
+    if (conditionChanged || updateChanged) {
+      console.log('字段选择已变化，重新同步映射状态')
+      // 重新同步所有字段的映射状态
+      fieldMappings.value.forEach((mapping) => {
+        const field = parsedFields.value.find((f) => f.name === mapping.ddlField.name)
+        if (field) {
+          // 确保映射记录存在且是最新的
+          field.excelIndex = mapping.excelIndex
+        }
+      })
+    }
+  },
+  { deep: true },
+)
 
 // 表格列定义
 const mappingColumns = [
@@ -887,7 +1018,28 @@ const handleUpload = async (options) => {
   try {
     uploadedFile.value = file
 
-    const result = await parseExcelEnhanced(file)
+    // 先解析一次获取总行数
+    const initialResult = await parseExcelEnhanced(file, {
+      sheetIndex: 0,
+      maxRows: 10000,
+    })
+
+    totalExcelRows.value = initialResult.totalRows
+
+    // 根据行范围设置解析参数
+    const parseOptions = {
+      sheetIndex: 0,
+      maxRows: 10000,
+    }
+
+    // 如果启用了行范围选择，添加行范围参数
+    if (rowRangeEnabled.value && startRow.value && endRow.value) {
+      parseOptions.startRow = startRow.value
+      parseOptions.endRow = endRow.value
+      parseOptions.includeHeader = includeHeader.value
+    }
+
+    const result = await parseExcelEnhanced(file, parseOptions)
     excelData.value = result.rows
     excelHeaders.value = result.headers
 
@@ -959,14 +1111,36 @@ const handleGeneratedByFunctionChange = (record) => {
 }
 
 const clearMapping = (ddlFieldName) => {
-  updateFieldMapping(ddlFieldName, null, -1)
+  console.log('执行clearMapping:', ddlFieldName)
+
+  // 从fieldMappings中移除对应的映射记录（参考INSERT页面的实现）
+  const mappingIndex = fieldMappings.value.findIndex(
+    (mapping) => mapping.ddlField.name === ddlFieldName,
+  )
+  if (mappingIndex >= 0) {
+    fieldMappings.value.splice(mappingIndex, 1)
+    console.log('已从fieldMappings移除映射记录:', ddlFieldName)
+  }
+
+  // 从 updateFields 中移除被清除的字段（如果它不在条件字段中）
+  const fieldIndex = updateFields.value.indexOf(ddlFieldName)
+  if (fieldIndex !== -1 && !conditionFields.value.includes(ddlFieldName)) {
+    updateFields.value.splice(fieldIndex, 1)
+  }
+
   logInfo(`清除字段映射: ${ddlFieldName}`)
+  message.info(`已清除字段映射: ${ddlFieldName}`)
 }
 
 const clearAllMappings = () => {
-  parsedFields.value.forEach((field) => {
-    updateFieldMapping(field.name, null, -1)
-  })
+  // 移除所有fieldMappings中的映射记录
+  const originalCount = fieldMappings.value.length
+  fieldMappings.value = []
+  console.log(`已清除所有字段映射，共${originalCount}条记录`)
+
+  // 清除所有 updateFields（除了条件字段）
+  updateFields.value = updateFields.value.filter((field) => conditionFields.value.includes(field))
+
   logInfo('清除所有字段映射')
   message.info('已清除所有字段映射')
 }
@@ -1264,6 +1438,198 @@ const applyDeduplication = () => {
   }
 }
 
+/**
+ * 处理行范围开关切换
+ * 当关闭行范围选择时，重置行范围参数
+ */
+const handleRowRangeToggle = (checked) => {
+  if (!checked) {
+    startRow.value = null
+    endRow.value = null
+    logInfo('已关闭行范围选择')
+  } else {
+    logInfo('已启用行范围选择，请设置起始行和结束行')
+  }
+}
+
+/**
+ * 应用行范围
+ * 根据用户设置的行范围重新解析Excel文件
+ */
+const applyRowRange = async () => {
+  if (!uploadedFile.value) {
+    message.warning('请先上传Excel文件')
+    return
+  }
+
+  if (!startRow.value || !endRow.value) {
+    message.warning('请设置起始行和结束行')
+    return
+  }
+
+  if (startRow.value > endRow.value) {
+    message.error('起始行不能大于结束行')
+    return
+  }
+
+  if (startRow.value > totalExcelRows.value || endRow.value > totalExcelRows.value) {
+    message.error(`行数超出范围，文件总行数为 ${totalExcelRows.value}`)
+    return
+  }
+
+  uploading.value = true
+
+  try {
+    // 如果需要保留原始表头，使用快速方法获取表头
+    let headers = []
+    let rows = []
+
+    if (includeHeader.value) {
+      // 直接从已解析的excelData中提取第一行作为表头
+      if (excelData.value && excelData.value.length > 0) {
+        // 使用第一行数据作为表头
+        const firstRow = excelData.value[0]
+        headers = Object.keys(firstRow).map((key) => {
+          // 如果key是数字（如"0", "1"），转换为列名
+          const colIndex = parseInt(key)
+          if (!isNaN(colIndex)) {
+            return key
+          }
+          // 如果key是数字，说明是默认列名，使用excelHeaders
+          if (excelHeaders.value && excelHeaders.value.length > colIndex) {
+            return excelHeaders.value[colIndex]
+          }
+          return `Column_${colIndex + 1}`
+        })
+
+        console.log('[applyRowRange] 从已解析数据中提取表头:', headers)
+
+        // 使用已解析的数据
+        rows = excelData.value
+      } else {
+        // 如果没有已解析数据，使用getHeaders
+        headers = await getHeaders(uploadedFile.value, {
+          sheetIndex: 0,
+        })
+      }
+
+      // 如果需要获取数据范围，重新解析
+      if (rows.length === 0 && startRow.value && endRow.value) {
+        const dataResult = await parseExcelEnhanced(uploadedFile.value, {
+          sheetIndex: 0,
+          maxRows: 10000,
+          startRow: startRow.value,
+          endRow: endRow.value,
+          includeHeader: false, // 数据范围不包含表头
+        })
+        rows = dataResult.rows
+      }
+    } else {
+      // 不包含表头的情况，直接解析数据范围
+      const result = await parseExcelEnhanced(uploadedFile.value, {
+        sheetIndex: 0,
+        maxRows: 10000,
+        startRow: startRow.value,
+        endRow: endRow.value,
+        includeHeader: false,
+      })
+      headers = result.headers
+      rows = result.rows
+    }
+
+    excelData.value = rows
+    excelHeaders.value = headers
+
+    const selectedRowCount = rows.length
+    logInfo(
+      `行范围应用成功: ${startRow.value}-${endRow.value}，共 ${rows.length} 行数据`,
+      'row-range',
+      {
+        operation: 'applyRowRange',
+        startRow: startRow.value,
+        endRow: endRow.value,
+        includeHeader: includeHeader.value,
+        selectedRowCount,
+        actualRowCount: rows.length,
+      },
+    )
+    message.success(`行范围应用成功，共 ${rows.length} 行数据`)
+
+    // 如果已有DDL字段，自动执行字段匹配
+    if (parsedFields.value.length > 0) {
+      autoMatchFields()
+    }
+  } catch (error) {
+    console.error('应用行范围失败:', error)
+
+    let errorMessage = error.message || '未知错误'
+    let userFriendlyMessage = errorMessage
+
+    // 提供更友好的错误提示
+    if (errorMessage.includes('无法识别表头信息')) {
+      userFriendlyMessage =
+        'Excel文件所有行都没有有效的表头数据，请检查文件内容或选择包含表头的行范围'
+    } else if (errorMessage.includes('获取表头超时')) {
+      userFriendlyMessage = '读取Excel表头超时，请检查文件是否过大或损坏'
+    } else if (errorMessage.includes('工作表') && errorMessage.includes('为空')) {
+      userFriendlyMessage = '所选工作表为空，请选择其他工作表'
+    } else if (errorMessage.includes('没有找到有效的工作表')) {
+      userFriendlyMessage = 'Excel文件中没有有效的工作表，请检查文件格式'
+    } else if (errorMessage.includes('获取表头失败')) {
+      userFriendlyMessage = '无法读取Excel表头，请检查文件格式和内容'
+    }
+    message.error(userFriendlyMessage)
+  } finally {
+    uploading.value = false
+  }
+}
+
+/**
+ * 重置行范围
+ * 恢复到处理所有行
+ */
+const resetRowRange = async () => {
+  if (!uploadedFile.value) {
+    message.warning('请先上传Excel文件')
+    return
+  }
+
+  uploading.value = true
+
+  try {
+    const result = await parseExcelEnhanced(uploadedFile.value, {
+      sheetIndex: 0,
+      maxRows: 10000,
+    })
+
+    excelData.value = result.rows
+    excelHeaders.value = result.headers
+
+    startRow.value = null
+    endRow.value = null
+
+    logInfo(`行范围已重置，共 ${result.rows.length} 行数据`, 'row-range', {
+      operation: 'resetRowRange',
+      totalRowCount: result.rows.length,
+    })
+    message.success(`行范围已重置，共 ${result.rows.length} 行数据`)
+
+    // 如果已有DDL字段，自动执行字段匹配
+    if (parsedFields.value.length > 0) {
+      autoMatchFields()
+    }
+  } catch (error) {
+    console.error('重置行范围失败:', error)
+    const friendlyError = logError(error, 'row-range', {
+      operation: 'resetRowRange',
+      errorMessage: error.message,
+    })
+    message.error(friendlyError)
+  } finally {
+    uploading.value = false
+  }
+}
+
 const openCustomBindingModal = () => {
   showCustomBindingModal.value = true
 }
@@ -1339,6 +1705,43 @@ const handleCustomBindingSave = (customFieldsData) => {
         }
         fieldMappings.value.push(mapping)
         console.log(`已添加单列绑定映射: ${ddlFieldName} -> 列${excelIndex + 1}`)
+      }
+    })
+
+    // 2.5. 处理字段拼接规则中的自定义字段名称
+    const fieldConcatenationRules = Array.isArray(
+      customBindingManager.fieldConcatenationRules.value,
+    )
+      ? customBindingManager.fieldConcatenationRules.value
+      : []
+
+    console.log('字段拼接规则数据:', fieldConcatenationRules)
+
+    // 从字段拼接规则中提取自定义字段
+    fieldConcatenationRules.forEach((rule) => {
+      console.log('处理字段拼接规则:', rule)
+      console.log('  ddlFieldName:', rule.ddlFieldName)
+      console.log('  sourceColumns:', rule.sourceColumns)
+
+      // 使用 ddlFieldName 作为自定义字段名称
+      if (rule.ddlFieldName && rule.ddlFieldName.trim() !== '') {
+        const customField = {
+          fieldName: rule.ddlFieldName,
+          dataType: rule.dataType || 'string',
+          dataSource: 'excel_combine',
+          excelCombineConfig: {
+            columns: rule.sourceColumns || [],
+            separator: rule.separator || '',
+            format: rule.format || '',
+            isFromConcatenationRule: true,
+          },
+        }
+
+        // 将自定义字段添加到 customBindingManager
+        customBindingManager.addCustomField(customField)
+        console.log(`从字段拼接规则添加自定义字段: ${customField.fieldName}`)
+      } else {
+        console.log('跳过规则，ddlFieldName为空')
       }
     })
 
@@ -1584,16 +1987,30 @@ const resetBeautifyOptions = () => {
  */
 const getOptionChanges = (previous, current) => {
   const changes = []
-  for (const key in current) {
-    if (previous[key] !== current[key]) {
-      changes.push({
-        key,
-        previous: previous[key],
-        current: current[key],
-      })
-    }
+
+  if (previous.indentSpaces !== current.indentSpaces) {
+    changes.push(`缩进空格数: ${previous.indentSpaces} → ${current.indentSpaces}`)
   }
-  return changes
+
+  if (previous.formatStyle !== current.formatStyle) {
+    changes.push(`格式化风格: ${previous.formatStyle} → ${current.formatStyle}`)
+  }
+
+  if (previous.keywordCase !== current.keywordCase) {
+    changes.push(`关键字大小写: ${previous.keywordCase} → ${current.keywordCase}`)
+  }
+
+  if (previous.maxLineLength !== current.maxLineLength) {
+    changes.push(`最大行长度: ${previous.maxLineLength} → ${current.maxLineLength}`)
+  }
+
+  if (previous.alignValues !== current.alignValues) {
+    changes.push(
+      `垂直对齐: ${previous.alignValues ? '开启' : '关闭'} → ${current.alignValues ? '开启' : '关闭'}`,
+    )
+  }
+
+  return changes.length > 0 ? changes : ['无变更']
 }
 
 const resetAll = () => {
@@ -1633,6 +2050,7 @@ onMounted(() => {
 .update-page {
   padding: 0;
   min-height: 100%;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
 }
 
 .page-header {
@@ -1651,11 +2069,13 @@ onMounted(() => {
   color: #1890ff;
   font-size: 24px;
   font-weight: 600;
+  margin-right: 20px;
 }
 
 .header-actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
+  margin-left: auto;
 }
 
 .content-grid {
@@ -1663,6 +2083,8 @@ onMounted(() => {
   grid-template-columns: 1fr 1fr;
   gap: 24px;
   min-height: 600px;
+  width: 100%;
+  max-width: 100%;
 }
 
 .input-section,
@@ -1670,36 +2092,55 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .input-card,
 .output-card {
   background: white;
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.08),
+    0 2px 4px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.input-card:hover,
+.output-card:hover {
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.1),
+    0 3px 6px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
 }
 
 .card-header h3 {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
+  color: #1e293b;
 }
 
 .card-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid #f0f0f0;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f1f5f9;
 }
 
 .field-count {
@@ -1789,6 +2230,7 @@ onMounted(() => {
   gap: 16px;
   margin-top: 16px;
   padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
 }
 
 /* SQL美化选项面板样式 */
@@ -1814,21 +2256,26 @@ onMounted(() => {
 
 .option-label {
   min-width: 120px;
-  color: #333;
+  font-weight: 500;
+  color: #495057;
   font-size: 14px;
 }
 
 .option-value {
-  min-width: 40px;
-  text-align: right;
+  min-width: 30px;
+  text-align: center;
+  font-weight: 600;
   color: #1890ff;
-  font-weight: 500;
+  font-size: 14px;
 }
 
 .option-actions {
   display: flex;
+  justify-content: flex-end;
   gap: 8px;
-  padding-top: 8px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e9ecef;
 }
 
 .condition-preview {
@@ -1919,7 +2366,7 @@ onMounted(() => {
 @media (max-width: 480px) {
   .input-card,
   .output-card {
-    padding: 12px;
+    padding: 16px;
   }
 
   .card-header {
@@ -1944,26 +2391,362 @@ onMounted(() => {
   }
 }
 
-/* 去重配置样式 */
+/* 去重配置样式 - 优化版 */
 .deduplication-config {
-  margin-top: 12px;
+  margin-top: 16px;
 }
 
 .deduplication-header {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--card-bg, rgba(255, 255, 255, 0.85));
+  backdrop-filter: blur(var(--backdrop-blur, 20px));
+  -webkit-backdrop-filter: blur(var(--backdrop-blur, 20px));
+  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.5));
+  border-radius: var(--border-radius-md, 12px);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
+  transition: all var(--transition-normal, 200ms) ease;
+}
+
+.deduplication-header:hover {
+  box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.1));
 }
 
 .deduplication-controls {
-  margin-top: 12px;
+  margin-top: 16px;
+  padding: 20px;
+  background: var(--card-bg, rgba(255, 255, 255, 0.85));
+  backdrop-filter: blur(var(--backdrop-blur, 20px));
+  -webkit-backdrop-filter: blur(var(--backdrop-blur, 20px));
+  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.5));
+  border-radius: var(--border-radius-md, 12px);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
+  transition: all var(--transition-normal, 200ms) ease;
+}
+
+.deduplication-controls:hover {
+  box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.1));
+}
+
+.deduplication-controls .ant-select {
+  transition: all var(--transition-fast, 120ms) ease;
+}
+
+.deduplication-controls .ant-select:hover {
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
+}
+
+.deduplication-controls .ant-select-focused {
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.3);
 }
 
 .deduplication-stats {
-  margin-top: 12px;
+  margin-top: 16px;
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(22, 119, 255, 0.05) 0%, rgba(20, 201, 201, 0.05) 100%);
+  border: 1px solid rgba(22, 119, 255, 0.1);
+  border-radius: var(--border-radius-sm, 8px);
   display: flex;
-  gap: 8px;
+  gap: 12px;
   flex-wrap: wrap;
+  transition: all var(--transition-normal, 200ms) ease;
+}
+
+.deduplication-stats:hover {
+  background: linear-gradient(135deg, rgba(22, 119, 255, 0.08) 0%, rgba(20, 201, 201, 0.08) 100%);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
+}
+
+.deduplication-stats .ant-tag {
+  background: white;
+  border: 1px solid rgba(22, 119, 255, 0.2);
+  color: var(--text-primary, #1f2937);
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: var(--border-radius-xs, 4px);
+  transition: all var(--transition-fast, 120ms) ease;
+}
+
+.deduplication-stats .ant-tag:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
+}
+
+.deduplication-stats .ant-tag.ant-tag-blue {
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #3b82f6;
+}
+
+.deduplication-stats .ant-tag.ant-tag-green {
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #10b981;
+}
+
+.deduplication-stats .ant-tag.ant-tag-orange {
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #f59e0b;
+}
+
+/* 暗色主题支持 */
+[data-theme='dark'] .deduplication-header {
+  background: var(--card-bg, rgba(30, 41, 59, 0.6));
+  border-color: var(--card-border, rgba(255, 255, 255, 0.1));
+}
+
+[data-theme='dark'] .deduplication-controls {
+  background: var(--card-bg, rgba(30, 41, 59, 0.6));
+  border-color: var(--card-border, rgba(255, 255, 255, 0.1));
+}
+
+[data-theme='dark'] .deduplication-stats {
+  background: linear-gradient(135deg, rgba(22, 119, 255, 0.1) 0%, rgba(20, 201, 201, 0.1) 100%);
+  border-color: rgba(22, 119, 255, 0.2);
+}
+
+[data-theme='dark'] .deduplication-stats .ant-tag {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: rgba(22, 119, 255, 0.3);
+  color: var(--text-primary, #f3f4f6);
+}
+
+/* 行范围选择样式 - 优化版 */
+.row-range-config {
+  margin-top: 16px;
+}
+
+.row-range-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--card-bg, rgba(255, 255, 255, 0.85));
+  backdrop-filter: blur(var(--backdrop-blur, 20px));
+  -webkit-backdrop-filter: blur(var(--backdrop-blur, 20px));
+  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.5));
+  border-radius: var(--border-radius-md, 12px);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
+  transition: all var(--transition-normal, 200ms) ease;
+}
+
+.row-range-header:hover {
+  box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.1));
+}
+
+.row-range-controls {
+  margin-top: 16px;
+  padding: 20px;
+  background: var(--card-bg, rgba(255, 255, 255, 0.85));
+  backdrop-filter: blur(var(--backdrop-blur, 20px));
+  -webkit-backdrop-filter: blur(var(--backdrop-blur, 20px));
+  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.5));
+  border-radius: var(--border-radius-md, 12px);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
+  transition: all var(--transition-normal, 200ms) ease;
+}
+
+.row-range-controls:hover {
+  box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.1));
+}
+
+.row-range-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.row-range-input {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.row-range-input label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary, #1f2937);
+  transition: color var(--transition-fast, 120ms) ease;
+}
+
+.row-range-input .ant-input-number {
+  transition: all var(--transition-fast, 120ms) ease;
+}
+
+.row-range-input .ant-input-number:hover {
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
+}
+
+.row-range-input .ant-input-number:focus-within {
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.3);
+}
+
+.row-range-options {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--card-border, rgba(255, 255, 255, 0.5));
+  transition: all var(--transition-fast, 120ms) ease;
+}
+
+.row-range-options .ant-checkbox-wrapper {
+  transition: all var(--transition-fast, 120ms) ease;
+}
+
+.row-range-options .ant-checkbox-wrapper:hover {
+  color: var(--primary-gradient, linear-gradient(135deg, #1677ff 0%, #14c9c9 100%));
+}
+
+.row-range-options .ant-tag {
+  background: linear-gradient(135deg, rgba(22, 119, 255, 0.1) 0%, rgba(20, 201, 201, 0.1) 100%);
+  border: 1px solid rgba(22, 119, 255, 0.2);
+  color: #1677ff;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: var(--border-radius-xs, 4px);
+  transition: all var(--transition-fast, 120ms) ease;
+}
+
+.row-range-options .ant-tag:hover {
+  background: linear-gradient(135deg, rgba(22, 119, 255, 0.15) 0%, rgba(20, 201, 201, 0.15) 100%);
+  transform: translateY(-1px);
+}
+
+.row-range-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.row-range-actions .ant-btn {
+  transition: all var(--transition-fast, 120ms) ease;
+}
+
+.row-range-actions .ant-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
+}
+
+.row-range-actions .ant-btn:active {
+  transform: scale(0.98);
+}
+
+.row-range-stats {
+  margin-top: 16px;
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(22, 119, 255, 0.05) 0%, rgba(20, 201, 201, 0.05) 100%);
+  border: 1px solid rgba(22, 119, 255, 0.1);
+  border-radius: var(--border-radius-sm, 8px);
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  transition: all var(--transition-normal, 200ms) ease;
+}
+
+.row-range-stats:hover {
+  background: linear-gradient(135deg, rgba(22, 119, 255, 0.08) 0%, rgba(20, 201, 201, 0.08) 100%);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
+}
+
+.row-range-stats .ant-tag {
+  background: white;
+  border: 1px solid rgba(22, 119, 255, 0.2);
+  color: var(--text-primary, #1f2937);
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: var(--border-radius-xs, 4px);
+  transition: all var(--transition-fast, 120ms) ease;
+}
+
+.row-range-stats .ant-tag:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
+}
+
+.row-range-stats .ant-tag.ant-tag-green {
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #10b981;
+}
+
+.row-range-stats .ant-tag.ant-tag-orange {
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #f59e0b;
+}
+
+/* 暗色主题支持 */
+[data-theme='dark'] .row-range-header {
+  background: var(--card-bg, rgba(30, 41, 59, 0.6));
+  border-color: var(--card-border, rgba(255, 255, 255, 0.1));
+}
+
+[data-theme='dark'] .row-range-controls {
+  background: var(--card-bg, rgba(30, 41, 59, 0.6));
+  border-color: var(--card-border, rgba(255, 255, 255, 0.1));
+}
+
+[data-theme='dark'] .row-range-input label {
+  color: var(--text-primary, #f3f4f6);
+}
+
+[data-theme='dark'] .row-range-options {
+  border-bottom-color: var(--card-border, rgba(255, 255, 255, 0.1));
+}
+
+[data-theme='dark'] .row-range-stats {
+  background: linear-gradient(135deg, rgba(22, 119, 255, 0.1) 0%, rgba(20, 201, 201, 0.1) 100%);
+  border-color: rgba(22, 119, 255, 0.2);
+}
+
+[data-theme='dark'] .row-range-stats .ant-tag {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: rgba(22, 119, 255, 0.3);
+  color: var(--text-primary, #f3f4f6);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .row-range-inputs {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .row-range-options {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .row-range-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .row-range-actions .ant-btn {
+    width: 100%;
+  }
+
+  .row-range-stats {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .row-range-header,
+  .row-range-controls {
+    padding: 16px 12px;
+  }
+
+  .row-range-input label {
+    font-size: 13px;
+  }
+
+  .row-range-stats {
+    padding: 12px;
+  }
 }
 
 /* 数据库类型选择样式 */

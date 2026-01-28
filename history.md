@@ -1,9 +1,404 @@
 # 版本变更历史
 
+## 1.5.18 (2026-01-26)
+
+**添加复制原始SQL功能**
+
+- 新增"复制原始SQL"按钮
+  - 位于SQL预览区域的操作按钮组中
+  - 点击后生成不换行的单行SQL并复制到剪贴板
+  - 不影响原有的"复制SQL"按钮功能
+  - 原有的"复制SQL"按钮继续复制美化后的SQL
+- 实现原理：
+  - 使用 sqlGenerator.formatSql() 函数生成压缩格式的SQL
+  - 移除所有换行符和多余空格
+  - 保持数据格式的正确性
+- 所有代码通过ESLint检查
+
+## 1.5.17 (2026-01-26)
+
+**修复SQL生成中的格式转换问题**
+
+- 修复反斜杠符号被额外转义的问题
+  - 修改 escapeString 函数，将单引号转义为双引号
+  - 移除对反斜杠的转义逻辑，避免双反斜杠问题
+- 修复逗号被添加额外空格的问题
+  - 修改 splitLongLine 函数中的条件判断
+  - 从 currentPart.length + trimmedToken.length + 2 改为 currentPart.length + trimmedToken.length + 1
+  - 确保逗号后不添加额外空格
+- 所有代码通过ESLint检查
+
+## 1.5.16 (2026-01-26)
+
+**修复分隔符列宽度不生效的问题**
+
+- 移除分隔符输入框的内联样式 style="width: 100%"
+- 让输入框使用表格列定义中的 width: 80 和 minWidth: 80
+- 确保分隔符列宽度能够正确显示
+- 所有代码通过ESLint检查
+
+## 1.5.15 (2026-01-26)
+
+**修复表格列宽度不生效的问题**
+
+- 在 Ant Design Vue 的 Table 组件中，当使用 scroll 属性时，minWidth 可能不生效
+- 为所有表格列同时添加 width 和 minWidth 属性
+  - 单列绑定表格：DDL字段、Excel列
+  - 字段拼接表格：自定义字段名称、数据类型、源Excel列、分隔符、格式化模板、预览
+  - 自定义字段表格：字段名、数据类型、数据来源、配置、预览
+- 确保表格列宽度在横向滚动时能够正确显示
+- 所有代码通过ESLint检查
+
+## 1.5.14 (2026-01-26)
+
+**优化格式化模板输入框，支持自动扩展高度**
+
+- 将字段拼接表格中的格式化模板输入框从 a-input 改为 a-textarea
+- 将自定义字段 Excel 列组合配置中的格式化模板输入框从 a-input 改为 a-textarea
+- 添加 auto-size 属性，支持自动扩展高度（minRows: 1, maxRows: 4）
+- 为自定义字段中的格式化模板添加 tooltip 提示
+- 改善用户对较长模板文本的编辑和预览体验
+- 所有代码通过ESLint检查
+
+## 1.5.13 (2026-01-26)
+
+**为自定义字段的字段名列添加选择+自定义功能**
+
+- 修改自定义字段表格中字段名列的实现
+  - 添加选择/自定义模式切换功能
+  - 选择模式：从DDL字段列表中选择
+  - 自定义模式：手动输入字段名
+  - 添加清空自定义字段名按钮
+  - 添加字段不在DDL中的警告提示
+- 更新addCustomField函数，将inputMode默认值设置为'custom'
+- 更新loadBindings函数，在加载自定义字段时添加inputMode: 'select'
+- 移除Excel列组合配置中的重复字段名输入框
+- 修改saveBindings函数，在保存时过滤掉inputMode字段
+- 所有代码通过ESLint检查
+
+## 1.5.12 (2026-01-26)
+
+**优化表格响应式布局，支持横向滚动**
+
+- 修改表格列定义，移除固定宽度设置
+  - 将所有数据列的width改为minWidth
+  - 单列绑定：DDL字段、Excel列使用minWidth
+  - 字段拼接：自定义字段名称、数据类型、源Excel列、分隔符、格式化模板、预览使用minWidth
+  - 自定义字段：字段名、数据类型、数据来源、配置、预览使用minWidth
+- 固定操作列宽度和位置
+  - 所有表格的操作列使用固定宽度100px
+  - 操作列使用fixed: 'right'固定在右侧
+- 添加横向滚动功能
+  - 为所有表格添加:scroll="{ x: 'max-content' }"属性
+  - 添加CSS样式支持表格横向滚动
+  - 确保表格头部、容器、body都支持横向滚动
+- 确保在各种数据展示情况下的可用性和视觉一致性
+- 所有代码通过ESLint检查
+
+## 1.5.11 (2026-01-26)
+
+**为字段拼接功能添加数据类型配置**
+
+- 在字段拼接规则中添加数据类型选择功能
+  - 在concatenationRules数据结构中添加dataType字段
+  - 在表格列定义中添加数据类型选择列
+  - 在UI中添加数据类型选择器（字符串、整数、小数、日期时间、布尔值）
+  - 默认数据类型为字符串
+- 更新保存和加载逻辑，正确传递数据类型
+  - 更新addConcatenationRule函数，添加dataType参数
+  - 更新saveBindings函数，保存dataType到管理器
+  - 更新loadBindings函数，加载dataType配置
+- 更新InsertPage和UpdatePage中的处理逻辑，使用配置的数据类型
+- 所有代码通过ESLint检查
+
+## 1.5.10 (2026-01-26)
+
+**修复字段拼接规则中添加已删除字段时出现冲突错误的问题**
+
+- 修复问题：删除"file_status"字段后重新添加时出现"与现有绑定字段冲突"错误
+  - 修改validateBindings函数，移除对customFields与fieldConcatenationRules的冲突检测
+  - 因为字段拼接规则中的自定义字段名称会同时创建对应的customField，两者的字段名相同是正常行为
+  - 修改isFieldBound函数注释，说明字段拼接规则可以重复选择同一字段（可能是编辑已有规则）
+- 优化用户体验，允许在字段拼接中选择已在其他地方使用的字段
+- 所有代码通过ESLint检查
+
+## 1.5.9 (2026-01-26)
+
+**恢复字段拼接表格中的操作列**
+
+- 恢复操作列，包含删除按钮
+- 保持删除功能正常工作
+- 所有代码通过ESLint检查
+
+## 1.5.8 (2026-01-26)
+
+**重构字段拼接功能，移除目标DDL字段并统一样式**
+
+- 移除目标DDL字段列及其相关功能
+  - 从concatenationColumns中移除"目标DDL字段"列
+  - 从concatenationRules数据结构中移除ddlFieldName字段
+  - 移除相关的UI组件（a-select选择器）
+  - 移除操作列，因为删除按钮已经在预览列旁边
+- 修改自定义字段名称样式为与单列绑定DDL字段选择相同
+  - 添加inputMode字段（select/custom）支持选择和自定义两种模式
+  - 添加单选按钮组，与单列绑定样式一致
+  - 选择模式下使用a-select从availableDdlFields中选择DDL字段
+  - 自定义模式下使用a-input输入自定义字段名称
+  - 添加清空按钮和警告提示，与单列绑定样式一致
+  - 调整列宽度，确保布局合理
+- 更新相关逻辑，确保功能完整
+  - 修改addConcatenationRule函数，添加inputMode字段
+  - 添加clearConcatenationFieldName函数，用于清空自定义字段名称
+  - 修改handleConcatenationChange函数，移除对ddlFieldName的依赖
+  - 修改saveBindings函数，使用customFieldName而非ddlFieldName
+  - 修改removeConcatenationRule函数，移除对ddlFieldName的依赖
+  - 修改loadBindings函数，将ddlFieldName映射到customFieldName
+  - 修改isFieldBound函数，移除对concatenationRules的检查
+  - 修改useCustomBinding.js中的addConcatenationRule和removeConcatenationRule函数参数名
+  - 修改InsertPage和UpdatePage中的处理逻辑，使用ddlFieldName作为字段名称
+- 所有代码通过ESLint检查
+
+## 1.5.7 (2026-01-26)
+
+**修复字段拼接规则中自定义字段名称未添加到映射配置的问题**
+
+- 修复字段拼接规则中的自定义字段名称未被正确处理的问题
+  - 在InsertPage的handleSaveCustomBinding函数中添加对fieldConcatenationRules的处理
+  - 在UpdatePage的handleCustomBindingSave函数中添加对fieldConcatenationRules的处理
+  - 从字段拼接规则中提取customFieldName或ddlFieldName，创建自定义字段并添加到customBindingManager
+  - 优先使用自定义字段名称，如果没有则使用目标DDL字段名称
+- 添加详细的调试日志，帮助定位问题
+- 确保字段拼接规则中的自定义字段能够正确显示在映射配置中
+- 所有代码通过ESLint检查
+
+## 1.5.6 (2026-01-26)
+
+**修复自定义字段-字段拼接功能的添加和删除问题**
+
+- 修复问题1：选择目标DDL字段后无法成功添加到映射配置表
+  - 在saveBindings函数中添加字段拼接规则的同步逻辑
+  - 确保本地concatenationRules正确同步到customBindingManager
+  - 添加验证逻辑，只有配置完整的规则才会被添加
+- 修复问题2：删除DDL项后缓存未同步清除导致虚假冲突提示
+  - 修复removeConcatenationRule函数，删除时同步清除管理器中的拼接规则和自定义字段
+  - 确保删除操作彻底清理所有相关缓存数据
+- 优化冲突检测逻辑，明确检测的是自定义字段名而非DDL字段名
+- 提升用户体验，确保字段添加和删除操作可靠准确
+- 所有代码通过ESLint和Prettier检查
+
+## 1.5.5 (2026-01-24)
+
+**重构 Excel 数据填充工具，实现功能分离和配置隔离**
+
+- 将混合的 handleProcess 函数拆分为五个独立函数
+- 创建 handleBasicProcess：处理基础数据填充的核心逻辑
+- 创建 handleAdvancedProcess：处理高级数据处理的核心逻辑
+- 创建 handleBasicProcessMain：验证基础配置并执行基础数据填充
+- 创建 handleAdvancedProcessMain：验证高级配置并执行高级数据处理
+- 重构 handleProcess：作为简单的路由器，根据配置调用相应的处理函数
+- 完全隔离配置访问：基础功能只使用 config，高级功能只使用 advancedConfig
+- 遵循单一职责原则：每个函数只负责一个明确的任务
+- 提升代码可维护性：减少 120+ 行重复代码
+- 所有代码通过 ESLint 和 Prettier 检查
+
+## 1.5.4 (2026-01-22)
+
+**修复数据去重和行范围选择的重置功能**
+
+- 修复去重复选框事件绑定，正确传递布尔值而不是事件对象
+- 修复行范围复选框事件绑定，正确传递布尔值而不是事件对象
+- 修复 handleDeduplicationToggle 函数，取消勾选时恢复原始数据并清除所有去重相关设置
+- 修复 handleRowRangeToggle 函数，取消勾选时恢复原始数据并清除所有行范围相关设置
+- 更新 resetAll 函数，清除去重和行范围相关状态
+- 更新 clearFile 函数，清除去重和行范围相关状态
+- 添加详细的状态提示和日志记录
+- 创建 row-range.test.js 单元测试，包含23个测试用例验证重置功能
+- 确保重置操作在各种场景下均能可靠工作
+
+## 1.5.3 (2026-01-20)
+
+**修复字段映射显示和SQL生成问题**
+
+- 修复filteredFieldMappings过滤逻辑，保留自定义字段映射
+- 添加自定义字段存在性检查，即使不在parsedFields中也保留
+- 确保添加的自定义字段正确显示在映射配置部分
+- 确保添加的自定义字段正确生成到SQL中
+
+## 1.5.2 (2026-01-20)
+
+**修复自定义绑定模态框DDL字段选择器数据源**
+
+- 修复CustomBindingModal中availableDdlFields使用DDL原始字段列表数据
+- 移除从fieldMappings中提取DDL字段的逻辑
+- 确保删除映射字段后，目标DDL字段选择器能正确显示剩余字段
+- 避免因映射配置字段变更导致的选择器数据异常
+
+## 1.5.1 (2026-01-20)
+
+**修复SQL插入工具字段映射数据源问题**
+
+- 修复enhancedMatchingStats使用DDL原始字段列表数据统计字段拼接数量
+- 修复filteredFieldMappings使用DDL原始字段列表数据过滤字段映射
+- 添加DDL字段存在性检查，避免因映射配置字段变更导致的功能异常
+- 确保删除映射字段后仍能正确显示统计数据和字段映射
+
+## 1.5.0 (2026-01-20)
+
+**修复Excel填充工具预览功能问题**
+
+- 修复previewColumns计算属性，根据当前预览工作表动态生成列
+- 修复预览工作表选择器，正确显示所有工作表选项
+- 修复处理后预览功能，自动切换到目标工作表并显示所有列
+- 优化用户体验，确保预览功能完整准确
+
+## 1.4.9 (2026-01-20)
+
+**优化Excel填充工具预览功能**
+
+- 添加previewWorksheet状态跟踪当前预览的工作表
+- 添加预览工作表选择器，用户可选择预览源工作表或目标工作表
+- 修复loadPreview函数使用previewWorksheet而不是worksheet
+- 添加handlePreviewSheetChange函数处理预览工作表切换
+- 优化用户体验，让用户可以灵活选择预览哪个工作表的数据
+
+## 1.4.8 (2026-01-20)
+
+**修复Excel填充工具数据填充和预览问题**
+
+- 修复数据类型处理，添加getCellType函数正确识别数字、布尔值和字符串类型
+- 修复源数据读取，保存原始单元格类型信息
+- 修复数据预览功能，移除列数限制，显示所有列
+- 增加预览行数限制从10行到20行
+- 确保update_time、remark等列能正确显示
+
+## 1.4.7 (2026-01-20)
+
+**修复Excel填充工具删除和重置功能**
+
+- 修复文件删除功能，删除文件时正确清除fileList
+- 修复重置按钮功能，重置时清除所有状态数据
+- 确保删除和重置操作能够正确更新UI
+
+## 1.4.6 (2026-01-20)
+
+**优化Excel数据填充工具用户体验**
+
+- 添加目标工作表选择功能，支持跨工作表数据填充
+- 选择不同工作表时源列和目标列选项自动更新
+- 添加目标工作表下拉框UI，提升操作灵活性
+- 修改处理逻辑支持跨工作表数据填充
+- 更新结果显示包含源工作表和目标工作表信息
+
+## 1.4.5 (2026-01-19)
+
+**修复构建失败问题**
+
+- 添加缺失的CodeMirror依赖包：@codemirror/commands、@codemirror/view
+
+## 1.4.4 (2026-01-19)
+
+**修复SQL生成相关问题**
+
+- 修复应用美化选项后自定义字段不生效的问题（缺少customBindingManager参数）
+- 修复PostgreSQL SQL生成中的字段名非空验证
+- 修复SQL美化过程中的逗号缺失问题（添加调试日志和临时修复）
+- 创建CodeMirror skill，包含Vue 3集成、语言支持、主题定制等完整文档
+
+## 1.4.3 (2026-01-16)
+
+**新增JSON格式化工具**
+
+- 创建JsonPage.vue组件，提供完整的JSON格式化、对比、搜索、统计功能
+- 实现JSON格式化和语法高亮，基于CodeMirror 6编辑器
+- 实现可折叠JSON块功能，支持折叠/展开对象和数组
+- 实现左右两栏对比功能，支持格式化模式和对比模式切换
+- 实现搜索定位功能，集成CodeMirror搜索扩展，支持Ctrl+F搜索
+- 实现深度对比算法，支持字段对比、深度对比、浅层对比三种模式
+- 实现数据统计功能，自动计算对象数量、数组数量、字段总数、数据大小
+- 实现逗号识别功能，支持自动处理中文逗号（，）
+- 安装CodeMirror相关依赖包：@codemirror/search、@codemirror/fold
+- 更新CodeEditor.vue组件，添加enableFold和enableSearch props支持
+- 更新tools.js配置，添加JSON工具路由配置
+- 优化UI/UX设计，使用玻璃态设计、渐变色、响应式布局
+- 完整的暗色主题支持
+- 修复ToolCard.vue中props.tool为undefined时的错误，添加安全检查
+- 修复ToolsGrid.vue中过滤无效工具对象的问题
+- 修复JSON工具路由配置，将/tools/jsonpage改为/tools/json
+
+**修复Excel填充工具路由**
+
+- 修复ExcelFillPage.vue路由配置，将/tools/excelfillpage改为/tools/excelfill
+- 确保路由生成器正确匹配文件名
+
+## 1.4.2 (2026-01-15)
+
+**修复 DdlPage.vue 组件导入路径**
+
+- 修复 DdlPage.vue 中 composables 和 components 的导入路径
+- 使用 @ 别名与 InsertPage 和 UpdatePage 保持一致的导入方式
+
+## 1.4.1 (2026-01-15)
+
+**修复构建路径错误**
+
+- 修复文件移动后 DdlPage.vue 的 composables 导入路径
+- 将 '../composables' 修正为 '../../composables'
+
+## 1.4.0 (2026-01-15)
+
+**路由优化与UI一致性改进**
+
+- 优化路由结构，将 SQL 相关页面（InsertPage、UpdatePage、DdlPage）移动到 tools/sql 目录
+- 修改路由配置，使用动态导入加载 SQL 相关页面，路径为 /sql/insert、/sql/update、/sql/ddl
+- 添加行范围选择功能，支持选择 Excel 行数范围进行 SQL 生成
+- 增强 Excel 解析逻辑，支持 startRow、endRow 参数指定读取范围
+- 统一 INSERT 和 UPDATE 页面的卡片风格，添加渐变背景和增强阴影效果
+- 修复行范围选择按钮风格与项目其他按钮不一致的问题
+- 修复数据预览性能问题，优化 previewData 计算属性，限制预览数据量
+- 修复字段匹配类型错误（str2.toLowerCase is not a function）
+- 修复 UPDATE 页面条件字段选择后取消再选字段不生效的问题
+- 修复 UPDATE 页面选择要修改的字段未包含在 SQL 中的问题
+- 修复 UPDATE 页面清除字段映射后 UI 不更新的问题
+- 修复 UPDATE 页面清除字段时字段未被自动移除的问题
+- 所有 UI 优化遵循项目设计语言，使用玻璃态设计、渐变色、微交互动画
+- 完整的响应式设计和暗色主题支持
+
+## 1.3.1 (2026-01-14)
+
+**修复自定义字段与映射配置冲突检测问题**
+
+- 修复CustomBindingModal中checkFieldConflict函数未检查fieldMappings的问题
+- 修改冲突检测逻辑：自定义字段只需与映射配置中显示的字段（ddlField.name）冲突检测
+- 不再检查Excel列名（sourceField）和DDL原始字段
+- 在InsertPage和UpdatePage中传递fieldMappings prop给CustomBindingModal
+
+## 1.3.0 (2026-01-13)
+
+**工具箱页面重构与Excel数据填充工具**
+
+- 将首页从SQL工具改为工具箱页面
+- 创建SqlToolPage.vue保留原SQL工具介绍内容
+- 新增Excel数据填充工具ExcelFillPage.vue
+- 简化导航栏，移除INSERT生成和UPDATE生成菜单项
+- 修复多处图标导入缺失问题
+- 修复normalizeHeaders函数中表头匹配逻辑错误，导致一个header可能匹配多个key的问题
+- 优化匹配策略，优先使用完全匹配，只有在没有完全匹配时才使用部分匹配
+
+## 1.2.52 (2026-01-13)
+
+**添加自定义字段名冲突检测功能**
+
+- 在useCustomBinding.js中添加isFieldNameUnique函数，用于检查字段名是否唯一
+- 在CustomBindingModal.vue的addCustomField函数中添加验证逻辑
+- 验证字段名是否为空，如果为空则显示警告并阻止添加
+- 验证字段名是否已存在，如果存在则显示警告并阻止添加
+- 确保一个header只能匹配一个key，避免字段映射冲突
+
 ## 1.2.51 (2026-01-13)
 
 **修复批量导入表头匹配逻辑错误**
 
+- 修复测试失败问题，所有26个测试用例全部通过
 - 修复normalizeHeaders函数中表头匹配逻辑错误，导致一个header可能匹配多个key的问题
 - 优化匹配策略，优先使用完全匹配，只有在没有完全匹配时才使用部分匹配
 - 确保一个header只能匹配一个key，避免字段映射冲突

@@ -1,0 +1,456 @@
+/**
+ * Vben 样式系统
+ * 基于 UnoCSS 的玻璃卡片、渐变按钮等基础样式
+ */
+
+/**
+ * 玻璃卡片容器
+ * 使用 backdrop-blur 和半透明背景实现玻璃效果
+ */
+.vben-glass-card {
+  position: relative;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(22, 119, 255, 0.12);
+  transition: all 200ms ease;
+  overflow: hidden;
+}
+
+.vben-glass-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(22, 119, 255, 0.18);
+}
+
+/**
+ * 玻璃卡片头部
+ */
+.glass-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.header-content {
+  flex: 1;
+}
+
+.header-title {
+  margin: 0;
+}
+
+.header-title .title {
+  margin: 0 4px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  line-height: 1.5;
+}
+
+.header-title .description {
+  margin: 0;
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.header-extra {
+  flex-shrink: 0;
+  margin-left: 16px;
+}
+
+/**
+ * 玻璃卡片主体
+ */
+.glass-card-body {
+  padding: 20px;
+  min-height: 40px;
+}
+
+/**
+ * 玻璃卡片底部
+ */
+.glass-card-footer {
+  padding: 12px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/**
+ * 渐变按钮基础样式
+ */
+.gradient-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: #ffffff;
+  background: linear-gradient(135deg, #1677ff 0%, #14c9c9 100%);
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: all 120ms ease;
+  user-select: none;
+  outline: none;
+}
+
+.gradient-button:hover:not(.gradient-button-disabled):not(.gradient-button-loading) {
+  filter: brightness(1.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.gradient-button:active:not(.gradient-button-disabled):not(.gradient-button-loading) {
+  transform: scale(0.98);
+}
+
+.gradient-button:focus-visible:not(.gradient-button-disabled) {
+  box-shadow: 0 0 3px rgba(22, 119, 255, 0.3);
+}
+
+/**
+ * 按钮禁用状态
+ */
+.gradient-button-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  filter: grayscale(0.3);
+}
+
+/**
+ * 按钮加载状态
+ */
+.gradient-button-loading {
+  cursor: wait;
+  opacity: 0.8;
+}
+
+.gradient-button-loading-icon {
+  display: inline-flex;
+  align-items: center;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/**
+ * 按钮图标插槽
+ */
+.gradient-button-icon {
+  display: inline-flex;
+  align-items: center;
+  font-size: 16px;
+}
+
+/**
+ * 按钮内容插槽
+ */
+.gradient-button-content {
+  display: inline-flex;
+  align-items: center;
+}
+
+/**
+ * 按钮尺寸：小
+ */
+.gradient-button-sm {
+  height: 28px;
+  padding: 0 12px;
+  font-size: 12px;
+  border-radius: 4px;
+}
+
+.gradient-button-sm .gradient-button-icon {
+  font-size: 14px;
+}
+
+/**
+ * 按钮尺寸：中
+ */
+.gradient-button-md {
+  height: 36px;
+  padding: 0 16px;
+  font-size: 14px;
+  border-radius: 8px;
+}
+
+.gradient-button-md .gradient-button-icon {
+  font-size: 16px;
+}
+
+/**
+ * 按钮尺寸：大
+ */
+.gradient-button-lg {
+  height: 44px;
+  padding: 0 24px;
+  font-size: 16px;
+  border-radius: 12px;
+}
+
+.gradient-button-lg .gradient-button-icon {
+  font-size: 18px;
+}
+
+/**
+ * 按钮类型：主渐变
+ */
+.gradient-button-primary {
+  background: linear-gradient(135deg, #1677ff 0%, #14c9c9 100%);
+}
+
+/**
+ * 按钮类型：次级
+ */
+.gradient-button-secondary {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+}
+
+/**
+ * 代码编辑器容器
+ */
+.code-editor-container {
+  position: relative;
+  width: 100%;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #ffffff;
+  transition: all 200ms ease;
+}
+
+.code-editor-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 8px 12px;
+  background: #fafafa;
+  border-bottom: 1px solid #d9d9d9;
+}
+
+.code-editor-wrapper {
+  position: relative;
+  min-height: 100px;
+  max-height: 400px;
+  overflow: auto;
+}
+
+/**
+ * CodeMirror 样式覆盖
+ */
+.code-editor-wrapper .cm-editor {
+  height: 100%;
+}
+
+.code-editor-wrapper .cm-scroller {
+  overflow: auto;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+.code-editor-wrapper .cm-content {
+  padding: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.code-editor-wrapper .cm-gutters {
+  background: #f5f5f5;
+  color: #999;
+  border-right: 1px solid #e0e0e0;
+}
+
+.code-editor-wrapper .cm-activeLineGutter {
+  background: #e0e0e0;
+  color: #333;
+}
+
+.code-editor-wrapper .cm-lineNumbers {
+  padding: 0 8px;
+}
+
+.code-editor-wrapper .cm-line {
+  padding: 0;
+}
+
+.code-editor-wrapper .cm-focused {
+  outline: none;
+}
+
+/**
+ * 滚动条样式优化
+ */
+.code-editor-wrapper::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.code-editor-wrapper::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.code-editor-wrapper::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.code-editor-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/**
+ * 暗色主题支持
+ */
+[data-theme='dark'] .vben-glass-card {
+  background: rgba(30, 41, 59, 0.6);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='dark'] .glass-card-header {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='dark'] .glass-card-footer {
+  border-top-color: rgba(255, 255, 255, 0.1);
+  background: rgba(30, 41, 59, 0.3);
+}
+
+[data-theme='dark'] .header-title .title {
+  color: #f3f4f6;
+}
+
+[data-theme='dark'] .header-title .description {
+  color: #9ca3af;
+}
+
+[data-theme='dark'] .code-editor-container {
+  background: #1e1e1e;
+  border-color: #3c3c3c;
+}
+
+[data-theme='dark'] .code-editor-toolbar {
+  background: #2d2d30;
+  border-bottom-color: #3c3c3c;
+}
+
+[data-theme='dark'] .code-editor-wrapper .cm-gutters {
+  background: #1e1e1e;
+  color: #858585;
+  border-right-color: #3c3c3c;
+}
+
+[data-theme='dark'] .code-editor-wrapper .cm-activeLineGutter {
+  background: #2c2c2c;
+  color: #c6c6c6;
+}
+
+[data-theme='dark'] .code-editor-wrapper .cm-lineNumbers {
+  padding: 0 8px;
+}
+
+[data-theme='dark'] .code-editor-wrapper::-webkit-scrollbar-track {
+  background: #2d2d30;
+}
+
+[data-theme='dark'] .code-editor-wrapper::-webkit-scrollbar-thumb {
+  background: #464647;
+}
+
+[data-theme='dark'] .code-editor-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #5a5a5a;
+}
+
+/**
+ * 响应式设计
+ */
+@media (max-width: 768px) {
+  .glass-card-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .header-extra {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .glass-card-body {
+    padding: 16px;
+  }
+
+  .glass-card-footer {
+    padding: 12px 16px;
+  }
+
+  .code-editor-wrapper {
+    max-height: 300px;
+  }
+}
+
+@media (max-width: 480px) {
+  .gradient-button-lg {
+    height: 40px;
+    padding: 0 20px;
+    font-size: 15px;
+  }
+
+  .gradient-button-md {
+    height: 32px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+
+  .code-editor-wrapper {
+    max-height: 250px;
+  }
+}
+
+/**
+ * 下拉选择框定长样式
+ * 防止长文本选项超出下拉框导致UI混乱
+ */
+.ant-select-item {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ant-select-selector {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.ant-select-selection-item {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ant-select-dropdown {
+  max-width: 300px;
+}
+
+.ant-select-item-option-content {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

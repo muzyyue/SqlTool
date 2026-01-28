@@ -179,10 +179,23 @@ export function useSqlGeneratorEnhanced() {
       throw new Error('没有有效的字段映射关系（所有字段都是自增主键、主键字段或未映射）')
     }
 
+    // 生成字段名列表，并验证字段名不为空
     const fieldNames = mappedFields.map((mapping) => {
       const fieldName = mapping.customFieldName || mapping.ddlField.name
+
+      // 验证字段名不为空
+      if (!fieldName || String(fieldName).trim() === '') {
+        throw new Error(`字段名不能为空（DDL字段: ${mapping.ddlField?.name || 'unknown'}）`)
+      }
+
       return escapeFieldName(fieldName, dbType)
     })
+
+    // 验证字段名列表中没有空字符串
+    const emptyFieldIndex = fieldNames.findIndex((name) => !name || String(name).trim() === '')
+    if (emptyFieldIndex !== -1) {
+      throw new Error(`字段名列表中包含空字段名（索引: ${emptyFieldIndex}）`)
+    }
     const valuesList = []
 
     // 处理每行数据
@@ -422,6 +435,14 @@ export function useSqlGeneratorEnhanced() {
     const valuesClause =
       valuesList.length > 1 ? `VALUES\n  ${valuesList.join(',\n  ')}` : `VALUES ${valuesList[0]}`
 
+    // 调试日志：输出valuesList和valuesClause
+    console.log('=== VALUES子句生成调试 ===')
+    console.log('valuesList长度:', valuesList.length)
+    console.log('valuesList:', valuesList)
+    console.log('valuesList[0]:', valuesList[0])
+    console.log('valuesClause:', valuesClause)
+    console.log('=== 结束 ===')
+
     return `INSERT INTO ${escapeFieldName(tableName, dbType)} (${fieldNames.join(', ')})\n${valuesClause};`
   }
 
@@ -437,6 +458,17 @@ export function useSqlGeneratorEnhanced() {
     updateFields = null,
     customBindingManager = null,
   ) => {
+    // 调试日志
+    console.log('=== generateSingleUpdateSql 调试 ===')
+    console.log('tableName:', tableName)
+    console.log('whereFields:', whereFields)
+    console.log('updateFields:', updateFields)
+    console.log('fieldMappings 数量:', fieldMappings.length)
+    console.log(
+      'fieldMappings:',
+      fieldMappings.map((m) => ({ name: m.ddlField?.name, excelIndex: m.excelIndex })),
+    )
+
     /**
      * 获取分组字段值
      * @param {Object} rowData - 数据行
@@ -459,6 +491,10 @@ export function useSqlGeneratorEnhanced() {
     const whereClauses = []
 
     fieldMappings.forEach((mapping) => {
+      console.log(
+        `处理字段: ${mapping.ddlField?.name}, excelIndex: ${mapping.excelIndex}, isWhereField: ${whereFields?.includes(mapping.ddlField?.name)}`,
+      )
+
       // 排除自增主键字段和主键字段（除非它们是WHERE条件字段）
       // 注意：标记为"函数生成"的字段不会被过滤
       const isWhereField = whereFields && whereFields.includes(mapping.ddlField.name)
@@ -467,15 +503,19 @@ export function useSqlGeneratorEnhanced() {
         !mapping.generatedByFunction &&
         (mapping.ddlField.isIdentity || mapping.ddlField.primaryKey)
       ) {
+        console.log(`跳过自增/主键字段: ${mapping.ddlField.name}`)
         return // 跳过自增主键字段和主键字段
       }
 
       // 如果指定了updateFields，只更新用户选择的字段
       if (updateFields && updateFields.length > 0 && !isWhereField) {
         if (!updateFields.includes(mapping.ddlField.name)) {
+          console.log(`跳过未选择的字段: ${mapping.ddlField.name}`)
           return // 跳过未选择的字段
         }
       }
+
+      console.log(`字段 ${mapping.ddlField.name} 将被添加到 SET 或 WHERE 子句`)
 
       let value
       const fieldName = mapping.customFieldName || mapping.ddlField.name
@@ -642,7 +682,16 @@ export function useSqlGeneratorEnhanced() {
           value = 'NULL'
         }
       } else if (!mapping.excelHeader || mapping.excelIndex < 0) {
-        return // 跳过未映射到Excel列的普通字段
+        // 如果字段不在 updateFields 中，跳过未映射到Excel列的普通字段
+        // 如果字段在 updateFields 中（用户选择要更新的字段），允许使用 NULL 值
+        const shouldInclude = updateFields && updateFields.includes(mapping.ddlField.name)
+        if (!shouldInclude) {
+          console.log(`跳过未映射字段: ${mapping.ddlField.name}（不在updateFields中）`)
+          return // 跳过未映射到Excel列的普通字段
+        }
+        // 字段在 updateFields 中，但未映射到 Excel 列，使用 NULL
+        console.log(`字段 ${mapping.ddlField.name} 未映射到Excel列，使用NULL值`)
+        value = 'NULL'
       } else {
         value = row[mapping.excelIndex]
         value = formatValue(value, mapping.ddlField.type, dbType)
@@ -657,6 +706,10 @@ export function useSqlGeneratorEnhanced() {
 
     if (setClauses.length === 0) {
       console.warn('没有可更新的字段')
+      console.log('setClauses 为空，可能的原因：')
+      console.log('- updateFields 为空或未正确传递')
+      console.log('- 所有字段都被跳过了（自增/主键/未选择）')
+      console.log('- fieldMappings 中的字段状态不正确')
       return null
     }
 
@@ -664,6 +717,10 @@ export function useSqlGeneratorEnhanced() {
       console.warn('没有WHERE条件字段，UPDATE语句可能影响所有记录')
       return null
     }
+
+    console.log('=== 生成UPDATE语句 ===')
+    console.log('setClauses:', setClauses)
+    console.log('whereClauses:', whereClauses)
 
     return `UPDATE ${escapeFieldName(tableName, dbType)}\nSET\n  ${setClauses.join(',\n  ')}\nWHERE ${whereClauses.join(' AND ')};`
   }
@@ -717,9 +774,17 @@ export function useSqlGeneratorEnhanced() {
 
   /**
    * 转义字段名（根据数据库类型）
+   * @param {string} fieldName - 字段名
+   * @param {string} dbType - 数据库类型
+   * @returns {string} 转义后的字段名
    */
   const escapeFieldName = (fieldName, dbType) => {
     const name = String(fieldName).trim()
+
+    // 验证字段名不为空
+    if (!name) {
+      throw new Error('字段名不能为空')
+    }
 
     // 检查字段名是否已经包含引号
     const hasQuotes =
@@ -826,21 +891,23 @@ export function useSqlGeneratorEnhanced() {
    * 转义字符串中的特殊字符
    */
   const escapeString = (str, dbType) => {
-    let escaped = str.replace(/'/g, "''")
+    let escaped = str
 
     // 不同数据库的特殊转义规则
     switch (dbType) {
       case 'mysql':
-        escaped = escaped.replace(/\\/g, '\\\\')
+        // MySQL: 单引号需要转义为双引号
+        escaped = escaped.replace(/'/g, "''")
         break
       case 'postgresql':
-        escaped = escaped.replace(/\\/g, '\\\\')
+        // PostgreSQL: 单引号需要转义为双引号
+        escaped = escaped.replace(/'/g, "''")
         break
       case 'sqlserver':
-        // SQL Server使用单引号转义
+        // SQL Server: 单引号需要转义为双引号
+        escaped = escaped.replace(/'/g, "''")
         break
     }
-
     return escaped
   }
 
@@ -1013,12 +1080,12 @@ export function useSqlGeneratorEnhanced() {
 
     tokens.forEach((token, index) => {
       const trimmedToken = token.trim()
-      if (currentPart.length + trimmedToken.length + 2 > maxLineLength && currentPart) {
+      if (currentPart.length + trimmedToken.length + 1 > maxLineLength && currentPart) {
         parts.push(indent + currentPart + (index < tokens.length - 1 ? ',' : ''))
         currentPart = trimmedToken
       } else {
         if (currentPart) {
-          currentPart += ', ' + trimmedToken
+          currentPart += ',' + trimmedToken
         } else {
           currentPart = trimmedToken
         }
@@ -1090,24 +1157,47 @@ export function useSqlGeneratorEnhanced() {
    * 格式化SQL语句
    */
   const formatSql = (sql, format, beautifyOptions = {}) => {
+    console.log('=== formatSql 调试 ===')
+    console.log('输入SQL:', sql)
+    console.log('format:', format)
+
     if (format === 'minified') {
-      return sql
+      const minified = sql
         .replace(/\s+/g, ' ')
         .replace(/\s*([(),;])\s*/g, '$1')
         .replace(/\s+/g, ' ')
         .trim()
+
+      // 修复：确保VALUES子句中的逗号正确保留
+      // 检查是否有类似 '...value'4) 或 '...value',4) 的模式
+      const fixedMinified = minified.replace(
+        /'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[^']*)'(\d+)/g,
+        "$1',$2",
+      )
+
+      console.log('输出SQL:', fixedMinified)
+      console.log('=== 结束 ===')
+
+      return fixedMinified
     }
 
     // 应用高级美化功能
     if (format === 'formatted') {
-      return beautifySql(sql, beautifyOptions)
+      const result = beautifySql(sql, beautifyOptions)
+      console.log('美化后SQL:', result)
+      console.log('=== 结束 ===')
+      return result
     }
 
     // 基础格式化（兼容旧版本）
-    return sql
-      .replace(/\n\s*\n/g, '\n\n') // 压缩空行
-      .replace(/\s+/g, ' ') // 压缩连续空格
-      .replace(/;\s*/g, ';\n\n') // 语句间添加空行
+    const result = sql
+      .replace(/\n\s*\n/g, '\n\n')
+      .replace(/\s+/g, ' ')
+      .replace(/;\s*/g, ';\n\n')
+
+    console.log('基础格式化SQL:', result)
+    console.log('=== 结束 ===')
+    return result
   }
 
   /**

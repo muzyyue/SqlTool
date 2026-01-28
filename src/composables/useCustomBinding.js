@@ -84,14 +84,21 @@ export function useCustomBinding() {
 
   /**
    * 添加字段拼接规则
-   * @param {string} ddlFieldName - 目标DDL字段名
+   * @param {string} fieldName - 字段名称（可以是DDL字段名或自定义字段名）
    * @param {Array} sourceColumns - 源Excel列索引数组
    * @param {string} separator - 分隔符
    * @param {string} format - 格式化模板
+   * @param {string} dataType - 数据类型（string、int、decimal、datetime、boolean）
    */
-  const addConcatenationRule = (ddlFieldName, sourceColumns, separator = '', format = null) => {
+  const addConcatenationRule = (
+    fieldName,
+    sourceColumns,
+    separator = '',
+    format = null,
+    dataType = 'string',
+  ) => {
     const existingIndex = fieldConcatenationRules.value.findIndex(
-      (rule) => rule.ddlFieldName === ddlFieldName,
+      (rule) => rule.ddlFieldName === fieldName,
     )
 
     if (existingIndex >= 0) {
@@ -101,16 +108,18 @@ export function useCustomBinding() {
         sourceColumns,
         separator,
         format,
+        dataType,
         updatedAt: new Date().toISOString(),
       }
     } else {
       // 添加新规则
       fieldConcatenationRules.value.push({
         id: generateId(),
-        ddlFieldName,
+        ddlFieldName: fieldName,
         sourceColumns,
         separator,
         format,
+        dataType,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })
@@ -119,12 +128,10 @@ export function useCustomBinding() {
 
   /**
    * 移除字段拼接规则
-   * @param {string} ddlFieldName - DDL字段名
+   * @param {string} fieldName - 字段名称
    */
-  const removeConcatenationRule = (ddlFieldName) => {
-    const index = fieldConcatenationRules.value.findIndex(
-      (rule) => rule.ddlFieldName === ddlFieldName,
-    )
+  const removeConcatenationRule = (fieldName) => {
+    const index = fieldConcatenationRules.value.findIndex((rule) => rule.ddlFieldName === fieldName)
     if (index >= 0) {
       fieldConcatenationRules.value.splice(index, 1)
     }
@@ -192,7 +199,7 @@ export function useCustomBinding() {
     const rules = Array.isArray(fieldConcatenationRules.value) ? fieldConcatenationRules.value : []
     const fields = Array.isArray(customFields.value) ? customFields.value : []
 
-    // 检查重复绑定
+    // 检查重复绑定（单列绑定之间）
     const fieldBindings = new Set()
     bindings.forEach((binding) => {
       if (binding && binding.ddlFieldName) {
@@ -203,6 +210,7 @@ export function useCustomBinding() {
       }
     })
 
+    // 检查字段拼接规则之间的重复
     rules.forEach((rule) => {
       if (rule && rule.ddlFieldName) {
         if (fieldBindings.has(rule.ddlFieldName)) {
@@ -212,14 +220,9 @@ export function useCustomBinding() {
       }
     })
 
-    fields.forEach((field) => {
-      if (field && field.fieldName) {
-        if (fieldBindings.has(field.fieldName)) {
-          errors.push(`自定义字段"${field.fieldName}"与现有绑定字段冲突`)
-        }
-        fieldBindings.add(field.fieldName)
-      }
-    })
+    // 注意：不检查 customFields 与 fieldConcatenationRules 的冲突
+    // 因为字段拼接规则中的自定义字段名称会同时创建对应的 customField
+    // 这种情况下两者的字段名相同是正常行为，不需要报错
 
     // 检查无效的Excel列索引
     bindings.forEach((binding) => {
@@ -348,6 +351,70 @@ export function useCustomBinding() {
       customFields: customFieldCount.value,
       hasCustomConfig: totalCustomBindings.value > 0,
     }
+  }
+
+  /**
+   * 检查字段名是否唯一
+   * @param {string} fieldName - 待检查的字段名
+   * @param {Array} fieldMappings - 字段映射配置数组
+   * @param {Array} parsedFields - DDL 解析后的字段数组
+   * @param {Array} customFields - 自定义字段数组
+   * @param {string} excludeFieldName - 排除的字段名（编辑时使用）
+   * @returns {boolean} - 字段名是否唯一
+   */
+  const isFieldNameUnique = (
+    fieldName,
+    fieldMappings = [],
+    parsedFields = [],
+    customFields = [],
+    excludeFieldName = null,
+  ) => {
+    if (!fieldName || typeof fieldName !== 'string' || fieldName.trim() === '') {
+      return false
+    }
+
+    const normalizedFieldName = fieldName.trim().toLowerCase()
+
+    const customFieldsData = Array.isArray(customFields) ? customFields : []
+    const fieldMappingsData = Array.isArray(fieldMappings) ? fieldMappings : []
+    const parsedFieldsData = Array.isArray(parsedFields) ? parsedFields : []
+
+    for (const field of customFieldsData) {
+      if (
+        field &&
+        field.fieldName &&
+        field.fieldName.trim().toLowerCase() === normalizedFieldName
+      ) {
+        if (excludeFieldName && field.fieldName === excludeFieldName) {
+          continue
+        }
+        return false
+      }
+    }
+
+    for (const mapping of fieldMappingsData) {
+      if (
+        mapping &&
+        mapping.ddlFieldName &&
+        mapping.ddlFieldName.trim().toLowerCase() === normalizedFieldName
+      ) {
+        if (excludeFieldName && mapping.ddlFieldName === excludeFieldName) {
+          continue
+        }
+        return false
+      }
+    }
+
+    for (const field of parsedFieldsData) {
+      if (field && field.name && field.name.trim().toLowerCase() === normalizedFieldName) {
+        if (excludeFieldName && field.name === excludeFieldName) {
+          continue
+        }
+        return false
+      }
+    }
+
+    return true
   }
 
   /**
@@ -558,6 +625,7 @@ export function useCustomBinding() {
     generateAutoIncrementValue,
     resetAutoIncrementCounters,
     applyCustomFields,
+    isFieldNameUnique,
 
     // 设置
     setEnableCustomBinding: (value) => {

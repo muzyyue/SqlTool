@@ -1,3 +1,4 @@
+switch
 <template>
   <a-modal
     v-model:open="visible"
@@ -43,6 +44,7 @@
                 :columns="singleBindingColumns"
                 :pagination="false"
                 size="small"
+                :scroll="{ x: 'max-content' }"
               >
                 <template #bodyCell="{ column, record }">
                   <div v-if="column.key === 'ddlField'">
@@ -160,32 +162,82 @@
                 :data-source="concatenationRules"
                 :columns="concatenationColumns"
                 :pagination="false"
-                size="small"
+                size="medium"
+                :scroll="{ x: 'max-content' }"
               >
                 <template #bodyCell="{ column, record }">
                   <div v-if="column.key === 'customFieldName'">
-                    <a-input
-                      v-model:value="record.customFieldName"
-                      placeholder="输入自定义字段名称"
-                      @change="handleConcatenationChange(record)"
-                    />
+                    <div class="ddl-field-input-wrapper">
+                      <a-radio-group
+                        v-model:value="record.inputMode"
+                        size="small"
+                        button-style="solid"
+                        style="margin-bottom: 8px; width: 200px"
+                      >
+                        <a-radio-button value="select">选择</a-radio-button>
+                        <a-radio-button value="custom">自定义</a-radio-button>
+                      </a-radio-group>
+
+                      <a-select
+                        v-if="record.inputMode === 'select'"
+                        v-model:value="record.customFieldName"
+                        style="width: 100%"
+                        placeholder="选择DDL字段"
+                        @change="handleConcatenationChange(record)"
+                      >
+                        <a-select-option
+                          v-for="field in availableDdlFields"
+                          :key="field.name"
+                          :value="field.name"
+                          :disabled="isFieldBound(field.name)"
+                        >
+                          {{ field.name }} ({{ field.type }})
+                        </a-select-option>
+                      </a-select>
+
+                      <a-input
+                        v-else
+                        v-model:value="record.customFieldName"
+                        placeholder="输入自定义字段名称"
+                        @change="handleConcatenationChange(record)"
+                      >
+                        <template #suffix>
+                          <a-tooltip v-if="record.customFieldName" title="清空自定义字段名">
+                            <CloseCircleOutlined
+                              style="cursor: pointer; color: #999"
+                              @click="clearConcatenationFieldName(record)"
+                            />
+                          </a-tooltip>
+                        </template>
+                      </a-input>
+
+                      <a-alert
+                        v-if="
+                          record.inputMode === 'custom' &&
+                          record.customFieldName &&
+                          !isFieldInDdl(record.customFieldName)
+                        "
+                        type="warning"
+                        :message="`字段 '${record.customFieldName}' 不在DDL中`"
+                        show-icon
+                        size="small"
+                        style="margin-top: 4px"
+                      />
+                    </div>
                   </div>
 
-                  <div v-else-if="column.key === 'ddlField'">
+                  <div v-else-if="column.key === 'dataType'">
                     <a-select
-                      v-model:value="record.ddlFieldName"
+                      v-model:value="record.dataType"
                       style="width: 100%"
-                      placeholder="选择目标DDL字段"
+                      placeholder="数据类型"
                       @change="handleConcatenationChange(record)"
                     >
-                      <a-select-option
-                        v-for="field in availableDdlFields"
-                        :key="field.name"
-                        :value="field.name"
-                        :disabled="isFieldBound(field.name)"
-                      >
-                        {{ field.name }} ({{ field.type }})
-                      </a-select-option>
+                      <a-select-option value="string">字符串</a-select-option>
+                      <a-select-option value="int">整数</a-select-option>
+                      <a-select-option value="decimal">小数</a-select-option>
+                      <a-select-option value="datetime">日期时间</a-select-option>
+                      <a-select-option value="boolean">布尔值</a-select-option>
                     </a-select>
                   </div>
 
@@ -235,9 +287,10 @@
                       overlay-class-name="numeric-input"
                       title="格式化模板，支持{value1}, {value2}, {value3}等变量引用，或使用{value}表示所有列的拼接结果"
                     >
-                      <a-input
+                      <a-textarea
                         v-model:value="record.format"
                         placeholder="格式化模板，如：前缀{value1}后缀"
+                        :auto-size="{ minRows: 1, maxRows: 4 }"
                         @change="handleConcatenationChange(record)"
                       />
                     </a-tooltip>
@@ -286,14 +339,66 @@
                 :columns="customFieldColumns"
                 :pagination="false"
                 size="small"
+                :scroll="{ x: 'max-content' }"
               >
                 <template #bodyCell="{ column, record }">
                   <div v-if="column.key === 'fieldName'">
-                    <a-input
-                      v-model:value="record.fieldName"
-                      placeholder="字段名"
-                      @change="handleCustomFieldChange(record)"
-                    />
+                    <div class="ddl-field-input-wrapper">
+                      <a-radio-group
+                        v-model:value="record.inputMode"
+                        size="small"
+                        button-style="solid"
+                        style="margin-bottom: 8px; width: 200px"
+                      >
+                        <a-radio-button value="select">选择</a-radio-button>
+                        <a-radio-button value="custom">自定义</a-radio-button>
+                      </a-radio-group>
+
+                      <a-select
+                        v-if="record.inputMode === 'select'"
+                        v-model:value="record.fieldName"
+                        style="width: 100%"
+                        placeholder="选择DDL字段"
+                        @change="handleCustomFieldChange(record)"
+                      >
+                        <a-select-option
+                          v-for="field in availableDdlFields"
+                          :key="field.name"
+                          :value="field.name"
+                          :disabled="isFieldBound(field.name)"
+                        >
+                          {{ field.name }} ({{ field.type }})
+                        </a-select-option>
+                      </a-select>
+
+                      <a-input
+                        v-else
+                        v-model:value="record.fieldName"
+                        placeholder="输入自定义字段名"
+                        @change="handleCustomFieldChange(record)"
+                      >
+                        <template #suffix>
+                          <a-tooltip v-if="record.fieldName" title="清空自定义字段名">
+                            <CloseCircleOutlined
+                              style="cursor: pointer; color: #999"
+                              @click="clearCustomFieldName(record)"
+                            />
+                          </a-tooltip>
+                        </template>
+                      </a-input>
+
+                      <a-alert
+                        v-if="
+                          record.inputMode === 'custom' &&
+                          record.fieldName &&
+                          !isFieldInDdl(record.fieldName)
+                        "
+                        type="warning"
+                        :message="`字段 '${record.fieldName}' 不在DDL中`"
+                        show-icon
+                        style="margin-top: 8px"
+                      />
+                    </div>
                   </div>
 
                   <div v-else-if="column.key === 'dataType'">
@@ -336,12 +441,6 @@
                     </div>
 
                     <div v-else-if="record.dataSource === 'excel_combine'" class="config-section">
-                      <a-input
-                        v-model:value="record.fieldName"
-                        placeholder="请输入自定义字段名称"
-                        style="width: 100%; margin-bottom: 8px"
-                        @change="handleCustomFieldChange(record)"
-                      />
                       <a-select
                         v-model:value="record.excelCombineConfig.columns"
                         mode="multiple"
@@ -364,12 +463,20 @@
                           style="width: 100px"
                           @change="handleCustomFieldChange(record)"
                         />
-                        <a-input
-                          v-model:value="record.excelCombineConfig.format"
-                          placeholder="格式化模板，如：前缀{value}后缀"
-                          style="flex: 1"
-                          @change="handleCustomFieldChange(record)"
-                        />
+                        <a-tooltip
+                          trigger="focus"
+                          placement="topLeft"
+                          overlay-class-name="numeric-input"
+                          title="格式化模板，支持{value1}, {value2}, {value3}等变量引用，或使用{value}表示所有列的拼接结果"
+                        >
+                          <a-textarea
+                            v-model:value="record.excelCombineConfig.format"
+                            placeholder="格式化模板，如：前缀{value}后缀"
+                            :auto-size="{ minRows: 1, maxRows: 4 }"
+                            style="flex: 1"
+                            @change="handleCustomFieldChange(record)"
+                          />
+                        </a-tooltip>
                       </div>
                     </div>
 
@@ -390,7 +497,7 @@
                       </div>
                       <a-select
                         v-model:value="record.autoIncrementConfig.groupBy"
-                        placeholder="选择分组字段（可选）"
+                        placeholder="选择分组字段（可选--字段是映射部分的）"
                         allow-clear
                         style="width: 100%"
                         @change="handleCustomFieldChange(record)"
@@ -490,6 +597,10 @@ const props = defineProps({
     type: Object,
     default: null,
   },
+  fieldMappings: {
+    type: Array,
+    default: () => [],
+  },
 })
 
 // Emits
@@ -517,17 +628,20 @@ const singleBindingColumns = [
   {
     title: 'DDL字段',
     key: 'ddlField',
-    width: '30%',
+    width: 200,
+    minWidth: 200,
   },
   {
     title: 'Excel列',
     key: 'excelColumn',
-    width: '40%',
+    width: 200,
+    minWidth: 200,
   },
   {
     title: '操作',
     key: 'actions',
-    width: '30%',
+    width: 100,
+    fixed: 'right',
   },
 ]
 
@@ -537,37 +651,44 @@ const concatenationColumns = [
   {
     title: '自定义字段名称',
     key: 'customFieldName',
-    width: '20%',
+    width: 200,
+    minWidth: 200,
   },
   {
-    title: '目标DDL字段',
-    key: 'ddlField',
-    width: '20%',
+    title: '数据类型',
+    key: 'dataType',
+    width: 150,
+    minWidth: 150,
   },
   {
     title: '源Excel列',
     key: 'sourceColumns',
-    width: '25%',
+    width: 200,
+    minWidth: 200,
   },
   {
     title: '分隔符',
     key: 'separator',
-    width: '10%',
+    width: 120,
+    minWidth: 120,
   },
   {
     title: '格式化模板',
     key: 'format',
-    width: '15%',
+    width: 300,
+    minWidth: 300,
   },
   {
     title: '预览',
     key: 'preview',
-    width: '10%',
+    width: 120,
+    minWidth: 120,
   },
   {
     title: '操作',
     key: 'actions',
-    width: '10%',
+    width: 100,
+    fixed: 'right',
   },
 ]
 
@@ -609,17 +730,20 @@ const customFieldColumns = [
   {
     title: '字段名',
     key: 'fieldName',
-    width: '15%',
+    width: 120,
+    minWidth: 120,
   },
   {
     title: '数据类型',
     key: 'dataType',
-    width: '15%',
+    width: 150,
+    minWidth: 150,
   },
   {
     title: '数据来源',
     key: 'dataSource',
-    width: '20%',
+    width: 150,
+    minWidth: 150,
     customRender: ({ record }) => {
       if (!record) return '未知'
       if (record.dataSource === 'system_function' && record.systemFunctionConfig?.functionName) {
@@ -643,22 +767,31 @@ const customFieldColumns = [
   {
     title: '配置',
     key: 'config',
-    width: '30%',
+    width: 400,
+    minWidth: 400,
   },
   {
     title: '预览',
     key: 'preview',
-    width: '20%',
+    width: 120,
+    minWidth: 120,
   },
   {
     title: '操作',
     key: 'actions',
-    width: '10%',
+    width: 100,
+    fixed: 'right',
   },
 ]
 
 // 计算属性
-const availableDdlFields = computed(() => props.ddlFields)
+/**
+ * 获取可用的DDL字段列表
+ * 从DDL原始字段列表中获取，避免因映射配置字段变更导致的问题
+ */
+const availableDdlFields = computed(() => {
+  return props.ddlFields || []
+})
 const totalCustomBindings = computed(
   () => singleBindings.value.length + concatenationRules.value.length + customFields.value.length,
 )
@@ -808,8 +941,9 @@ const loadBindings = () => {
     : []
   concatenationRules.value = fieldConcatenationRules.map((rule) => ({
     id: rule.id,
-    customFieldName: rule.customFieldName || '',
-    ddlFieldName: rule.ddlFieldName,
+    inputMode: 'select',
+    customFieldName: rule.ddlFieldName || '',
+    dataType: rule.dataType || 'string',
     sourceColumns: rule.sourceColumns,
     columnVariables: rule.columnVariables || {},
     separator: rule.separator || '',
@@ -822,6 +956,7 @@ const loadBindings = () => {
     : []
   customFields.value = customFieldsData.map((field) => ({
     id: field.id,
+    inputMode: 'select',
     fieldName: field.fieldName,
     dataSource: field.dataSource || 'system_function',
     systemFunctionConfig: {
@@ -897,8 +1032,9 @@ const handleSingleBindingChange = (record) => {
 const addConcatenationRule = () => {
   concatenationRules.value.push({
     id: generateId(),
+    inputMode: 'select',
     customFieldName: '',
-    ddlFieldName: '',
+    dataType: 'string',
     sourceColumns: [],
     columnVariables: {},
     separator: '',
@@ -906,41 +1042,42 @@ const addConcatenationRule = () => {
   })
 }
 
+const clearConcatenationFieldName = (record) => {
+  record.customFieldName = ''
+  console.log('自定义字段名已清空:', record)
+}
+
 const removeConcatenationRule = (id) => {
   const index = concatenationRules.value.findIndex((rule) => rule.id === id)
   if (index >= 0) {
-    concatenationRules.value.splice(index, 1)
-    // 从管理器中也移除
     const rule = concatenationRules.value[index]
-    if (rule) {
-      props.customBindingManager.removeConcatenationRule(rule.ddlFieldName)
+    const customFieldName = rule.customFieldName
+
+    concatenationRules.value.splice(index, 1)
+
+    if (customFieldName) {
+      props.customBindingManager.removeConcatenationRule(customFieldName)
+      props.customBindingManager.removeCustomField(customFieldName)
     }
   }
 }
 
 const handleConcatenationChange = (record) => {
-  if (record.ddlFieldName && record.sourceColumns.length > 0) {
+  if (record.customFieldName && record.sourceColumns.length > 0) {
     // 自动分配变量名：value1, value2, value3...
     const newColumnVariables = {}
     record.sourceColumns.forEach((colIndex, index) => {
       newColumnVariables[colIndex] = `value${index + 1}`
     })
     record.columnVariables = newColumnVariables
-
-    props.customBindingManager.addConcatenationRule(
-      record.ddlFieldName,
-      record.sourceColumns,
-      record.separator,
-      record.format,
-    )
   }
 }
 
 const isFieldBound = (fieldName, currentBindingId) => {
-  return (
-    singleBindings.value.some(
-      (binding) => binding.id !== currentBindingId && binding.ddlFieldName === fieldName,
-    ) || concatenationRules.value.some((rule) => rule.ddlFieldName === fieldName)
+  // 字段拼接规则可以重复选择同一字段（可能是编辑已有规则）
+  // 只检查单列绑定中的字段
+  return singleBindings.value.some(
+    (binding) => binding.id !== currentBindingId && binding.ddlFieldName === fieldName,
   )
 }
 
@@ -1037,9 +1174,12 @@ const checkFieldConflict = (fieldName) => {
     return { isConflict: false, conflictSource: '' }
   }
 
-  // 检查DDL字段
-  if (props.ddlFields.some((field) => field.name === trimmedName)) {
-    return { isConflict: true, conflictSource: 'DDL字段' }
+  // 检查字段映射中显示的DDL字段名（映射配置中显示的字段）
+  if (
+    props.fieldMappings &&
+    props.fieldMappings.some((mapping) => mapping.ddlField?.name === trimmedName)
+  ) {
+    return { isConflict: true, conflictSource: '字段映射' }
   }
 
   // 检查单列绑定中的自定义字段名
@@ -1047,7 +1187,7 @@ const checkFieldConflict = (fieldName) => {
     return { isConflict: true, conflictSource: '单列绑定' }
   }
 
-  // 检查字段拼接规则
+  // 检查字段拼接规则中的自定义字段名
   if (concatenationRules.value.some((rule) => rule.customFieldName === trimmedName)) {
     return { isConflict: true, conflictSource: '字段拼接规则' }
   }
@@ -1081,6 +1221,7 @@ const addCustomField = () => {
 
   const newField = {
     id: generateId(),
+    inputMode: 'custom',
     fieldName: defaultFieldName,
     dataType: 'string',
     dataSource: 'system_function',
@@ -1172,9 +1313,12 @@ const checkFieldConflictExcludingCurrent = (fieldName, currentId) => {
     return { isConflict: false, conflictSource: '' }
   }
 
-  // 检查DDL字段
-  if (props.ddlFields.some((field) => field.name === trimmedName)) {
-    return { isConflict: true, conflictSource: 'DDL字段' }
+  // 检查字段映射中显示的DDL字段名（映射配置中显示的字段）
+  if (
+    props.fieldMappings &&
+    props.fieldMappings.some((mapping) => mapping.ddlField?.name === trimmedName)
+  ) {
+    return { isConflict: true, conflictSource: '字段映射' }
   }
 
   // 检查单列绑定中的自定义字段名
@@ -1182,7 +1326,7 @@ const checkFieldConflictExcludingCurrent = (fieldName, currentId) => {
     return { isConflict: true, conflictSource: '单列绑定' }
   }
 
-  // 检查字段拼接规则
+  // 检查字段拼接规则中的自定义字段名
   if (concatenationRules.value.some((rule) => rule.customFieldName === trimmedName)) {
     return { isConflict: true, conflictSource: '字段拼接规则' }
   }
@@ -1314,8 +1458,37 @@ const saveBindings = () => {
     }
   })
 
+  // 核心修复：将本地字段拼接规则同步到customBindingManager
+  // 3. 先清空管理器中现有的字段拼接规则
+  const currentConcatenationRules = Array.isArray(
+    props.customBindingManager.fieldConcatenationRules.value,
+  )
+    ? props.customBindingManager.fieldConcatenationRules.value
+    : []
+
+  // 记录需要删除的拼接规则的DDL字段名
+  const ddlFieldNamesToRemoveFromConcat = currentConcatenationRules.map((rule) => rule.ddlFieldName)
+
+  // 逐个删除字段拼接规则
+  ddlFieldNamesToRemoveFromConcat.forEach((ddlFieldName) => {
+    props.customBindingManager.removeConcatenationRule(ddlFieldName)
+  })
+
+  // 4. 将本地字段拼接规则添加到管理器中
+  concatenationRules.value.forEach((rule) => {
+    if (rule.customFieldName && rule.sourceColumns && rule.sourceColumns.length > 0) {
+      props.customBindingManager.addConcatenationRule(
+        rule.customFieldName,
+        rule.sourceColumns,
+        rule.separator || '',
+        rule.format || '',
+        rule.dataType || 'string',
+      )
+    }
+  })
+
   // 核心修复：将本地自定义字段同步到customBindingManager
-  // 3. 先清空管理器中现有的自定义字段
+  // 5. 先清空管理器中现有的自定义字段
   const currentCustomFields = Array.isArray(props.customBindingManager.customFields.value)
     ? props.customBindingManager.customFields.value
     : []
@@ -1332,12 +1505,13 @@ const saveBindings = () => {
     }
   })
 
-  // 4. 处理字段拼接规则中的自定义字段名称
+  // 6. 处理字段拼接规则中的自定义字段名称
   concatenationRules.value.forEach((rule) => {
     if (rule.customFieldName && rule.customFieldName.trim() !== '') {
       // 创建独立的自定义字段
       const customField = {
         fieldName: rule.customFieldName,
+        dataType: rule.dataType || 'string',
         dataSource: 'excel_combine',
         excelCombineConfig: {
           columns: rule.sourceColumns || [],
@@ -1350,13 +1524,21 @@ const saveBindings = () => {
     }
   })
 
-  // 5. 将本地所有自定义字段添加到管理器中
+  // 7. 将本地所有自定义字段添加到管理器中
   console.log('准备添加自定义字段到管理器:', customFields.value)
   customFields.value.forEach((field) => {
     console.log('检查字段:', field)
     if (field.fieldName) {
       console.log('添加字段:', field.fieldName)
-      props.customBindingManager.addCustomField(field)
+      const fieldToSave = {
+        fieldName: field.fieldName,
+        dataType: field.dataType,
+        dataSource: field.dataSource,
+        systemFunctionConfig: field.systemFunctionConfig,
+        excelCombineConfig: field.excelCombineConfig,
+        autoIncrementConfig: field.autoIncrementConfig,
+      }
+      props.customBindingManager.addCustomField(fieldToSave)
     } else {
       console.log('跳过字段，因为fieldName为空')
     }
@@ -1436,6 +1618,18 @@ const generateId = () => {
 
 .tab-content {
   min-height: 300px;
+}
+
+.tab-content :deep(.ant-table) {
+  overflow-x: auto;
+}
+
+.tab-content :deep(.ant-table-container) {
+  overflow-x: auto;
+}
+
+.tab-content :deep(.ant-table-body) {
+  overflow-x: auto;
 }
 
 .preview-value {

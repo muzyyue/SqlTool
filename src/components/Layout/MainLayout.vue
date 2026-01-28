@@ -4,7 +4,7 @@
     <a-layout-header class="header">
       <div class="header-content">
         <div class="logo">
-          <h1>SQL生成工具</h1>
+          <h1>在线工具箱</h1>
           <span class="version">v2.0</span>
         </div>
 
@@ -19,19 +19,13 @@
               <template #icon>
                 <HomeOutlined />
               </template>
-              首页
+              工具箱
             </a-menu-item>
-            <a-menu-item key="insert">
+            <a-menu-item key="sql-tool">
               <template #icon>
-                <InsertRowAboveOutlined />
+                <DatabaseOutlined />
               </template>
-              INSERT生成
-            </a-menu-item>
-            <a-menu-item key="update">
-              <template #icon>
-                <EditOutlined />
-              </template>
-              UPDATE生成
+              SQL工具
             </a-menu-item>
           </a-menu>
         </div>
@@ -39,7 +33,7 @@
         <div class="header-actions">
           <a-button type="text" @click="toggleTheme" class="theme-toggle">
             <template #icon>
-              <BulbOutlined v-if="isDarkTheme" />
+              <BulbOutlined v-if="!isDark" />
               <BulbFilled v-else />
             </template>
           </a-button>
@@ -83,7 +77,7 @@
       <div class="content-wrapper">
         <!-- 面包屑导航 -->
         <a-breadcrumb class="breadcrumb" v-if="showBreadcrumb">
-          <a-breadcrumb-item>SQL生成工具</a-breadcrumb-item>
+          <a-breadcrumb-item>在线工具箱</a-breadcrumb-item>
           <a-breadcrumb-item>{{ currentPageTitle }}</a-breadcrumb-item>
         </a-breadcrumb>
 
@@ -98,7 +92,7 @@
     <a-layout-footer class="footer">
       <div class="footer-content">
         <div class="footer-left">
-          <span>© 2024 SQL生成工具 v2.0</span>
+          <span>© 2024 在线工具箱 v2.0</span>
           <a-divider type="vertical" />
           <span>基于Vue 3 + Ant Design Vue开发</span>
         </div>
@@ -123,28 +117,30 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { storeToRefs } from 'pinia'
 import {
   HomeOutlined,
-  InsertRowAboveOutlined,
-  EditOutlined,
   BulbOutlined,
   BulbFilled,
   SettingOutlined,
   ToolOutlined,
   ExportOutlined,
   InfoCircleOutlined,
+  DatabaseOutlined,
 } from '@ant-design/icons-vue'
 import SettingsPanel from './SettingsPanel.vue'
 import AboutPanel from './AboutPanel.vue'
+import { useThemeStore } from '@/stores/theme.js'
 
 const router = useRouter()
 const route = useRoute()
+const themeStore = useThemeStore()
+const { isDark } = storeToRefs(themeStore)
 
 // 响应式数据
 const selectedKeys = ref(['home'])
-const isDarkTheme = ref(false)
 const settingsVisible = ref(false)
 const aboutVisible = ref(false)
 
@@ -153,18 +149,20 @@ const currentPageTitle = computed(() => {
   const routeName = route.name
   switch (routeName) {
     case 'home':
-      return '首页'
+      return '工具箱'
+    case 'sql-tool':
+      return 'SQL生成工具'
     case 'insert':
       return 'INSERT语句生成'
     case 'update':
       return 'UPDATE语句生成'
     default:
-      return 'SQL生成工具'
+      return '在线工具箱'
   }
 })
 
 const showBreadcrumb = computed(() => {
-  return route.name !== 'home'
+  return route.name !== 'home' && route.name !== 'sql-tool'
 })
 
 // 方法
@@ -172,6 +170,9 @@ const handleMenuClick = ({ key }) => {
   switch (key) {
     case 'home':
       router.push('/')
+      break
+    case 'sql-tool':
+      router.push('/sql-tool')
       break
     case 'insert':
       router.push('/insert')
@@ -183,31 +184,7 @@ const handleMenuClick = ({ key }) => {
 }
 
 const toggleTheme = () => {
-  isDarkTheme.value = !isDarkTheme.value
-
-  // 更新CSS变量实现主题切换
-  const root = document.documentElement
-  if (isDarkTheme.value) {
-    // 暗色主题
-    root.style.setProperty('--primary-color', '#1890ff')
-    root.style.setProperty('--bg-color', '#141414')
-    root.style.setProperty('--text-color', '#ffffff')
-    root.style.setProperty('--border-color', '#434343')
-    root.style.setProperty('--card-bg', '#1f1f1f')
-    document.body.style.backgroundColor = '#141414'
-    document.body.style.color = '#ffffff'
-  } else {
-    // 亮色主题
-    root.style.setProperty('--primary-color', '#1890ff')
-    root.style.setProperty('--bg-color', '#f5f5f5')
-    root.style.setProperty('--text-color', '#000000')
-    root.style.setProperty('--border-color', '#d9d9d9')
-    root.style.setProperty('--card-bg', '#ffffff')
-    document.body.style.backgroundColor = '#f5f5f5'
-    document.body.style.color = '#000000'
-  }
-
-  console.log('切换主题:', isDarkTheme.value ? '暗色' : '亮色')
+  themeStore.toggle()
 }
 
 const showSettings = () => {
@@ -219,34 +196,30 @@ const showAbout = () => {
 }
 
 const exportLogs = () => {
-  // 实现日志导出功能
   console.log('导出日志')
 }
 
 const showFeedback = () => {
-  // 实现反馈功能
   console.log('显示反馈表单')
 }
 
 const showHelp = () => {
-  // 实现帮助文档功能
   console.log('显示帮助文档')
 }
 
+// 监听路由变化
+watch(
+  () => route.name,
+  (routeName) => {
+    if (routeName) {
+      selectedKeys.value = [routeName]
+    }
+  },
+)
+
 // 生命周期
 onMounted(() => {
-  // 根据当前路由设置选中的菜单项
-  const routeName = route.name
-  if (routeName) {
-    selectedKeys.value = [routeName]
-  }
-})
-
-// 监听路由变化
-router.afterEach((to) => {
-  if (to.name) {
-    selectedKeys.value = [to.name]
-  }
+  console.log('MainLayout 已加载')
 })
 </script>
 
