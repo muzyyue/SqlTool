@@ -17,3 +17,13 @@
 # 对话结束前
 
 - 若为 Web 项目，结束前务必核对所有文件的 import / export 是否正确、完整
+
+# 代码提交规范
+
+- 提交代码时，使用 Conventional Commits 规范在 git comment 里描述代码的改动（使用中文）
+- 每次会话结束前，须升级 package.json 版本号并完成 git 提交（不 push），待您确认后执行：
+  - git tag -a v{版本号} -m "Release version {版本号}"
+  - git push origin v{版本号}"
+- 每次提交前，必须使用 ESLint 扫描 + Prettier 扫描 + TypeScript 扫描 检查代码质量, 并修复所有警告
+- 每次提交前，更新 history.md, 按以下模板添加日志: #版本(#日期)#一句话简要说明改动内容
+- 提交前扫描文件列表，将非源码（临时脚本、测试数据、调试日志等）统一写入 `.gitignore`，禁止入库
