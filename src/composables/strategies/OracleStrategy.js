@@ -171,7 +171,9 @@ export class OracleStrategy extends DatabaseStrategy {
     const fields = []
 
     // 提取字段定义部分 - 只匹配CREATE TABLE语句的括号内容
-    const createTableMatch = ddlStatement.match(/CREATE\s+(?:GLOBAL\s+TEMPORARY\s+)?TABLE\s+(?:\w+\.)?([\w."]+)\s*\(([\s\S]*?)\)\s*(?:TABLESPACE|STORAGE|ENABLE|DISABLE|\/\*|--|$)/i)
+    const createTableMatch = ddlStatement.match(
+      /CREATE\s+(?:GLOBAL\s+TEMPORARY\s+)?TABLE\s+(?:\w+\.)?([\w."]+)\s*\(([\s\S]*?)\)\s*(?:TABLESPACE|STORAGE|ENABLE|DISABLE|\/\*|--|$)/i,
+    )
 
     if (!createTableMatch || !createTableMatch[2]) return fields
 
@@ -361,7 +363,8 @@ export class OracleStrategy extends DatabaseStrategy {
     const triggers = []
 
     // 直接匹配所有触发器定义，处理多个触发器的情况
-    const triggerRegex = /CREATE\s+TRIGGER\s+(\w+)\s+(BEFORE|AFTER)\s+(INSERT|UPDATE|DELETE)\s+ON\s+(\w+)\s+FOR\s+EACH\s+ROW\s+BEGIN\s+([\s\S]*?)\s+END;/gi
+    const triggerRegex =
+      /CREATE\s+TRIGGER\s+(\w+)\s+(BEFORE|AFTER)\s+(INSERT|UPDATE|DELETE)\s+ON\s+(\w+)\s+FOR\s+EACH\s+ROW\s+BEGIN\s+([\s\S]*?)\s+END;/gi
 
     let match
     while ((match = triggerRegex.exec(ddlStatement)) !== null) {
@@ -372,7 +375,7 @@ export class OracleStrategy extends DatabaseStrategy {
         table: match[4],
         body: match[5].trim(),
         type: 'TRIGGER',
-        forEachRow: true
+        forEachRow: true,
       })
     }
 

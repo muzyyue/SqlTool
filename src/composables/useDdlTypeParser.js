@@ -339,7 +339,7 @@ export class DdlTypeParser {
 
     // 检测SQL Server特有语法
     if (
-      normalized.includes('IDENTITY(') && !normalized.includes('GENERATED') ||
+      (normalized.includes('IDENTITY(') && !normalized.includes('GENERATED')) ||
       normalized.includes('ON [PRIMARY]') ||
       normalized.includes('GO') ||
       normalized.includes('DATETIME2') ||
@@ -566,7 +566,9 @@ export class DdlTypeParser {
     } else if (/RENAME\s+(?:COLUMN\s+)?/i.test(normalized)) {
       // RENAME COLUMN操作
       result.details.operationType = 'RENAME_COLUMN'
-      const renameMatch = normalized.match(/RENAME\s+(?:COLUMN\s+)?([\w."`[\]]+)\s+TO\s+([\w."`[\]]+)/i)
+      const renameMatch = normalized.match(
+        /RENAME\s+(?:COLUMN\s+)?([\w."`[\]]+)\s+TO\s+([\w."`[\]]+)/i,
+      )
       if (renameMatch) {
         result.details.oldColumnName = renameMatch[1].replace(/["`[\]]/g, '')
         result.details.newColumnName = renameMatch[2].replace(/["`[\]]/g, '')
@@ -661,14 +663,14 @@ export class DdlTypeParser {
   extractAddedIndexes(ddlStatement) {
     const indexes = []
     const indexMatches = ddlStatement.matchAll(
-      /ADD\s+(?:UNIQUE\s+)?(?:INDEX\s+)?([\w."`[\]]+)?\s*\(([^)]+)\)/gi
+      /ADD\s+(?:UNIQUE\s+)?(?:INDEX\s+)?([\w."`[\]]+)?\s*\(([^)]+)\)/gi,
     )
 
     for (const match of indexMatches) {
       indexes.push({
         name: match[1] ? match[1].replace(/["`[\]]/g, '') : '',
-        columns: match[2].split(',').map(col => col.trim().replace(/["`[\]]/g, '')),
-        unique: match[0].includes('UNIQUE')
+        columns: match[2].split(',').map((col) => col.trim().replace(/["`[\]]/g, '')),
+        unique: match[0].includes('UNIQUE'),
       })
     }
 
@@ -694,13 +696,11 @@ export class DdlTypeParser {
    */
   extractAlteredConstraints(ddlStatement) {
     const constraints = []
-    const constraintMatches = ddlStatement.matchAll(
-      /ALTER\s+CONSTRAINT\s+([\w."`[\]]+)/gi
-    )
+    const constraintMatches = ddlStatement.matchAll(/ALTER\s+CONSTRAINT\s+([\w."`[\]]+)/gi)
 
     for (const match of constraintMatches) {
       constraints.push({
-        name: match[1].replace(/["`[\]]/g, '')
+        name: match[1].replace(/["`[\]]/g, ''),
       })
     }
 
@@ -1293,7 +1293,11 @@ export class DdlTypeParser {
     }
 
     // 清理默认值中的引号
-    if (defaultValue && ((defaultValue.startsWith("'" ) && defaultValue.endsWith("'")) || (defaultValue.startsWith('"') && defaultValue.endsWith('"')))) {
+    if (
+      defaultValue &&
+      ((defaultValue.startsWith("'") && defaultValue.endsWith("'")) ||
+        (defaultValue.startsWith('"') && defaultValue.endsWith('"')))
+    ) {
       defaultValue = defaultValue.substring(1, defaultValue.length - 1)
     }
 
@@ -1510,7 +1514,7 @@ export class DdlTypeParser {
 
     // 命名主键约束
     const namedPrimaryKeyMatches = normalized.matchAll(
-      /CONSTRAINT\s+([\w."`[\]]+)\s+PRIMARY\s+KEY\s*\(([^)]+)\)/gi
+      /CONSTRAINT\s+([\w."`[\]]+)\s+PRIMARY\s+KEY\s*\(([^)]+)\)/gi,
     )
     for (const match of namedPrimaryKeyMatches) {
       constraints.push({
@@ -1531,7 +1535,7 @@ export class DdlTypeParser {
 
     // 命名唯一约束
     const namedUniqueMatches = normalized.matchAll(
-      /CONSTRAINT\s+([\w."`[\]]+)\s+UNIQUE\s*\(([^)]+)\)/gi
+      /CONSTRAINT\s+([\w."`[\]]+)\s+UNIQUE\s*\(([^)]+)\)/gi,
     )
     for (const match of namedUniqueMatches) {
       constraints.push({
@@ -1552,7 +1556,7 @@ export class DdlTypeParser {
 
     // 命名CHECK约束
     const namedCheckMatches = normalized.matchAll(
-      /CONSTRAINT\s+([\w."`[\]]+)\s+CHECK\s*\(([^)]+)\)/gi
+      /CONSTRAINT\s+([\w."`[\]]+)\s+CHECK\s*\(([^)]+)\)/gi,
     )
     for (const match of namedCheckMatches) {
       constraints.push({

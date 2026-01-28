@@ -367,7 +367,8 @@ export class MySqlStrategy extends DatabaseStrategy {
     const triggers = []
 
     // 简化的触发器正则，更灵活处理引号和空格，支持DEFINER
-    const triggerRegex = /CREATE\s+(?:DEFINER[^\s]+\s+)?TRIGGER\s+("[^"]+"|`[^`]+`|\w+)\s+(BEFORE|AFTER)\s+(INSERT|UPDATE|DELETE)\s+ON\s+("[^"]+"|`[^`]+`|\w+)\s+FOR\s+EACH\s+ROW\s+begin\s+([\s\S]*?)\s+end/gi
+    const triggerRegex =
+      /CREATE\s+(?:DEFINER[^\s]+\s+)?TRIGGER\s+("[^"]+"|`[^`]+`|\w+)\s+(BEFORE|AFTER)\s+(INSERT|UPDATE|DELETE)\s+ON\s+("[^"]+"|`[^`]+`|\w+)\s+FOR\s+EACH\s+ROW\s+begin\s+([\s\S]*?)\s+end/gi
 
     let match
     while ((match = triggerRegex.exec(ddlStatement)) !== null) {
@@ -382,7 +383,7 @@ export class MySqlStrategy extends DatabaseStrategy {
         events: [match[3].toUpperCase()],
         table: tableName,
         body: match[5].trim(),
-        forEachRow: true
+        forEachRow: true,
       })
     }
 
