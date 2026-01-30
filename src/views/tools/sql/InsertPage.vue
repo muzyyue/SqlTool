@@ -2006,52 +2006,66 @@ const handleCustomBindingSave = (customFieldsData) => {
     console.log('有效自定义字段（去重后）:', validCustomFields)
     console.log('有效自定义字段数量:', validCustomFields.length)
 
-    // 4. 先移除所有之前添加的自定义字段
-    const originalLength = parsedFields.value.length
-    parsedFields.value = parsedFields.value.filter((field) => !field.isCustom)
-    logInfo(`已移除 ${originalLength - parsedFields.value.length} 个之前添加的自定义字段`)
+    // 4. 更新或添加自定义字段到parsedFields（避免删除所有字段导致配置丢失）
+    // 创建字段名到新配置的映射
+    const newFieldConfigMap = new Map()
+    validCustomFields.forEach((field) => {
+      if (field.fieldName) {
+        newFieldConfigMap.set(field.fieldName, field)
+      }
+    })
 
-    // 5. 遍历有效的自定义字段，整合到DDL解析结果中
-    let addedCount = 0
-    validCustomFields.forEach((customField, index) => {
-      try {
-        console.log(`添加自定义字段${index}:`, customField)
-
-        // 检查是否已存在同名字段
-        const existingFieldIndex = parsedFields.value.findIndex(
-          (field) => field.name === customField.fieldName,
-        )
-
-        if (existingFieldIndex >= 0) {
-          // 更新已存在的字段
-          parsedFields.value[existingFieldIndex] = {
-            ...parsedFields.value[existingFieldIndex],
+    // 遍历现有的parsedFields，更新或删除自定义字段
+    const fieldsToRemove = new Set()
+    parsedFields.value.forEach((field, index) => {
+      if (field.isCustom) {
+        if (newFieldConfigMap.has(field.name)) {
+          // 更新现有的自定义字段
+          const newConfig = newFieldConfigMap.get(field.name)
+          parsedFields.value[index] = {
+            ...parsedFields.value[index],
             isCustom: true,
-            customConfig: customField,
-            isIdentity: false, // 自定义字段不应该被标记为数据库层的自增字段
-            primaryKey: false, // 自定义字段不应该被标记为主键字段
+            customConfig: newConfig,
+            type: newConfig.dataType || field.type,
             updatedAt: new Date().toISOString(),
           }
-          console.log(`已更新parsedFields中的字段: ${customField.fieldName}`)
+          // 从映射中移除，表示已处理
+          newFieldConfigMap.delete(field.name)
         } else {
-          // 构建符合DDL解析结果结构的字段对象
-          const ddlField = {
-            name: customField.fieldName,
-            type: customField.dataType || 'string',
-            nullable: customField.nullable !== false,
-            isIdentity: false, // 自定义字段不应该被标记为数据库层的自增字段
-            primaryKey: false, // 自定义字段不应该被标记为主键字段
-            isCustom: true, // 标记为自定义字段
-            customConfig: customField, // 保存原始自定义字段配置
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          }
+          // 标记需要删除的字段
+          fieldsToRemove.add(field.name)
+        }
+      }
+    })
 
-          // 添加到DDL解析结果集合中
-          parsedFields.value.push(ddlField)
-          console.log(`已添加到parsedFields:`, ddlField.name)
+    // 删除不再存在的自定义字段
+    if (fieldsToRemove.size > 0) {
+      parsedFields.value = parsedFields.value.filter((field) => !fieldsToRemove.has(field.name))
+      logInfo(`已移除 ${fieldsToRemove.size} 个不再存在的自定义字段`)
+    }
+
+    // 添加新的自定义字段
+    let addedCount = 0
+    newFieldConfigMap.forEach((customField) => {
+      try {
+        console.log(`添加新自定义字段:`, customField)
+
+        // 构建符合DDL解析结果结构的字段对象
+        const ddlField = {
+          name: customField.fieldName,
+          type: customField.dataType || 'string',
+          nullable: customField.nullable !== false,
+          isIdentity: false, // 自定义字段不应该被标记为数据库层的自增字段
+          primaryKey: false, // 自定义字段不应该被标记为主键字段
+          isCustom: true, // 标记为自定义字段
+          customConfig: customField, // 保存原始自定义字段配置
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         }
 
+        // 添加到DDL解析结果集合中
+        parsedFields.value.push(ddlField)
+        console.log(`已添加到parsedFields:`, ddlField.name)
         addedCount++
         logInfo(`添加自定义字段: ${customField.fieldName}`)
       } catch (error) {
@@ -2064,7 +2078,9 @@ const handleCustomBindingSave = (customFieldsData) => {
       }
     })
 
-    logInfo(`成功添加 ${addedCount} 个自定义字段`)
+    logInfo(
+      `成功更新 ${parsedFields.value.length - fieldsToRemove.size} 个现有字段，添加 ${addedCount} 个新字段`,
+    )
     console.log('最终parsedFields:', parsedFields.value)
     console.log('最终parsedFields数量:', parsedFields.value.length)
 
