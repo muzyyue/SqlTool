@@ -95,192 +95,33 @@
           @row-range-reset="resetRowRange"
         />
 
-        <!-- 字段映射 -->
-        <div class="input-card" v-if="showFieldMapping">
-          <div class="card-header">
-            <h3>字段映射配置</h3>
-            <a-tooltip title="建立DDL字段与Excel列的映射关系，支持自动匹配和手动调整">
-              <QuestionCircleOutlined />
-            </a-tooltip>
-          </div>
-
-          <div class="mapping-stats">
-            <a-statistic
-              title="匹配率"
-              :value="enhancedMatchingStats.matchRate"
-              :precision="1"
-              suffix="%"
-            />
-            <a-statistic
-              title="已匹配"
-              :value="enhancedMatchingStats.matched"
-              :value-style="{ color: '#3f8600' }"
-            />
-            <a-statistic
-              title="未匹配"
-              :value="enhancedMatchingStats.unmatched"
-              :value-style="{ color: '#cf1322' }"
-            />
-
-            <!-- 自定义绑定统计 -->
-            <div v-if="hasCustomBindingConfig" class="custom-binding-stats">
-              <a-divider type="vertical" />
-              <a-statistic
-                title="自定义绑定"
-                :value="enhancedMatchingStats.customBindings || 0"
-                :value-style="{ color: '#1890ff' }"
-              />
-              <a-statistic
-                title="字段拼接"
-                :value="enhancedMatchingStats.concatenationRules || 0"
-                :value-style="{ color: '#722ed1' }"
-              />
-            </div>
-          </div>
-
-          <a-table
-            :data-source="filteredFieldMappings"
-            :columns="mappingColumns"
-            :pagination="false"
-            size="small"
-          >
-            <template #bodyCell="{ column, record }">
-              <template v-if="column.key === 'fieldName'">
-                <span>{{ record.ddlField.name }}</span>
-              </template>
-
-              <template v-if="column.key === 'ddlField'">
-                <div class="ddl-field-cell">
-                  <div class="ddl-field-info">
-                    <strong>{{ record.ddlField.name }}</strong>
-                    <div class="field-type">{{ record.ddlField.type }}</div>
-                    <a-tag v-if="!record.ddlField.nullable" color="red" size="small"> 必填 </a-tag>
-                    <a-tag
-                      v-if="record.status === 'unmatched' || record.excelIndex === -1"
-                      color="orange"
-                      size="small"
-                    >
-                      未匹配
-                    </a-tag>
-                  </div>
-                  <a-select
-                    v-if="excelHeaders && excelHeaders.length > 0"
-                    v-model:value="record.excelIndex"
-                    style="width: 100%; max-width: 280px; margin-top: 8px"
-                    placeholder="选择Excel列"
-                    size="small"
-                    @change="(value) => updateMapping(record.ddlField.name, value)"
-                  >
-                    <a-select-option :value="-1">未绑定</a-select-option>
-                    <a-select-option
-                      v-for="(header, idx) in excelHeaders || []"
-                      :key="idx"
-                      :value="idx"
-                      :disabled="isColumnUsed(idx)"
-                    >
-                      {{ header }} (列{{ idx + 1 }})
-                    </a-select-option>
-                  </a-select>
-                  <div v-else class="no-excel-hint">
-                    <small>请先上传Excel文件</small>
-                  </div>
-                </div>
-              </template>
-
-              <template v-if="column.key === 'excelHeader'">
-                <span v-if="record.excelIndex === -1 || !record.excelHeader">
-                  <a-tag color="gray" size="small">未绑定</a-tag>
-                </span>
-                <span v-else>
-                  {{ record.excelHeader }}
-                  <a-tag
-                    v-if="record.confidence && record.confidence !== 'manual'"
-                    :color="getConfidenceColor(record.confidence)"
-                    size="small"
-                  >
-                    {{ getConfidenceText(record.confidence) }}
-                  </a-tag>
-                  <a-tag v-else-if="record.confidence === 'manual'" color="purple" size="small">
-                    手动
-                  </a-tag>
-                </span>
-              </template>
-
-              <template v-if="column.key === 'similarity'">
-                <span v-if="record.excelIndex === -1 || !record.similarity">-</span>
-                <a-progress
-                  v-else
-                  :percent="Math.round(record.similarity * 100)"
-                  size="small"
-                  :stroke-color="getSimilarityColor(record.similarity)"
-                />
-              </template>
-
-              <template v-if="column.key === 'generatedByFunction'">
-                <a-checkbox
-                  v-model:checked="record.generatedByFunction"
-                  @change="handleGeneratedByFunctionChange(record)"
-                />
-              </template>
-
-              <template v-if="column.key === 'actions'">
-                <a-space>
-                  <a-button type="link" size="small" @click="clearMapping(record.ddlField.name)">
-                    清除
-                  </a-button>
-                </a-space>
-              </template>
-            </template>
-          </a-table>
-
-          <div class="mapping-actions">
-            <a-button @click="autoMatchFields">自动匹配</a-button>
-            <a-button @click="clearAllMappings">清除所有</a-button>
-            <a-button type="primary" @click="validateEnhancedMappings">验证映射</a-button>
-
-            <!-- 自定义绑定操作 -->
-            <a-divider type="vertical" />
-            <a-switch
-              v-model:checked="customBindingEnabled"
-              checked-children="自定义绑定"
-              un-checked-children="标准模式"
-              size="small"
-              @change="handleCustomBindingToggle"
-            />
-            <a-button
-              type="dashed"
-              @click="openCustomBindingModal"
-              :disabled="!customBindingEnabled"
-            >
-              <template #icon><SettingOutlined /></template>
-              配置绑定
-            </a-button>
-          </div>
-
-          <!-- 自定义字段管理 -->
-          <CustomFieldManager
-            v-if="customBindingEnabled"
-            :key="customFieldManagerKey"
-            :custom-fields="customFieldsData"
-            :custom-binding-manager="customBindingManager"
-            @edit="handleEditCustomField"
-            @delete="handleDeleteCustomField"
-            @refresh="handleRefreshCustomFields"
-          />
-
-          <!-- 数据库类型选择 -->
-          <div class="database-type-section">
-            <h4>数据库类型</h4>
-            <a-radio-group v-model:value="databaseType" button-style="solid">
-              <a-radio-button value="mysql">MySQL</a-radio-button>
-              <a-radio-button value="postgresql">PostgreSQL</a-radio-button>
-              <a-radio-button value="sqlserver">SQL Server</a-radio-button>
-            </a-radio-group>
-            <div class="database-type-hint">
-              <small>选择目标数据库类型，确保生成的SQL符合对应语法规范</small>
-            </div>
-          </div>
-        </div>
+        <!-- 字段映射 - 使用现有组件 -->
+        <FieldMappingCard
+          v-if="showFieldMapping"
+          :show-field-mapping="showFieldMapping"
+          :enhanced-matching-stats="enhancedMatchingStats"
+          :filtered-field-mappings="filteredFieldMappings"
+          :mapping-columns="mappingColumns"
+          :excel-headers="excelHeaders"
+          :custom-binding-enabled="customBindingEnabled"
+          :custom-fields-data="customFieldsData"
+          :custom-field-manager-key="customFieldManagerKey"
+          :custom-binding-manager="customBindingManager"
+          :database-type="databaseType"
+          :has-custom-binding-config="hasCustomBindingConfig"
+          @auto-match-fields="autoMatchFields"
+          @clear-all-mappings="clearAllMappings"
+          @validate-enhanced-mappings="validateEnhancedMappings"
+          @update-mapping="updateMapping"
+          @handle-generated-by-function-change="handleGeneratedByFunctionChange"
+          @clear-mapping="clearMapping"
+          @handle-custom-binding-toggle="handleCustomBindingToggle"
+          @open-custom-binding-modal="openCustomBindingModal"
+          @handle-edit-custom-field="handleEditCustomField"
+          @handle-delete-custom-field="handleDeleteCustomField"
+          @handle-refresh-custom-fields="handleRefreshCustomFields"
+          @update:database-type="handleDatabaseTypeChange"
+        />
       </div>
 
       <!-- 右侧：输出区域 -->
@@ -484,6 +325,7 @@ import SqlPreview from '@/components/SqlPreview/SqlPreview.vue'
 import CustomBindingModal from '@/components/CustomBindingModal.vue'
 import BatchEditPanel from '@/components/BatchEditPanel/BatchEditPanel.vue'
 import { ExcelUploadCard } from '@/components/ExcelUploadCard'
+import { FieldMappingCard } from '@/components/FieldMappingCard'
 
 /**
  * 简单的防抖函数
@@ -1374,41 +1216,6 @@ const handleClearCache = () => {
   clearCache()
   logInfo('DDL解析缓存已清除')
   message.success('缓存已清除，下次解析将重新计算')
-}
-
-const isColumnUsed = (columnIndex) => {
-  return fieldMappings.value.some((mapping) => mapping.excelIndex === columnIndex)
-}
-
-const getConfidenceColor = (confidence) => {
-  const colors = {
-    'very-high': 'green',
-    high: 'blue',
-    medium: 'orange',
-    low: 'red',
-    'very-low': 'gray',
-    manual: 'purple',
-  }
-  return colors[confidence] || 'gray'
-}
-
-const getConfidenceText = (confidence) => {
-  const texts = {
-    'very-high': '极高',
-    high: '高',
-    medium: '中',
-    low: '低',
-    'very-low': '极低',
-    manual: '手动',
-  }
-  return texts[confidence] || '未知'
-}
-
-const getSimilarityColor = (similarity) => {
-  if (similarity >= 0.8) return '#52c41a'
-  if (similarity >= 0.6) return '#1890ff'
-  if (similarity >= 0.4) return '#faad14'
-  return '#ff4d4f'
 }
 
 // SQL美化相关方法
