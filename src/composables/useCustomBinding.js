@@ -422,12 +422,18 @@ export function useCustomBinding() {
    * @param {Object} fieldConfig - 自定义字段配置
    */
   const addCustomField = (fieldConfig) => {
+    if (!fieldConfig || !fieldConfig.fieldName) {
+      console.warn('addCustomField: 无效的字段配置', fieldConfig)
+      return
+    }
+
     const existingIndex = customFields.value.findIndex(
       (field) => field.fieldName === fieldConfig.fieldName,
     )
 
     if (existingIndex >= 0) {
       // 更新现有字段
+      console.log(`addCustomField: 更新现有字段 ${fieldConfig.fieldName}`)
       customFields.value[existingIndex] = {
         ...customFields.value[existingIndex],
         ...fieldConfig,
@@ -435,6 +441,7 @@ export function useCustomBinding() {
       }
     } else {
       // 添加新字段
+      console.log(`addCustomField: 添加新字段 ${fieldConfig.fieldName}`)
       customFields.value.push({
         id: generateId(),
         ...fieldConfig,

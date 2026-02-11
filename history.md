@@ -1,18 +1,20 @@
 # 版本变更历史
 
-## 1.5.18 (2026-01-26)
+## 1.5.19 (2026-02-11)
 
-**添加复制原始SQL功能**
+**InsertPage.vue代码重构优化**
 
-- 新增"复制原始SQL"按钮
-  - 位于SQL预览区域的操作按钮组中
-  - 点击后生成不换行的单行SQL并复制到剪贴板
-  - 不影响原有的"复制SQL"按钮功能
-  - 原有的"复制SQL"按钮继续复制美化后的SQL
-- 实现原理：
-  - 使用 sqlGenerator.formatSql() 函数生成压缩格式的SQL
-  - 移除所有换行符和多余空格
-  - 保持数据格式的正确性
+- 提取公共工具函数
+  - 新建 src/utils/sqlBeautifier.ts：SQL格式化工具
+  - 新建 src/utils/operationLogger.ts：操作日志工具
+  - 新建 src/utils/sqlStats.ts：SQL统计工具
+  - 新建 src/utils/fileUploader.ts：文件上传工具
+  - 新建 src/utils/fieldMapping.ts：字段映射工具
+  - 新建 src/utils/index.ts：统一导出文件
+- 拆分UI组件
+  - 将Excel上传区域替换为ExcelUploadCard组件
+  - 移除约120行重复代码
+  - 代码从2663行减少到2541行
 - 所有代码通过ESLint检查
 
 ## 1.5.17 (2026-01-26)

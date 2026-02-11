@@ -64,152 +64,36 @@
           </div>
         </div>
 
-        <!-- Excel上传 -->
-        <div class="input-card">
-          <div class="card-header">
-            <h3>Excel文件上传</h3>
-            <a-tooltip title="支持.xlsx、.xls、.csv格式，最大文件大小10MB">
-              <QuestionCircleOutlined />
-            </a-tooltip>
-          </div>
-          <a-upload
-            v-model:file-list="fileList"
-            :before-upload="beforeUpload"
-            :custom-request="handleUpload"
-            :show-upload-list="false"
-            accept=".xlsx,.xls,.csv"
-          >
-            <a-button :loading="uploading">
-              <template #icon><UploadOutlined /></template>
-              {{ uploading ? '上传中...' : '选择文件' }}
-            </a-button>
-          </a-upload>
-
-          <div v-if="uploadedFile" class="file-info">
-            <a-alert
-              :message="uploadedFile.name"
-              :description="
-                excelData && excelData.length > 0
-                  ? `文件解析完成，共 ${excelData.length} 行数据`
-                  : '文件上传成功，正在解析数据...'
-              "
-              :type="excelData && excelData.length > 0 ? 'success' : 'info'"
-              show-icon
-              closable
-              @close="clearFile"
-            />
-          </div>
-
-          <!-- 去重配置 -->
-          <div v-if="excelData && excelData.length > 0" class="deduplication-config">
-            <a-divider style="margin: 12px 0" />
-            <div class="deduplication-header">
-              <a-checkbox
-                v-model:checked="deduplicationEnabled"
-                @change="(e) => handleDeduplicationToggle(e.target.checked)"
-              >
-                启用数据去重
-              </a-checkbox>
-              <a-tooltip title="根据选定列的值去除重复数据行，仅保留每组的第一次出现">
-                <QuestionCircleOutlined />
-              </a-tooltip>
-            </div>
-            <div v-if="deduplicationEnabled" class="deduplication-controls">
-              <a-select
-                v-model:value="deduplicationColumn"
-                placeholder="请选择去重列"
-                style="width: 100%; max-width: 300px"
-                @change="applyDeduplication"
-              >
-                <a-select-option
-                  v-for="(header, idx) in excelHeaders || []"
-                  :key="idx"
-                  :value="idx"
-                >
-                  {{ header }} (列{{ idx + 1 }})
-                </a-select-option>
-              </a-select>
-              <div v-if="deduplicationStats.removedRows > 0" class="deduplication-stats">
-                <a-tag color="blue">原始: {{ deduplicationStats.originalRows }} 行</a-tag>
-                <a-tag color="green">去重后: {{ deduplicationStats.deduplicatedRows }} 行</a-tag>
-                <a-tag color="orange">去重: {{ deduplicationStats.removedRows }} 行</a-tag>
-              </div>
-            </div>
-          </div>
-
-          <!-- 行范围选择配置 -->
-          <div v-if="excelData && excelData.length > 0" class="row-range-config">
-            <a-divider style="margin: 12px 0" />
-            <div class="row-range-header">
-              <a-checkbox
-                v-model:checked="rowRangeEnabled"
-                @change="(e) => handleRowRangeToggle(e.target.checked)"
-              >
-                启用行范围选择
-              </a-checkbox>
-              <a-tooltip title="只处理指定范围内的Excel行，提高处理效率">
-                <QuestionCircleOutlined />
-              </a-tooltip>
-            </div>
-            <div v-if="rowRangeEnabled" class="row-range-controls">
-              <div class="row-range-inputs">
-                <div class="row-range-input">
-                  <label>起始行:</label>
-                  <a-input-number
-                    v-model:value="startRow"
-                    :min="1"
-                    :max="totalExcelRows"
-                    :placeholder="`1-${totalExcelRows}`"
-                    style="width: 100%"
-                  />
-                </div>
-                <div class="row-range-input">
-                  <label>结束行:</label>
-                  <a-input-number
-                    v-model:value="endRow"
-                    :min="1"
-                    :max="totalExcelRows"
-                    :placeholder="`1-${totalExcelRows}`"
-                    style="width: 100%"
-                  />
-                </div>
-              </div>
-              <div class="row-range-options">
-                <a-checkbox v-model:checked="includeHeader"> 包含表头 </a-checkbox>
-                <a-tag color="blue">文件总行数: {{ totalExcelRows }}</a-tag>
-              </div>
-              <div class="row-range-actions">
-                <a-button type="primary" size="small" @click="applyRowRange">
-                  <template #icon><CheckOutlined /></template>
-                  应用行范围
-                </a-button>
-                <a-button size="small" @click="resetRowRange">
-                  <template #icon><ReloadOutlined /></template>
-                  重置范围
-                </a-button>
-              </div>
-              <div v-if="startRow && endRow" class="row-range-stats">
-                <a-tag color="green">选择范围: {{ startRow }} - {{ endRow }}</a-tag>
-                <a-tag color="orange">将处理 {{ endRow - startRow + 1 }} 行</a-tag>
-              </div>
-            </div>
-          </div>
-
-          <div v-if="excelData && excelData.length > 0" class="data-preview">
-            <a-collapse>
-              <a-collapse-panel key="preview" header="数据预览">
-                <a-table
-                  :data-source="previewData"
-                  :columns="previewColumns"
-                  :pagination="false"
-                  size="small"
-                  :scroll="{ x: true }"
-                />
-                <div class="preview-footer">显示前10行，共 {{ excelData.length }} 行数据</div>
-              </a-collapse-panel>
-            </a-collapse>
-          </div>
-        </div>
+        <!-- Excel上传 - 使用现有组件 -->
+        <ExcelUploadCard
+          :file-list="fileList"
+          :uploaded-file="uploadedFile"
+          :uploading="uploading"
+          :excel-data="excelData"
+          :excel-headers="excelHeaders"
+          :deduplication-enabled="deduplicationEnabled"
+          :deduplication-column="deduplicationColumn"
+          :deduplication-stats="deduplicationStats"
+          :row-range-enabled="rowRangeEnabled"
+          :start-row="startRow"
+          :end-row="endRow"
+          :include-header="includeHeader"
+          :total-excel-rows="totalExcelRows"
+          :cell-split-enabled="cellSplitEnabled"
+          :cell-split-separator="cellSplitSeparator"
+          :custom-separator="customSeparator"
+          :cell-split-stats="cellSplitStats"
+          @upload="handleUpload"
+          @clear-file="clearFile"
+          @deduplication-toggle="handleDeduplicationToggle"
+          @deduplication-change="handleDeduplicationChange"
+          @cell-split-toggle="handleCellSplitToggle"
+          @cell-split-separator-change="handleCellSplitSeparatorChange"
+          @cell-split-apply="handleCellSplitApply"
+          @row-range-toggle="handleRowRangeToggle"
+          @row-range-apply="applyRowRange"
+          @row-range-reset="resetRowRange"
+        />
 
         <!-- 字段映射 -->
         <div class="input-card" v-if="showFieldMapping">
@@ -584,10 +468,8 @@ import {
   ReloadOutlined,
   PlayCircleOutlined,
   QuestionCircleOutlined,
-  UploadOutlined,
   SettingOutlined,
   ClockCircleOutlined,
-  CheckOutlined,
 } from '@ant-design/icons-vue'
 
 // 导入核心功能模块
@@ -600,8 +482,8 @@ import { useErrorHandler } from '@/composables/useErrorHandler'
 // 导入组件
 import SqlPreview from '@/components/SqlPreview/SqlPreview.vue'
 import CustomBindingModal from '@/components/CustomBindingModal.vue'
-import CustomFieldManager from '@/components/CustomFieldManager/CustomFieldManager.vue'
 import BatchEditPanel from '@/components/BatchEditPanel/BatchEditPanel.vue'
+import { ExcelUploadCard } from '@/components/ExcelUploadCard'
 
 /**
  * 简单的防抖函数
@@ -752,6 +634,16 @@ const endRow = ref(null) // 结束行
 const includeHeader = ref(true) // 是否包含表头
 const totalExcelRows = ref(0) // Excel文件总行数
 
+// 单元格拆分相关状态
+const cellSplitEnabled = ref(false) // 是否启用单元格拆分
+const cellSplitSeparator = ref(',') // 单元格拆分分隔符
+const customSeparator = ref('') // 自定义分隔符
+const cellSplitStats = ref({
+  originalRows: 0,
+  splitRows: 0,
+  expandedRows: 0,
+}) // 单元格拆分统计信息
+
 // SQL美化相关数据
 const showBeautifyOptions = ref(false)
 const beautifyOptions = ref({
@@ -772,47 +664,6 @@ const currentErrors = ref([])
 // 计算属性
 const showFieldMapping = computed(() => {
   return parsedFields.value.length > 0 && excelHeaders.value.length > 0
-})
-
-/**
- * 优化后的数据预览计算属性
- * 使用缓存和限制数据量来提升性能
- */
-const previewData = computed(() => {
-  if (!excelData.value || excelData.value.length === 0) {
-    return []
-  }
-
-  const previewLimit = 10
-  return excelData.value.slice(0, previewLimit).map((row, index) => ({
-    key: `preview-${index}`,
-    ...row,
-  }))
-})
-
-/**
- * 优化后的预览列配置计算属性
- * 添加缓存和错误处理
- */
-const previewColumns = computed(() => {
-  // 如果没有表头，返回空数组
-  if (!excelHeaders.value || excelHeaders.value.length === 0) {
-    return []
-  }
-
-  // 限制列数量，避免过多列影响性能
-  const maxColumns = 20
-  const headersToDisplay = excelHeaders.value.slice(0, maxColumns)
-
-  const columns = headersToDisplay.map((header, index) => ({
-    title: `${header} (列${index + 1})`,
-    dataIndex: index,
-    key: `col-${index}`,
-    ellipsis: true,
-    width: 150, // 固定列宽，提升渲染性能
-  }))
-
-  return columns
 })
 
 const sqlStats = computed(() => {
@@ -912,23 +763,6 @@ const parseDdl = async (forceRefresh = false) => {
   } finally {
     parsingDdl.value = false
   }
-}
-
-const beforeUpload = (file) => {
-  const isValidType = ['xlsx', 'xls', 'csv'].some((ext) => file.name.toLowerCase().endsWith(ext))
-
-  if (!isValidType) {
-    message.error('只支持.xlsx、.xls、.csv格式的文件')
-    return false
-  }
-
-  const isLt10M = file.size / 1024 / 1024 < 10
-  if (!isLt10M) {
-    message.error('文件大小不能超过10MB')
-    return false
-  }
-
-  return true
 }
 
 const handleUpload = async (options) => {
@@ -1093,6 +927,40 @@ const handleDeduplicationToggle = (checked) => {
     })
     message.info('已启用数据去重，请选择去重列')
   }
+}
+
+/**
+ * 处理去重列选择变化
+ * @param {number} column - 选中的列索引
+ */
+const handleDeduplicationChange = (column) => {
+  deduplicationColumn.value = column
+  if (column !== undefined) {
+    applyDeduplication()
+  }
+}
+
+/**
+ * 处理单元格拆分开关切换
+ * @param {boolean} enabled - 开关状态
+ */
+const handleCellSplitToggle = (enabled) => {
+  cellSplitEnabled.value = enabled
+}
+
+/**
+ * 处理单元格拆分分隔符变化
+ * @param {string} separator - 新的分隔符
+ */
+const handleCellSplitSeparatorChange = (separator) => {
+  cellSplitSeparator.value = separator
+}
+
+/**
+ * 应用单元格拆分
+ */
+const handleCellSplitApply = () => {
+  message.info('单元格拆分功能开发中')
 }
 
 /**

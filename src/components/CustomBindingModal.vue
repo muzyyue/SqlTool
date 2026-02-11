@@ -951,13 +951,9 @@ const loadBindings = () => {
   }))
 
   // 加载自定义字段 - 确保customFields是数组
-  // 注意：customBindingManager.customFields 是 computed 属性，需要 .value 获取实际值
-  const customFieldsRaw = props.customBindingManager.customFields
-  const customFieldsData = Array.isArray(customFieldsRaw)
-    ? customFieldsRaw
-    : Array.isArray(customFieldsRaw?.value)
-      ? customFieldsRaw.value
-      : []
+  const customFieldsData = Array.isArray(props.customBindingManager.customFields)
+    ? props.customBindingManager.customFields
+    : []
   customFields.value = customFieldsData.map((field) => ({
     id: field.id,
     inputMode: 'select',
@@ -1211,27 +1207,8 @@ const addCustomField = () => {
     auto_increment: '自增',
   }
 
-  /**
-   * 生成唯一的默认字段名
-   * 使用 generateId() 确保在快速连续调用时也能生成唯一名称
-   * @returns {string} 唯一的默认字段名
-   */
-  const generateUniqueFieldName = () => {
-    const baseName = typeLabels['system_function'] || '自定义'
-    let fieldName = `${baseName}_${generateId()}`
-    let attempts = 0
-    const maxAttempts = 100
-
-    // 如果生成的字段名冲突，继续生成直到唯一或达到最大尝试次数
-    while (checkFieldConflict(fieldName).isConflict && attempts < maxAttempts) {
-      fieldName = `${baseName}_${generateId()}`
-      attempts++
-    }
-
-    return fieldName
-  }
-
-  const defaultFieldName = generateUniqueFieldName()
+  // 使用 generateId() 生成唯一字段名，确保不会重复
+  const defaultFieldName = `${typeLabels['system_function'] || '自定义'}_${generateId()}`
 
   // 检查生成的默认字段名是否冲突
   const conflictResult = checkFieldConflict(defaultFieldName)
@@ -1549,7 +1526,41 @@ const saveBindings = () => {
     }
   })
 
-  // 7. 将本地所有自定义字段添加到管理器中
+  // 7. 检查本地 customFields 数组内部的重复
+  const fieldNameMap = new Map()
+  const duplicateFieldNames = []
+  customFields.value.forEach((field) => {
+    if (field.fieldName) {
+      if (fieldNameMap.has(field.fieldName)) {
+        duplicateFieldNames.push(field.fieldName)
+        fieldNameMap.get(field.fieldName).push(field)
+      } else {
+        fieldNameMap.set(field.fieldName, [field])
+      }
+    }
+  })
+
+  // 如果发现重复，提示用户
+  if (duplicateFieldNames.length > 0) {
+    Modal.warning({
+      title: '发现重复字段',
+      content: `以下字段名存在重复，只保留最后一个：${duplicateFieldNames.join(', ')}`,
+      okText: '我知道了',
+    })
+    // 自动去重：只保留每个字段名的最后一个
+    const uniqueFields = []
+    const seenFieldNames = new Set()
+    for (let i = customFields.value.length - 1; i >= 0; i--) {
+      const field = customFields.value[i]
+      if (field.fieldName && !seenFieldNames.has(field.fieldName)) {
+        seenFieldNames.add(field.fieldName)
+        uniqueFields.unshift(field)
+      }
+    }
+    customFields.value = uniqueFields
+  }
+
+  // 8. 将本地所有自定义字段添加到管理器中
   console.log('准备添加自定义字段到管理器:', customFields.value)
   customFields.value.forEach((field) => {
     console.log('检查字段:', field)

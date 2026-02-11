@@ -1758,6 +1758,7 @@ const handleCustomBindingSave = (customFieldsData) => {
     }
 
     const validCustomFieldsMap = new Map()
+    const duplicateFieldNames = new Set()
     customFields.forEach((field) => {
       if (
         typeof field === 'object' &&
@@ -1765,10 +1766,27 @@ const handleCustomBindingSave = (customFieldsData) => {
         field.fieldName &&
         field.fieldName.trim() !== ''
       ) {
-        validCustomFieldsMap.set(field.fieldName.trim(), field)
+        // 检查是否已存在相同fieldName
+        if (validCustomFieldsMap.has(field.fieldName.trim())) {
+          duplicateFieldNames.add(field.fieldName.trim())
+        }
+        // 使用fieldName作为key，但保留所有字段（通过数组存储）
+        if (!validCustomFieldsMap.has(field.fieldName.trim())) {
+          validCustomFieldsMap.set(field.fieldName.trim(), [])
+        }
+        validCustomFieldsMap.get(field.fieldName.trim()).push(field)
       }
     })
-    const validCustomFields = Array.from(validCustomFieldsMap.values())
+
+    // 如果发现重复，提示用户
+    if (duplicateFieldNames.size > 0) {
+      message.warning(
+        `发现重复的自定义字段名：${Array.from(duplicateFieldNames).join(', ')}，将保留所有字段`,
+      )
+    }
+
+    // 将Map转换为数组（展平）
+    const validCustomFields = Array.from(validCustomFieldsMap.values()).flat()
 
     console.log('有效自定义字段（去重后）:', validCustomFields)
     console.log('有效自定义字段数量:', validCustomFields.length)
