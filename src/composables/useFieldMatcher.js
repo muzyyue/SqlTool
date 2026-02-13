@@ -683,9 +683,9 @@ export function useFieldMatcher() {
     }
 
     // 如果有字段拼接规则，应用拼接
-    if (customBindingManager.fieldConcatenationRules.length > 0) {
+    if (customBindingManager.fieldConcatenationRules.value.length > 0) {
       const concatenationRulesMap = {}
-      customBindingManager.fieldConcatenationRules.forEach((rule) => {
+      customBindingManager.fieldConcatenationRules.value.forEach((rule) => {
         concatenationRulesMap[rule.ddlFieldName] = rule
       })
 

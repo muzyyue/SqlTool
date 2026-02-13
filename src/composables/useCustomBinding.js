@@ -299,26 +299,33 @@ export function useCustomBinding() {
     }
     if (config.customFields) {
       const fields = Array.isArray(config.customFields) ? config.customFields : []
-      // 更新或添加字段
+      // 创建新数组触发响应式更新
       const existingFieldMap = new Map()
       customFields.value.forEach((field) => {
         existingFieldMap.set(field.fieldName, field)
       })
 
+      // 创建新数组
+      const newFields = [...customFields.value]
+
       fields.forEach((field) => {
         if (existingFieldMap.has(field.fieldName)) {
-          const existingIndex = customFields.value.findIndex((f) => f.fieldName === field.fieldName)
+          const existingIndex = newFields.findIndex((f) => f.fieldName === field.fieldName)
           if (existingIndex >= 0) {
-            customFields.value[existingIndex] = {
-              ...customFields.value[existingIndex],
+            newFields[existingIndex] = {
+              ...newFields[existingIndex],
               ...field,
               updatedAt: new Date().toISOString(),
             }
           }
         } else {
-          customFields.value.push(field)
+          newFields.push(field)
         }
       })
+
+      // 赋值新数组触发响应式
+      customFields.value = newFields
+
       // 重置自增计数器
       fields.forEach((field) => {
         if (field.dataSource === 'auto_increment') {
@@ -432,22 +439,27 @@ export function useCustomBinding() {
     )
 
     if (existingIndex >= 0) {
-      // 更新现有字段
+      // 更新现有字段 - 创建新数组触发响应式
       console.log(`addCustomField: 更新现有字段 ${fieldConfig.fieldName}`)
-      customFields.value[existingIndex] = {
-        ...customFields.value[existingIndex],
+      const newFields = [...customFields.value]
+      newFields[existingIndex] = {
+        ...newFields[existingIndex],
         ...fieldConfig,
         updatedAt: new Date().toISOString(),
       }
+      customFields.value = newFields
     } else {
-      // 添加新字段
+      // 添加新字段 - 创建新数组触发响应式
       console.log(`addCustomField: 添加新字段 ${fieldConfig.fieldName}`)
-      customFields.value.push({
-        id: generateId(),
-        ...fieldConfig,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      })
+      customFields.value = [
+        ...customFields.value,
+        {
+          id: generateId(),
+          ...fieldConfig,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ]
     }
 
     // 重置自增计数器
@@ -465,7 +477,8 @@ export function useCustomBinding() {
   const removeCustomField = (fieldName) => {
     const index = customFields.value.findIndex((field) => field.fieldName === fieldName)
     if (index >= 0) {
-      customFields.value.splice(index, 1)
+      // 创建新数组触发响应式
+      customFields.value = customFields.value.filter((_, i) => i !== index)
       // 移除对应的自增计数器
       delete autoIncrementCounters.value[fieldName]
     }
@@ -597,11 +610,11 @@ export function useCustomBinding() {
 
   // 保存实例引用
   customBindingManagerInstance = {
-    // 状态
-    customBindings: computed(() => customBindings.value),
-    fieldConcatenationRules: computed(() => fieldConcatenationRules.value),
-    customFields: computed(() => customFields.value),
-    enableCustomBinding: computed(() => enableCustomBinding.value),
+    // 状态 - 直接导出 ref 以确保响应式追踪
+    customBindings: customBindings,
+    fieldConcatenationRules: fieldConcatenationRules,
+    customFields: customFields,
+    enableCustomBinding: enableCustomBinding,
 
     // 系统预设函数
     systemFunctions: computed(() => systemFunctions),

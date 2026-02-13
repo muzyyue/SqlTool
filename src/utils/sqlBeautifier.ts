@@ -177,17 +177,15 @@ const beautifyInsertSql = (sql: string, options: SqlBeautifyOptions): string => 
     result = result.replace(insertRegex, columnLine + '\nVALUES')
 
     if (alignValues) {
-      result = result.replace(
-        /\(([^)]+)\)/g,
-        (match) => {
-          const values = match.slice(1, -1).split(',').map((v) => v.trim())
-          const maxLength = Math.max(...values.map((v) => v.length))
-          const alignedValues = values
-            .map((v) => v + ' '.repeat(maxLength - v.length))
-            .join(', ')
-          return `(\n  ${alignedValues}\n)`
-        },
-      )
+      result = result.replace(/\(([^)]+)\)/g, (match) => {
+        const values = match
+          .slice(1, -1)
+          .split(',')
+          .map((v) => v.trim())
+        const maxLength = Math.max(...values.map((v) => v.length))
+        const alignedValues = values.map((v) => v + ' '.repeat(maxLength - v.length)).join(', ')
+        return `(\n  ${alignedValues}\n)`
+      })
     }
   }
 
@@ -214,12 +212,9 @@ const beautifyUpdateSql = (sql: string, options: SqlBeautifyOptions): string => 
     result = result.replace(updateRegex, `UPDATE ${formatKeyword('$1', keywordCase)} SET\n  `)
   }
 
-  result = result.replace(
-    /(\w+)\s*=\s*([^,]+)(,?\s*)/gi,
-    (match, col, val, suffix) => {
-      return `${formatKeyword(col, keywordCase)} = ${val.trim()}${suffix}\n  `
-    },
-  )
+  result = result.replace(/(\w+)\s*=\s*([^,]+)(,?\s*)/gi, (match, col, val, suffix) => {
+    return `${formatKeyword(col, keywordCase)} = ${val.trim()}${suffix}\n  `
+  })
 
   return result.trimEnd()
 }

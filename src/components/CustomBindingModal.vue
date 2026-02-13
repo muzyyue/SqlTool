@@ -919,8 +919,9 @@ watch(
 // 方法
 const loadBindings = () => {
   // 加载单列绑定 - 确保customBindings是数组
-  const customBindings = Array.isArray(props.customBindingManager.customBindings)
-    ? props.customBindingManager.customBindings
+  // 注意：customBindingManager.customBindings 现在是 ref，直接访问 .value
+  const customBindings = Array.isArray(props.customBindingManager.customBindings?.value)
+    ? props.customBindingManager.customBindings.value
     : []
   singleBindings.value = customBindings
     .filter((binding) => binding.bindingType === 'single')
@@ -936,8 +937,10 @@ const loadBindings = () => {
     })
 
   // 加载字段拼接规则 - 确保fieldConcatenationRules是数组
-  const fieldConcatenationRules = Array.isArray(props.customBindingManager.fieldConcatenationRules)
-    ? props.customBindingManager.fieldConcatenationRules
+  const fieldConcatenationRules = Array.isArray(
+    props.customBindingManager.fieldConcatenationRules?.value,
+  )
+    ? props.customBindingManager.fieldConcatenationRules.value
     : []
   concatenationRules.value = fieldConcatenationRules.map((rule) => ({
     id: rule.id,
@@ -950,29 +953,38 @@ const loadBindings = () => {
     format: rule.format || '',
   }))
 
-  // 加载自定义字段 - 确保customFields是数组
-  const customFieldsData = Array.isArray(props.customBindingManager.customFields)
-    ? props.customBindingManager.customFields
-    : []
-  customFields.value = customFieldsData.map((field) => ({
-    id: field.id,
-    inputMode: 'select',
-    fieldName: field.fieldName,
-    dataSource: field.dataSource || 'system_function',
-    systemFunctionConfig: {
-      databaseType: field.systemFunctionConfig?.databaseType || 'mysql',
-      functionName: field.systemFunctionConfig?.functionName || 'NOW',
-    },
-    excelCombineConfig: {
-      columns: field.excelCombineConfig?.columns || [],
-      separator: field.excelCombineConfig?.separator || '',
-      format: field.excelCombineConfig?.format || '',
-    },
-    autoIncrementConfig: {
-      start: field.autoIncrementConfig?.start || 1,
-      step: field.autoIncrementConfig?.step || 1,
-    },
-  }))
+  // 注意：自定义字段标签页需要根据模式处理
+  // 编辑模式：加载编辑的字段数据
+  // 添加模式：每次打开弹窗都是空的，用户可以添加新字段
+  if (props.editingField) {
+    // 编辑模式：加载要编辑的字段数据
+    console.log('编辑模式：加载字段数据', props.editingField)
+    customFields.value = [
+      {
+        id: props.editingField.id || generateId(),
+        inputMode: 'select',
+        fieldName: props.editingField.fieldName,
+        dataType: props.editingField.dataType || 'string',
+        dataSource: props.editingField.dataSource || 'system_function',
+        systemFunctionConfig: {
+          databaseType: props.editingField.systemFunctionConfig?.databaseType || 'mysql',
+          functionName: props.editingField.systemFunctionConfig?.functionName || 'NOW',
+        },
+        excelCombineConfig: {
+          columns: props.editingField.excelCombineConfig?.columns || [],
+          separator: props.editingField.excelCombineConfig?.separator || '',
+          format: props.editingField.excelCombineConfig?.format || '',
+        },
+        autoIncrementConfig: {
+          start: props.editingField.autoIncrementConfig?.start || 1,
+          step: props.editingField.autoIncrementConfig?.step || 1,
+        },
+      },
+    ]
+  } else {
+    // 添加模式：每次打开弹窗都是空的
+    customFields.value = []
+  }
 }
 
 const handleToggleChange = (checked) => {
@@ -1490,43 +1502,9 @@ const saveBindings = () => {
   })
 
   // 核心修复：将本地自定义字段同步到customBindingManager
-  // 5. 先清空管理器中现有的自定义字段
-  const currentCustomFields = Array.isArray(props.customBindingManager.customFields.value)
-    ? props.customBindingManager.customFields.value
-    : []
-
-  // 记录需要删除的自定义字段名（只删除不在当前列表中的）
-  const newFieldNames = new Set(
-    customFields.value.filter((f) => f.fieldName).map((f) => f.fieldName),
-  )
-
-  // 只删除不在新列表中的字段
-  currentCustomFields.forEach((field) => {
-    if (!newFieldNames.has(field.fieldName)) {
-      props.customBindingManager.removeCustomField(field.fieldName)
-    }
-  })
-
-  // 6. 处理字段拼接规则中的自定义字段名称
-  concatenationRules.value.forEach((rule) => {
-    if (rule.customFieldName && rule.customFieldName.trim() !== '') {
-      // 创建独立的自定义字段
-      const customField = {
-        fieldName: rule.customFieldName,
-        dataType: rule.dataType || 'string',
-        dataSource: 'excel_combine',
-        excelCombineConfig: {
-          columns: rule.sourceColumns || [],
-          separator: rule.separator || '',
-          format: rule.format || '',
-          isFromConcatenationRule: true,
-        },
-      }
-      props.customBindingManager.addCustomField(customField)
-    }
-  })
-
-  // 7. 检查本地 customFields 数组内部的重复
+  // 注意：自定义字段标签页每次打开都是空的，用户添加新字段后保存
+  // 这里只添加新字段，不删除现有字段
+  // 5. 检查本地 customFields 数组内部的重复
   const fieldNameMap = new Map()
   const duplicateFieldNames = []
   customFields.value.forEach((field) => {
@@ -1560,7 +1538,7 @@ const saveBindings = () => {
     customFields.value = uniqueFields
   }
 
-  // 8. 将本地所有自定义字段添加到管理器中
+  // 6. 将本地所有自定义字段添加到管理器中（追加模式，不删除现有字段）
   console.log('准备添加自定义字段到管理器:', customFields.value)
   customFields.value.forEach((field) => {
     console.log('检查字段:', field)

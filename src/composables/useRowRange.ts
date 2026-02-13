@@ -68,11 +68,7 @@ export function useRowRange() {
    * @returns {RowRangeResult} 应用后的行范围结果
    */
   const applyRowRange = (options: RowRangeOptions): RowRangeResult => {
-    if (
-      !options.enabled ||
-      options.startRow === null ||
-      options.endRow === null
-    ) {
+    if (!options.enabled || options.startRow === null || options.endRow === null) {
       return {
         startRow: null,
         endRow: null,

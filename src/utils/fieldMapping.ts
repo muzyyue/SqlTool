@@ -136,15 +136,8 @@ export const getMappingStatus = (mapping: any): MappingStatus => {
  * @param {any[]} mappings - 现有映射列表
  * @returns {number[]} 未被使用的列索引
  */
-export const getUnusedColumnIndices = (
-  columnIndices: number[],
-  mappings: any[],
-): number[] => {
-  const usedIndices = new Set(
-    mappings
-      .filter((m) => m.excelIndex >= 0)
-      .map((m) => m.excelIndex),
-  )
+export const getUnusedColumnIndices = (columnIndices: number[], mappings: any[]): number[] => {
+  const usedIndices = new Set(mappings.filter((m) => m.excelIndex >= 0).map((m) => m.excelIndex))
   return columnIndices.filter((idx) => !usedIndices.has(idx))
 }
 
@@ -155,9 +148,7 @@ export const getUnusedColumnIndices = (
  * @returns {boolean} 是否已被使用
  */
 export const isColumnUsed = (columnIndex: number, mappings: any[]): boolean => {
-  return mappings.some(
-    (m) => m.excelIndex >= 0 && m.excelIndex === columnIndex,
-  )
+  return mappings.some((m) => m.excelIndex >= 0 && m.excelIndex === columnIndex)
 }
 
 /**
@@ -166,10 +157,7 @@ export const isColumnUsed = (columnIndex: number, mappings: any[]): boolean => {
  * @param {string[]} excelHeaders - Excel表头列表
  * @returns {any[]} 映射列表
  */
-export const createManualMappings = (
-  ddlFields: any[],
-  excelHeaders: string[],
-): any[] => {
+export const createManualMappings = (ddlFields: any[], excelHeaders: string[]): any[] => {
   return ddlFields.map((ddlField) => ({
     ddlField,
     excelHeader: null,

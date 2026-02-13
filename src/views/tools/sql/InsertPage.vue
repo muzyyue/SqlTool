@@ -93,6 +93,8 @@
           @row-range-toggle="handleRowRangeToggle"
           @row-range-apply="applyRowRange"
           @row-range-reset="resetRowRange"
+          @update:startRow="(val) => (startRow = val)"
+          @update:endRow="(val) => (endRow = val)"
         />
 
         <!-- 字段映射 - 使用现有组件 -->
@@ -303,7 +305,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, h } from 'vue'
+import { ref, computed, onMounted, h, watch } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import {
   ReloadOutlined,
@@ -327,26 +329,6 @@ import BatchEditPanel from '@/components/BatchEditPanel/BatchEditPanel.vue'
 import { ExcelUploadCard } from '@/components/ExcelUploadCard'
 import { FieldMappingCard } from '@/components/FieldMappingCard'
 
-/**
- * 简单的防抖函数
- * @param {Function} func - 要防抖的函数
- * @param {number} wait - 等待时间（毫秒）
- * @returns {Function} 防抖后的函数
- */
-const createDebounce = (func, wait) => {
-  let timeout = null
-  return function executedFunction(...args) {
-    const later = () => {
-      timeout = null
-      func.apply(this, args)
-    }
-    if (timeout) {
-      clearTimeout(timeout)
-    }
-    timeout = setTimeout(later, wait)
-  }
-}
-
 // 初始化核心功能模块
 const { parseDdl: parseDdlWithParser, clearCache } = useDdlParser()
 const { parseExcel: parseExcelEnhanced, getHeaders } = useExcelParserEnhanced()
@@ -357,6 +339,7 @@ const {
   validateEnhancedMappings,
   matchingStats,
   customBindingManager,
+  resetMappings,
 } = useFieldMatcher()
 
 /**
@@ -422,10 +405,22 @@ const hasCustomBindingConfig = computed(() => {
 })
 
 const customFieldsData = computed(() => {
-  return Array.isArray(customBindingManager.customFields.value)
+  // customBindingManager.customFields 现在是 ref，直接访问 .value
+  const fields = Array.isArray(customBindingManager.customFields.value)
     ? customBindingManager.customFields.value
     : []
+  console.log('customFieldsData computed, fields count:', fields.length, fields)
+  return fields
 })
+
+// 监听 customBindingManager.customFields 的变化，确保响应式更新
+watch(
+  () => customBindingManager.customFields.value,
+  (newFields) => {
+    console.log('customBindingManager.customFields changed:', newFields?.length, newFields)
+  },
+  { deep: true },
+)
 
 const customFieldManagerKey = computed(() => {
   const fields = customFieldsData.value
@@ -691,7 +686,7 @@ const handleUpload = async (options) => {
 
 /**
  * 清除上传的文件及相关数据
- * 重置Excel数据、表头、去重设置等所有文件相关状态
+ * 重置Excel数据、表头、去重设置、字段映射等所有文件相关状态
  */
 const clearFile = () => {
   uploadedFile.value = null
@@ -716,12 +711,36 @@ const clearFile = () => {
   includeHeader.value = true
   totalExcelRows.value = 0
 
+  // 清除单元格拆分相关状态
+  cellSplitEnabled.value = false
+  cellSplitSeparator.value = ','
+  customSeparator.value = ''
+  cellSplitStats.value = {
+    originalRows: 0,
+    splitRows: 0,
+    expandedRows: 0,
+  }
+
+  // 清除字段映射数据 - 关键修复
+  resetMappings()
+
+  // 清除自定义绑定相关状态
+  customBindingEnabled.value = false
+  customBindingManager.resetBindings()
+
+  // 清除生成的SQL
+  generatedSql.value = ''
+
   logInfo('已清除上传的文件及相关数据', 'file', {
     operation: 'clearFile',
     resetDeduplication: true,
     resetRowRange: true,
+    resetFieldMappings: true,
+    resetCustomBindings: true,
+    resetGeneratedSql: true,
+    resetCellSplit: true,
   })
-  message.info('文件已清除')
+  message.info('文件及相关数据已清除')
 }
 
 /**
@@ -730,6 +749,9 @@ const clearFile = () => {
  * @param {boolean} checked - 去重开关状态
  */
 const handleDeduplicationToggle = (checked) => {
+  // 更新开关状态
+  deduplicationEnabled.value = checked
+
   if (!checked) {
     // 恢复原始数据
     if (originalExcelData.value.length > 0) {
@@ -803,6 +825,18 @@ const handleCellSplitSeparatorChange = (separator) => {
  */
 const handleCellSplitApply = () => {
   message.info('单元格拆分功能开发中')
+}
+
+/**
+ * 处理数据库类型变更
+ * @param {string} type - 数据库类型
+ */
+const handleDatabaseTypeChange = (type) => {
+  databaseType.value = type
+  logInfo(`数据库类型已切换为: ${type}`, 'database', {
+    operation: 'changeDatabaseType',
+    databaseType: type,
+  })
 }
 
 /**
@@ -884,6 +918,9 @@ const applyDeduplication = () => {
  * @param {boolean} checked - 行范围开关状态
  */
 const handleRowRangeToggle = (checked) => {
+  // 更新开关状态
+  rowRangeEnabled.value = checked
+
   if (!checked) {
     // 恢复原始数据
     if (originalExcelData.value.length > 0) {
@@ -1018,12 +1055,8 @@ const applyRowRange = async () => {
     )
     message.success(`行范围应用成功，共 ${rows.length} 行数据`)
 
-    // 如果已有DDL字段，使用防抖延迟执行字段匹配，避免频繁UI更新
-    if (parsedFields.value.length > 0) {
-      if (autoMatchFieldsDebounced) {
-        autoMatchFieldsDebounced()
-      }
-    }
+    // 注意：行范围变化只影响数据行，不影响表头和字段映射
+    // 因此不需要重新执行字段匹配，保留用户已配置的映射关系
   } catch (error) {
     console.error('应用行范围失败:', error)
 
@@ -1082,10 +1115,8 @@ const resetRowRange = async () => {
     })
     message.success(`行范围已重置，共 ${result.rows.length} 行数据`)
 
-    // 如果已有DDL字段，自动执行字段匹配
-    if (parsedFields.value.length > 0) {
-      autoMatchFields()
-    }
+    // 注意：行范围重置只影响数据行，不影响表头和字段映射
+    // 因此不需要重新执行字段匹配，保留用户已配置的映射关系
   } catch (error) {
     console.error('重置行范围失败:', error)
     const friendlyError = logError(error, 'row-range', {
@@ -1127,13 +1158,6 @@ const autoMatchFields = () => {
     message.error(friendlyError)
   }
 }
-
-// 防抖版本的自动字段匹配（延迟500ms执行，避免频繁UI更新）
-const autoMatchFieldsDebounced = createDebounce(() => {
-  if (parsedFields.value.length > 0 && excelHeaders.value.length > 0) {
-    autoMatchFields()
-  }
-}, 500)
 
 const updateMapping = (ddlFieldName, excelIndex) => {
   const excelHeader = excelIndex >= 0 ? excelHeaders.value[excelIndex] : null
@@ -1380,7 +1404,7 @@ const generateSql = async () => {
     const tableName = extractTableName(ddlStatement.value)
 
     const mappingsToUse = fieldMappings.value
-    const customFieldsConfig = customBindingManager.customFields
+    const customFieldsConfig = customBindingManager.customFields.value
     const enableCustomBinding = customBindingEnabled.value
 
     // 生成SQL
@@ -1519,7 +1543,7 @@ const handleCustomBindingToggle = (checked) => {
   message.success(`自定义绑定已${checked ? '启用' : '禁用'}`)
 }
 
-const handleCustomBindingSave = (customFieldsData) => {
+const handleCustomBindingSave = (savedConfig) => {
   // 保存自定义绑定配置
   logInfo('自定义绑定配置已保存')
   console.log(
@@ -1536,8 +1560,8 @@ const handleCustomBindingSave = (customFieldsData) => {
     }
 
     // 1. 首先导入完整的绑定配置到customBindingManager
-    if (customFieldsData && typeof customFieldsData === 'object') {
-      customBindingManager.importBindings(customFieldsData)
+    if (savedConfig && typeof savedConfig === 'object') {
+      customBindingManager.importBindings(savedConfig)
       console.log('已导入完整绑定配置到customBindingManager')
     }
 
@@ -1645,15 +1669,13 @@ const handleCustomBindingSave = (customFieldsData) => {
     })
 
     // 3. 获取自定义字段数据，确保它是数组
-    console.log('customFieldsData:', customFieldsData)
+    console.log('savedConfig:', savedConfig)
     console.log('customBindingManager.customFields.value:', customBindingManager.customFields.value)
 
     let customFields = []
 
-    if (customFieldsData && customFieldsData.customFields) {
-      customFields = Array.isArray(customFieldsData.customFields)
-        ? customFieldsData.customFields
-        : []
+    if (savedConfig && savedConfig.customFields) {
+      customFields = Array.isArray(savedConfig.customFields) ? savedConfig.customFields : []
     } else {
       customFields = Array.isArray(customBindingManager.customFields.value)
         ? customBindingManager.customFields.value
@@ -1807,6 +1829,9 @@ const handleCustomBindingSave = (customFieldsData) => {
     message.success(
       `自定义绑定配置已保存，成功处理 ${singleBindings.length} 个单列绑定和 ${addedCount} 个自定义字段`,
     )
+
+    // 清除编辑状态，确保下次打开弹窗是添加模式
+    editingCustomField.value = null
   } catch (error) {
     logError(error, 'custom-binding', {
       operation: 'saveCustomBinding',
@@ -2002,8 +2027,8 @@ onMounted(() => {
 }
 
 .content-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 24px;
   min-height: 600px;
   width: 100%;
@@ -2290,10 +2315,9 @@ onMounted(() => {
   font-size: 14px;
 }
 
-/* 响应式设计 */
+/* 响应式设计 - 所有屏幕尺寸统一单列布局 */
 @media (max-width: 1024px) {
   .content-grid {
-    grid-template-columns: 1fr;
     gap: 16px;
   }
 

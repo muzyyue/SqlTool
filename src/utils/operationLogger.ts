@@ -100,10 +100,7 @@ export const formatLogTime = (
  * @param {LogFilterOptions} options - 筛选选项
  * @returns {LogEntry[]} 过滤后的日志数组
  */
-export const filterLogs = (
-  logs: LogEntry[],
-  options: LogFilterOptions,
-): LogEntry[] => {
+export const filterLogs = (logs: LogEntry[], options: LogFilterOptions): LogEntry[] => {
   return logs.filter((log) => {
     if (options.level) {
       const levels = Array.isArray(options.level) ? options.level : [options.level]
@@ -129,7 +126,8 @@ export const filterLogs = (
 
     if (options.keyword) {
       const keyword = options.keyword.toLowerCase()
-      const searchableText = `${log.message} ${log.type} ${JSON.stringify(log.context || {})}`.toLowerCase()
+      const searchableText =
+        `${log.message} ${log.type} ${JSON.stringify(log.context || {})}`.toLowerCase()
       if (!searchableText.includes(keyword)) {
         return false
       }
@@ -232,5 +230,7 @@ export const exportLogsAsCsv = (logs: LogEntry[]): string => {
     log.context ? JSON.stringify(log.context) : '',
   ])
 
-  return [headers.join(','), ...rows.map((row) => row.map((cell) => `"${cell}"`).join(','))].join('\n')
+  return [headers.join(','), ...rows.map((row) => row.map((cell) => `"${cell}"`).join(','))].join(
+    '\n',
+  )
 }

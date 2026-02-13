@@ -1,259 +1,497 @@
 <template>
-  <div class="input-card excel-upload-card">
-    <div class="card-header">
-      <h3>Excel文件上传</h3>
-      <a-tooltip title="支持.xlsx、.xls、.csv格式，最大文件大小10MB">
-        <QuestionCircleOutlined />
-      </a-tooltip>
-    </div>
-    <a-upload
-      :file-list="fileList"
-      :custom-request="handleUpload"
-      :show-upload-list="false"
-      accept=".xlsx,.xls,.csv"
-      @change="handleFileListChange"
-    >
-      <a-button :loading="uploading">
-        <template #icon><UploadOutlined /></template>
-        {{ uploading ? '上传中...' : '选择文件' }}
-      </a-button>
-    </a-upload>
+  <div class="excel-upload-wrapper">
+    <div class="excel-upload-card">
+      <div class="card-header">
+        <div class="header-left">
+          <h3 class="card-title">
+            <FileExcelOutlined />
+            <span>Excel数据源</span>
+          </h3>
+          <a-tag color="green" v-if="uploadedFile">已上传</a-tag>
+        </div>
+        <div class="header-actions">
+          <a-button v-if="uploadedFile" type="text" danger size="small" @click="handleClearFile">
+            <template #icon><DeleteOutlined /></template>
+            更换文件
+          </a-button>
+        </div>
+      </div>
 
-    <div v-if="uploadedFile" class="file-info">
-      <a-alert
-        :message="uploadedFile.name"
-        :description="
-          excelData && excelData.length > 0
-            ? `文件解析完成，共 ${excelData.length} 行数据`
-            : '文件上传成功，正在解析数据...'
-        "
-        :type="excelData && excelData.length > 0 ? 'success' : 'info'"
-        show-icon
-        closable
-        @close="handleClearFile"
-      />
-    </div>
+      <div class="upload-zone" v-if="!uploadedFile">
+        <a-upload-dragger
+          :file-list="fileList"
+          :custom-request="handleUpload"
+          :show-upload-list="false"
+          accept=".xlsx,.xls,.csv"
+          @change="handleFileListChange"
+          :disabled="uploading"
+        >
+          <div class="upload-content">
+            <div class="upload-icon">
+              <CloudUploadOutlined :spin="uploading" />
+            </div>
+            <p class="upload-text">
+              <span class="primary-text">点击或拖拽文件到此处上传</span>
+            </p>
+            <p class="upload-hint">支持 .xlsx、.xls、.csv 格式，单个文件最大 10MB</p>
+            <div class="upload-tips">
+              <a-tag color="blue">智能解析</a-tag>
+              <a-tag color="green">UTF-8编码</a-tag>
+              <a-tag color="orange">自动识别表头</a-tag>
+            </div>
+          </div>
+        </a-upload-dragger>
+      </div>
 
-    <!-- 去重配置 -->
-    <DeduplicationConfig
-      v-if="excelData && excelData.length > 0"
-      :enabled="deduplicationEnabled"
-      :column="deduplicationColumn"
-      :stats="deduplicationStats"
-      :headers="excelHeaders"
-      @toggle="handleDeduplicationToggle"
-      @change="handleDeduplicationChange"
-    />
+      <div class="file-details" v-else>
+        <div class="file-card">
+          <div class="file-icon">
+            <FileExcelOutlined />
+          </div>
+          <div class="file-info">
+            <div class="file-name">{{ uploadedFile.name }}</div>
+            <div class="file-meta">
+              <span><FileOutlined /> {{ formatFileSize(uploadedFile.size || 0) }}</span>
+              <span><LineOutlined /> {{ excelData?.length || 0 }} 行</span>
+              <span><ColumnWidthOutlined /> {{ excelHeaders?.length || 0 }} 列</span>
+            </div>
+            <a-progress :percent="100" status="success" size="small" :show-info="false" />
+          </div>
+          <div class="file-actions">
+            <a-button-group>
+              <a-tooltip title="重新解析">
+                <a-button @click="handleReupload" :loading="uploading">
+                  <RedoOutlined />
+                </a-button>
+              </a-tooltip>
+              <a-tooltip title="清除文件">
+                <a-button @click="handleClearFile" danger>
+                  <DeleteOutlined />
+                </a-button>
+              </a-tooltip>
+            </a-button-group>
+          </div>
+        </div>
 
-    <!-- 单元格数据拆分配置 -->
-    <CellSplitConfig
-      v-if="excelData && excelData.length > 0"
-      :enabled="cellSplitEnabled"
-      :separator="cellSplitSeparator"
-      :custom-separator="customSeparator"
-      :stats="cellSplitStats"
-      @toggle="handleCellSplitToggle"
-      @separator-change="handleCellSplitSeparatorChange"
-      @apply="handleCellSplitApply"
-    />
+        <div class="data-options">
+          <a-collapse v-model:activeKey="activeCollapseKeys">
+            <a-collapse-panel
+              key="deduplication"
+              :collapsible="!excelData?.length ? 'disabled' : undefined"
+            >
+              <template #header>
+                <div class="collapse-header">
+                  <span>
+                    <FilterOutlined /> 数据去重
+                    <a-tag v-if="deduplicationEnabled" color="blue" size="small">已启用</a-tag>
+                  </span>
+                  <a-switch
+                    :checked="deduplicationEnabled"
+                    size="small"
+                    @change="handleDeduplicationToggle"
+                  />
+                </div>
+              </template>
+              <div class="deduplication-panel">
+                <div class="panel-description">
+                  <InfoCircleOutlined />
+                  根据指定列去除重复数据，保留首次出现的记录
+                </div>
+                <a-form-item label="去重依据列">
+                  <a-select
+                    v-model:value="deduplicationColumnLocal"
+                    placeholder="选择需要去重的列"
+                    style="width: 100%"
+                    @change="handleDeduplicationChange"
+                    :disabled="!deduplicationEnabled"
+                  >
+                    <a-select-option v-for="(header, idx) in excelHeaders" :key="idx" :value="idx">
+                      {{ header }} (列 {{ idx + 1 }})
+                    </a-select-option>
+                  </a-select>
+                </a-form-item>
+                <div class="deduplication-stats" v-if="deduplicationStats.originalRows > 0">
+                  <a-descriptions :column="3" size="small" bordered>
+                    <a-descriptions-item label="原始数据">
+                      <a-statistic :value="deduplicationStats.originalRows" />
+                    </a-descriptions-item>
+                    <a-descriptions-item label="去重后">
+                      <a-statistic :value="deduplicationStats.deduplicatedRows" />
+                    </a-descriptions-item>
+                    <a-descriptions-item label="已移除">
+                      <a-statistic :value="deduplicationStats.removedRows" type="danger" />
+                    </a-descriptions-item>
+                  </a-descriptions>
+                </div>
+              </div>
+            </a-collapse-panel>
 
-    <!-- 行范围选择配置 -->
-    <RowRangeConfig
-      v-if="excelData && excelData.length > 0"
-      :enabled="rowRangeEnabled"
-      :start-row="startRow"
-      :end-row="endRow"
-      :include-header="includeHeader"
-      :total-rows="totalExcelRows"
-      @toggle="handleRowRangeToggle"
-      @start-row-change="handleStartRowChange"
-      @end-row-change="handleEndRowChange"
-      @include-header-change="handleIncludeHeaderChange"
-      @apply="handleRowRangeApply"
-      @reset="handleRowRangeReset"
-    />
+            <a-collapse-panel
+              key="cellSplit"
+              :collapsible="!excelData?.length ? 'disabled' : undefined"
+            >
+              <template #header>
+                <div class="collapse-header">
+                  <span>
+                    <ColumnWidthOutlined /> 单元格拆分
+                    <a-tag v-if="cellSplitEnabled" color="purple" size="small">已启用</a-tag>
+                  </span>
+                  <a-switch
+                    :checked="cellSplitEnabled"
+                    size="small"
+                    @change="handleCellSplitToggle"
+                  />
+                </div>
+              </template>
+              <div class="cell-split-panel">
+                <div class="panel-description">
+                  <InfoCircleOutlined />
+                  将指定列中包含分隔符的单元格拆分为多行
+                </div>
+                <a-form-item label="分隔符类型">
+                  <a-radio-group
+                    v-model:value="cellSplitSeparatorLocal"
+                    @change="handleCellSplitSeparatorChange"
+                    :disabled="!cellSplitEnabled"
+                  >
+                    <a-radio value=",">逗号 ,</a-radio>
+                    <a-radio value=";">分号 ;</a-radio>
+                    <a-radio value="|">竖线 |</a-radio>
+                    <a-radio value="\t">制表符</a-radio>
+                    <a-radio value=" ">空格</a-radio>
+                    <a-radio value="/">斜杠 /</a-radio>
+                    <a-radio value="-">连字符 -</a-radio>
+                    <a-radio value="_">下划线 _</a-radio>
+                    <a-radio value="custom">自定义</a-radio>
+                  </a-radio-group>
+                </a-form-item>
+                <a-form-item label="自定义分隔符" v-if="cellSplitSeparatorLocal === 'custom'">
+                  <a-input
+                    v-model:value="customSeparatorLocal"
+                    placeholder="请输入分隔符"
+                    @change="handleCellSplitSeparatorChange"
+                  />
+                </a-form-item>
+                <div class="cell-split-stats" v-if="cellSplitStats.originalRows > 0">
+                  <a-descriptions :column="3" size="small" bordered>
+                    <a-descriptions-item label="原始行数">
+                      <a-statistic :value="cellSplitStats.originalRows" />
+                    </a-descriptions-item>
+                    <a-descriptions-item label="拆分后">
+                      <a-statistic :value="cellSplitStats.splitRows" />
+                    </a-descriptions-item>
+                    <a-descriptions-item label="新增行数">
+                      <a-statistic :value="cellSplitStats.expandedRows" type="success" />
+                    </a-descriptions-item>
+                  </a-descriptions>
+                </div>
+                <a-button
+                  type="primary"
+                  block
+                  @click="handleCellSplitApply"
+                  :disabled="!cellSplitEnabled || !cellSplitSeparatorLocal"
+                >
+                  应用拆分
+                </a-button>
+              </div>
+            </a-collapse-panel>
 
-    <div v-if="excelData && excelData.length > 0" class="data-preview">
-      <a-collapse>
-        <a-collapse-panel key="preview" header="数据预览">
-          <a-table
-            :data-source="previewData"
-            :columns="previewColumns"
-            :pagination="false"
-            size="small"
-            :scroll="{ x: true }"
-          />
-          <div class="preview-footer">显示前10行，共 {{ excelData.length }} 行数据</div>
-        </a-collapse-panel>
-      </a-collapse>
+            <a-collapse-panel
+              key="rowRange"
+              :collapsible="!excelData?.length ? 'disabled' : undefined"
+            >
+              <template #header>
+                <div class="collapse-header">
+                  <span>
+                    <OrderedListOutlined /> 行范围筛选
+                    <a-tag v-if="rowRangeEnabled" color="cyan" size="small">已启用</a-tag>
+                  </span>
+                  <a-switch
+                    :checked="rowRangeEnabled"
+                    size="small"
+                    @change="handleRowRangeToggle"
+                  />
+                </div>
+              </template>
+              <div class="row-range-panel">
+                <div class="panel-description">
+                  <InfoCircleOutlined />
+                  只处理指定范围内的数据行，支持跳过表头
+                </div>
+                <div class="row-range-config-wrapper">
+                  <!-- 输入区域：包含行号输入和开关 -->
+                  <div class="row-range-inputs-row">
+                    <div class="range-input-group">
+                      <div class="range-input">
+                        <label>起始行号</label>
+                        <a-input-number
+                          v-model:value="startRowLocal"
+                          :min="1"
+                          :max="totalExcelRows"
+                          :disabled="!rowRangeEnabled"
+                          @change="handleRowRangeChange"
+                          class="range-number-input"
+                          :placeholder="`1-${totalExcelRows || 1}`"
+                        />
+                        <span class="input-hint" v-if="totalExcelRows > 0"
+                          >共 {{ totalExcelRows }} 行</span
+                        >
+                      </div>
+                      <div class="range-input">
+                        <label>结束行号</label>
+                        <a-input-number
+                          v-model:value="endRowLocal"
+                          :min="startRowLocal || 1"
+                          :max="totalExcelRows"
+                          :disabled="!rowRangeEnabled"
+                          @change="handleRowRangeChange"
+                          class="range-number-input"
+                          :placeholder="`1-${totalExcelRows || 1}`"
+                        />
+                        <span class="input-hint" v-if="totalExcelRows > 0"
+                          >共 {{ totalExcelRows }} 行</span
+                        >
+                      </div>
+                      <div class="range-input header-toggle">
+                        <label>包含表头</label>
+                        <a-switch
+                          v-model:checked="includeHeaderLocal"
+                          :disabled="!rowRangeEnabled"
+                          @change="handleIncludeHeaderChange"
+                        />
+                      </div>
+                    </div>
+                    <!-- 操作按钮区域 -->
+                    <div class="row-range-actions">
+                      <a-button
+                        type="primary"
+                        @click="applyRowRange"
+                        :disabled="!rowRangeEnabled"
+                        class="action-btn"
+                      >
+                        <template #icon><CheckOutlined /></template>
+                        应用范围
+                      </a-button>
+                      <a-button
+                        @click="resetRowRange"
+                        :disabled="!rowRangeEnabled"
+                        class="action-btn"
+                      >
+                        <template #icon><UndoOutlined /></template>
+                        重置
+                      </a-button>
+                    </div>
+                  </div>
+                </div>
+                <div
+                  class="row-range-summary"
+                  v-if="rowRangeEnabled && startRowLocal && endRowLocal"
+                >
+                  <a-tag color="processing">
+                    将处理第 {{ startRowLocal }} 至 {{ endRowLocal }} 行
+                    {{ includeHeaderLocal ? '(含表头)' : '(不含表头)' }}
+                  </a-tag>
+                  <a-tag v-if="totalExcelRows > 0">
+                    共 {{ endRowLocal - startRowLocal + (includeHeaderLocal ? 1 : 0) }} 行有效数据
+                  </a-tag>
+                </div>
+              </div>
+            </a-collapse-panel>
+
+            <a-collapse-panel
+              key="preview"
+              :collapsible="!excelData?.length ? 'disabled' : undefined"
+            >
+              <template #header>
+                <div class="collapse-header">
+                  <span> <FileOutlined /> 数据预览 </span>
+                </div>
+              </template>
+              <div class="preview-panel">
+                <div class="preview-header">
+                  <a-space>
+                    <span class="preview-info">
+                      显示前 {{ Math.min(5, excelData?.length || 0) }} 行，共
+                      {{ excelData?.length || 0 }} 行数据
+                    </span>
+                  </a-space>
+                </div>
+                <div class="preview-table-container">
+                  <a-table
+                    :data-source="excelData.slice(0, 5)"
+                    :columns="
+                      excelHeaders.slice(0, 10).map((header, index) => ({
+                        title: `${header}`,
+                        dataIndex: index,
+                        key: `col-${index}`,
+                        ellipsis: true,
+                        width: 120,
+                      }))
+                    "
+                    :pagination="false"
+                    size="small"
+                    :scroll="{ x: true }"
+                    :loading="uploading"
+                  />
+                </div>
+              </div>
+            </a-collapse-panel>
+          </a-collapse>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { UploadOutlined, QuestionCircleOutlined } from '@ant-design/icons-vue'
-import DeduplicationConfig from './DeduplicationConfig.vue'
-import CellSplitConfig from './CellSplitConfig.vue'
-import RowRangeConfig from './RowRangeConfig.vue'
+import { ref, watch } from 'vue'
+import {
+  FileExcelOutlined,
+  FileOutlined,
+  LineOutlined,
+  ColumnWidthOutlined,
+  FilterOutlined,
+  OrderedListOutlined,
+  InfoCircleOutlined,
+  DeleteOutlined,
+  RedoOutlined,
+  CheckOutlined,
+  UndoOutlined,
+  CloudUploadOutlined,
+} from '@ant-design/icons-vue'
 
 const props = defineProps({
-  fileList: {
-    type: Array,
-    default: () => [],
-  },
-  uploadedFile: {
-    type: Object,
-    default: null,
-  },
-  uploading: {
-    type: Boolean,
-    default: false,
-  },
-  excelData: {
-    type: Array,
-    default: () => [],
-  },
-  excelHeaders: {
-    type: Array,
-    default: () => [],
-  },
-  deduplicationEnabled: {
-    type: Boolean,
-    default: false,
-  },
-  deduplicationColumn: {
-    type: Number,
-    default: undefined,
-  },
+  fileList: { type: Array, default: () => [] },
+  uploadedFile: { type: Object, default: null },
+  uploading: { type: Boolean, default: false },
+  excelData: { type: Array, default: () => [] },
+  excelHeaders: { type: Array, default: () => [] },
+  deduplicationEnabled: { type: Boolean, default: false },
+  deduplicationColumn: { type: Number, default: undefined },
   deduplicationStats: {
     type: Object,
-    default: () => ({
-      originalRows: 0,
-      deduplicatedRows: 0,
-      removedRows: 0,
-    }),
+    default: () => ({ originalRows: 0, deduplicatedRows: 0, removedRows: 0 }),
   },
-  cellSplitEnabled: {
-    type: Boolean,
-    default: false,
-  },
-  cellSplitSeparator: {
-    type: String,
-    default: ',',
-  },
-  customSeparator: {
-    type: String,
-    default: '',
-  },
+  cellSplitEnabled: { type: Boolean, default: false },
+  cellSplitSeparator: { type: String, default: ',' },
+  customSeparator: { type: String, default: '' },
   cellSplitStats: {
     type: Object,
-    default: () => ({
-      originalRows: 0,
-      splitRows: 0,
-      expandedRows: 0,
-    }),
+    default: () => ({ originalRows: 0, splitRows: 0, expandedRows: 0 }),
   },
-  rowRangeEnabled: {
-    type: Boolean,
-    default: false,
-  },
-  startRow: {
-    type: Number,
-    default: null,
-  },
-  endRow: {
-    type: Number,
-    default: null,
-  },
-  includeHeader: {
-    type: Boolean,
-    default: true,
-  },
-  totalExcelRows: {
-    type: Number,
-    default: 0,
-  },
+  rowRangeEnabled: { type: Boolean, default: false },
+  startRow: { type: Number, default: null },
+  endRow: { type: Number, default: null },
+  includeHeader: { type: Boolean, default: true },
+  totalExcelRows: { type: Number, default: 0 },
 })
 
 const emit = defineEmits([
-  'update:fileList',
-  'before-upload',
   'upload',
   'clear-file',
-  'update:deduplicationEnabled',
-  'update:deduplicationColumn',
   'deduplication-toggle',
   'deduplication-change',
-  'update:cellSplitEnabled',
-  'update:cellSplitSeparator',
-  'update:customSeparator',
   'cell-split-toggle',
   'cell-split-separator-change',
   'cell-split-apply',
-  'update:rowRangeEnabled',
-  'update:startRow',
-  'update:endRow',
-  'update:includeHeader',
   'row-range-toggle',
   'row-range-apply',
   'row-range-reset',
 ])
 
-const previewData = computed(() => {
-  if (!props.excelData || props.excelData.length === 0) {
-    return []
-  }
+const activeCollapseKeys = ref([])
+const deduplicationColumnLocal = ref(props.deduplicationColumn)
+const cellSplitSeparatorLocal = ref(props.cellSplitSeparator)
+const customSeparatorLocal = ref(props.customSeparator)
+const startRowLocal = ref(props.startRow)
+const endRowLocal = ref(props.endRow)
+const includeHeaderLocal = ref(props.includeHeader)
 
-  const previewLimit = 10
-  return props.excelData.slice(0, previewLimit).map((row, index) => ({
-    key: `preview-${index}`,
-    ...row,
-  }))
-})
+watch(
+  () => props.deduplicationColumn,
+  (val) => {
+    deduplicationColumnLocal.value = val
+  },
+)
 
-const previewColumns = computed(() => {
-  if (!props.excelHeaders || props.excelHeaders.length === 0) {
-    return []
-  }
+watch(
+  () => props.cellSplitSeparator,
+  (val) => {
+    cellSplitSeparatorLocal.value = val
+  },
+)
 
-  const maxColumns = 20
-  const headersToDisplay = props.excelHeaders.slice(0, maxColumns)
+watch(
+  () => props.customSeparator,
+  (val) => {
+    customSeparatorLocal.value = val
+  },
+)
 
-  return headersToDisplay.map((header, index) => ({
-    title: `${header} (列${index + 1})`,
-    dataIndex: index,
-    key: `col-${index}`,
-    ellipsis: true,
-    width: 150,
-  }))
-})
+watch(
+  () => props.startRow,
+  (val) => {
+    startRowLocal.value = val
+  },
+)
+
+watch(
+  () => props.endRow,
+  (val) => {
+    endRowLocal.value = val
+  },
+)
+
+watch(
+  () => props.includeHeader,
+  (val) => {
+    includeHeaderLocal.value = val
+  },
+)
+
+const formatFileSize = (bytes) => {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
 
 const handleUpload = (options) => {
   emit('upload', options)
 }
 
-const handleFileListChange = ({ fileList: newFileList }) => {
-  emit('update:fileList', newFileList)
-}
+const handleFileListChange = () => {}
 
 const handleClearFile = () => {
   emit('clear-file')
 }
 
-const handleDeduplicationToggle = (checked) => {
-  emit('deduplication-toggle', checked)
+const handleReupload = () => {
+  emit('clear-file')
+  setTimeout(() => {
+    emit('upload', {})
+  }, 100)
 }
 
-const handleDeduplicationChange = (column) => {
-  emit('deduplication-change', column)
+const handleDeduplicationToggle = (value) => {
+  emit('deduplication-toggle', value)
 }
 
-const handleCellSplitToggle = (checked) => {
-  emit('cell-split-toggle', checked)
+const handleDeduplicationChange = (value) => {
+  deduplicationColumnLocal.value = value
+  emit('deduplication-change', value)
 }
 
-const handleCellSplitSeparatorChange = (separator) => {
+const handleCellSplitToggle = (value) => {
+  emit('cell-split-toggle', value)
+}
+
+const handleCellSplitSeparatorChange = () => {
+  const separator =
+    cellSplitSeparatorLocal.value === 'custom'
+      ? customSeparatorLocal.value
+      : cellSplitSeparatorLocal.value
   emit('cell-split-separator-change', separator)
 }
 
@@ -261,73 +499,429 @@ const handleCellSplitApply = () => {
   emit('cell-split-apply')
 }
 
-const handleRowRangeToggle = (checked) => {
-  emit('row-range-toggle', checked)
+const handleRowRangeToggle = (value) => {
+  emit('row-range-toggle', value)
 }
 
-const handleStartRowChange = (value) => {
-  emit('update:startRow', value)
+const handleRowRangeChange = () => {
+  emit('update:startRow', startRowLocal.value)
+  emit('update:endRow', endRowLocal.value)
 }
 
-const handleEndRowChange = (value) => {
-  emit('update:endRow', value)
+const handleIncludeHeaderChange = () => {
+  emit('update:includeHeader', includeHeaderLocal.value)
 }
 
-const handleIncludeHeaderChange = (checked) => {
-  emit('update:includeHeader', checked)
-}
-
-const handleRowRangeApply = () => {
+const applyRowRange = () => {
   emit('row-range-apply')
 }
 
-const handleRowRangeReset = () => {
+const resetRowRange = () => {
+  startRowLocal.value = null
+  endRowLocal.value = null
+  includeHeaderLocal.value = true
   emit('row-range-reset')
 }
 </script>
 
 <style scoped>
-.excel-upload-card {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+.excel-upload-wrapper {
+  width: 100%;
 }
 
-.excel-upload-card .card-header {
+.excel-upload-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.3s ease;
+}
+
+.excel-upload-card:hover {
+  box-shadow: 0 8px 32px rgba(22, 119, 255, 0.12);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-left h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.excel-upload-card .card-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary, #1f2937);
+.upload-zone {
+  margin-bottom: 16px;
 }
 
-.file-info {
+.upload-zone :deep(.ant-upload-dragger) {
+  border: 2px dashed #d9d9d9;
+  border-radius: 12px;
+  background: #fafafa;
+  padding: 32px;
+  transition: all 0.3s ease;
+}
+
+.upload-zone :deep(.ant-upload-dragger:hover) {
+  border-color: #1677ff;
+  background: #f0f7ff;
+}
+
+.upload-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.upload-icon {
+  font-size: 48px;
+  color: #1677ff;
+  margin-bottom: 8px;
+}
+
+.upload-text {
+  margin: 0;
+  font-size: 16px;
+  color: #1f2937;
+}
+
+.primary-text {
+  font-weight: 500;
+}
+
+.upload-hint {
+  margin: 0;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.upload-tips {
+  display: flex;
+  gap: 8px;
   margin-top: 8px;
 }
 
-.data-preview {
-  margin-top: 16px;
+.file-details {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.preview-footer {
-  margin-top: 12px;
-  padding: 8px 12px;
-  background: var(--card-bg, rgba(255, 255, 255, 0.85));
-  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.5));
-  border-radius: var(--border-radius-sm, 8px);
+.file-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-radius: 12px;
+  border: 1px solid #bae6fd;
+}
+
+.file-icon {
+  font-size: 40px;
+  color: #1677ff;
+  background: white;
+  padding: 12px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.file-info {
+  flex: 1;
+}
+
+.file-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+.file-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.file-meta span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.data-options {
+  margin-top: 8px;
+}
+
+.collapse-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding-right: 8px;
+}
+
+.collapse-header span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.preview-header {
+  margin-bottom: 12px;
+}
+
+.preview-info {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.preview-table-container {
+  max-height: 300px;
+  overflow: auto;
+}
+
+.panel-description {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: #fafafa;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.deduplication-panel,
+.cell-split-panel,
+.row-range-panel {
+  padding: 8px 0;
+}
+
+.panel-description {
+  background: #f0f5ff;
+  color: #2f54eb;
+}
+
+/* 行范围筛选区域响应式布局 */
+.row-range-config-wrapper {
+  width: 100%;
+}
+
+.row-range-inputs-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.range-input-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  flex: 1;
+  min-width: 280px;
+}
+
+.range-input {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+}
+
+.range-input label {
   font-size: 12px;
-  color: var(--text-secondary, #6b7280);
-  text-align: center;
+  color: #6b7280;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
-[data-theme='dark'] .preview-footer {
-  background: var(--card-bg, rgba(30, 41, 59, 0.6));
-  border-color: var(--card-border, rgba(255, 255, 255, 0.1));
-  color: var(--text-secondary, #9ca3af);
+.input-hint {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 2px;
+  white-space: nowrap;
+}
+
+.range-number-input {
+  width: 100px;
+}
+
+.range-number-input :deep(.ant-input-number) {
+  width: 100%;
+}
+
+.header-toggle {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding-bottom: 4px;
+}
+
+.header-toggle label {
+  margin-bottom: 0;
+}
+
+.row-range-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.action-btn {
+  min-width: 100px;
+}
+
+.row-range-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 12px;
+  background: linear-gradient(135deg, rgba(22, 119, 255, 0.05) 0%, rgba(20, 201, 201, 0.05) 100%);
+  border-radius: 8px;
+}
+
+/* 平板端适配 */
+@media screen and (max-width: 768px) {
+  .row-range-inputs-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .range-input-group {
+    min-width: auto;
+    justify-content: flex-start;
+  }
+
+  .range-number-input {
+    width: 90px;
+  }
+
+  .row-range-actions {
+    width: 100%;
+    justify-content: flex-start;
+    margin-top: 8px;
+  }
+
+  .action-btn {
+    flex: 1;
+    min-width: auto;
+    max-width: 140px;
+  }
+}
+
+/* 移动端适配 */
+@media screen and (max-width: 480px) {
+  .range-input-group {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .range-input {
+    width: 100%;
+  }
+
+  .range-number-input {
+    width: 100%;
+  }
+
+  .range-number-input :deep(.ant-input-number) {
+    width: 100%;
+  }
+
+  .header-toggle {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 0;
+    padding-top: 8px;
+  }
+
+  .row-range-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .action-btn {
+    width: 100%;
+    max-width: none;
+  }
+
+  .row-range-summary {
+    flex-direction: column;
+  }
+}
+
+[data-theme='dark'] .excel-upload-card {
+  background: rgba(30, 41, 59, 0.6);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='dark'] .header-left h3 {
+  color: #f1f5f9;
+}
+
+[data-theme='dark'] .upload-zone :deep(.ant-upload-dragger) {
+  background: #1e293b;
+  border-color: #475569;
+}
+
+[data-theme='dark'] .upload-zone :deep(.ant-upload-dragger:hover) {
+  background: rgba(22, 119, 255, 0.1);
+}
+
+[data-theme='dark'] .file-card {
+  background: linear-gradient(135deg, rgba(22, 119, 255, 0.1) 0%, rgba(20, 201, 201, 0.1) 100%);
+  border-color: rgba(22, 119, 255, 0.3);
+}
+
+[data-theme='dark'] .file-icon {
+  background: #1e293b;
+}
+
+[data-theme='dark'] .file-name {
+  color: #f1f5f9;
+}
+
+[data-theme='dark'] .file-meta {
+  color: #9ca3af;
+}
+
+[data-theme='dark'] .upload-text {
+  color: #f1f5f9;
+}
+
+[data-theme='dark'] .panel-description {
+  background: rgba(22, 119, 255, 0.1);
+  color: #60a5fa;
+}
+
+[data-theme='dark'] .preview-info {
+  color: #9ca3af;
 }
 </style>

@@ -57,10 +57,7 @@ export const isFileTypeSupported = (fileName: string): boolean => {
  * @param {UploadOptions} options - 上传选项
  * @returns {FileValidationResult} 验证结果
  */
-export const validateFile = (
-  file: File,
-  options: UploadOptions = {},
-): FileValidationResult => {
+export const validateFile = (file: File, options: UploadOptions = {}): FileValidationResult => {
   const maxSize = options.maxSize ?? 10 * 1024 * 1024
   const allowedTypes = options.allowedTypes ?? SUPPORTED_EXCEL_TYPES
   const maxFileNameLength = options.maxFileNameLength ?? 255
