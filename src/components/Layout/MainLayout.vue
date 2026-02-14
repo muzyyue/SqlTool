@@ -5,11 +5,14 @@ import {
   DatabaseOutlined,
   BulbOutlined,
   SettingOutlined,
+  InfoCircleOutlined,
+  ExportOutlined,
 } from '@ant-design/icons-vue'
-import { Menu, Button, Dropdown } from 'ant-design-vue'
+import { Menu, Button, Dropdown, message } from 'ant-design-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useThemeStore } from '@/stores/theme.js'
 import { storeToRefs } from 'pinia'
+import { useErrorHandler } from '@/composables/useErrorHandler.js'
 import SettingsPanel from './SettingsPanel.vue'
 import AboutPanel from './AboutPanel.vue'
 
@@ -17,6 +20,7 @@ const route = useRoute()
 const router = useRouter()
 const themeStore = useThemeStore()
 const { isDark } = storeToRefs(themeStore)
+const { exportErrorLogs } = useErrorHandler()
 
 // 菜单项配置
 const menuItems = [
@@ -66,12 +70,37 @@ const openAbout = () => {
   showAbout.value = true
 }
 
+// 导出日志
+const exportLogs = () => {
+  try {
+    const logsContent = exportErrorLogs('json')
+    const blob = new Blob([logsContent], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `error-logs-${new Date().toISOString().slice(0, 10)}.json`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+    message.success('日志导出成功')
+  } catch (error) {
+    message.error('日志导出失败：' + error.message)
+  }
+}
+
 // 处理设置菜单点击
 const handleSettingsMenuClick = ({ key }) => {
-  if (key === 'settings') {
-    openSettings()
-  } else if (key === 'about') {
-    openAbout()
+  switch (key) {
+    case 'settings':
+      openSettings()
+      break
+    case 'export-logs':
+      exportLogs()
+      break
+    case 'about':
+      openAbout()
+      break
   }
 }
 
@@ -79,10 +108,17 @@ const handleSettingsMenuClick = ({ key }) => {
 const settingsMenuItems = [
   {
     key: 'settings',
-    label: '设置',
+    icon: SettingOutlined,
+    label: '系统设置',
+  },
+  {
+    key: 'export-logs',
+    icon: ExportOutlined,
+    label: '导出日志',
   },
   {
     key: 'about',
+    icon: InfoCircleOutlined,
     label: '关于',
   },
 ]
@@ -138,6 +174,7 @@ onMounted(() => {
             <template #overlay>
               <a-menu @click="handleSettingsMenuClick">
                 <a-menu-item v-for="item in settingsMenuItems" :key="item.key">
+                  <component :is="item.icon" />
                   {{ item.label }}
                 </a-menu-item>
               </a-menu>
