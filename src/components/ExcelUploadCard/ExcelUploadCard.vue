@@ -291,8 +291,8 @@
                     将处理第 {{ startRowLocal }} 至 {{ endRowLocal }} 行
                     {{ includeHeaderLocal ? '(含表头)' : '(不含表头)' }}
                   </a-tag>
-                  <a-tag v-if="totalExcelRows > 0">
-                    共 {{ endRowLocal - startRowLocal + (includeHeaderLocal ? 1 : 0) }} 行有效数据
+                  <a-tag v-if="totalExcelRows > 0" color="cyan">
+                    {{ deduplicationEnabled ? '去重后' : '共' }} {{ excelData?.length || 0 }} 行
                   </a-tag>
                 </div>
               </div>
@@ -737,7 +737,7 @@ const resetRowRange = () => {
 .range-input-group {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 12px;
   flex: 1;
   min-width: 280px;
@@ -746,7 +746,7 @@ const resetRowRange = () => {
 .range-input {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
   position: relative;
 }
 
@@ -755,6 +755,10 @@ const resetRowRange = () => {
   color: #6b7280;
   font-weight: 500;
   white-space: nowrap;
+  line-height: 1;
+  height: 12px;
+  display: flex;
+  align-items: center;
 }
 
 .input-hint {
@@ -777,11 +781,20 @@ const resetRowRange = () => {
   flex-direction: column;
   align-items: flex-start;
   gap: 8px;
-  padding-bottom: 4px;
+  /* 与 .range-input 对齐 */
+  justify-content: flex-start;
 }
 
 .header-toggle label {
   margin-bottom: 0;
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+  white-space: nowrap;
+  line-height: 1;
+  height: 12px;
+  display: flex;
+  align-items: center;
 }
 
 .row-range-actions {

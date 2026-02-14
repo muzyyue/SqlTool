@@ -1286,7 +1286,13 @@ const handleCustomFieldChange = (record) => {
 
   // 检查字段名是否与其他配置冲突
   // 只在字段名变更且不为空时检查
-  const conflictResult = checkFieldConflictExcludingCurrent(record.fieldName, record.id)
+  // 编辑模式下，如果字段名没有改变，不视为冲突
+  const originalFieldName = props.editingField?.fieldName || ''
+  const conflictResult = checkFieldConflictExcludingCurrent(
+    record.fieldName,
+    record.id,
+    originalFieldName,
+  )
   if (conflictResult.isConflict) {
     Modal.warning({
       title: '字段名冲突',
@@ -1315,9 +1321,10 @@ const handleCustomFieldChange = (record) => {
  * 检查字段名是否与现有配置冲突（排除当前记录）
  * @param {string} fieldName - 要检查的字段名
  * @param {string} currentId - 当前记录的ID，排除自己
+ * @param {string} currentFieldName - 当前字段的原始名称（用于编辑模式判断）
  * @returns {Object} 冲突检测结果 { isConflict: boolean, conflictSource: string }
  */
-const checkFieldConflictExcludingCurrent = (fieldName, currentId) => {
+const checkFieldConflictExcludingCurrent = (fieldName, currentId, currentFieldName = '') => {
   if (!fieldName || typeof fieldName !== 'string') {
     return { isConflict: false, conflictSource: '' }
   }
@@ -1328,11 +1335,17 @@ const checkFieldConflictExcludingCurrent = (fieldName, currentId) => {
   }
 
   // 检查字段映射中显示的DDL字段名（映射配置中显示的字段）
+  // 编辑模式：如果字段名没有改变，不视为冲突
   if (
     props.fieldMappings &&
     props.fieldMappings.some((mapping) => mapping.ddlField?.name === trimmedName)
   ) {
-    return { isConflict: true, conflictSource: '字段映射' }
+    // 编辑模式且字段名未改变，不视为冲突
+    if (currentFieldName && currentFieldName === trimmedName) {
+      // 继续检查其他冲突
+    } else {
+      return { isConflict: true, conflictSource: '字段映射' }
+    }
   }
 
   // 检查单列绑定中的自定义字段名
