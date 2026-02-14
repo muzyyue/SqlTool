@@ -240,8 +240,8 @@ onMounted(() => {
 }
 
 [data-theme="dark"] .header {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+  box-shadow: 0 2px 20px rgba(99, 102, 241, 0.15), 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .header-content {
@@ -256,7 +256,8 @@ onMounted(() => {
 }
 
 [data-theme="dark"] .header-content {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.3);
+  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.15);
 }
 
 .logo {
@@ -306,12 +307,13 @@ onMounted(() => {
 
 [data-theme="dark"] .nav-menu :deep(.ant-menu-item:hover) {
   color: white;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(139, 92, 246, 0.15);
 }
 
 [data-theme="dark"] .nav-menu :deep(.ant-menu-item-selected) {
   color: #fff;
-  background: rgba(22, 119, 255, 0.3);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.4) 0%, rgba(139, 92, 246, 0.4) 100%);
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.3);
 }
 
 .header-actions {
@@ -384,7 +386,8 @@ onMounted(() => {
 
 [data-theme="dark"] .footer {
   background: var(--bg-primary);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(139, 92, 246, 0.25);
+  box-shadow: 0 -4px 20px rgba(99, 102, 241, 0.1);
 }
 
 .footer-content {
@@ -413,7 +416,7 @@ onMounted(() => {
 }
 
 [data-theme="dark"] .footer a:hover {
-  color: #1677ff;
+  color: #a855f7;
 }
 
 /* 响应式设计 */

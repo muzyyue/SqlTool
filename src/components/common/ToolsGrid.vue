@@ -235,29 +235,35 @@ onMounted(() => {
 
 .title-icon {
   font-size: 24px;
-  color: #1890ff;
+  color: var(--color-primary, #1890ff);
 }
 
 .section-title h3 {
   font-size: 24px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary, #333);
   margin: 0;
   flex: 1;
 }
 
 .tool-count {
   font-size: 14px;
-  color: #999;
+  color: var(--text-tertiary, #999);
   font-weight: 400;
 }
 
 /* 收藏夹区域 */
 .favorites-section {
   margin-bottom: 40px;
-  background: #f8f9fa;
+  background: var(--bg-tertiary, #f8f9fa);
   padding: 24px;
   border-radius: 12px;
+  transition: all var(--transition-normal, 200ms) ease;
+}
+
+[data-theme="dark"] .favorites-section {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
 }
 
 /* 工具区域 */
