@@ -113,7 +113,7 @@ onMounted(() => {
           >
             <a-menu-item v-for="item in menuItems" :key="item.key">
               <component :is="item.icon" />
-              {{ item.label }>
+              {{ item.label }}
             </a-menu-item>
           </a-menu>
         </div>
@@ -138,7 +138,7 @@ onMounted(() => {
             <template #overlay>
               <a-menu @click="handleSettingsMenuClick">
                 <a-menu-item v-for="item in settingsMenuItems" :key="item.key">
-                  {{ item.label }>
+                  {{ item.label }}
                 </a-menu-item>
               </a-menu>
             </template>
