@@ -717,4 +717,123 @@ defineExpose({
     max-height: 300px;
   }
 }
+
+/* 暗色主题支持 - 容器和控件 */
+[data-theme='dark'] .sql-preview-container {
+  border-color: #374151;
+}
+
+[data-theme='dark'] .preview-controls {
+  background: #1e293b;
+  border-bottom-color: #374151;
+}
+
+[data-theme='dark'] .control-label {
+  color: #9ca3af;
+}
+
+[data-theme='dark'] .sql-preview-area {
+  background: #0f172a;
+}
+
+[data-theme='dark'] .line-numbers {
+  background: #1e293b;
+  border-right-color: #374151;
+}
+
+[data-theme='dark'] .line-number {
+  color: #6b7280;
+}
+
+[data-theme='dark'] .sql-stats {
+  background: #1e293b;
+  border-top-color: #374151;
+  border-bottom-color: #374151;
+}
+
+[data-theme='dark'] .stat-label {
+  color: #9ca3af;
+}
+
+[data-theme='dark'] .stat-value {
+  color: #f3f4f6;
+}
+
+[data-theme='dark'] .action-buttons {
+  background: #1e293b;
+  border-top-color: #374151;
+}
+
+[data-theme='dark'] .validation-header {
+  background: #1e293b;
+  color: #f3f4f6;
+}
+
+[data-theme='dark'] .validation-content {
+  background: #1e293b;
+}
+
+[data-theme='dark'] .validation-content.has-errors {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+[data-theme='dark'] .error-list li {
+  color: #fca5a5;
+}
+
+/* Ant Design组件暗黑主题适配 */
+[data-theme='dark'] .sql-preview-container :deep(.ant-radio-button-wrapper) {
+  background: #1e293b;
+  border-color: #374151;
+  color: #9ca3af;
+}
+
+[data-theme='dark'] .sql-preview-container :deep(.ant-radio-button-wrapper:hover) {
+  color: #f3f4f6;
+}
+
+[data-theme='dark'] .sql-preview-container :deep(.ant-radio-button-wrapper-checked) {
+  background: #60a5fa;
+  border-color: #60a5fa;
+  color: #fff;
+}
+
+[data-theme='dark'] .sql-preview-container :deep(.ant-switch) {
+  background: #374151;
+}
+
+[data-theme='dark'] .sql-preview-container :deep(.ant-switch-checked) {
+  background: #60a5fa;
+}
+
+[data-theme='dark'] .sql-preview-container :deep(.ant-btn) {
+  border-color: #374151;
+}
+
+[data-theme='dark'] .sql-preview-container :deep(.ant-btn-primary) {
+  background: #60a5fa;
+  border-color: #60a5fa;
+}
+
+[data-theme='dark'] .sql-preview-container :deep(.ant-btn-primary:hover) {
+  background: #93c5fd;
+  border-color: #93c5fd;
+}
+
+[data-theme='dark'] .sql-preview-container :deep(.ant-btn-default) {
+  background: #1e293b;
+  color: #f3f4f6;
+}
+
+[data-theme='dark'] .sql-preview-container :deep(.ant-btn-default:hover) {
+  border-color: #60a5fa;
+  color: #60a5fa;
+}
+
+[data-theme='dark'] .sql-preview-container :deep(.ant-btn-default:disabled),
+[data-theme='dark'] .sql-preview-container :deep(.ant-btn-primary:disabled) {
+  background: #374151;
+  border-color: #374151;
+  color: #6b7280;
+}
 </style>
