@@ -12,7 +12,7 @@
           <a-menu
             v-model:selectedKeys="selectedKeys"
             mode="horizontal"
-            theme="dark"
+            :theme="menuTheme"
             @click="handleMenuClick"
           >
             <a-menu-item key="home">
@@ -165,6 +165,10 @@ const showBreadcrumb = computed(() => {
   return route.name !== 'home' && route.name !== 'sql-tool'
 })
 
+const menuTheme = computed(() => {
+  return isDark.value ? 'dark' : 'light'
+})
+
 // 方法
 const handleMenuClick = ({ key }) => {
   switch (key) {
@@ -229,9 +233,15 @@ onMounted(() => {
 }
 
 .header {
-  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  background: linear-gradient(135deg, var(--header-gradient-start, #1890ff) 0%, var(--header-gradient-end, #096dd9) 100%);
   padding: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: background var(--transition-normal, 200ms) ease;
+}
+
+[data-theme="dark"] .header {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
 }
 
 .header-content {
@@ -242,6 +252,11 @@ onMounted(() => {
   margin: 0 auto;
   padding: 0 24px;
   height: 64px;
+  transition: all var(--transition-normal, 200ms) ease;
+}
+
+[data-theme="dark"] .header-content {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .logo {
@@ -266,11 +281,13 @@ onMounted(() => {
   flex: 1;
   display: flex;
   justify-content: center;
+  transition: all var(--transition-normal, 200ms) ease;
 }
 
 .nav-menu :deep(.ant-menu) {
   background: transparent;
   border: none;
+  transition: all var(--transition-normal, 200ms) ease;
 }
 
 .nav-menu :deep(.ant-menu-item) {
@@ -282,6 +299,21 @@ onMounted(() => {
   background: rgba(255, 255, 255, 0.1);
 }
 
+/* 暗黑主题下的菜单样式 */
+[data-theme="dark"] .nav-menu :deep(.ant-menu-item) {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+[data-theme="dark"] .nav-menu :deep(.ant-menu-item:hover) {
+  color: white;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .nav-menu :deep(.ant-menu-item-selected) {
+  color: #fff;
+  background: rgba(22, 119, 255, 0.3);
+}
+
 .header-actions {
   display: flex;
   align-items: center;
@@ -291,6 +323,7 @@ onMounted(() => {
 .theme-toggle,
 .settings-btn {
   color: white !important;
+  transition: all var(--transition-normal, 200ms) ease;
 }
 
 .theme-toggle:hover,
@@ -298,9 +331,25 @@ onMounted(() => {
   background: rgba(255, 255, 255, 0.1) !important;
 }
 
+[data-theme="dark"] .theme-toggle,
+[data-theme="dark"] .settings-btn {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+[data-theme="dark"] .theme-toggle:hover,
+[data-theme="dark"] .settings-btn:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: white !important;
+}
+
 .content {
-  background: #f5f5f5;
+  background: var(--bg-secondary, #f5f5f5);
   min-height: calc(100vh - 64px - 70px);
+  transition: background var(--transition-normal, 200ms) ease;
+}
+
+[data-theme="dark"] .content {
+  background: var(--bg-secondary);
 }
 
 .content-wrapper {
@@ -314,16 +363,28 @@ onMounted(() => {
 }
 
 .page-content {
-  background: white;
+  background: var(--card-bg, white);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   min-height: 600px;
+  transition: all var(--transition-normal, 200ms) ease;
+}
+
+[data-theme="dark"] .page-content {
+  background: var(--card-bg);
+  box-shadow: var(--shadow-md);
 }
 
 .footer {
-  background: #001529;
-  color: rgba(255, 255, 255, 0.8);
+  background: var(--bg-primary, #001529);
+  color: var(--text-secondary, rgba(255, 255, 255, 0.8));
   padding: 16px 0;
+  transition: all var(--transition-normal, 200ms) ease;
+}
+
+[data-theme="dark"] .footer {
+  background: var(--bg-primary);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .footer-content {
@@ -342,12 +403,17 @@ onMounted(() => {
 }
 
 .footer a {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--text-secondary, rgba(255, 255, 255, 0.8));
   text-decoration: none;
+  transition: color var(--transition-normal, 200ms) ease;
 }
 
 .footer a:hover {
   color: white;
+}
+
+[data-theme="dark"] .footer a:hover {
+  color: #1677ff;
 }
 
 /* 响应式设计 */
