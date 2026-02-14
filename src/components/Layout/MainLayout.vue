@@ -291,16 +291,22 @@ onMounted(() => {
   transition: all var(--transition-normal, 200ms) ease;
 }
 
-.nav-menu :deep(.ant-menu-item) {
-  color: rgba(255, 255, 255, 0.8);
+/* 浅色主题菜单样式 */
+.nav-menu :deep(.ant-menu-light .ant-menu-item) {
+  color: rgba(0, 0, 0, 0.65);
 }
 
-.nav-menu :deep(.ant-menu-item-selected) {
-  color: white;
-  background: rgba(255, 255, 255, 0.1);
+.nav-menu :deep(.ant-menu-light .ant-menu-item:hover) {
+  color: #1890ff;
+  background: rgba(24, 144, 255, 0.1);
 }
 
-/* 暗黑主题下的菜单样式 */
+.nav-menu :deep(.ant-menu-light .ant-menu-item-selected) {
+  color: #1890ff;
+  background: rgba(24, 144, 255, 0.15);
+}
+
+/* 暗黑主题菜单样式 */
 [data-theme="dark"] .nav-menu :deep(.ant-menu-item) {
   color: rgba(255, 255, 255, 0.85);
 }
@@ -322,6 +328,7 @@ onMounted(() => {
   gap: 8px;
 }
 
+/* 浅色主题按钮样式 */
 .theme-toggle,
 .settings-btn {
   color: white !important;
@@ -330,9 +337,10 @@ onMounted(() => {
 
 .theme-toggle:hover,
 .settings-btn:hover {
-  background: rgba(255, 255, 255, 0.1) !important;
+  background: rgba(255, 255, 255, 0.2) !important;
 }
 
+/* 暗黑主题按钮样式 */
 [data-theme="dark"] .theme-toggle,
 [data-theme="dark"] .settings-btn {
   color: rgba(255, 255, 255, 0.85) !important;
@@ -340,7 +348,7 @@ onMounted(() => {
 
 [data-theme="dark"] .theme-toggle:hover,
 [data-theme="dark"] .settings-btn:hover {
-  background: rgba(255, 255, 255, 0.15) !important;
+  background: rgba(139, 92, 246, 0.2) !important;
   color: white !important;
 }
 
