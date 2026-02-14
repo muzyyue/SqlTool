@@ -2,19 +2,15 @@
 
 ## 1.5.22 (2025-12-16)
 
-**修复Edge浏览器最小化问题**
+**优化ToolsGrid和SqlToolPage暗黑主题支持**
 
-- 分析问题原因：项目中存在无限循环CSS动画（如float动画），在Edge浏览器最小化时GPU资源释放后无法正确处理动画状态
-- 添加visibilitychange事件监听，在页面不可见时暂停所有动画
-- 添加.reduce-motion CSS类，禁用所有动画和过渡效果
-- 确保Edge浏览器最小化功能正常工作
-
-**优化暗黑主题全局适配**
-
-- 在App.vue中添加ConfigProvider实现Ant Design Vue全局暗黑主题
-- 动态配置主色调：暗黑模式使用紫色(#6366f1)，亮色模式使用蓝色(#1890ff)
-- 优化header配色方案，使用深蓝渐变替代深紫色
-- 更新ToolsGrid组件使用CSS变量适配暗黑主题
+- 为ToolsGrid.vue的tools-header区域添加暗黑主题样式
+- 为搜索框(a-input-search)添加暗黑背景和文字颜色
+- 为分类过滤按钮(a-radio-group)添加暗黑主题样式
+- 为视图切换按钮添加暗黑主题适配
+- 为SqlToolPage.vue的steps-container添加完整的暗黑主题支持
+- 修复ant-steps组件在暗黑模式下标题和描述文字不可见的问题
+- 为步骤图标、连接线添加暗黑主题样式
 
 ## 1.5.21 (2025-12-16)
 

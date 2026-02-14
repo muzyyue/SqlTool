@@ -235,35 +235,29 @@ onMounted(() => {
 
 .title-icon {
   font-size: 24px;
-  color: var(--color-primary, #1890ff);
+  color: #1890ff;
 }
 
 .section-title h3 {
   font-size: 24px;
   font-weight: 600;
-  color: var(--text-primary, #333);
+  color: #333;
   margin: 0;
   flex: 1;
 }
 
 .tool-count {
   font-size: 14px;
-  color: var(--text-tertiary, #999);
+  color: #999;
   font-weight: 400;
 }
 
 /* 收藏夹区域 */
 .favorites-section {
   margin-bottom: 40px;
-  background: var(--bg-tertiary, #f8f9fa);
+  background: #f8f9fa;
   padding: 24px;
   border-radius: 12px;
-  transition: all var(--transition-normal, 200ms) ease;
-}
-
-[data-theme="dark"] .favorites-section {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
 }
 
 /* 工具区域 */
@@ -317,8 +311,62 @@ onMounted(() => {
   background: #0f172a;
 }
 
+[data-theme='dark'] .tools-header {
+  background: transparent;
+}
+
+[data-theme='dark'] .search-box :deep(.ant-input-affix-wrapper) {
+  background: #1e293b;
+  border-color: #374151;
+}
+
+[data-theme='dark'] .search-box :deep(.ant-input) {
+  background: transparent;
+  color: #f3f4f6;
+}
+
+[data-theme='dark'] .search-box :deep(.ant-input::placeholder) {
+  color: #6b7280;
+}
+
+[data-theme='dark'] .search-box :deep(.ant-input-search-button) {
+  background: #1890ff;
+  border-color: #1890ff;
+}
+
+[data-theme='dark'] .category-filter :deep(.ant-radio-button-wrapper) {
+  background: #1e293b;
+  border-color: #374151;
+  color: #9ca3af;
+}
+
+[data-theme='dark'] .category-filter :deep(.ant-radio-button-wrapper:hover) {
+  color: #f3f4f6;
+}
+
+[data-theme='dark'] .category-filter :deep(.ant-radio-button-wrapper-checked) {
+  background: #1890ff;
+  border-color: #1890ff;
+  color: #fff;
+}
+
+[data-theme='dark'] .view-toggle :deep(.ant-btn-default) {
+  background: #1e293b;
+  border-color: #374151;
+  color: #9ca3af;
+}
+
+[data-theme='dark'] .view-toggle :deep(.ant-btn-default:hover) {
+  color: #f3f4f6;
+  border-color: #1890ff;
+}
+
 [data-theme='dark'] .section-title h3 {
   color: #f3f4f6;
+}
+
+[data-theme='dark'] .title-icon {
+  color: #60a5fa;
 }
 
 [data-theme='dark'] .tool-count {

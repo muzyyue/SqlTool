@@ -285,6 +285,41 @@ const navigateTo = (path) => {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
+[data-theme='dark'] .steps-container :deep(.ant-steps-item-title) {
+  color: #f3f4f6 !important;
+}
+
+[data-theme='dark'] .steps-container :deep(.ant-steps-item-description) {
+  color: #9ca3af !important;
+}
+
+[data-theme='dark'] .steps-container :deep(.ant-steps-item-icon) {
+  background: #374151;
+  border-color: #374151;
+}
+
+[data-theme='dark'] .steps-container :deep(.ant-steps-item-icon .ant-steps-icon) {
+  color: #f3f4f6;
+}
+
+[data-theme='dark'] .steps-container :deep(.ant-steps-item-process .ant-steps-item-icon) {
+  background: #1890ff;
+  border-color: #1890ff;
+}
+
+[data-theme='dark'] .steps-container :deep(.ant-steps-item-finish .ant-steps-item-icon) {
+  background: transparent;
+  border-color: #1890ff;
+}
+
+[data-theme='dark'] .steps-container :deep(.ant-steps-item-finish .ant-steps-item-icon .ant-steps-icon) {
+  color: #1890ff;
+}
+
+[data-theme='dark'] .steps-container :deep(.ant-steps-item-tail::after) {
+  background: #374151;
+}
+
 /* 响应式设计 */
 @media (max-width: 1024px) {
   .page-title {
