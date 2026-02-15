@@ -1703,4 +1703,81 @@ const generateId = () => {
   flex: 1;
   text-align: center;
 }
+
+/* 暗黑主题支持 */
+[data-theme='dark'] .custom-binding-modal {
+  background: #1e293b;
+}
+
+[data-theme='dark'] .feature-toggle {
+  background: #0f172a;
+}
+
+[data-theme='dark'] .toggle-description {
+  color: #9ca3af;
+}
+
+[data-theme='dark'] .section-header h4 {
+  color: #f3f4f6;
+}
+
+[data-theme='dark'] .tab-content :deep(.ant-table) {
+  background: #1e293b;
+  color: #f3f4f6;
+}
+
+[data-theme='dark'] .tab-content :deep(.ant-table-thead > tr > th) {
+  background: #0f172a;
+  color: #f3f4f6;
+  border-bottom-color: #374151;
+}
+
+[data-theme='dark'] .tab-content :deep(.ant-table-tbody > tr > td) {
+  border-bottom-color: #374151;
+}
+
+[data-theme='dark'] .tab-content :deep(.ant-table-tbody > tr:hover > td) {
+  background: #374151;
+}
+
+[data-theme='dark'] .preview-value {
+  color: #9ca3af;
+}
+
+[data-theme='dark'] .stats-section :deep(.ant-statistic-title) {
+  color: #9ca3af;
+}
+
+[data-theme='dark'] .stats-section :deep(.ant-statistic-content-value) {
+  color: #f3f4f6;
+}
+
+[data-theme='dark'] .config-section {
+  background: #0f172a;
+  border-color: #374151;
+}
+
+[data-theme='dark'] .modal-actions {
+  border-top-color: #374151;
+}
+
+[data-theme='dark'] :deep(.ant-tabs-tab) {
+  color: #9ca3af;
+}
+
+[data-theme='dark'] :deep(.ant-tabs-tab-active) {
+  color: #60a5fa;
+}
+
+[data-theme='dark'] :deep(.ant-tabs-ink-bar) {
+  background: #60a5fa;
+}
+
+[data-theme='dark'] :deep(.ant-empty-description) {
+  color: #6b7280;
+}
+
+[data-theme='dark'] :deep(.ant-divider) {
+  border-top-color: #374151;
+}
 </style>

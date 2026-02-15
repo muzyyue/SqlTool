@@ -937,4 +937,47 @@ const resetRowRange = () => {
 [data-theme='dark'] .preview-info {
   color: #9ca3af;
 }
+
+[data-theme='dark'] .card-header {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='dark'] .collapse-header span {
+  color: #f3f4f6;
+}
+
+[data-theme='dark'] :deep(.ant-collapse) {
+  background: #1e293b;
+  border-color: #374151;
+}
+
+[data-theme='dark'] :deep(.ant-collapse-header) {
+  color: #f3f4f6;
+}
+
+[data-theme='dark'] :deep(.ant-collapse-content) {
+  background: #1e293b;
+  border-top-color: #374151;
+}
+
+[data-theme='dark'] :deep(.ant-progress-text) {
+  color: #f3f4f6;
+}
+
+[data-theme='dark'] :deep(.ant-progress-bg) {
+  background-color: #60a5fa;
+}
+
+[data-theme='dark'] .input-hint {
+  color: #6b7280;
+}
+
+[data-theme='dark'] .range-input label,
+[data-theme='dark'] .header-toggle label {
+  color: #9ca3af;
+}
+
+[data-theme='dark'] .row-range-summary {
+  background: linear-gradient(135deg, rgba(22, 119, 255, 0.15) 0%, rgba(20, 201, 201, 0.15) 100%);
+}
 </style>

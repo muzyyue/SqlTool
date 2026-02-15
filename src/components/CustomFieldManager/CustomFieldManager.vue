@@ -301,4 +301,65 @@ const handleDelete = (record) => {
 :deep(.ant-table-tbody > tr > td) {
   padding: 8px 12px;
 }
+
+/* 暗黑主题支持 */
+[data-theme='dark'] .custom-field-manager {
+  background: #1e293b;
+}
+
+[data-theme='dark'] .manager-header {
+  background: #0f172a;
+}
+
+[data-theme='dark'] .config-item {
+  color: #9ca3af;
+}
+
+[data-theme='dark'] :deep(.ant-table) {
+  background: #1e293b;
+  color: #f3f4f6;
+}
+
+[data-theme='dark'] :deep(.ant-table-thead > tr > th) {
+  background: #0f172a;
+  color: #f3f4f6;
+  border-bottom-color: #374151;
+}
+
+[data-theme='dark'] :deep(.ant-table-tbody > tr > td) {
+  border-bottom-color: #374151;
+}
+
+[data-theme='dark'] :deep(.ant-table-tbody > tr:hover > td) {
+  background: #374151;
+}
+
+[data-theme='dark'] :deep(.ant-empty-description) {
+  color: #6b7280;
+}
+
+[data-theme='dark'] :deep(.ant-input),
+[data-theme='dark'] :deep(.ant-input-affix-wrapper) {
+  background: #0f172a;
+  border-color: #374151;
+  color: #f3f4f6;
+}
+
+[data-theme='dark'] :deep(.ant-input::placeholder) {
+  color: #6b7280;
+}
+
+[data-theme='dark'] :deep(.ant-select-selector) {
+  background: #0f172a !important;
+  border-color: #374151 !important;
+  color: #f3f4f6 !important;
+}
+
+[data-theme='dark'] :deep(.ant-select-selection-item) {
+  color: #f3f4f6;
+}
+
+[data-theme='dark'] :deep(.ant-select-arrow) {
+  color: #9ca3af;
+}
 </style>
