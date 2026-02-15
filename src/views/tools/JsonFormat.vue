@@ -141,12 +141,7 @@ const downloadOutput = () => {
 .output-actions {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #f0f0f0;
-}
-
-/* 暗色主题支持 */
-[data-theme='dark'] .output-actions {
-  border-top-color: #374151;
+  border-top: 1px solid var(--border-default);
 }
 
 /* 响应式设计 */
