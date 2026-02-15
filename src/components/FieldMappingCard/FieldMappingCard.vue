@@ -601,21 +601,25 @@ const handleDatabaseTypeChange = (e) => {
 </script>
 
 <style scoped>
+/**
+ * FieldMappingCard 组件样式
+ * 使用语义化 CSS 变量实现主题切换
+ */
 .field-mapping-wrapper {
   width: 100%;
 }
 
 .field-mapping-card {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 12px;
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--backdrop-blur));
+  border: 1px solid var(--border-glass-strong);
+  border-radius: var(--border-radius-md);
   padding: 20px;
-  transition: all 0.3s ease;
+  transition: all var(--transition-slow) ease;
 }
 
 .field-mapping-card:hover {
-  box-shadow: 0 8px 32px rgba(22, 119, 255, 0.12);
+  box-shadow: var(--shadow-card);
 }
 
 .card-header {
@@ -624,7 +628,7 @@ const handleDatabaseTypeChange = (e) => {
   align-items: center;
   margin-bottom: 20px;
   padding-bottom: 16px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .header-left {
@@ -637,35 +641,36 @@ const handleDatabaseTypeChange = (e) => {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
+/* 匹配率徽章 - 渐变色保留 */
 .match-rate-badge {
   padding: 4px 12px;
-  border-radius: 20px;
+  border-radius: var(--border-radius-xl);
   font-size: 13px;
   font-weight: 600;
-  color: white;
-  transition: all 0.3s ease;
+  color: var(--text-inverse);
+  transition: all var(--transition-slow) ease;
 }
 
 .match-rate-badge.excellent {
-  background: linear-gradient(135deg, #52c41a 0%, #389e0d 100%);
+  background: linear-gradient(135deg, var(--color-success) 0%, #389e0d 100%);
 }
 
 .match-rate-badge.good {
-  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, #096dd9 100%);
 }
 
 .match-rate-badge.warning {
-  background: linear-gradient(135deg, #faad14 0%, #d48806 100%);
+  background: linear-gradient(135deg, var(--color-warning) 0%, #d48806 100%);
 }
 
 .match-rate-badge.danger {
-  background: linear-gradient(135deg, #ff4d4f 0%, #cf1322 100%);
+  background: linear-gradient(135deg, var(--color-error) 0%, #cf1322 100%);
 }
 
 .header-stats {
@@ -678,20 +683,20 @@ const handleDatabaseTypeChange = (e) => {
   align-items: center;
   gap: 4px;
   padding: 4px 12px;
-  background: #f5f5f5;
-  border-radius: 20px;
+  background: var(--bg-sunken);
+  border-radius: var(--border-radius-xl);
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .stat-item.success {
-  background: #f6ffed;
-  color: #52c41a;
+  background: var(--color-success-bg);
+  color: var(--color-success);
 }
 
 .stat-item.warning {
-  background: #fff7e6;
-  color: #fa8c16;
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
 }
 
 .mapping-container {
@@ -701,8 +706,8 @@ const handleDatabaseTypeChange = (e) => {
 }
 
 .mapping-tabs {
-  background: #fafafa;
-  border-radius: 8px;
+  background: var(--bg-sunken);
+  border-radius: var(--border-radius-sm);
   padding: 16px;
 }
 
@@ -724,6 +729,7 @@ const handleDatabaseTypeChange = (e) => {
   margin: 0 0 4px 0;
   font-size: 14px;
   font-weight: 600;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -732,7 +738,7 @@ const handleDatabaseTypeChange = (e) => {
 .section-desc {
   margin: 0;
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .match-algorithm {
@@ -747,7 +753,7 @@ const handleDatabaseTypeChange = (e) => {
 
 .progress-text {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin-top: 4px;
   display: block;
 }
@@ -763,20 +769,20 @@ const handleDatabaseTypeChange = (e) => {
   align-items: center;
   gap: 12px;
   padding: 12px;
-  background: white;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  transition: all 0.2s ease;
+  background: var(--card-bg);
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--border-default);
+  transition: all var(--transition-normal) ease;
 }
 
 .mapping-item:hover {
-  border-color: #1677ff;
-  box-shadow: 0 2px 8px rgba(22, 119, 255, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
 }
 
 .mapping-item.is-unmatched {
-  background: #fffbeb;
-  border-color: #fcd34d;
+  background: var(--hint-warning-bg);
+  border-color: var(--hint-warning-border);
 }
 
 .mapping-field {
@@ -786,38 +792,39 @@ const handleDatabaseTypeChange = (e) => {
   min-width: 140px;
 }
 
+/* 字段类型徽章 - 语义化颜色 */
 .field-badge {
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: var(--border-radius-xs);
   font-size: 12px;
   font-weight: 500;
   font-family: 'JetBrains Mono', monospace;
-  background: #f3f4f6;
-  color: #374151;
+  background: var(--bg-sunken);
+  color: var(--text-primary);
 }
 
 .field-badge.number {
-  background: #eff6ff;
-  color: #1d4ed8;
+  background: var(--badge-primary-bg);
+  color: var(--badge-primary-text);
 }
 
 .field-badge.string {
-  background: #f0fdf4;
-  color: #16a34a;
+  background: var(--badge-success-bg);
+  color: var(--badge-success-text);
 }
 
 .field-badge.date {
-  background: #fefce8;
-  color: #ca8a04;
+  background: var(--badge-warning-bg);
+  color: var(--badge-warning-text);
 }
 
 .field-badge.boolean {
-  background: #fdf4ff;
+  background: rgba(168, 85, 247, 0.1);
   color: #a855f7;
 }
 
 .mapping-arrow {
-  color: #9ca3af;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
@@ -840,7 +847,7 @@ const handleDatabaseTypeChange = (e) => {
 }
 
 .col-index {
-  color: #9ca3af;
+  color: var(--text-tertiary);
   font-size: 11px;
 }
 
@@ -852,15 +859,16 @@ const handleDatabaseTypeChange = (e) => {
 
 .action-group {
   padding: 16px;
-  background: white;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  background: var(--card-bg);
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--border-default);
 }
 
 .action-group h4 {
   margin: 0 0 12px 0;
   font-size: 14px;
   font-weight: 600;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -876,17 +884,18 @@ const handleDatabaseTypeChange = (e) => {
 .action-hint {
   margin: 8px 0 0 0;
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
+/* 数据库类型选择区域 */
 .database-type-section {
   display: flex;
   align-items: center;
   gap: 16px;
   padding: 16px;
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-  border-radius: 8px;
-  border: 1px solid #bae6fd;
+  background: var(--gradient-primary-light);
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--color-primary-border);
   flex-wrap: wrap;
 }
 
@@ -896,119 +905,22 @@ const handleDatabaseTypeChange = (e) => {
   gap: 8px;
   font-size: 14px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
 }
 
 .database-hint {
   width: 100%;
   margin-top: 8px;
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .mapping-footer {
   margin-top: 20px;
   padding-top: 16px;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  border-top: 1px solid var(--border-default);
   display: flex;
   justify-content: flex-end;
-}
-
-[data-theme='dark'] .field-mapping-card {
-  background: rgba(30, 41, 59, 0.6);
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-[data-theme='dark'] .header-left h3 {
-  color: #f1f5f9;
-}
-
-[data-theme='dark'] .card-header {
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-[data-theme='dark'] .match-rate-badge {
-  color: white;
-}
-
-[data-theme='dark'] .stat-item {
-  background: #1e293b;
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .stat-item.success {
-  background: rgba(82, 196, 26, 0.2);
-}
-
-[data-theme='dark'] .stat-item.warning {
-  background: rgba(250, 173, 20, 0.2);
-}
-
-[data-theme='dark'] .mapping-tabs {
-  background: #1e293b;
-}
-
-[data-theme='dark'] .mapping-item {
-  background: #1e293b;
-  border-color: #475569;
-}
-
-[data-theme='dark'] .mapping-item:hover {
-  border-color: #60a5fa;
-}
-
-[data-theme='dark'] .mapping-item.is-unmatched {
-  background: rgba(251, 191, 36, 0.1);
-  border-color: rgba(251, 191, 36, 0.3);
-}
-
-[data-theme='dark'] .field-badge {
-  background: #334155;
-  color: #e2e8f0;
-}
-
-[data-theme='dark'] .field-badge.number {
-  background: rgba(29, 78, 216, 0.2);
-  color: #60a5fa;
-}
-
-[data-theme='dark'] .field-badge.string {
-  background: rgba(22, 163, 74, 0.2);
-  color: #4ade80;
-}
-
-[data-theme='dark'] .section-desc {
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .action-group {
-  background: #1e293b;
-  border-color: #475569;
-}
-
-[data-theme='dark'] .action-hint {
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .database-type-section {
-  background: linear-gradient(135deg, rgba(22, 119, 255, 0.1) 0%, rgba(20, 201, 201, 0.1) 100%);
-  border-color: rgba(22, 119, 255, 0.3);
-}
-
-[data-theme='dark'] .section-label {
-  color: #f1f5f9;
-}
-
-[data-theme='dark'] .database-hint {
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .progress-text {
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .col-index {
-  color: #6b7280;
 }
 
 /* 表格样式 */
@@ -1021,27 +933,27 @@ const handleDatabaseTypeChange = (e) => {
 }
 
 .mapping-table :deep(.ant-table-thead > tr > th) {
-  background: #f8fafc;
+  background: var(--table-header-bg);
   font-weight: 600;
-  color: #374151;
-  border-bottom: 2px solid #e5e7eb;
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--border-default);
 }
 
 .mapping-table :deep(.ant-table-tbody > tr > td) {
   padding: 12px 16px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--table-border);
 }
 
 .mapping-table :deep(.ant-table-tbody > tr:hover > td) {
-  background: #f8fafc;
+  background: var(--table-row-hover-bg);
 }
 
 .mapping-table :deep(.ant-table-tbody > tr.unmatched-row) {
-  background: #fffbeb;
+  background: var(--hint-warning-bg);
 }
 
 .mapping-table :deep(.ant-table-tbody > tr.unmatched-row:hover > td) {
-  background: #fef3c7;
+  background: var(--interactive-hover);
 }
 
 .field-cell {
@@ -1083,8 +995,8 @@ const handleDatabaseTypeChange = (e) => {
 }
 
 .similarity-progress :deep(.ant-progress-inner) {
-  background-color: #f1f5f9;
-  border-radius: 4px;
+  background-color: var(--bg-sunken);
+  border-radius: var(--border-radius-xs);
 }
 
 .detail-btn {
@@ -1092,7 +1004,7 @@ const handleDatabaseTypeChange = (e) => {
   height: 20px;
   font-size: 11px;
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity var(--transition-normal) ease;
 }
 
 .status-wrapper:hover .detail-btn {
@@ -1111,9 +1023,9 @@ const handleDatabaseTypeChange = (e) => {
   display: flex;
   align-items: center;
   gap: 4px;
-  background: #f3f4f6;
-  color: #6b7280;
-  border: 1px dashed #d1d5db;
+  background: var(--bg-sunken);
+  color: var(--text-secondary);
+  border: 1px dashed var(--border-strong);
 }
 
 .unmatched-tag :deep(.anticon) {
@@ -1125,72 +1037,5 @@ const handleDatabaseTypeChange = (e) => {
   align-items: center;
   gap: 12px;
   justify-content: center;
-}
-
-/* 暗黑模式适配 */
-[data-theme='dark'] .similarity-progress :deep(.ant-progress-inner) {
-  background-color: #334155;
-}
-
-[data-theme='dark'] .unmatched-tag {
-  background: #374151;
-  color: #9ca3af;
-  border-color: #4b5563;
-}
-
-[data-theme='dark'] .mapping-table :deep(.ant-table-thead > tr > th) {
-  background: #1e293b;
-  color: #e2e8f0;
-  border-bottom-color: #475569;
-}
-
-[data-theme='dark'] .mapping-table :deep(.ant-table-tbody > tr > td) {
-  border-bottom-color: #334155;
-}
-
-[data-theme='dark'] .mapping-table :deep(.ant-table-tbody > tr:hover > td) {
-  background: #334155;
-}
-
-[data-theme='dark'] .mapping-table :deep(.ant-table-tbody > tr.unmatched-row) {
-  background: rgba(251, 191, 36, 0.1);
-}
-
-[data-theme='dark'] .mapping-table :deep(.ant-table-tbody > tr.unmatched-row:hover > td) {
-  background: rgba(251, 191, 36, 0.2);
-}
-
-[data-theme='dark'] .section-header h4 {
-  color: #f3f4f6;
-}
-
-[data-theme='dark'] .action-group h4 {
-  color: #f3f4f6;
-}
-
-[data-theme='dark'] :deep(.ant-tabs-tab) {
-  color: #9ca3af;
-}
-
-[data-theme='dark'] :deep(.ant-tabs-tab-active) {
-  color: #60a5fa;
-}
-
-[data-theme='dark'] :deep(.ant-tabs-ink-bar) {
-  background: #60a5fa;
-}
-
-[data-theme='dark'] :deep(.ant-collapse) {
-  background: #1e293b;
-  border-color: #374151;
-}
-
-[data-theme='dark'] :deep(.ant-collapse-header) {
-  color: #f3f4f6;
-}
-
-[data-theme='dark'] :deep(.ant-collapse-content) {
-  background: #1e293b;
-  border-top-color: #374151;
 }
 </style>

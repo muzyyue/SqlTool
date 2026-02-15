@@ -1,6 +1,19 @@
 # 版本变更历史
 
-## 1.5.30 (2026-02-16)
+## 1.5.31 (2026-02-16)
+
+**重构 CellSplitConfig.vue CSS 为语义化变量**
+
+- 将硬编码背景色替换为 `var(--card-bg)`
+- 将硬编码边框色替换为 `var(--border-default)`
+- 将硬编码文本色替换为 `var(--text-primary)`
+- 将渐变背景简化为 `var(--color-primary-bg)`
+- 将标签背景色替换为 `var(--bg-base)`
+- 删除所有 `[data-theme='dark']` 暗色主题选择器块(共25行)
+- 主题切换现在通过 CSS 变量自动生效
+- 保留语义化状态颜色(蓝色/绿色/橙色标签)
+
+## 1.5.28 (2026-02-16)
 
 **重构 DeduplicationConfig.vue CSS 为语义化变量**
 

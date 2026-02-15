@@ -235,27 +235,27 @@ onMounted(() => {
 
 .title-icon {
   font-size: 24px;
-  color: #1890ff;
+  color: var(--color-primary);
 }
 
 .section-title h3 {
   font-size: 24px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   margin: 0;
   flex: 1;
 }
 
 .tool-count {
   font-size: 14px;
-  color: #999;
+  color: var(--text-secondary);
   font-weight: 400;
 }
 
 /* 收藏夹区域 */
 .favorites-section {
   margin-bottom: 40px;
-  background: #f8f9fa;
+  background: var(--bg-elevated);
   padding: 24px;
   border-radius: 12px;
 }
@@ -284,109 +284,26 @@ onMounted(() => {
 .empty-state {
   text-align: center;
   padding: 60px 20px;
-  color: #999;
+  color: var(--text-secondary);
 }
 
 .empty-icon {
   font-size: 64px;
   margin-bottom: 16px;
-  color: #d9d9d9;
+  color: var(--text-secondary);
 }
 
 .empty-state h3 {
   font-size: 20px;
   font-weight: 600;
-  color: #666;
+  color: var(--text-secondary);
   margin: 0 0 12px 0;
 }
 
 .empty-state p {
   font-size: 14px;
-  color: #999;
+  color: var(--text-secondary);
   margin: 0;
-}
-
-/* 暗色主题支持 */
-[data-theme='dark'] .tools-grid {
-  background: #0f172a;
-}
-
-[data-theme='dark'] .tools-header {
-  background: transparent;
-}
-
-[data-theme='dark'] .search-box :deep(.ant-input-affix-wrapper) {
-  background: #1e293b;
-  border-color: #374151;
-}
-
-[data-theme='dark'] .search-box :deep(.ant-input) {
-  background: transparent;
-  color: #f3f4f6;
-}
-
-[data-theme='dark'] .search-box :deep(.ant-input::placeholder) {
-  color: #6b7280;
-}
-
-[data-theme='dark'] .search-box :deep(.ant-input-search-button) {
-  background: #1890ff;
-  border-color: #1890ff;
-}
-
-[data-theme='dark'] .category-filter :deep(.ant-radio-button-wrapper) {
-  background: #1e293b;
-  border-color: #374151;
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .category-filter :deep(.ant-radio-button-wrapper:hover) {
-  color: #f3f4f6;
-}
-
-[data-theme='dark'] .category-filter :deep(.ant-radio-button-wrapper-checked) {
-  background: #1890ff;
-  border-color: #1890ff;
-  color: #fff;
-}
-
-[data-theme='dark'] .view-toggle :deep(.ant-btn-default) {
-  background: #1e293b;
-  border-color: #374151;
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .view-toggle :deep(.ant-btn-default:hover) {
-  color: #f3f4f6;
-  border-color: #1890ff;
-}
-
-[data-theme='dark'] .section-title h3 {
-  color: #f3f4f6;
-}
-
-[data-theme='dark'] .title-icon {
-  color: #60a5fa;
-}
-
-[data-theme='dark'] .tool-count {
-  color: #6b7280;
-}
-
-[data-theme='dark'] .favorites-section {
-  background: #1e293b;
-}
-
-[data-theme='dark'] .empty-icon {
-  color: #4b5563;
-}
-
-[data-theme='dark'] .empty-state h3 {
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .empty-state p {
-  color: #6b7280;
 }
 
 /* 响应式设计 */

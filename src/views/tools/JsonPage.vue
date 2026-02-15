@@ -649,11 +649,11 @@ onMounted(() => {
 <style scoped>
 /**
  * JSON 页面容器
- * 使用渐变背景和玻璃态设计
+ * 使用语义化 CSS 变量实现主题切换
  */
 .json-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: var(--bg-base);
   padding: 40px 20px;
 }
 
@@ -668,12 +668,12 @@ onMounted(() => {
 
 /**
  * 页面标题
- * 使用渐变色文本,48px字体
+ * 使用主色变量，48px字体
  */
 .page-title {
   font-size: 48px;
   font-weight: 700;
-  color: #1890ff;
+  color: var(--color-primary);
   margin-bottom: 16px;
   line-height: 1.2;
 }
@@ -684,7 +684,7 @@ onMounted(() => {
  */
 .page-subtitle {
   font-size: 20px;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 0;
   line-height: 1.6;
 }
@@ -737,13 +737,13 @@ onMounted(() => {
  */
 .editor-wrapper {
   margin-top: 16px;
-  border-radius: 8px;
+  border-radius: var(--border-radius-md);
   overflow: hidden;
-  transition: all 200ms ease;
+  transition: var(--transition-normal);
 }
 
 .editor-wrapper:hover {
-  box-shadow: 0 4px 16px rgba(22, 119, 255, 0.15);
+  box-shadow: var(--shadow-md);
 }
 
 /**
@@ -788,7 +788,7 @@ onMounted(() => {
 .input-label {
   font-size: 13px;
   font-weight: 500;
-  color: #666;
+  color: var(--text-secondary);
   padding: 4px 0;
 }
 
@@ -798,7 +798,7 @@ onMounted(() => {
 .label-text {
   font-size: 13px;
   font-weight: 500;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 /**
@@ -807,8 +807,8 @@ onMounted(() => {
 .stats-panel {
   margin-top: 20px;
   padding-top: 20px;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-  transition: all 200ms ease;
+  border-top: 1px solid var(--border-default);
+  transition: var(--transition-normal);
 }
 
 /**
@@ -835,7 +835,7 @@ onMounted(() => {
   margin-bottom: 16px;
   font-size: 14px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
 }
 
 /**
@@ -864,7 +864,7 @@ onMounted(() => {
  */
 .diff-label {
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
   min-width: 80px;
   flex-shrink: 0;
 }
@@ -873,62 +873,20 @@ onMounted(() => {
  * 差异值
  */
 .diff-value {
-  background: rgba(22, 119, 255, 0.05);
+  background: var(--color-primary-bg);
   padding: 6px 12px;
-  border-radius: 4px;
+  border-radius: var(--border-radius-sm);
   font-size: 12px;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   max-width: 100%;
   overflow-x: auto;
-  border: 1px solid rgba(22, 119, 255, 0.1);
-  transition: all 200ms ease;
+  border: 1px solid var(--border-default);
+  transition: var(--transition-normal);
 }
 
 .diff-value:hover {
-  background: rgba(22, 119, 255, 0.1);
-  border-color: rgba(22, 119, 255, 0.2);
-}
-
-/**
- * 暗色主题支持
- */
-[data-theme='dark'] .json-page {
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-}
-
-[data-theme='dark'] .page-title {
-  color: #60a5fa;
-}
-
-[data-theme='dark'] .page-subtitle {
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .input-label,
-[data-theme='dark'] .label-text {
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .stats-panel {
-  border-top-color: rgba(255, 255, 255, 0.1);
-}
-
-[data-theme='dark'] .differences-list h4 {
-  color: #f3f4f6;
-}
-
-[data-theme='dark'] .diff-label {
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .diff-value {
-  background: rgba(22, 119, 255, 0.1);
-  border-color: rgba(22, 119, 255, 0.2);
-}
-
-[data-theme='dark'] .diff-value:hover {
-  background: rgba(22, 119, 255, 0.15);
-  border-color: rgba(22, 119, 255, 0.3);
+  background: var(--color-primary-bg);
+  border-color: var(--color-primary);
 }
 
 /**

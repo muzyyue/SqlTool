@@ -264,12 +264,12 @@ onUnmounted(() => {
   gap: 12px;
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--border-default);
 }
 
 .result-display label {
   font-weight: 500;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .current-time {
@@ -286,7 +286,7 @@ onUnmounted(() => {
 
 .time-item label {
   font-weight: 500;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .time-actions {
@@ -294,27 +294,12 @@ onUnmounted(() => {
   gap: 12px;
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--border-default);
 }
 
 .input-suffix {
-  color: #999;
+  color: var(--text-secondary);
   font-size: 12px;
-}
-
-/* 暗色主题支持 */
-[data-theme='dark'] .result-display,
-[data-theme='dark'] .time-actions {
-  border-top-color: #374151;
-}
-
-[data-theme='dark'] .result-display label,
-[data-theme='dark'] .time-item label {
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .input-suffix {
-  color: #6b7280;
 }
 
 /* 响应式设计 */

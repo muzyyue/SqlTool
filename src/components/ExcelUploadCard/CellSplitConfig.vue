@@ -102,12 +102,12 @@ const handleApply = () => {
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  background: var(--card-bg, rgba(255, 255, 255, 0.85));
+  background: var(--card-bg);
   backdrop-filter: blur(var(--backdrop-blur, 20px));
   -webkit-backdrop-filter: blur(var(--backdrop-blur, 20px));
-  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.5));
-  border-radius: var(--border-radius-md, 12px);
-  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
+  border: 1px solid var(--border-default);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-sm);
   transition: all var(--transition-normal, 200ms) ease;
 }
 
@@ -118,12 +118,12 @@ const handleApply = () => {
 .cell-split-controls {
   margin-top: 16px;
   padding: 20px;
-  background: var(--card-bg, rgba(255, 255, 255, 0.85));
+  background: var(--card-bg);
   backdrop-filter: blur(var(--backdrop-blur, 20px));
   -webkit-backdrop-filter: blur(var(--backdrop-blur, 20px));
-  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.5));
-  border-radius: var(--border-radius-md, 12px);
-  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
+  border: 1px solid var(--border-default);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-sm);
   transition: all var(--transition-normal, 200ms) ease;
 }
 
@@ -140,7 +140,7 @@ const handleApply = () => {
 
 .cell-split-separator label {
   font-weight: 500;
-  color: var(--text-primary, #1f2937);
+  color: var(--text-primary);
   white-space: nowrap;
 }
 
@@ -166,7 +166,7 @@ const handleApply = () => {
 
 .cell-split-custom-separator label {
   font-weight: 500;
-  color: var(--text-primary, #1f2937);
+  color: var(--text-primary);
   white-space: nowrap;
 }
 
@@ -185,9 +185,9 @@ const handleApply = () => {
 .cell-split-stats {
   margin-top: 16px;
   padding: 16px;
-  background: linear-gradient(135deg, rgba(22, 119, 255, 0.05) 0%, rgba(20, 201, 201, 0.05) 100%);
-  border: 1px solid rgba(22, 119, 255, 0.1);
-  border-radius: var(--border-radius-sm, 8px);
+  background: var(--color-primary-bg);
+  border: 1px solid var(--border-default);
+  border-radius: var(--border-radius-sm);
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
@@ -195,14 +195,14 @@ const handleApply = () => {
 }
 
 .cell-split-stats:hover {
-  background: linear-gradient(135deg, rgba(22, 119, 255, 0.08) 0%, rgba(20, 201, 201, 0.08) 100%);
-  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
+  background: var(--color-primary-bg);
+  box-shadow: var(--shadow-sm);
 }
 
 .cell-split-stats .ant-tag {
-  background: white;
-  border: 1px solid rgba(22, 119, 255, 0.2);
-  color: var(--text-primary, #1f2937);
+  background: var(--bg-base);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
   font-weight: 500;
   padding: 6px 14px;
   border-radius: var(--border-radius-xs, 4px);
@@ -211,7 +211,7 @@ const handleApply = () => {
 
 .cell-split-stats .ant-tag:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
+  box-shadow: var(--shadow-sm);
 }
 
 .cell-split-stats .ant-tag.ant-tag-blue {
@@ -227,31 +227,5 @@ const handleApply = () => {
 .cell-split-stats .ant-tag.ant-tag-orange {
   border-color: rgba(245, 158, 11, 0.3);
   color: #f59e0b;
-}
-
-[data-theme='dark'] .cell-split-header {
-  background: var(--card-bg, rgba(30, 41, 59, 0.6));
-  border-color: var(--card-border, rgba(255, 255, 255, 0.1));
-}
-
-[data-theme='dark'] .cell-split-controls {
-  background: var(--card-bg, rgba(30, 41, 59, 0.6));
-  border-color: var(--card-border, rgba(255, 255, 255, 0.1));
-}
-
-[data-theme='dark'] .cell-split-separator label,
-[data-theme='dark'] .cell-split-custom-separator label {
-  color: var(--text-primary, #f3f4f6);
-}
-
-[data-theme='dark'] .cell-split-stats {
-  background: linear-gradient(135deg, rgba(22, 119, 255, 0.1) 0%, rgba(20, 201, 201, 0.1) 100%);
-  border-color: rgba(22, 119, 255, 0.2);
-}
-
-[data-theme='dark'] .cell-split-stats .ant-tag {
-  background: rgba(30, 41, 59, 0.8);
-  border-color: rgba(22, 119, 255, 0.3);
-  color: var(--text-primary, #f3f4f6);
 }
 </style>

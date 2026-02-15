@@ -108,26 +108,30 @@ const handleClick = () => {
 </script>
 
 <style scoped>
+/**
+ * 工具卡片
+ * 使用 CSS 变量实现主题切换
+ */
 .tool-card {
-  background: white;
-  border: 1px solid #f0f0f0;
-  border-radius: 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--border-radius-md);
   padding: 20px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-slow) ease;
   display: flex;
   flex-direction: column;
   height: 100%;
 }
 
 .tool-card:hover {
-  border-color: #1890ff;
+  border-color: var(--card-hover-border);
   transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(24, 144, 255, 0.15);
+  box-shadow: var(--card-hover-shadow);
 }
 
 .tool-card-favorite {
-  border-color: #faad14;
+  border-color: var(--color-warning);
 }
 
 .tool-card-header {
@@ -139,31 +143,31 @@ const handleClick = () => {
 
 .tool-icon {
   font-size: 32px;
-  color: #1890ff;
+  color: var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
   width: 56px;
   height: 56px;
-  background: #e6f7ff;
-  border-radius: 12px;
+  background: var(--color-primary-bg);
+  border-radius: var(--border-radius-md);
 }
 
 .favorite-button {
-  color: #d9d9d9;
+  color: var(--text-disabled);
   padding: 4px;
 }
 
 .favorite-button:hover {
-  color: #faad14;
+  color: var(--color-warning);
 }
 
 .star-filled {
-  color: #faad14;
+  color: var(--color-warning);
 }
 
 .star-outlined {
-  color: #d9d9d9;
+  color: var(--text-disabled);
 }
 
 .tool-card-body {
@@ -175,14 +179,14 @@ const handleClick = () => {
 .tool-name {
   font-size: 18px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   margin: 0 0 8px 0;
   line-height: 1.4;
 }
 
 .tool-description {
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   line-height: 1.6;
   margin: 0 0 12px 0;
   flex: 1;
@@ -198,46 +202,27 @@ const handleClick = () => {
 .tool-card-footer {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--border-default);
 }
 
-/* 暗色主题支持 */
-[data-theme='dark'] .tool-card {
-  background: #1f2937;
-  border-color: #374151;
-}
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .tool-card {
+    padding: 16px;
+  }
 
-[data-theme='dark'] .tool-card:hover {
-  border-color: #60a5fa;
-  box-shadow: 0 8px 24px rgba(96, 165, 250, 0.15);
-}
+  .tool-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 24px;
+  }
 
-[data-theme='dark'] .tool-card-favorite {
-  border-color: #f59e0b;
-}
+  .tool-name {
+    font-size: 16px;
+  }
 
-[data-theme='dark'] .tool-icon {
-  background: #1e40af;
-  color: #60a5fa;
-}
-
-[data-theme='dark'] .tool-name {
-  color: #f3f4f6;
-}
-
-[data-theme='dark'] .tool-description {
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .tool-card-footer {
-  border-top-color: #374151;
-}
-
-[data-theme='dark'] .favorite-button {
-  color: #6b7280;
-}
-
-[data-theme='dark'] .star-filled {
-  color: #f59e0b;
+  .tool-description {
+    font-size: 13px;
+  }
 }
 </style>

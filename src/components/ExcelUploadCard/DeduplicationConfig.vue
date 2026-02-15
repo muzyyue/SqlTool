@@ -108,18 +108,18 @@ const handleChange = (value) => {
 }
 
 .deduplication-controls .ant-select:hover {
-  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
+  box-shadow: 0 0 0 2px var(--color-primary-bg);
 }
 
 .deduplication-controls .ant-select-focused {
-  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.3);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 30%, transparent);
 }
 
 .deduplication-stats {
   margin-top: 16px;
   padding: 16px;
-  background: linear-gradient(135deg, rgba(22, 119, 255, 0.05) 0%, rgba(20, 201, 201, 0.05) 100%);
-  border: 1px solid rgba(22, 119, 255, 0.1);
+  background: var(--color-primary-bg);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-sm, 8px);
   display: flex;
   gap: 12px;
@@ -128,13 +128,13 @@ const handleChange = (value) => {
 }
 
 .deduplication-stats:hover {
-  background: linear-gradient(135deg, rgba(22, 119, 255, 0.08) 0%, rgba(20, 201, 201, 0.08) 100%);
+  background: var(--color-primary-bg);
   box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
 }
 
 .deduplication-stats .ant-tag {
-  background: white;
-  border: 1px solid rgba(22, 119, 255, 0.2);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
   color: var(--text-primary, #1f2937);
   font-weight: 500;
   padding: 6px 14px;
@@ -160,26 +160,5 @@ const handleChange = (value) => {
 .deduplication-stats .ant-tag.ant-tag-orange {
   border-color: rgba(245, 158, 11, 0.3);
   color: #f59e0b;
-}
-
-[data-theme='dark'] .deduplication-header {
-  background: var(--card-bg, rgba(30, 41, 59, 0.6));
-  border-color: var(--card-border, rgba(255, 255, 255, 0.1));
-}
-
-[data-theme='dark'] .deduplication-controls {
-  background: var(--card-bg, rgba(30, 41, 59, 0.6));
-  border-color: var(--card-border, rgba(255, 255, 255, 0.1));
-}
-
-[data-theme='dark'] .deduplication-stats {
-  background: linear-gradient(135deg, rgba(22, 119, 255, 0.1) 0%, rgba(20, 201, 201, 0.1) 100%);
-  border-color: rgba(22, 119, 255, 0.2);
-}
-
-[data-theme='dark'] .deduplication-stats .ant-tag {
-  background: rgba(30, 41, 59, 0.8);
-  border-color: rgba(22, 119, 255, 0.3);
-  color: var(--text-primary, #f3f4f6);
 }
 </style>

@@ -111,7 +111,7 @@ const navigateToTool = (tool) => {
 <style scoped>
 .home-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: var(--bg-base);
 }
 
 /* 英雄区域 */
@@ -132,14 +132,14 @@ const navigateToTool = (tool) => {
 .hero-title {
   font-size: 48px;
   font-weight: 700;
-  color: #1890ff;
+  color: var(--color-primary);
   margin-bottom: 16px;
   line-height: 1.2;
 }
 
 .hero-subtitle {
   font-size: 20px;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 32px;
   line-height: 1.6;
 }
@@ -154,21 +154,21 @@ const navigateToTool = (tool) => {
   flex-direction: column;
   align-items: center;
   padding: 24px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  background: var(--card-bg);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-card);
 }
 
 .stat-number {
   font-size: 36px;
   font-weight: 700;
-  color: #1890ff;
+  color: var(--color-primary);
   line-height: 1;
 }
 
 .stat-label {
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   margin-top: 4px;
 }
 
@@ -184,26 +184,26 @@ const navigateToTool = (tool) => {
 
 .hero-icon {
   font-size: 48px;
-  color: #1890ff;
+  color: var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
   width: 80px;
   height: 80px;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  background: var(--card-bg);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-card);
 }
 
 /* 工具网格区域 */
 .tools-section {
-  background: white;
+  background: var(--bg-elevated);
   padding: 80px 0;
 }
 
 /* 快速访问区域 */
 .quick-access-section {
-  background: #f8f9fa;
+  background: var(--bg-base);
   padding: 80px 0;
 }
 
@@ -215,13 +215,13 @@ const navigateToTool = (tool) => {
 .section-header h2 {
   font-size: 32px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 16px;
 }
 
 .section-header p {
   font-size: 18px;
-  color: #666;
+  color: var(--text-secondary);
   max-width: 600px;
   margin: 0 auto;
 }
@@ -243,67 +243,14 @@ const navigateToTool = (tool) => {
 
 .quick-access-content .tool-icon {
   font-size: 32px;
-  color: #1890ff;
+  color: var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
   width: 56px;
   height: 56px;
-  background: #e6f7ff;
-  border-radius: 12px;
-}
-
-/* 暗色主题支持 */
-[data-theme='dark'] .home-page {
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-}
-
-[data-theme='dark'] .hero-title {
-  color: #60a5fa;
-}
-
-[data-theme='dark'] .hero-subtitle {
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .stat-item {
-  background: #1f2937;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-}
-
-[data-theme='dark'] .stat-number {
-  color: #60a5fa;
-}
-
-[data-theme='dark'] .stat-label {
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .hero-icon {
-  background: #1e2937;
-  color: #60a5fa;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-}
-
-[data-theme='dark'] .tools-section {
-  background: #1f2937;
-}
-
-[data-theme='dark'] .quick-access-section {
-  background: #0f172a;
-}
-
-[data-theme='dark'] .section-header h2 {
-  color: #f3f4f6;
-}
-
-[data-theme='dark'] .section-header p {
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .quick-access-content .tool-icon {
-  background: #1e40af;
-  color: #60a5fa;
+  background: var(--color-primary-bg);
+  border-radius: var(--border-radius-md);
 }
 
 /* 响应式设计 */

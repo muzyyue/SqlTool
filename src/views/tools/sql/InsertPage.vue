@@ -1998,7 +1998,7 @@ onMounted(() => {
 .insert-page {
   padding: 0;
   min-height: 100%;
-  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  background: var(--page-bg-gradient);
 }
 
 .page-header {
@@ -2007,14 +2007,14 @@ onMounted(() => {
   align-items: center;
   margin-bottom: 24px;
   padding: 10px 20px;
-  border-bottom: 1px solid #f0f0f0;
-  background: #fafafa;
+  border-bottom: 1px solid var(--page-header-border);
+  background: var(--page-header-bg);
   border-radius: 8px;
 }
 
 .page-header h2 {
   margin: 0;
-  color: #1890ff;
+  color: var(--page-header-title);
   font-size: 24px;
   font-weight: 600;
   margin-right: 20px;
@@ -2046,23 +2046,19 @@ onMounted(() => {
 
 .input-card,
 .output-card {
-  background: white;
+  background: var(--card-bg);
   border-radius: 12px;
   padding: 20px;
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.08),
-    0 2px 4px rgba(0, 0, 0, 0.04);
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--card-border);
   overflow: hidden;
   position: relative;
-  transition: all 0.2s ease;
+  transition: all var(--transition-normal) ease;
 }
 
 .input-card:hover,
 .output-card:hover {
-  box-shadow:
-    0 6px 16px rgba(0, 0, 0, 0.1),
-    0 3px 6px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-lg);
   transform: translateY(-1px);
 }
 
@@ -2072,14 +2068,14 @@ onMounted(() => {
   align-items: center;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--border-default);
 }
 
 .card-header h3 {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text-primary);
 }
 
 .card-footer {
@@ -2088,18 +2084,18 @@ onMounted(() => {
   align-items: center;
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid var(--border-default);
 }
 
 .field-count {
-  color: #666;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .ddl-fields-section {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--border-default);
   overflow: hidden;
 }
 
@@ -2112,7 +2108,7 @@ onMounted(() => {
 }
 
 .ddl-fields-section .ant-table-thead > tr > th {
-  background: #fafafa;
+  background: var(--table-header-bg);
   font-weight: 600;
 }
 
@@ -2127,7 +2123,7 @@ onMounted(() => {
 .preview-footer {
   margin-top: 8px;
   text-align: center;
-  color: #666;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -2137,7 +2133,7 @@ onMounted(() => {
   gap: 16px;
   margin-bottom: 16px;
   padding: 16px;
-  background: #fafafa;
+  background: var(--table-header-bg);
   border-radius: 4px;
 }
 
@@ -2147,32 +2143,32 @@ onMounted(() => {
   gap: 8px;
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--border-default);
 }
 
 .database-type-section {
   margin-top: 16px;
   padding: 16px;
-  background: #f8f9fa;
+  background: var(--panel-bg);
   border-radius: 6px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--panel-border);
 }
 
 .database-type-section h4 {
   margin: 0 0 12px 0;
   font-size: 14px;
   font-weight: 600;
-  color: #495057;
+  color: var(--text-primary);
 }
 
 .database-type-hint {
   margin-top: 8px;
-  color: #6c757d;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .field-type {
-  color: #666;
+  color: var(--text-secondary);
   font-size: 12px;
   margin-top: 2px;
 }
@@ -2201,10 +2197,10 @@ onMounted(() => {
 
 .no-excel-hint {
   padding: 8px;
-  background: #fffbe6;
-  border: 1px solid #ffe58f;
+  background: var(--hint-warning-bg);
+  border: 1px solid var(--hint-warning-border);
   border-radius: 4px;
-  color: #fa8c16;
+  color: var(--hint-warning-text);
   text-align: center;
   margin-top: 8px;
 }
@@ -2216,8 +2212,8 @@ onMounted(() => {
 }
 
 .sql-preview {
-  background: #f6f8fa;
-  border: 1px solid #e1e4e8;
+  background: var(--code-bg);
+  border: 1px solid var(--border-default);
   border-radius: 4px;
   padding: 12px;
   max-height: 300px;
@@ -2239,13 +2235,13 @@ onMounted(() => {
   gap: 16px;
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--border-default);
 }
 
 /* SQL美化选项面板样式 */
 .beautify-options-panel {
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
   border-radius: 6px;
   padding: 16px;
   margin-bottom: 16px;
@@ -2257,10 +2253,10 @@ onMounted(() => {
   top: 12px;
   right: 12px;
   z-index: 10;
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--bg-glass);
   padding: 4px;
   border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
 }
 
 .option-row {
@@ -2268,7 +2264,7 @@ onMounted(() => {
   align-items: center;
   gap: 12px;
   padding: 8px 0;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--panel-border);
 }
 
 .option-row:last-child {
@@ -2278,7 +2274,7 @@ onMounted(() => {
 .option-label {
   min-width: 120px;
   font-weight: 500;
-  color: #495057;
+  color: var(--option-label);
   font-size: 14px;
 }
 
@@ -2286,7 +2282,7 @@ onMounted(() => {
   min-width: 30px;
   text-align: center;
   font-weight: 600;
-  color: #1890ff;
+  color: var(--option-value);
   font-size: 14px;
 }
 
@@ -2296,7 +2292,7 @@ onMounted(() => {
   gap: 8px;
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #e9ecef;
+  border-top: 1px solid var(--panel-border);
 }
 
 .log-content {
@@ -2306,13 +2302,14 @@ onMounted(() => {
 
 .log-time {
   margin: 0;
-  color: #666;
+  color: var(--log-time);
   font-size: 12px;
 }
 
 .log-message {
   margin: 4px 0 0 0;
   font-size: 14px;
+  color: var(--log-message);
 }
 
 /* 响应式设计 - 所有屏幕尺寸统一单列布局 */
@@ -2464,28 +2461,6 @@ onMounted(() => {
 .deduplication-stats .ant-tag.ant-tag-orange {
   border-color: rgba(245, 158, 11, 0.3);
   color: #f59e0b;
-}
-
-/* 暗色主题支持 */
-[data-theme='dark'] .deduplication-header {
-  background: var(--card-bg, rgba(30, 41, 59, 0.6));
-  border-color: var(--card-border, rgba(255, 255, 255, 0.1));
-}
-
-[data-theme='dark'] .deduplication-controls {
-  background: var(--card-bg, rgba(30, 41, 59, 0.6));
-  border-color: var(--card-border, rgba(255, 255, 255, 0.1));
-}
-
-[data-theme='dark'] .deduplication-stats {
-  background: linear-gradient(135deg, rgba(22, 119, 255, 0.1) 0%, rgba(20, 201, 201, 0.1) 100%);
-  border-color: rgba(22, 119, 255, 0.2);
-}
-
-[data-theme='dark'] .deduplication-stats .ant-tag {
-  background: rgba(30, 41, 59, 0.8);
-  border-color: rgba(22, 119, 255, 0.3);
-  color: var(--text-primary, #f3f4f6);
 }
 
 /* 行范围选择样式 - 优化版 */
@@ -2653,36 +2628,6 @@ onMounted(() => {
   color: #f59e0b;
 }
 
-/* 暗色主题支持 */
-[data-theme='dark'] .row-range-header {
-  background: var(--card-bg, rgba(30, 41, 59, 0.6));
-  border-color: var(--card-border, rgba(255, 255, 255, 0.1));
-}
-
-[data-theme='dark'] .row-range-controls {
-  background: var(--card-bg, rgba(30, 41, 59, 0.6));
-  border-color: var(--card-border, rgba(255, 255, 255, 0.1));
-}
-
-[data-theme='dark'] .row-range-input label {
-  color: var(--text-primary, #f3f4f6);
-}
-
-[data-theme='dark'] .row-range-options {
-  border-bottom-color: var(--card-border, rgba(255, 255, 255, 0.1));
-}
-
-[data-theme='dark'] .row-range-stats {
-  background: linear-gradient(135deg, rgba(22, 119, 255, 0.1) 0%, rgba(20, 201, 201, 0.1) 100%);
-  border-color: rgba(22, 119, 255, 0.2);
-}
-
-[data-theme='dark'] .row-range-stats .ant-tag {
-  background: rgba(30, 41, 59, 0.8);
-  border-color: rgba(22, 119, 255, 0.3);
-  color: var(--text-primary, #f3f4f6);
-}
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .row-range-inputs {
@@ -2724,309 +2669,5 @@ onMounted(() => {
   .row-range-stats {
     padding: 12px;
   }
-}
-
-/* 暗色主题支持 - InsertPage全局样式 */
-[data-theme='dark'] .insert-page {
-  background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
-}
-
-[data-theme='dark'] .page-header {
-  background: #1e293b;
-  border-bottom-color: #374151;
-}
-
-[data-theme='dark'] .page-header h2 {
-  color: #60a5fa;
-}
-
-[data-theme='dark'] .input-card,
-[data-theme='dark'] .output-card {
-  background: #1e293b;
-  border-color: #374151;
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.3),
-    0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-[data-theme='dark'] .input-card:hover,
-[data-theme='dark'] .output-card:hover {
-  box-shadow:
-    0 6px 16px rgba(0, 0, 0, 0.4),
-    0 3px 6px rgba(0, 0, 0, 0.3);
-}
-
-[data-theme='dark'] .card-header {
-  border-bottom-color: #374151;
-}
-
-[data-theme='dark'] .card-header h3 {
-  color: #f3f4f6;
-}
-
-[data-theme='dark'] .card-footer {
-  border-top-color: #374151;
-}
-
-[data-theme='dark'] .field-count {
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .beautify-options-panel {
-  background: #1e293b;
-  border-color: #374151;
-}
-
-[data-theme='dark'] .option-label {
-  color: #d1d5db;
-}
-
-[data-theme='dark'] .option-value {
-  color: #60a5fa;
-}
-
-[data-theme='dark'] .option-row {
-  border-bottom-color: #374151;
-}
-
-[data-theme='dark'] .option-actions {
-  border-top-color: #374151;
-}
-
-[data-theme='dark'] .log-time {
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .log-message {
-  color: #e5e7eb;
-}
-
-[data-theme='dark'] .preview-mode-switch {
-  background: rgba(30, 41, 59, 0.95);
-}
-
-[data-theme='dark'] .sql-preview {
-  background: #0f172a;
-  border-color: #374151;
-  color: #e5e7eb;
-}
-
-[data-theme='dark'] .sql-stats {
-  border-top-color: #374151;
-}
-
-[data-theme='dark'] .mapping-stats {
-  background: #1e293b;
-}
-
-[data-theme='dark'] .mapping-actions {
-  border-top-color: #374151;
-}
-
-[data-theme='dark'] .database-type-section {
-  background: #1e293b;
-  border-color: #374151;
-}
-
-[data-theme='dark'] .database-type-section h4 {
-  color: #f3f4f6;
-}
-
-[data-theme='dark'] .database-type-hint {
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .field-type {
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .no-excel-hint {
-  background: rgba(245, 158, 11, 0.1);
-  border-color: rgba(245, 158, 11, 0.3);
-  color: #fbbf24;
-}
-
-[data-theme='dark'] .ddl-fields-section {
-  border-top-color: #374151;
-}
-
-[data-theme='dark'] .ddl-fields-section .ant-table-thead > tr > th {
-  background: #1e293b;
-  color: #f3f4f6;
-}
-
-/* Ant Design组件暗黑主题适配 */
-[data-theme='dark'] .insert-page :deep(.ant-input),
-[data-theme='dark'] .insert-page :deep(.ant-input-affix-wrapper) {
-  background: #0f172a;
-  border-color: #374151;
-  color: #f3f4f6;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-input::placeholder) {
-  color: #6b7280;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-input-affix-wrapper:hover) {
-  border-color: #60a5fa;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-input-affix-wrapper-focused) {
-  border-color: #60a5fa;
-  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-select-selector) {
-  background: #0f172a !important;
-  border-color: #374151 !important;
-  color: #f3f4f6 !important;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-select-selection-item) {
-  color: #f3f4f6;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-select-arrow) {
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-btn) {
-  border-color: #374151;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-btn-default) {
-  background: #1e293b;
-  border-color: #374151;
-  color: #f3f4f6;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-btn-default:hover) {
-  border-color: #60a5fa;
-  color: #60a5fa;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-btn-dashed) {
-  background: transparent;
-  border-color: #374151;
-  color: #f3f4f6;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-btn-dashed:hover) {
-  border-color: #60a5fa;
-  color: #60a5fa;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-btn-link) {
-  color: #60a5fa;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-btn-link:hover) {
-  color: #93c5fd;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-switch) {
-  background: #374151;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-switch-checked) {
-  background: #60a5fa;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-radio-button-wrapper) {
-  background: #1e293b;
-  border-color: #374151;
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-radio-button-wrapper:hover) {
-  color: #f3f4f6;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-radio-button-wrapper-checked) {
-  background: #60a5fa;
-  border-color: #60a5fa;
-  color: #fff;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-slider-rail) {
-  background: #374151;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-slider-track) {
-  background: #60a5fa;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-slider-handle) {
-  background: #60a5fa;
-  border-color: #60a5fa;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-divider) {
-  border-top-color: #374151;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-divider-inner-text) {
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-timeline-item-tail) {
-  border-left-color: #374151;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-timeline-item-content) {
-  color: #e5e7eb;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-empty-description) {
-  color: #6b7280;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-tooltip-inner) {
-  background: #374151;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-tooltip-arrow-content) {
-  background: #374151;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-modal-content) {
-  background: #1e293b;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-modal-header) {
-  background: #1e293b;
-  border-bottom-color: #374151;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-modal-title) {
-  color: #f3f4f6;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-modal-close-x) {
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-alert) {
-  background: #1e293b;
-  border-color: #374151;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-table) {
-  background: #1e293b;
-  color: #f3f4f6;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-table-thead > tr > th) {
-  background: #0f172a;
-  color: #f3f4f6;
-  border-bottom-color: #374151;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-table-tbody > tr > td) {
-  border-bottom-color: #374151;
-}
-
-[data-theme='dark'] .insert-page :deep(.ant-table-tbody > tr:hover > td) {
-  background: #374151;
 }
 </style>

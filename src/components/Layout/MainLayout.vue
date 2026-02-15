@@ -1,181 +1,69 @@
-<script setup>
-import { ref, computed, onMounted, watch } from 'vue'
-import {
-  HomeOutlined,
-  DatabaseOutlined,
-  BulbOutlined,
-  SettingOutlined,
-  InfoCircleOutlined,
-  ExportOutlined,
-} from '@ant-design/icons-vue'
-import { Menu, Button, Dropdown, message } from 'ant-design-vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useThemeStore } from '@/stores/theme.js'
-import { storeToRefs } from 'pinia'
-import { useErrorHandler } from '@/composables/useErrorHandler.js'
-import SettingsPanel from './SettingsPanel.vue'
-import AboutPanel from './AboutPanel.vue'
-
-const route = useRoute()
-const router = useRouter()
-const themeStore = useThemeStore()
-const { isDark } = storeToRefs(themeStore)
-const { exportErrorLogs } = useErrorHandler()
-
-// 菜单项配置
-const menuItems = [
-  {
-    key: 'home',
-    icon: HomeOutlined,
-    label: '工具箱',
-    path: '/',
-  },
-  {
-    key: 'sql-tool',
-    icon: DatabaseOutlined,
-    label: 'SQL工具',
-    path: '/sql-tool',
-  },
-]
-
-// 当前选中的菜单项
-const selectedKeys = computed(() => {
-  const currentPath = route.path
-  const matchedItem = menuItems.find((item) =>
-    currentPath === item.path || currentPath.startsWith(item.path + '/'),
-  )
-  return matchedItem ? [matchedItem.key] : ['home']
-})
-
-// 菜单主题
-const menuTheme = computed(() => (isDark.value ? 'dark' : 'light'))
-
-// 处理菜单点击
-const handleMenuClick = ({ key }) => {
-  const item = menuItems.find((i) => i.key === key)
-  if (item && item.path) {
-    router.push(item.path)
-  }
-}
-
-// 设置面板相关
-const showSettings = ref(false)
-const openSettings = () => {
-  showSettings.value = true
-}
-
-// 关于面板相关
-const showAbout = ref(false)
-const openAbout = () => {
-  showAbout.value = true
-}
-
-// 导出日志
-const exportLogs = () => {
-  try {
-    const logsContent = exportErrorLogs('json')
-    const blob = new Blob([logsContent], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `error-logs-${new Date().toISOString().slice(0, 10)}.json`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
-    message.success('日志导出成功')
-  } catch (error) {
-    message.error('日志导出失败：' + error.message)
-  }
-}
-
-// 处理设置菜单点击
-const handleSettingsMenuClick = ({ key }) => {
-  switch (key) {
-    case 'settings':
-      openSettings()
-      break
-    case 'export-logs':
-      exportLogs()
-      break
-    case 'about':
-      openAbout()
-      break
-  }
-}
-
-// 设置下拉菜单项
-const settingsMenuItems = [
-  {
-    key: 'settings',
-    icon: SettingOutlined,
-    label: '系统设置',
-  },
-  {
-    key: 'export-logs',
-    icon: ExportOutlined,
-    label: '导出日志',
-  },
-  {
-    key: 'about',
-    icon: InfoCircleOutlined,
-    label: '关于',
-  },
-]
-
-onMounted(() => {
-  console.log('MainLayout 已加载')
-})
-</script>
-
 <template>
   <a-layout class="main-layout">
-    <!-- 顶部导航栏 -->
+    <!-- 顶部导航 -->
     <a-layout-header class="header">
       <div class="header-content">
-        <!-- Logo区域 -->
         <div class="logo">
           <h1>在线工具箱</h1>
           <span class="version">v2.0</span>
         </div>
 
-        <!-- 导航菜单 -->
         <div class="nav-menu">
           <a-menu
-            :selected-keys="selectedKeys"
-            :theme="menuTheme"
+            v-model:selectedKeys="selectedKeys"
             mode="horizontal"
+            :theme="menuTheme"
             @click="handleMenuClick"
           >
-            <a-menu-item v-for="item in menuItems" :key="item.key">
-              <component :is="item.icon" />
-              {{ item.label }}
+            <a-menu-item key="home">
+              <template #icon>
+                <HomeOutlined />
+              </template>
+              工具箱
+            </a-menu-item>
+            <a-menu-item key="sql-tool">
+              <template #icon>
+                <DatabaseOutlined />
+              </template>
+              SQL工具
             </a-menu-item>
           </a-menu>
         </div>
 
-        <!-- 右侧操作区 -->
         <div class="header-actions">
-          <a-button
-            type="text"
-            class="theme-toggle"
-            @click="themeStore.toggleTheme()"
-          >
-            <BulbOutlined />
+          <a-button type="text" @click="toggleTheme" class="theme-toggle">
+            <template #icon>
+              <BulbOutlined v-if="!isDark" />
+              <BulbFilled v-else />
+            </template>
           </a-button>
-          <a-dropdown
-            :trigger="['click']"
-            placement="bottomRight"
-            @click="handleSettingsMenuClick"
-          >
+
+          <a-dropdown :trigger="['click']">
             <a-button type="text" class="settings-btn">
-              <SettingOutlined />
+              <template #icon>
+                <SettingOutlined />
+              </template>
             </a-button>
             <template #overlay>
-              <a-menu @click="handleSettingsMenuClick">
-                <a-menu-item v-for="item in settingsMenuItems" :key="item.key">
-                  <component :is="item.icon" />
-                  {{ item.label }}
+              <a-menu>
+                <a-menu-item @click="showSettings">
+                  <template #icon>
+                    <ToolOutlined />
+                  </template>
+                  系统设置
+                </a-menu-item>
+                <a-menu-item @click="exportLogs">
+                  <template #icon>
+                    <ExportOutlined />
+                  </template>
+                  导出日志
+                </a-menu-item>
+                <a-menu-divider />
+                <a-menu-item @click="showAbout">
+                  <template #icon>
+                    <InfoCircleOutlined />
+                  </template>
+                  关于
                 </a-menu-item>
               </a-menu>
             </template>
@@ -184,20 +72,14 @@ onMounted(() => {
       </div>
     </a-layout-header>
 
-    <!-- 主内容区 -->
+    <!-- 主要内容区域 -->
     <a-layout-content class="content">
       <div class="content-wrapper">
         <!-- 面包屑导航 -->
-        <div class="breadcrumb">
-          <a-breadcrumb>
-            <a-breadcrumb-item>
-              <router-link to="/">首页</router-link>
-            </a-breadcrumb-item>
-            <a-breadcrumb-item v-if="route.meta.title">
-              {{ route.meta.title }}
-            </a-breadcrumb-item>
-          </a-breadcrumb>
-        </div>
+        <a-breadcrumb class="breadcrumb" v-if="showBreadcrumb">
+          <a-breadcrumb-item>在线工具箱</a-breadcrumb-item>
+          <a-breadcrumb-item>{{ currentPageTitle }}</a-breadcrumb-item>
+        </a-breadcrumb>
 
         <!-- 页面内容 -->
         <div class="page-content">
@@ -206,7 +88,7 @@ onMounted(() => {
       </div>
     </a-layout-content>
 
-    <!-- 底部页脚 -->
+    <!-- 底部信息 -->
     <a-layout-footer class="footer">
       <div class="footer-content">
         <div class="footer-left">
@@ -215,34 +97,150 @@ onMounted(() => {
           <span>基于Vue 3 + Ant Design Vue开发</span>
         </div>
         <div class="footer-right">
-          <a href="#">反馈建议</a>
+          <a href="#" @click.prevent="showFeedback">反馈建议</a>
           <a-divider type="vertical" />
-          <a href="#">帮助文档</a>
+          <a href="#" @click.prevent="showHelp">帮助文档</a>
         </div>
       </div>
     </a-layout-footer>
 
-    <!-- 设置面板 -->
-    <SettingsPanel v-model:visible="showSettings" />
+    <!-- 全局设置模态框 -->
+    <a-modal v-model:open="settingsVisible" title="系统设置" width="600px" :footer="null">
+      <SettingsPanel @close="settingsVisible = false" />
+    </a-modal>
 
-    <!-- 关于面板 -->
-    <AboutPanel v-model:visible="showAbout" />
+    <!-- 关于模态框 -->
+    <a-modal v-model:open="aboutVisible" title="关于SQL生成工具" width="500px" :footer="null">
+      <AboutPanel @close="aboutVisible = false" />
+    </a-modal>
   </a-layout>
 </template>
 
+<script setup>
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { storeToRefs } from 'pinia'
+import {
+  HomeOutlined,
+  BulbOutlined,
+  BulbFilled,
+  SettingOutlined,
+  ToolOutlined,
+  ExportOutlined,
+  InfoCircleOutlined,
+  DatabaseOutlined,
+} from '@ant-design/icons-vue'
+import SettingsPanel from './SettingsPanel.vue'
+import AboutPanel from './AboutPanel.vue'
+import { useThemeStore } from '@/stores/theme.js'
+
+const router = useRouter()
+const route = useRoute()
+const themeStore = useThemeStore()
+const { isDark } = storeToRefs(themeStore)
+
+// 响应式数据
+const selectedKeys = ref(['home'])
+const settingsVisible = ref(false)
+const aboutVisible = ref(false)
+
+// 计算属性
+const currentPageTitle = computed(() => {
+  const routeName = route.name
+  switch (routeName) {
+    case 'home':
+      return '工具箱'
+    case 'sql-tool':
+      return 'SQL生成工具'
+    case 'insert':
+      return 'INSERT语句生成'
+    case 'update':
+      return 'UPDATE语句生成'
+    default:
+      return '在线工具箱'
+  }
+})
+
+const showBreadcrumb = computed(() => {
+  return route.name !== 'home' && route.name !== 'sql-tool'
+})
+
+const menuTheme = computed(() => {
+  return isDark.value ? 'dark' : 'light'
+})
+
+// 方法
+const handleMenuClick = ({ key }) => {
+  switch (key) {
+    case 'home':
+      router.push('/')
+      break
+    case 'sql-tool':
+      router.push('/sql-tool')
+      break
+    case 'insert':
+      router.push('/insert')
+      break
+    case 'update':
+      router.push('/update')
+      break
+  }
+}
+
+const toggleTheme = () => {
+  themeStore.toggle()
+}
+
+const showSettings = () => {
+  settingsVisible.value = true
+}
+
+const showAbout = () => {
+  aboutVisible.value = true
+}
+
+const exportLogs = () => {
+  console.log('导出日志')
+}
+
+const showFeedback = () => {
+  console.log('显示反馈表单')
+}
+
+const showHelp = () => {
+  console.log('显示帮助文档')
+}
+
+// 监听路由变化
+watch(
+  () => route.name,
+  (routeName) => {
+    if (routeName) {
+      selectedKeys.value = [routeName]
+    }
+  },
+)
+
+// 生命周期
+onMounted(() => {
+  console.log('MainLayout 已加载')
+})
+</script>
+
 <style scoped>
+/**
+ * 主布局
+ * 使用 CSS 变量实现主题切换
+ */
 .main-layout {
   min-height: 100vh;
 }
 
 .header {
-  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  background: linear-gradient(135deg, var(--header-bg-start) 0%, var(--header-bg-end) 100%);
   padding: 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-[data-theme="dark"] .header {
-  background: linear-gradient(135deg, #001529 0%, #002140 100%);
+  box-shadow: var(--shadow-header);
+  transition: all var(--transition-normal) ease;
 }
 
 .header-content {
@@ -253,12 +251,13 @@ onMounted(() => {
   margin: 0 auto;
   padding: 0 24px;
   height: 64px;
+  transition: all var(--transition-normal) ease;
 }
 
 .logo {
   display: flex;
   align-items: center;
-  color: white;
+  color: var(--header-text);
 }
 
 .logo h1 {
@@ -277,41 +276,27 @@ onMounted(() => {
   flex: 1;
   display: flex;
   justify-content: center;
+  transition: all var(--transition-normal) ease;
 }
 
 .nav-menu :deep(.ant-menu) {
   background: transparent;
   border: none;
+  transition: all var(--transition-normal) ease;
 }
 
-/* 浅色主题菜单样式 - 使用白色文字 */
-.nav-menu :deep(.ant-menu-light .ant-menu-item) {
-  color: rgba(255, 255, 255, 0.85) !important;
+.nav-menu :deep(.ant-menu-item) {
+  color: var(--nav-item-text);
 }
 
-.nav-menu :deep(.ant-menu-light .ant-menu-item:hover) {
-  color: #ffffff !important;
-  background: rgba(255, 255, 255, 0.15) !important;
+.nav-menu :deep(.ant-menu-item:hover) {
+  color: var(--nav-item-text-hover);
+  background: var(--nav-item-bg-hover);
 }
 
-.nav-menu :deep(.ant-menu-light .ant-menu-item-selected) {
-  color: #ffffff !important;
-  background: rgba(255, 255, 255, 0.2) !important;
-}
-
-/* 暗黑主题菜单样式 */
-[data-theme="dark"] .nav-menu :deep(.ant-menu-dark .ant-menu-item) {
-  color: rgba(255, 255, 255, 0.85) !important;
-}
-
-[data-theme="dark"] .nav-menu :deep(.ant-menu-dark .ant-menu-item:hover) {
-  color: #ffffff !important;
-  background: rgba(255, 255, 255, 0.1) !important;
-}
-
-[data-theme="dark"] .nav-menu :deep(.ant-menu-dark .ant-menu-item-selected) {
-  color: #ffffff !important;
-  background: rgba(24, 144, 255, 0.3) !important;
+.nav-menu :deep(.ant-menu-item-selected) {
+  color: var(--nav-item-text-hover);
+  background: var(--nav-item-bg-selected);
 }
 
 .header-actions {
@@ -322,21 +307,19 @@ onMounted(() => {
 
 .theme-toggle,
 .settings-btn {
-  color: white !important;
+  color: var(--header-text) !important;
+  transition: all var(--transition-normal) ease;
 }
 
 .theme-toggle:hover,
 .settings-btn:hover {
-  background: rgba(255, 255, 255, 0.15) !important;
+  background: var(--interactive-hover-inverse) !important;
 }
 
 .content {
-  background: #f5f5f5;
+  background: var(--bg-base);
   min-height: calc(100vh - 64px - 70px);
-}
-
-[data-theme="dark"] .content {
-  background: #0f1219;
+  transition: background var(--transition-normal) ease;
 }
 
 .content-wrapper {
@@ -350,25 +333,18 @@ onMounted(() => {
 }
 
 .page-content {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: var(--card-bg);
+  border-radius: var(--border-radius-sm);
+  box-shadow: var(--shadow-sm);
   min-height: 600px;
-}
-
-[data-theme="dark"] .page-content {
-  background: #1e293b;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: all var(--transition-normal) ease;
 }
 
 .footer {
-  background: #001529;
-  color: rgba(255, 255, 255, 0.8);
+  background: linear-gradient(135deg, var(--header-bg-start) 0%, var(--header-bg-end) 100%);
+  color: var(--header-text-secondary);
   padding: 16px 0;
-}
-
-[data-theme="dark"] .footer {
-  background: #000c17;
+  transition: all var(--transition-normal) ease;
 }
 
 .footer-content {
@@ -387,12 +363,13 @@ onMounted(() => {
 }
 
 .footer a {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--header-text-secondary);
   text-decoration: none;
+  transition: color var(--transition-normal) ease;
 }
 
 .footer a:hover {
-  color: #1890ff;
+  color: var(--text-link-hover);
 }
 
 /* 响应式设计 */
@@ -413,6 +390,28 @@ onMounted(() => {
     flex-direction: column;
     gap: 8px;
     text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-content {
+    flex-direction: column;
+    height: auto;
+    padding: 8px 16px;
+  }
+
+  .logo {
+    margin-bottom: 8px;
+  }
+
+  .nav-menu {
+    order: 3;
+    width: 100%;
+    margin-top: 8px;
+  }
+
+  .header-actions {
+    order: 2;
   }
 }
 </style>

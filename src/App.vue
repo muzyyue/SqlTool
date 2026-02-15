@@ -1,50 +1,33 @@
 <script setup>
-import { computed, onMounted, onUnmounted } from 'vue'
-import { ConfigProvider, theme } from 'ant-design-vue'
+import { computed } from 'vue'
+import { theme } from 'ant-design-vue'
+import { useThemeStore } from '@/stores/theme'
 import MainLayout from '@/components/Layout/MainLayout.vue'
-import { useThemeStore } from '@/stores/theme.js'
-import { storeToRefs } from 'pinia'
 
 const themeStore = useThemeStore()
-const { isDark } = storeToRefs(themeStore)
 
-const themeConfig = computed(() => ({
-  algorithm: isDark.value ? theme.darkAlgorithm : undefined,
+const antdTheme = computed(() => ({
+  algorithm: themeStore.isDark ? theme.darkAlgorithm : theme.defaultAlgorithm,
   token: {
-    colorPrimary: isDark.value ? '#6366f1' : '#1890ff',
+    colorPrimary: '#1677ff',
+    borderRadius: 6,
   },
 }))
-
-/**
- * 处理页面可见性变化
- * 当页面不可见时暂停动画，避免Edge浏览器最小化问题
- */
-const handleVisibilityChange = () => {
-  if (document.hidden) {
-    document.body.classList.add('reduce-motion')
-  } else {
-    document.body.classList.remove('reduce-motion')
-  }
-}
-
-onMounted(() => {
-  document.addEventListener('visibilitychange', handleVisibilityChange)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('visibilitychange', handleVisibilityChange)
-})
 </script>
 
 <template>
-  <ConfigProvider :theme="themeConfig">
+  <a-config-provider :theme="antdTheme">
     <MainLayout>
       <router-view />
     </MainLayout>
-  </ConfigProvider>
+  </a-config-provider>
 </template>
 
 <style>
+/**
+ * 全局基础样式
+ * 使用 CSS 变量实现主题切换
+ */
 * {
   margin: 0;
   padding: 0;
@@ -60,17 +43,7 @@ body {
 
 #app {
   min-height: 100vh;
-  background-color: var(--bg-secondary, #f5f5f5);
-  transition: background-color var(--transition-normal, 200ms) ease;
-}
-
-/**
- * 减少动画模式
- * 用于Edge浏览器最小化时暂停所有动画
- */
-.reduce-motion,
-.reduce-motion * {
-  animation: none !important;
-  transition: none !important;
+  background-color: var(--bg-base);
+  transition: background-color var(--transition-normal) ease;
 }
 </style>

@@ -431,8 +431,8 @@ defineExpose({
 
 <style scoped>
 .sql-preview-container {
-  border: 1px solid #d9d9d9;
-  border-radius: 6px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--border-radius-md);
   overflow: hidden;
 }
 
@@ -441,8 +441,8 @@ defineExpose({
   align-items: center;
   gap: 16px;
   padding: 12px 16px;
-  background: #fafafa;
-  border-bottom: 1px solid #d9d9d9;
+  background: var(--table-header-bg);
+  border-bottom: 1px solid var(--border-default);
   flex-wrap: wrap;
 }
 
@@ -454,14 +454,14 @@ defineExpose({
 
 .control-label {
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .sql-preview-area {
   position: relative;
   overflow: auto;
   max-height: 400px;
-  background: #f8f9fa;
+  background: var(--panel-bg);
 }
 
 .sql-preview-area.with-line-numbers {
@@ -469,9 +469,9 @@ defineExpose({
 }
 
 .line-numbers {
-  background: #e9ecef;
+  background: var(--code-gutter-bg);
   padding: 12px 8px;
-  border-right: 1px solid #dee2e6;
+  border-right: 1px solid var(--border-default);
   text-align: right;
   user-select: none;
   min-width: 40px;
@@ -480,7 +480,7 @@ defineExpose({
 .line-number {
   display: block;
   font-size: 12px;
-  color: #6c757d;
+  color: var(--code-gutter-text);
   line-height: 1.5;
 }
 
@@ -502,7 +502,7 @@ defineExpose({
 }
 
 .sql-code.syntax-highlight {
-  color: #24292e;
+  color: var(--text-primary);
 }
 
 .sql-code.syntax-highlight code :deep(.sql-keyword) {
@@ -550,7 +550,7 @@ defineExpose({
 }
 
 [data-theme='dark'] .sql-code.syntax-highlight {
-  color: #e1e4e8;
+  color: var(--text-primary);
 }
 
 [data-theme='dark'] .sql-code.syntax-highlight code :deep(.sql-keyword) {
@@ -590,38 +590,26 @@ defineExpose({
 }
 
 .sql-preview-area::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
+  background: var(--code-scrollbar-track);
+  border-radius: var(--border-radius-xs);
 }
 
 .sql-preview-area::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 4px;
+  background: var(--code-scrollbar-thumb);
+  border-radius: var(--border-radius-xs);
 }
 
 .sql-preview-area::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
-}
-
-[data-theme='dark'] .sql-preview-area::-webkit-scrollbar-track {
-  background: #2d2d30;
-}
-
-[data-theme='dark'] .sql-preview-area::-webkit-scrollbar-thumb {
-  background: #464647;
-}
-
-[data-theme='dark'] .sql-preview-area::-webkit-scrollbar-thumb:hover {
-  background: #5a5a5c;
+  background: var(--code-scrollbar-thumb-hover);
 }
 
 .sql-stats {
   display: flex;
   justify-content: space-around;
   padding: 12px 16px;
-  background: #f8f9fa;
-  border-top: 1px solid #dee2e6;
-  border-bottom: 1px solid #dee2e6;
+  background: var(--panel-bg);
+  border-top: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .stat-item {
@@ -631,24 +619,24 @@ defineExpose({
 .stat-label {
   display: block;
   font-size: 12px;
-  color: #6c757d;
+  color: var(--text-secondary);
 }
 
 .stat-value {
   display: block;
   font-size: 14px;
   font-weight: 600;
-  color: #495057;
+  color: var(--text-primary);
 }
 
 .action-buttons {
   padding: 16px;
-  background: white;
-  border-top: 1px solid #d9d9d9;
+  background: var(--bg-elevated);
+  border-top: 1px solid var(--border-default);
 }
 
 .validation-result {
-  border-top: 1px solid #d9d9d9;
+  border-top: 1px solid var(--border-default);
 }
 
 .validation-header {
@@ -656,7 +644,7 @@ defineExpose({
   align-items: center;
   gap: 8px;
   padding: 12px 16px;
-  background: #fafafa;
+  background: var(--table-header-bg);
   font-weight: 600;
 }
 
@@ -665,7 +653,7 @@ defineExpose({
 }
 
 .validation-content.has-errors {
-  background: #fff2f0;
+  background: var(--color-error-bg);
 }
 
 .error-list {
@@ -707,124 +695,5 @@ defineExpose({
   .sql-preview-area {
     max-height: 300px;
   }
-}
-
-/* 暗色主题支持 - 容器和控件 */
-[data-theme='dark'] .sql-preview-container {
-  border-color: #374151;
-}
-
-[data-theme='dark'] .preview-controls {
-  background: #1e293b;
-  border-bottom-color: #374151;
-}
-
-[data-theme='dark'] .control-label {
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .sql-preview-area {
-  background: #0f172a;
-}
-
-[data-theme='dark'] .line-numbers {
-  background: #1e293b;
-  border-right-color: #374151;
-}
-
-[data-theme='dark'] .line-number {
-  color: #6b7280;
-}
-
-[data-theme='dark'] .sql-stats {
-  background: #1e293b;
-  border-top-color: #374151;
-  border-bottom-color: #374151;
-}
-
-[data-theme='dark'] .stat-label {
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .stat-value {
-  color: #f3f4f6;
-}
-
-[data-theme='dark'] .action-buttons {
-  background: #1e293b;
-  border-top-color: #374151;
-}
-
-[data-theme='dark'] .validation-header {
-  background: #1e293b;
-  color: #f3f4f6;
-}
-
-[data-theme='dark'] .validation-content {
-  background: #1e293b;
-}
-
-[data-theme='dark'] .validation-content.has-errors {
-  background: rgba(239, 68, 68, 0.1);
-}
-
-[data-theme='dark'] .error-list li {
-  color: #fca5a5;
-}
-
-/* Ant Design组件暗黑主题适配 */
-[data-theme='dark'] .sql-preview-container :deep(.ant-radio-button-wrapper) {
-  background: #1e293b;
-  border-color: #374151;
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .sql-preview-container :deep(.ant-radio-button-wrapper:hover) {
-  color: #f3f4f6;
-}
-
-[data-theme='dark'] .sql-preview-container :deep(.ant-radio-button-wrapper-checked) {
-  background: #60a5fa;
-  border-color: #60a5fa;
-  color: #fff;
-}
-
-[data-theme='dark'] .sql-preview-container :deep(.ant-switch) {
-  background: #374151;
-}
-
-[data-theme='dark'] .sql-preview-container :deep(.ant-switch-checked) {
-  background: #60a5fa;
-}
-
-[data-theme='dark'] .sql-preview-container :deep(.ant-btn) {
-  border-color: #374151;
-}
-
-[data-theme='dark'] .sql-preview-container :deep(.ant-btn-primary) {
-  background: #60a5fa;
-  border-color: #60a5fa;
-}
-
-[data-theme='dark'] .sql-preview-container :deep(.ant-btn-primary:hover) {
-  background: #93c5fd;
-  border-color: #93c5fd;
-}
-
-[data-theme='dark'] .sql-preview-container :deep(.ant-btn-default) {
-  background: #1e293b;
-  color: #f3f4f6;
-}
-
-[data-theme='dark'] .sql-preview-container :deep(.ant-btn-default:hover) {
-  border-color: #60a5fa;
-  color: #60a5fa;
-}
-
-[data-theme='dark'] .sql-preview-container :deep(.ant-btn-default:disabled),
-[data-theme='dark'] .sql-preview-container :deep(.ant-btn-primary:disabled) {
-  background: #374151;
-  border-color: #374151;
-  color: #6b7280;
 }
 </style>

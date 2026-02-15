@@ -1676,7 +1676,7 @@ const handleReset = () => {
 <style scoped>
 .excel-fill-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: var(--bg-base);
   padding: 40px 20px;
 }
 
@@ -1688,14 +1688,14 @@ const handleReset = () => {
 .page-title {
   font-size: 48px;
   font-weight: 700;
-  color: #1890ff;
+  color: var(--color-primary);
   margin-bottom: 16px;
   line-height: 1.2;
 }
 
 .page-subtitle {
   font-size: 20px;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 0;
   line-height: 1.6;
 }
@@ -1725,20 +1725,20 @@ const handleReset = () => {
 
 .hint-text {
   font-size: 12px;
-  color: #999;
+  color: var(--text-secondary);
 }
 
 .upload-progress-container {
   margin-top: 16px;
   padding: 16px;
-  background: #f5f5f5;
-  border-radius: 4px;
+  background: var(--bg-elevated);
+  border-radius: var(--border-radius-sm, 4px);
 }
 
 .upload-status-text {
   margin-top: 8px;
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   text-align: center;
 }
 
@@ -1755,12 +1755,12 @@ const handleReset = () => {
 
 .sheet-info-label {
   font-weight: 500;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .sheet-info-value {
   font-weight: 600;
-  color: #1890ff;
+  color: var(--color-primary);
 }
 
 .result-actions {
@@ -1768,22 +1768,6 @@ const handleReset = () => {
   gap: 16px;
   margin-top: 24px;
   justify-content: center;
-}
-
-[data-theme='dark'] .excel-fill-page {
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-}
-
-[data-theme='dark'] .page-title {
-  color: #60a5fa;
-}
-
-[data-theme='dark'] .page-subtitle {
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .hint-text {
-  color: #6b7280;
 }
 
 @media (max-width: 1024px) {

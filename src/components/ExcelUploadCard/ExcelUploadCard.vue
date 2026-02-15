@@ -530,16 +530,16 @@ const resetRowRange = () => {
 }
 
 .excel-upload-card {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 12px;
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--backdrop-blur));
+  border: 1px solid var(--border-glass);
+  border-radius: var(--border-radius-md);
   padding: 20px;
-  transition: all 0.3s ease;
+  transition: all var(--transition-normal) ease;
 }
 
 .excel-upload-card:hover {
-  box-shadow: 0 8px 32px rgba(22, 119, 255, 0.12);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .card-header {
@@ -559,7 +559,7 @@ const resetRowRange = () => {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -570,16 +570,16 @@ const resetRowRange = () => {
 }
 
 .upload-zone :deep(.ant-upload-dragger) {
-  border: 2px dashed #d9d9d9;
-  border-radius: 12px;
-  background: #fafafa;
+  border: 2px dashed var(--input-border);
+  border-radius: var(--border-radius-md);
+  background: var(--input-bg);
   padding: 32px;
-  transition: all 0.3s ease;
+  transition: all var(--transition-normal) ease;
 }
 
 .upload-zone :deep(.ant-upload-dragger:hover) {
-  border-color: #1677ff;
-  background: #f0f7ff;
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
 }
 
 .upload-content {
@@ -591,14 +591,14 @@ const resetRowRange = () => {
 
 .upload-icon {
   font-size: 48px;
-  color: #1677ff;
+  color: var(--color-primary);
   margin-bottom: 8px;
 }
 
 .upload-text {
   margin: 0;
   font-size: 16px;
-  color: #1f2937;
+  color: var(--text-primary);
 }
 
 .primary-text {
@@ -608,7 +608,7 @@ const resetRowRange = () => {
 .upload-hint {
   margin: 0;
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .upload-tips {
@@ -628,18 +628,18 @@ const resetRowRange = () => {
   align-items: center;
   gap: 16px;
   padding: 16px;
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-  border-radius: 12px;
-  border: 1px solid #bae6fd;
+  background: var(--gradient-primary-light);
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--color-primary-border);
 }
 
 .file-icon {
   font-size: 40px;
-  color: #1677ff;
-  background: white;
+  color: var(--color-primary);
+  background: var(--card-bg);
   padding: 12px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-sm);
 }
 
 .file-info {
@@ -649,7 +649,7 @@ const resetRowRange = () => {
 .file-name {
   font-size: 16px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
   margin-bottom: 4px;
 }
 
@@ -657,7 +657,7 @@ const resetRowRange = () => {
   display: flex;
   gap: 16px;
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin-bottom: 8px;
 }
 
@@ -690,7 +690,7 @@ const resetRowRange = () => {
 }
 
 .preview-info {
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 13px;
 }
 
@@ -704,10 +704,10 @@ const resetRowRange = () => {
   align-items: center;
   gap: 8px;
   padding: 12px;
-  background: #fafafa;
-  border-radius: 8px;
+  background: var(--color-primary-bg);
+  border-radius: var(--border-radius-md);
   margin-bottom: 16px;
-  color: #6b7280;
+  color: var(--color-primary);
   font-size: 13px;
 }
 
@@ -715,11 +715,6 @@ const resetRowRange = () => {
 .cell-split-panel,
 .row-range-panel {
   padding: 8px 0;
-}
-
-.panel-description {
-  background: #f0f5ff;
-  color: #2f54eb;
 }
 
 /* 行范围筛选区域响应式布局 */
@@ -888,96 +883,5 @@ const resetRowRange = () => {
   .row-range-summary {
     flex-direction: column;
   }
-}
-
-[data-theme='dark'] .excel-upload-card {
-  background: rgba(30, 41, 59, 0.6);
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-[data-theme='dark'] .header-left h3 {
-  color: #f1f5f9;
-}
-
-[data-theme='dark'] .upload-zone :deep(.ant-upload-dragger) {
-  background: #1e293b;
-  border-color: #475569;
-}
-
-[data-theme='dark'] .upload-zone :deep(.ant-upload-dragger:hover) {
-  background: rgba(22, 119, 255, 0.1);
-}
-
-[data-theme='dark'] .file-card {
-  background: linear-gradient(135deg, rgba(22, 119, 255, 0.1) 0%, rgba(20, 201, 201, 0.1) 100%);
-  border-color: rgba(22, 119, 255, 0.3);
-}
-
-[data-theme='dark'] .file-icon {
-  background: #1e293b;
-}
-
-[data-theme='dark'] .file-name {
-  color: #f1f5f9;
-}
-
-[data-theme='dark'] .file-meta {
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .upload-text {
-  color: #f1f5f9;
-}
-
-[data-theme='dark'] .panel-description {
-  background: rgba(22, 119, 255, 0.1);
-  color: #60a5fa;
-}
-
-[data-theme='dark'] .preview-info {
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .card-header {
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-[data-theme='dark'] .collapse-header span {
-  color: #f3f4f6;
-}
-
-[data-theme='dark'] :deep(.ant-collapse) {
-  background: #1e293b;
-  border-color: #374151;
-}
-
-[data-theme='dark'] :deep(.ant-collapse-header) {
-  color: #f3f4f6;
-}
-
-[data-theme='dark'] :deep(.ant-collapse-content) {
-  background: #1e293b;
-  border-top-color: #374151;
-}
-
-[data-theme='dark'] :deep(.ant-progress-text) {
-  color: #f3f4f6;
-}
-
-[data-theme='dark'] :deep(.ant-progress-bg) {
-  background-color: #60a5fa;
-}
-
-[data-theme='dark'] .input-hint {
-  color: #6b7280;
-}
-
-[data-theme='dark'] .range-input label,
-[data-theme='dark'] .header-toggle label {
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .row-range-summary {
-  background: linear-gradient(135deg, rgba(22, 119, 255, 0.15) 0%, rgba(20, 201, 201, 0.15) 100%);
 }
 </style>

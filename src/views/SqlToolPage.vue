@@ -140,7 +140,7 @@ const navigateTo = (path) => {
 <style scoped>
 .sql-tool-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: var(--page-bg-gradient);
   padding: 40px 20px;
 }
 
@@ -152,14 +152,14 @@ const navigateTo = (path) => {
 .page-title {
   font-size: 48px;
   font-weight: 700;
-  color: #1890ff;
+  color: var(--color-primary);
   margin-bottom: 16px;
   line-height: 1.2;
 }
 
 .page-subtitle {
   font-size: 20px;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 0;
   line-height: 1.6;
 }
@@ -185,32 +185,32 @@ const navigateTo = (path) => {
   align-items: center;
   text-align: center;
   padding: 24px;
-  background: #f8f9fa;
-  border-radius: 12px;
-  transition: all 0.3s ease;
+  background: var(--bg-elevated);
+  border-radius: var(--border-radius-md);
+  transition: all var(--transition-normal) ease;
 }
 
 .feature-item:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-md);
 }
 
 .feature-icon {
   font-size: 48px;
-  color: #1890ff;
+  color: var(--color-primary);
   margin-bottom: 16px;
 }
 
 .feature-content h3 {
   font-size: 20px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 8px;
 }
 
 .feature-content p {
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   line-height: 1.6;
   margin-bottom: 0;
 }
@@ -223,7 +223,7 @@ const navigateTo = (path) => {
 .section-title {
   font-size: 32px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   text-align: center;
   margin-bottom: 40px;
 }
@@ -236,7 +236,7 @@ const navigateTo = (path) => {
 
 .card-icon {
   font-size: 48px;
-  color: #1890ff;
+  color: var(--color-primary);
 }
 
 .usage-section {
@@ -245,79 +245,10 @@ const navigateTo = (path) => {
 }
 
 .steps-container {
-  background: white;
+  background: var(--card-bg);
   padding: 40px;
-  border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-}
-
-/* 暗色主题支持 */
-[data-theme='dark'] .sql-tool-page {
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-}
-
-[data-theme='dark'] .page-title {
-  color: #60a5fa;
-}
-
-[data-theme='dark'] .page-subtitle {
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .feature-item {
-  background: #1f2937;
-}
-
-[data-theme='dark'] .feature-content h3 {
-  color: #f3f4f6;
-}
-
-[data-theme='dark'] .feature-content p {
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .section-title {
-  color: #f3f4f6;
-}
-
-[data-theme='dark'] .steps-container {
-  background: #1f2937;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-}
-
-[data-theme='dark'] .steps-container :deep(.ant-steps-item-title) {
-  color: #f3f4f6 !important;
-}
-
-[data-theme='dark'] .steps-container :deep(.ant-steps-item-description) {
-  color: #9ca3af !important;
-}
-
-[data-theme='dark'] .steps-container :deep(.ant-steps-item-icon) {
-  background: #374151;
-  border-color: #374151;
-}
-
-[data-theme='dark'] .steps-container :deep(.ant-steps-item-icon .ant-steps-icon) {
-  color: #f3f4f6;
-}
-
-[data-theme='dark'] .steps-container :deep(.ant-steps-item-process .ant-steps-item-icon) {
-  background: #1890ff;
-  border-color: #1890ff;
-}
-
-[data-theme='dark'] .steps-container :deep(.ant-steps-item-finish .ant-steps-item-icon) {
-  background: transparent;
-  border-color: #1890ff;
-}
-
-[data-theme='dark'] .steps-container :deep(.ant-steps-item-finish .ant-steps-item-icon .ant-steps-icon) {
-  color: #1890ff;
-}
-
-[data-theme='dark'] .steps-container :deep(.ant-steps-item-tail::after) {
-  background: #374151;
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-md);
 }
 
 /* 响应式设计 */

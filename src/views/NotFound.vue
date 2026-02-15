@@ -57,7 +57,7 @@ const goToUpdate = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: var(--bg-base);
   padding: 40px 20px;
 }
 
@@ -68,21 +68,21 @@ const goToUpdate = () => {
 
 .error-icon {
   font-size: 120px;
-  color: #d9d9d9;
+  color: var(--text-secondary);
   margin-bottom: 24px;
 }
 
 .error-title {
   font-size: 72px;
   font-weight: 700;
-  color: #333;
+  color: var(--text-primary);
   margin: 0 0 16px 0;
   line-height: 1;
 }
 
 .error-message {
   font-size: 20px;
-  color: #666;
+  color: var(--text-secondary);
   margin: 0 0 32px 0;
   line-height: 1.6;
 }
@@ -96,7 +96,7 @@ const goToUpdate = () => {
 
 .quick-links {
   text-align: left;
-  background: white;
+  background: var(--bg-elevated);
   padding: 32px;
   border-radius: 12px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
@@ -105,7 +105,7 @@ const goToUpdate = () => {
 .quick-links h3 {
   font-size: 18px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   margin: 0 0 20px 0;
 }
 
@@ -116,7 +116,7 @@ const goToUpdate = () => {
 }
 
 .links-grid a {
-  color: #1890ff;
+  color: var(--color-primary);
   text-decoration: none;
   padding: 12px;
   border-radius: 8px;
@@ -125,39 +125,8 @@ const goToUpdate = () => {
 }
 
 .links-grid a:hover {
-  background: #e6f7ff;
-  color: #096dd9;
-}
-
-/* 暗色主题支持 */
-[data-theme='dark'] .not-found-page {
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-}
-
-[data-theme='dark'] .error-title {
-  color: #f3f4f6;
-}
-
-[data-theme='dark'] .error-message {
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .quick-links {
-  background: #1f2937;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-}
-
-[data-theme='dark'] .quick-links h3 {
-  color: #f3f4f6;
-}
-
-[data-theme='dark'] .links-grid a {
-  color: #60a5fa;
-}
-
-[data-theme='dark'] .links-grid a:hover {
-  background: #1e40af;
-  color: #93c5fd;
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  filter: brightness(0.85);
 }
 
 /* 响应式设计 */
