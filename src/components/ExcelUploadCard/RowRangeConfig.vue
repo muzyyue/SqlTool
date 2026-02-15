@@ -126,10 +126,10 @@ const handleReset = () => {
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  background: var(--card-bg, rgba(255, 255, 255, 0.85));
+  background: var(--card-bg);
   backdrop-filter: blur(var(--backdrop-blur, 20px));
   -webkit-backdrop-filter: blur(var(--backdrop-blur, 20px));
-  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.5));
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-md, 12px);
   box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
   transition: all var(--transition-normal, 200ms) ease;
@@ -142,10 +142,10 @@ const handleReset = () => {
 .row-range-controls {
   margin-top: 16px;
   padding: 20px;
-  background: var(--card-bg, rgba(255, 255, 255, 0.85));
+  background: var(--card-bg);
   backdrop-filter: blur(var(--backdrop-blur, 20px));
   -webkit-backdrop-filter: blur(var(--backdrop-blur, 20px));
-  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.5));
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-md, 12px);
   box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
   transition: all var(--transition-normal, 200ms) ease;
@@ -170,7 +170,7 @@ const handleReset = () => {
 
 .row-range-input label {
   font-weight: 500;
-  color: var(--text-primary, #1f2937);
+  color: var(--text-primary);
   font-size: 14px;
 }
 
@@ -192,27 +192,8 @@ const handleReset = () => {
   gap: 12px;
   flex-wrap: wrap;
   padding: 12px;
-  background: linear-gradient(135deg, rgba(22, 119, 255, 0.05) 0%, rgba(20, 201, 201, 0.05) 100%);
-  border: 1px solid rgba(22, 119, 255, 0.1);
+  background: var(--color-primary-bg);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-sm, 8px);
-}
-
-[data-theme='dark'] .row-range-header {
-  background: var(--card-bg, rgba(30, 41, 59, 0.6));
-  border-color: var(--card-border, rgba(255, 255, 255, 0.1));
-}
-
-[data-theme='dark'] .row-range-controls {
-  background: var(--card-bg, rgba(30, 41, 59, 0.6));
-  border-color: var(--card-border, rgba(255, 255, 255, 0.1));
-}
-
-[data-theme='dark'] .row-range-input label {
-  color: var(--text-primary, #f3f4f6);
-}
-
-[data-theme='dark'] .row-range-stats {
-  background: linear-gradient(135deg, rgba(22, 119, 255, 0.1) 0%, rgba(20, 201, 201, 0.1) 100%);
-  border-color: rgba(22, 119, 255, 0.2);
 }
 </style>

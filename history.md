@@ -1,5 +1,30 @@
 # 版本变更历史
 
+## 1.5.30 (2026-02-16)
+
+**重构 DeduplicationConfig.vue CSS 为语义化变量**
+
+- 将硬编码颜色值替换为语义化 CSS 变量
+  - Select 焦点效果：使用 `var(--color-primary-bg)` 和 `color-mix()` 函数
+  - 统计区域背景：使用 `var(--color-primary-bg)` 替代渐变背景
+  - 统计区域边框：使用 `var(--border-default)` 替代硬编码颜色
+  - 标签背景：使用 `var(--bg-elevated)` 替代 `white`
+  - 标签边框：使用 `var(--border-default)` 替代硬编码颜色
+- 删除所有 `[data-theme='dark']` 暗色主题选择器块（共 4 个）
+- 主题切换现在通过 CSS 变量自动生效
+
+## 1.5.29 (2026-02-16)
+
+**重构 RowRangeConfig.vue CSS 为语义化变量**
+
+- 将硬编码背景色 `rgba(255, 255, 255, 0.85)` 替换为 `var(--card-bg)`
+- 将硬编码边框颜色 `rgba(255, 255, 255, 0.5)` 替换为 `var(--border-default)`
+- 将硬编码文本颜色 `#1f2937` 替换为 `var(--text-primary)`
+- 将渐变背景 `linear-gradient(...)` 替换为 `var(--color-primary-bg)`
+- 删除所有 `[data-theme='dark']` 暗色主题选择器块（4个）
+- CSS 代码从 99 行减少到 80 行
+- 主题切换现在通过 CSS 变量自动生效
+
 ## 1.5.28 (2026-02-16)
 
 **重构 JsonFormat.vue CSS 为语义化变量**
