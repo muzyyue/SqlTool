@@ -505,7 +505,7 @@ defineExpose({
   color: #24292e;
 }
 
-.sql-code.syntax-highlight code :global(.sql-keyword) {
+.sql-code.syntax-highlight code :deep(.sql-keyword) {
   color: #d73a49;
   font-weight: 600;
   background: rgba(215, 58, 73, 0.05);
@@ -513,21 +513,21 @@ defineExpose({
   border-radius: 2px;
 }
 
-.sql-code.syntax-highlight code :global(.sql-string) {
+.sql-code.syntax-highlight code :deep(.sql-string) {
   color: #032f62;
   background: rgba(3, 47, 98, 0.05);
   padding: 0 2px;
   border-radius: 2px;
 }
 
-.sql-code.syntax-highlight code :global(.sql-number) {
+.sql-code.syntax-highlight code :deep(.sql-number) {
   color: #005cc5;
   background: rgba(0, 92, 197, 0.05);
   padding: 0 2px;
   border-radius: 2px;
 }
 
-.sql-code.syntax-highlight code :global(.sql-comment) {
+.sql-code.syntax-highlight code :deep(.sql-comment) {
   color: #6a737d;
   font-style: italic;
   background: rgba(106, 115, 125, 0.05);
@@ -535,14 +535,14 @@ defineExpose({
   border-radius: 2px;
 }
 
-.sql-code.syntax-highlight code :global(.sql-table) {
+.sql-code.syntax-highlight code :deep(.sql-table) {
   color: #22863a;
   background: rgba(34, 134, 58, 0.05);
   padding: 0 2px;
   border-radius: 2px;
 }
 
-.sql-code.syntax-highlight code :global(.sql-column) {
+.sql-code.syntax-highlight code :deep(.sql-column) {
   color: #6f42c1;
   background: rgba(111, 66, 193, 0.05);
   padding: 0 2px;
@@ -553,32 +553,32 @@ defineExpose({
   color: #e1e4e8;
 }
 
-[data-theme='dark'] .sql-code.syntax-highlight code :global(.sql-keyword) {
+[data-theme='dark'] .sql-code.syntax-highlight code :deep(.sql-keyword) {
   color: #f97583;
   background: rgba(249, 117, 131, 0.15);
 }
 
-[data-theme='dark'] .sql-code.syntax-highlight code :global(.sql-string) {
+[data-theme='dark'] .sql-code.syntax-highlight code :deep(.sql-string) {
   color: #79b8ff;
   background: rgba(121, 184, 255, 0.15);
 }
 
-[data-theme='dark'] .sql-code.syntax-highlight code :global(.sql-number) {
+[data-theme='dark'] .sql-code.syntax-highlight code :deep(.sql-number) {
   color: #79b8ff;
   background: rgba(121, 184, 255, 0.15);
 }
 
-[data-theme='dark'] .sql-code.syntax-highlight code :global(.sql-comment) {
+[data-theme='dark'] .sql-code.syntax-highlight code :deep(.sql-comment) {
   color: #8b949e;
   background: rgba(139, 148, 158, 0.15);
 }
 
-[data-theme='dark'] .sql-code.syntax-highlight code :global(.sql-table) {
+[data-theme='dark'] .sql-code.syntax-highlight code :deep(.sql-table) {
   color: #7ee787;
   background: rgba(126, 231, 135, 0.15);
 }
 
-[data-theme='dark'] .sql-code.syntax-highlight code :global(.sql-column) {
+[data-theme='dark'] .sql-code.syntax-highlight code :deep(.sql-column) {
   color: #d2a8ff;
   background: rgba(210, 168, 255, 0.15);
 }

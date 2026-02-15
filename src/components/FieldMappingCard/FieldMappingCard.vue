@@ -1159,4 +1159,38 @@ const handleDatabaseTypeChange = (e) => {
 [data-theme='dark'] .mapping-table :deep(.ant-table-tbody > tr.unmatched-row:hover > td) {
   background: rgba(251, 191, 36, 0.2);
 }
+
+[data-theme='dark'] .section-header h4 {
+  color: #f3f4f6;
+}
+
+[data-theme='dark'] .action-group h4 {
+  color: #f3f4f6;
+}
+
+[data-theme='dark'] :deep(.ant-tabs-tab) {
+  color: #9ca3af;
+}
+
+[data-theme='dark'] :deep(.ant-tabs-tab-active) {
+  color: #60a5fa;
+}
+
+[data-theme='dark'] :deep(.ant-tabs-ink-bar) {
+  background: #60a5fa;
+}
+
+[data-theme='dark'] :deep(.ant-collapse) {
+  background: #1e293b;
+  border-color: #374151;
+}
+
+[data-theme='dark'] :deep(.ant-collapse-header) {
+  color: #f3f4f6;
+}
+
+[data-theme='dark'] :deep(.ant-collapse-content) {
+  background: #1e293b;
+  border-top-color: #374151;
+}
 </style>

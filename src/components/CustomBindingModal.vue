@@ -1780,4 +1780,29 @@ const generateId = () => {
 [data-theme='dark'] :deep(.ant-divider) {
   border-top-color: #374151;
 }
+
+[data-theme='dark'] :deep(.ant-modal-content) {
+  background: #1e293b;
+}
+
+[data-theme='dark'] :deep(.ant-modal-header) {
+  background: #1e293b;
+  border-bottom-color: #374151;
+}
+
+[data-theme='dark'] :deep(.ant-modal-title) {
+  color: #f3f4f6;
+}
+
+[data-theme='dark'] :deep(.ant-modal-close-x) {
+  color: #9ca3af;
+}
+
+[data-theme='dark'] :deep(.ant-modal-close:hover) {
+  color: #f3f4f6;
+}
+
+[data-theme='dark'] :deep(.ant-modal-body) {
+  background: #1e293b;
+}
 </style>
