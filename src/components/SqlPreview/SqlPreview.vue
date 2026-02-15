@@ -505,91 +505,82 @@ defineExpose({
   color: #24292e;
 }
 
-.sql-code.syntax-highlight code {
-  /* SQL关键字 - 使用更醒目的红色 */
-  :global(.sql-keyword) {
-    color: #d73a49;
-    font-weight: 600;
-    background: rgba(215, 58, 73, 0.05);
-    padding: 0 2px;
-    border-radius: 2px;
-  }
-
-  /* 字符串 - 使用深蓝色 */
-  :global(.sql-string) {
-    color: #032f62;
-    background: rgba(3, 47, 98, 0.05);
-    padding: 0 2px;
-    border-radius: 2px;
-  }
-
-  /* 数字 - 使用明亮的蓝色 */
-  :global(.sql-number) {
-    color: #005cc5;
-    background: rgba(0, 92, 197, 0.05);
-    padding: 0 2px;
-    border-radius: 2px;
-  }
-
-  /* 注释 - 使用中性灰色 */
-  :global(.sql-comment) {
-    color: #6a737d;
-    font-style: italic;
-    background: rgba(106, 115, 125, 0.05);
-    padding: 0 2px;
-    border-radius: 2px;
-  }
-
-  /* 表名 - 使用绿色 */
-  :global(.sql-table) {
-    color: #22863a;
-    background: rgba(34, 134, 58, 0.05);
-    padding: 0 2px;
-    border-radius: 2px;
-  }
-
-  /* 字段名 - 使用紫色 */
-  :global(.sql-column) {
-    color: #6f42c1;
-    background: rgba(111, 66, 193, 0.05);
-    padding: 0 2px;
-    border-radius: 2px;
-  }
+.sql-code.syntax-highlight code :global(.sql-keyword) {
+  color: #d73a49;
+  font-weight: 600;
+  background: rgba(215, 58, 73, 0.05);
+  padding: 0 2px;
+  border-radius: 2px;
 }
 
-/* 暗色主题支持 */
+.sql-code.syntax-highlight code :global(.sql-string) {
+  color: #032f62;
+  background: rgba(3, 47, 98, 0.05);
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+.sql-code.syntax-highlight code :global(.sql-number) {
+  color: #005cc5;
+  background: rgba(0, 92, 197, 0.05);
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+.sql-code.syntax-highlight code :global(.sql-comment) {
+  color: #6a737d;
+  font-style: italic;
+  background: rgba(106, 115, 125, 0.05);
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+.sql-code.syntax-highlight code :global(.sql-table) {
+  color: #22863a;
+  background: rgba(34, 134, 58, 0.05);
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+.sql-code.syntax-highlight code :global(.sql-column) {
+  color: #6f42c1;
+  background: rgba(111, 66, 193, 0.05);
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
 [data-theme='dark'] .sql-code.syntax-highlight {
   color: #e1e4e8;
 }
 
 [data-theme='dark'] .sql-code.syntax-highlight code :global(.sql-keyword) {
   color: #f97583;
-  background: rgba(249, 117, 131, 0.1);
+  background: rgba(249, 117, 131, 0.15);
 }
 
 [data-theme='dark'] .sql-code.syntax-highlight code :global(.sql-string) {
   color: #79b8ff;
-  background: rgba(121, 184, 255, 0.1);
+  background: rgba(121, 184, 255, 0.15);
 }
 
 [data-theme='dark'] .sql-code.syntax-highlight code :global(.sql-number) {
   color: #79b8ff;
-  background: rgba(121, 184, 255, 0.1);
+  background: rgba(121, 184, 255, 0.15);
 }
 
 [data-theme='dark'] .sql-code.syntax-highlight code :global(.sql-comment) {
   color: #8b949e;
-  background: rgba(139, 148, 158, 0.1);
+  background: rgba(139, 148, 158, 0.15);
 }
 
 [data-theme='dark'] .sql-code.syntax-highlight code :global(.sql-table) {
   color: #7ee787;
-  background: rgba(126, 231, 135, 0.1);
+  background: rgba(126, 231, 135, 0.15);
 }
 
 [data-theme='dark'] .sql-code.syntax-highlight code :global(.sql-column) {
   color: #d2a8ff;
-  background: rgba(210, 168, 255, 0.1);
+  background: rgba(210, 168, 255, 0.15);
 }
 
 /* 滚动条样式优化 */
