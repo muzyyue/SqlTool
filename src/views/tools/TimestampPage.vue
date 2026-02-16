@@ -221,24 +221,27 @@ onUnmounted(() => {
 })
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+// ========================================
+// 时间戳转换页面样式
+// 使用 SCSS 变量和混入实现主题适配
+// ========================================
 .timestamp-page {
   padding: 40px 20px;
   max-width: 1400px;
   margin: 0 auto;
 }
 
+// 页面头部：标题与操作按钮
 .page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  @include flex-between;
   margin-bottom: 32px;
-}
 
-.page-header h2 {
-  margin: 0;
-  font-size: 28px;
-  font-weight: 600;
+  h2 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 600;
+  }
 }
 
 .header-actions {
@@ -246,64 +249,67 @@ onUnmounted(() => {
   gap: 12px;
 }
 
+// 内容网格：双列布局
 .content-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 24px;
 }
 
+// 输入组：垂直排列
 .input-group {
-  display: flex;
-  flex-direction: column;
+  @include flex-column;
   gap: 16px;
 }
 
+// 结果显示区域
 .result-display {
-  display: flex;
-  flex-direction: column;
+  @include flex-column;
   gap: 12px;
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid var(--border-default);
+  @include divider-top;
+
+  label {
+    font-weight: 500;
+    color: $text-secondary;
+  }
 }
 
-.result-display label {
-  font-weight: 500;
-  color: var(--text-secondary);
-}
-
+// 当前时间显示区域
 .current-time {
-  display: flex;
-  flex-direction: column;
+  @include flex-column;
   gap: 16px;
 }
 
+// 时间项：标签与值
 .time-item {
-  display: flex;
-  flex-direction: column;
+  @include flex-column;
   gap: 8px;
+
+  label {
+    font-weight: 500;
+    color: $text-secondary;
+  }
 }
 
-.time-item label {
-  font-weight: 500;
-  color: var(--text-secondary);
-}
-
+// 时间操作按钮组
 .time-actions {
   display: flex;
   gap: 12px;
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid var(--border-default);
+  @include divider-top;
 }
 
+// 输入框后缀
 .input-suffix {
-  color: var(--text-secondary);
+  color: $text-secondary;
   font-size: 12px;
 }
 
-/* 响应式设计 */
-@media (max-width: 768px) {
+// 响应式设计：移动端适配
+@include respond-to(md) {
   .content-grid {
     grid-template-columns: 1fr;
   }

@@ -51,13 +51,15 @@ const goToUpdate = () => {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+// ========================================
+// 404 页面样式
+// ========================================
+
 .not-found-page {
   min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg-base);
+  @include flex-center;
+  background: $bg-base;
   padding: 40px 20px;
 }
 
@@ -66,27 +68,31 @@ const goToUpdate = () => {
   max-width: 600px;
 }
 
+// 错误图标
 .error-icon {
   font-size: 120px;
-  color: var(--text-secondary);
+  color: $text-secondary;
   margin-bottom: 24px;
 }
 
+// 错误标题
 .error-title {
   font-size: 72px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: $text-primary;
   margin: 0 0 16px 0;
   line-height: 1;
 }
 
+// 错误消息
 .error-message {
   font-size: 20px;
-  color: var(--text-secondary);
+  color: $text-secondary;
   margin: 0 0 32px 0;
   line-height: 1.6;
 }
 
+// 操作按钮区域
 .error-actions {
   display: flex;
   gap: 16px;
@@ -94,43 +100,45 @@ const goToUpdate = () => {
   margin-bottom: 48px;
 }
 
+// 快速链接区域
 .quick-links {
   text-align: left;
-  background: var(--bg-elevated);
+  background: $bg-elevated;
   padding: 32px;
   border-radius: 12px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+
+  h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: $text-primary;
+    margin: 0 0 20px 0;
+  }
 }
 
-.quick-links h3 {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0 0 20px 0;
-}
-
+// 链接网格
 .links-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
+
+  a {
+    color: $color-primary;
+    text-decoration: none;
+    padding: 12px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+
+    &:hover {
+      background: color-mix(in srgb, $color-primary 10%, transparent);
+      filter: brightness(0.85);
+    }
+  }
 }
 
-.links-grid a {
-  color: var(--color-primary);
-  text-decoration: none;
-  padding: 12px;
-  border-radius: 8px;
-  transition: all 0.3s ease;
-  cursor: pointer;
-}
-
-.links-grid a:hover {
-  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
-  filter: brightness(0.85);
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
+// 响应式设计
+@include respond-to(md) {
   .error-icon {
     font-size: 80px;
   }

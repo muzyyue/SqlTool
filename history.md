@@ -1,5 +1,27 @@
 # 版本变更历史
 
+## 1.5.33 (2026-02-16)
+
+**重构 SqlToolPage.vue CSS 为 SCSS 语义化变量**
+
+- 添加 SCSS 语言标记：`<style scoped>` → `<style scoped lang="scss">`
+- 使用 SCSS 变量替换 CSS 变量
+  - `var(--page-bg-gradient)` → `$page-bg-gradient`
+  - `var(--color-primary)` → `$color-primary`
+  - `var(--text-secondary)` → `$text-secondary`
+  - `var(--text-primary)` → `$text-primary`
+  - `var(--bg-elevated)` → `$bg-elevated`
+  - `var(--border-radius-md)` → `$border-radius-md`
+  - `var(--transition-normal)` → `$transition-normal`
+  - `var(--shadow-md)` → `$shadow-md`
+  - `var(--card-bg)` → `$card-bg`
+- 使用 SCSS 混入简化布局样式
+  - `@include flex-column-center` 用于功能特性项
+  - `@include card-base` 用于步骤容器
+  - `@include respond-to(lg/md/xs)` 替代媒体查询
+- 利用 SCSS 嵌套特性简化选择器结构
+- 添加 SCSS 注释说明各区块用途
+
 ## 1.5.32 (2026-02-16)
 
 **重构 DdlPage.vue CSS 为 SCSS 语义化变量**

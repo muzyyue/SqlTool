@@ -108,13 +108,17 @@ const navigateToTool = (tool) => {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+// ========================================
+// 首页样式
+// ========================================
+
 .home-page {
   min-height: 100vh;
-  background: var(--bg-base);
+  background: $bg-base;
 }
 
-/* 英雄区域 */
+// 英雄区域
 .hero-section {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -132,14 +136,14 @@ const navigateToTool = (tool) => {
 .hero-title {
   font-size: 48px;
   font-weight: 700;
-  color: var(--color-primary);
+  color: $color-primary;
   margin-bottom: 16px;
   line-height: 1.2;
 }
 
 .hero-subtitle {
   font-size: 20px;
-  color: var(--text-secondary);
+  color: $text-secondary;
   margin-bottom: 32px;
   line-height: 1.6;
 }
@@ -150,25 +154,23 @@ const navigateToTool = (tool) => {
 }
 
 .stat-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  @include flex-column-center;
   padding: 24px;
-  background: var(--card-bg);
-  border-radius: var(--border-radius-md);
-  box-shadow: var(--shadow-card);
+  background: $card-bg;
+  border-radius: $border-radius-md;
+  box-shadow: $shadow-card;
 }
 
 .stat-number {
   font-size: 36px;
   font-weight: 700;
-  color: var(--color-primary);
+  color: $color-primary;
   line-height: 1;
 }
 
 .stat-label {
   font-size: 14px;
-  color: var(--text-secondary);
+  color: $text-secondary;
   margin-top: 4px;
 }
 
@@ -183,47 +185,45 @@ const navigateToTool = (tool) => {
 }
 
 .hero-icon {
+  @include flex-center;
   font-size: 48px;
-  color: var(--color-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  color: $color-primary;
   width: 80px;
   height: 80px;
-  background: var(--card-bg);
-  border-radius: var(--border-radius-md);
-  box-shadow: var(--shadow-card);
+  background: $card-bg;
+  border-radius: $border-radius-md;
+  box-shadow: $shadow-card;
 }
 
-/* 工具网格区域 */
+// 工具网格区域
 .tools-section {
-  background: var(--bg-elevated);
+  background: $bg-elevated;
   padding: 80px 0;
 }
 
-/* 快速访问区域 */
+// 快速访问区域
 .quick-access-section {
-  background: var(--bg-base);
+  background: $bg-base;
   padding: 80px 0;
 }
 
 .section-header {
   text-align: center;
   margin-bottom: 48px;
-}
 
-.section-header h2 {
-  font-size: 32px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 16px;
-}
+  h2 {
+    font-size: 32px;
+    font-weight: 600;
+    color: $text-primary;
+    margin-bottom: 16px;
+  }
 
-.section-header p {
-  font-size: 18px;
-  color: var(--text-secondary);
-  max-width: 600px;
-  margin: 0 auto;
+  p {
+    font-size: 18px;
+    color: $text-secondary;
+    max-width: 600px;
+    margin: 0 auto;
+  }
 }
 
 .quick-access-grid {
@@ -236,25 +236,21 @@ const navigateToTool = (tool) => {
 }
 
 .quick-access-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  @include flex-between;
+
+  .tool-icon {
+    @include flex-center;
+    font-size: 32px;
+    color: $color-primary;
+    width: 56px;
+    height: 56px;
+    background: $color-primary-bg;
+    border-radius: $border-radius-md;
+  }
 }
 
-.quick-access-content .tool-icon {
-  font-size: 32px;
-  color: var(--color-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-  background: var(--color-primary-bg);
-  border-radius: var(--border-radius-md);
-}
-
-/* 响应式设计 */
-@media (max-width: 1024px) {
+// 响应式设计
+@include respond-to(lg) {
   .hero-section {
     grid-template-columns: 1fr;
     gap: 40px;
@@ -281,7 +277,7 @@ const navigateToTool = (tool) => {
   }
 }
 
-@media (max-width: 768px) {
+@include respond-to(md) {
   .hero-title {
     font-size: 36px;
   }
@@ -313,7 +309,7 @@ const navigateToTool = (tool) => {
   }
 }
 
-@media (max-width: 480px) {
+@include respond-to(xs) {
   .hero-section {
     padding: 40px 15px;
   }

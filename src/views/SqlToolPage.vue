@@ -137,13 +137,18 @@ const navigateTo = (path) => {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+// ========================================
+// SQL 工具页面样式
+// ========================================
+
 .sql-tool-page {
   min-height: 100vh;
-  background: var(--page-bg-gradient);
+  background: $page-bg-gradient;
   padding: 40px 20px;
 }
 
+// 页面头部
 .page-header {
   text-align: center;
   margin-bottom: 60px;
@@ -152,18 +157,19 @@ const navigateTo = (path) => {
 .page-title {
   font-size: 48px;
   font-weight: 700;
-  color: var(--color-primary);
+  color: $color-primary;
   margin-bottom: 16px;
   line-height: 1.2;
 }
 
 .page-subtitle {
   font-size: 20px;
-  color: var(--text-secondary);
+  color: $text-secondary;
   margin-bottom: 0;
   line-height: 1.6;
 }
 
+// 功能特性区域
 .feature-section {
   max-width: 1200px;
   margin: 0 auto 60px;
@@ -180,41 +186,42 @@ const navigateTo = (path) => {
 }
 
 .feature-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  @include flex-column-center;
   text-align: center;
   padding: 24px;
-  background: var(--bg-elevated);
-  border-radius: var(--border-radius-md);
-  transition: all var(--transition-normal) ease;
-}
+  background: $bg-elevated;
+  border-radius: $border-radius-md;
+  transition: all $transition-normal ease;
 
-.feature-item:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-md);
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: $shadow-md;
+  }
 }
 
 .feature-icon {
   font-size: 48px;
-  color: var(--color-primary);
+  color: $color-primary;
   margin-bottom: 16px;
 }
 
-.feature-content h3 {
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 8px;
+.feature-content {
+  h3 {
+    font-size: 20px;
+    font-weight: 600;
+    color: $text-primary;
+    margin-bottom: 8px;
+  }
+
+  p {
+    font-size: 14px;
+    color: $text-secondary;
+    line-height: 1.6;
+    margin-bottom: 0;
+  }
 }
 
-.feature-content p {
-  font-size: 14px;
-  color: var(--text-secondary);
-  line-height: 1.6;
-  margin-bottom: 0;
-}
-
+// 工具区域
 .tools-section {
   max-width: 1200px;
   margin: 0 auto 60px;
@@ -223,7 +230,7 @@ const navigateTo = (path) => {
 .section-title {
   font-size: 32px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: $text-primary;
   text-align: center;
   margin-bottom: 40px;
 }
@@ -236,23 +243,22 @@ const navigateTo = (path) => {
 
 .card-icon {
   font-size: 48px;
-  color: var(--color-primary);
+  color: $color-primary;
 }
 
+// 使用流程区域
 .usage-section {
   max-width: 800px;
   margin: 0 auto;
 }
 
 .steps-container {
-  background: var(--card-bg);
+  @include card-base;
   padding: 40px;
-  border-radius: var(--border-radius-md);
-  box-shadow: var(--shadow-md);
 }
 
-/* 响应式设计 */
-@media (max-width: 1024px) {
+// 响应式设计
+@include respond-to(lg) {
   .page-title {
     font-size: 36px;
   }
@@ -270,7 +276,7 @@ const navigateTo = (path) => {
   }
 }
 
-@media (max-width: 768px) {
+@include respond-to(md) {
   .page-title {
     font-size: 28px;
   }
@@ -292,7 +298,7 @@ const navigateTo = (path) => {
   }
 }
 
-@media (max-width: 480px) {
+@include respond-to(xs) {
   .sql-tool-page {
     padding: 20px 15px;
   }
