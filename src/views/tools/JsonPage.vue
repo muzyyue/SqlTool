@@ -646,53 +646,43 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
-/**
- * JSON 页面容器
- * 使用语义化 CSS 变量实现主题切换
- */
+<style scoped lang="scss">
+// ========================================
+// JSON 页面样式
+// 使用 SCSS 变量和混入实现主题切换
+// ========================================
+
+// JSON 页面容器
 .json-page {
   min-height: 100vh;
-  background: var(--bg-base);
+  background: $bg-base;
   padding: 40px 20px;
 }
 
-/**
- * 页面头部
- * 居中布局,包含标题和副标题
- */
+// 页面头部 - 居中布局
 .page-header {
   text-align: center;
   margin-bottom: 60px;
 }
 
-/**
- * 页面标题
- * 使用主色变量，48px字体
- */
+// 页面标题 - 使用主色
 .page-title {
   font-size: 48px;
   font-weight: 700;
-  color: var(--color-primary);
+  color: $color-primary;
   margin-bottom: 16px;
   line-height: 1.2;
 }
 
-/**
- * 页面副标题
- * 说明工具功能
- */
+// 页面副标题 - 说明工具功能
 .page-subtitle {
   font-size: 20px;
-  color: var(--text-secondary);
+  color: $text-secondary;
   margin-bottom: 0;
   line-height: 1.6;
 }
 
-/**
- * 操作按钮区域
- * 居中显示
- */
+// 操作按钮区域 - 居中显示
 .action-buttons {
   display: flex;
   gap: 16px;
@@ -700,10 +690,7 @@ onMounted(() => {
   margin-bottom: 32px;
 }
 
-/**
- * 内容网格布局
- * 使用响应式设计
- */
+// 内容网格布局 - 响应式设计
 .content-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -711,187 +698,150 @@ onMounted(() => {
   min-height: calc(100vh - 180px);
 }
 
-/**
- * 输入和输出区域
- */
+// 输入和输出区域
 .input-section,
 .output-section {
-  display: flex;
-  flex-direction: column;
+  @include flex-column;
   gap: 20px;
 }
 
-/**
- * 表单行
- */
+// 表单行
 .form-row {
   margin-bottom: 16px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
 }
 
-.form-row:last-child {
-  margin-bottom: 0;
-}
-
-/**
- * 编辑器包装器
- */
+// 编辑器包装器
 .editor-wrapper {
   margin-top: 16px;
-  border-radius: var(--border-radius-md);
+  border-radius: $border-radius-md;
   overflow: hidden;
-  transition: var(--transition-normal);
+  transition: $transition-normal;
+
+  &:hover {
+    box-shadow: $shadow-md;
+  }
 }
 
-.editor-wrapper:hover {
-  box-shadow: var(--shadow-md);
-}
-
-/**
- * JSON 输入区域
- */
+// JSON 输入区域
 .json-input-section {
-  display: flex;
-  flex-direction: column;
+  @include flex-column;
   gap: 12px;
 }
 
-/**
- * JSON 对比区域
- */
+// JSON 对比区域
 .json-compare-section {
-  display: flex;
-  flex-direction: column;
+  @include flex-column;
   gap: 16px;
 }
 
-/**
- * 对比输入框布局
- */
+// 对比输入框布局
 .compare-inputs {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
 
-/**
- * 单个对比输入框
- */
+// 单个对比输入框
 .compare-input {
-  display: flex;
-  flex-direction: column;
+  @include flex-column;
   gap: 8px;
 }
 
-/**
- * 输入标签
- */
+// 输入标签
 .input-label {
   font-size: 13px;
   font-weight: 500;
-  color: var(--text-secondary);
+  color: $text-secondary;
   padding: 4px 0;
 }
 
-/**
- * 标签文本
- */
+// 标签文本
 .label-text {
   font-size: 13px;
   font-weight: 500;
-  color: var(--text-secondary);
+  color: $text-secondary;
 }
 
-/**
- * 统计信息面板
- */
+// 统计信息面板
 .stats-panel {
   margin-top: 20px;
   padding-top: 20px;
-  border-top: 1px solid var(--border-default);
-  transition: var(--transition-normal);
+  @include divider-top;
+  transition: $transition-normal;
 }
 
-/**
- * 对比结果区域
- */
+// 对比结果区域
 .compare-result {
   min-height: 200px;
 }
 
-/**
- * 对比占位符
- */
+// 对比占位符 - 居中显示
 .compare-placeholder {
   min-height: 200px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  @include flex-center;
 }
 
-/**
- * 差异列表
- */
-.differences-list h4 {
-  margin-bottom: 16px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
+// 差异列表
+.differences-list {
+  h4 {
+    margin-bottom: 16px;
+    font-size: 14px;
+    font-weight: 600;
+    color: $text-primary;
+  }
 }
 
-/**
- * 差异内容
- */
+// 差异内容
 .diff-content {
   padding: 12px 0;
 }
 
-/**
- * 差异项
- */
+// 差异项
 .diff-item {
   margin-bottom: 12px;
   display: flex;
   align-items: flex-start;
   gap: 8px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
 }
 
-.diff-item:last-child {
-  margin-bottom: 0;
-}
-
-/**
- * 差异标签
- */
+// 差异标签
 .diff-label {
   font-size: 13px;
-  color: var(--text-secondary);
+  color: $text-secondary;
   min-width: 80px;
   flex-shrink: 0;
 }
 
-/**
- * 差异值
- */
+// 差异值
 .diff-value {
-  background: var(--color-primary-bg);
+  background: $color-primary-bg;
   padding: 6px 12px;
-  border-radius: var(--border-radius-sm);
+  border-radius: $border-radius-sm;
   font-size: 12px;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   max-width: 100%;
   overflow-x: auto;
-  border: 1px solid var(--border-default);
-  transition: var(--transition-normal);
+  border: 1px solid $border-default;
+  transition: $transition-normal;
+
+  &:hover {
+    background: $color-primary-bg;
+    border-color: $color-primary;
+  }
 }
 
-.diff-value:hover {
-  background: var(--color-primary-bg);
-  border-color: var(--color-primary);
-}
+// ========================================
+// 响应式设计
+// ========================================
 
-/**
- * 响应式设计
- */
 @media (max-width: 1400px) {
   .json-page {
     padding: 32px 16px;
@@ -940,10 +890,10 @@ onMounted(() => {
   .action-buttons {
     flex-direction: column;
     width: 100%;
-  }
 
-  .action-buttons button {
-    width: 100%;
+    button {
+      width: 100%;
+    }
   }
 
   .content-grid {

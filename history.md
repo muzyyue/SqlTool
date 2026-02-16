@@ -1,5 +1,26 @@
 # 版本变更历史
 
+## 1.5.32 (2026-02-16)
+
+**重构 DdlPage.vue CSS 为 SCSS 语义化变量**
+
+- 添加 SCSS 语言标记：`<style scoped>` → `<style scoped lang="scss">`
+- 使用 SCSS 变量替换硬编码颜色值
+  - `#f0f0f0` → `$border-default`
+  - `#fafafa` → `$bg-elevated`
+  - `#1890ff` → `$color-primary`
+  - `white` → `$card-bg`
+  - `#f5f5f5` / `#f8f9fa` → `$bg-sunken`
+  - `#999` → `$text-tertiary`
+  - `8px` → `$border-radius-md`
+  - `4px` → `$border-radius-sm`
+  - `rgba(0, 0, 0, 0.1)` → `$shadow-sm`
+- 使用 SCSS 混入简化布局样式
+  - `@include flex-between` 用于页面头部、卡片头部、区域头部
+  - `@include flex-column` 用于输入/输出区域
+- 利用 SCSS 嵌套特性简化选择器结构
+- 添加 SCSS 注释说明各区块用途
+
 ## 1.5.31 (2026-02-16)
 
 **重构 CellSplitConfig.vue CSS 为语义化变量**

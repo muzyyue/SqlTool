@@ -1673,10 +1673,14 @@ const handleReset = () => {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+// ========================================
+// Excel 数据填充工具页面样式
+// ========================================
+
 .excel-fill-page {
   min-height: 100vh;
-  background: var(--bg-base);
+  background: $bg-base;
   padding: 40px 20px;
 }
 
@@ -1688,26 +1692,27 @@ const handleReset = () => {
 .page-title {
   font-size: 48px;
   font-weight: 700;
-  color: var(--color-primary);
+  color: $color-primary;
   margin-bottom: 16px;
   line-height: 1.2;
 }
 
 .page-subtitle {
   font-size: 20px;
-  color: var(--text-secondary);
+  color: $text-secondary;
   margin-bottom: 0;
   line-height: 1.6;
 }
 
 .content-container {
+  @include flex-column;
+
   max-width: 1200px;
   margin: 0 auto;
-  display: flex;
-  flex-direction: column;
   gap: 32px;
 }
 
+// 卡片统一样式
 .upload-card,
 .config-card,
 .advanced-card,
@@ -1725,26 +1730,26 @@ const handleReset = () => {
 
 .hint-text {
   font-size: 12px;
-  color: var(--text-secondary);
+  color: $text-secondary;
 }
 
 .upload-progress-container {
   margin-top: 16px;
   padding: 16px;
-  background: var(--bg-elevated);
-  border-radius: var(--border-radius-sm, 4px);
+  background: $bg-elevated;
+  border-radius: $border-radius-sm;
 }
 
 .upload-status-text {
   margin-top: 8px;
   font-size: 14px;
-  color: var(--text-secondary);
+  color: $text-secondary;
   text-align: center;
 }
 
 .sheet-info {
-  display: flex;
-  flex-direction: column;
+  @include flex-column;
+
   gap: 8px;
 }
 
@@ -1755,12 +1760,12 @@ const handleReset = () => {
 
 .sheet-info-label {
   font-weight: 500;
-  color: var(--text-secondary);
+  color: $text-secondary;
 }
 
 .sheet-info-value {
   font-weight: 600;
-  color: var(--color-primary);
+  color: $color-primary;
 }
 
 .result-actions {
@@ -1770,7 +1775,8 @@ const handleReset = () => {
   justify-content: center;
 }
 
-@media (max-width: 1024px) {
+// 响应式布局
+@include respond-to(lg) {
   .page-title {
     font-size: 36px;
   }
@@ -1788,7 +1794,7 @@ const handleReset = () => {
   }
 }
 
-@media (max-width: 768px) {
+@include respond-to(md) {
   .page-title {
     font-size: 28px;
   }
@@ -1806,7 +1812,7 @@ const handleReset = () => {
   }
 }
 
-@media (max-width: 480px) {
+@include respond-to(sm) {
   .excel-fill-page {
     padding: 20px 15px;
   }

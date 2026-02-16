@@ -1994,122 +1994,111 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+// ========================================
+// 页面容器
+// ========================================
 .insert-page {
   padding: 0;
   min-height: 100%;
-  background: var(--page-bg-gradient);
+  background: $page-bg-gradient;
+
+  // --- 页面头部 ---
+  .page-header {
+    @include flex-between;
+    margin-bottom: 24px;
+    padding: 10px 20px;
+    border-bottom: 1px solid $page-header-border;
+    background: $page-header-bg;
+    border-radius: $border-radius-sm;
+
+    h2 {
+      margin: 0 20px 0 0;
+      color: $page-header-title;
+      font-size: 24px;
+      font-weight: 600;
+    }
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 10px;
+    margin-left: auto;
+  }
+
+  // --- 内容区域 ---
+  .content-grid {
+    @include flex-column;
+    gap: 24px;
+    min-height: 600px;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .input-section,
+  .output-section {
+    @include flex-column;
+    gap: 16px;
+    min-width: 0;
+    overflow: hidden;
+  }
 }
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  padding: 10px 20px;
-  border-bottom: 1px solid var(--page-header-border);
-  background: var(--page-header-bg);
-  border-radius: 8px;
-}
-
-.page-header h2 {
-  margin: 0;
-  color: var(--page-header-title);
-  font-size: 24px;
-  font-weight: 600;
-  margin-right: 20px;
-}
-
-.header-actions {
-  display: flex;
-  gap: 10px;
-  margin-left: auto;
-}
-
-.content-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  min-height: 600px;
-  width: 100%;
-  max-width: 100%;
-}
-
-.input-section,
-.output-section {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  min-width: 0;
-  overflow: hidden;
-}
-
+// ========================================
+// 卡片组件
+// ========================================
 .input-card,
 .output-card {
-  background: var(--card-bg);
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: var(--shadow-md);
-  border: 1px solid var(--card-border);
-  overflow: hidden;
-  position: relative;
-  transition: all var(--transition-normal) ease;
-}
-
-.input-card:hover,
-.output-card:hover {
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-1px);
+  @include card-base;
+  @include card-hover;
 }
 
 .card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  @include flex-between;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--border-default);
-}
+  @include divider-bottom;
 
-.card-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
+  h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: $text-primary;
+  }
 }
 
 .card-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  @include flex-between;
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid var(--border-default);
+  @include divider-top;
 }
 
 .field-count {
-  color: var(--text-secondary);
+  color: $text-secondary;
   font-size: 12px;
 }
 
+// ========================================
+// DDL 输入区域
+// ========================================
 .ddl-fields-section {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid var(--border-default);
+  @include divider-top;
   overflow: hidden;
-}
 
-.ddl-fields-section .ant-table {
-  font-size: 12px;
-}
+  .ant-table {
+    font-size: 12px;
+  }
 
-.ddl-fields-section .ant-table-container {
-  overflow-x: auto;
-}
+  .ant-table-container {
+    overflow-x: auto;
+  }
 
-.ddl-fields-section .ant-table-thead > tr > th {
-  background: var(--table-header-bg);
-  font-weight: 600;
+  .ant-table-thead > tr > th {
+    @include table-header;
+  }
 }
 
 .file-info {
@@ -2123,18 +2112,15 @@ onMounted(() => {
 .preview-footer {
   margin-top: 8px;
   text-align: center;
-  color: var(--text-secondary);
+  color: $text-secondary;
   font-size: 12px;
 }
 
+// ========================================
+// 字段映射区域
+// ========================================
 .mapping-stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-bottom: 16px;
-  padding: 16px;
-  background: var(--table-header-bg);
-  border-radius: 4px;
+  @include stats-grid(3);
 }
 
 .mapping-actions {
@@ -2143,32 +2129,29 @@ onMounted(() => {
   gap: 8px;
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid var(--border-default);
+  @include divider-top;
 }
 
 .database-type-section {
+  @include panel-base;
   margin-top: 16px;
-  padding: 16px;
-  background: var(--panel-bg);
-  border-radius: 6px;
-  border: 1px solid var(--panel-border);
-}
 
-.database-type-section h4 {
-  margin: 0 0 12px 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
+  h4 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: $text-primary;
+  }
 }
 
 .database-type-hint {
   margin-top: 8px;
-  color: var(--text-secondary);
+  color: $text-secondary;
   font-size: 12px;
 }
 
 .field-type {
-  color: var(--text-secondary);
+  color: $text-secondary;
   font-size: 12px;
   margin-top: 2px;
 }
@@ -2177,34 +2160,35 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-}
 
-.field-name-cell .ant-input {
-  flex: 1;
+  .ant-input {
+    flex: 1;
+  }
 }
 
 .ddl-field-cell {
-  display: flex;
-  flex-direction: column;
+  @include flex-column;
   gap: 4px;
 }
 
 .ddl-field-info {
-  display: flex;
-  flex-direction: column;
+  @include flex-column;
   gap: 2px;
 }
 
 .no-excel-hint {
   padding: 8px;
-  background: var(--hint-warning-bg);
-  border: 1px solid var(--hint-warning-border);
-  border-radius: 4px;
-  color: var(--hint-warning-text);
+  background: $hint-warning-bg;
+  border: 1px solid $hint-warning-border;
+  border-radius: $border-radius-xs;
+  color: $hint-warning-text;
   text-align: center;
   margin-top: 8px;
 }
 
+// ========================================
+// SQL 预览区域
+// ========================================
 .output-actions,
 .log-actions {
   display: flex;
@@ -2212,9 +2196,9 @@ onMounted(() => {
 }
 
 .sql-preview {
-  background: var(--code-bg);
-  border: 1px solid var(--border-default);
-  border-radius: 4px;
+  background: $code-bg;
+  border: 1px solid $border-default;
+  border-radius: $border-radius-xs;
   padding: 12px;
   max-height: 300px;
   overflow-y: auto;
@@ -2230,33 +2214,28 @@ onMounted(() => {
 }
 
 .sql-stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  @include stats-grid(3);
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid var(--border-default);
+  @include divider-top;
 }
 
-/* SQL美化选项面板样式 */
+// --- SQL 美化选项面板 ---
 .beautify-options-panel {
-  background: var(--panel-bg);
-  border: 1px solid var(--panel-border);
-  border-radius: 6px;
-  padding: 16px;
+  @include panel-base;
   margin-bottom: 16px;
 }
 
-/* 预览模式切换样式 */
+// --- 预览模式切换 ---
 .preview-mode-switch {
   position: absolute;
   top: 12px;
   right: 12px;
   z-index: 10;
-  background: var(--bg-glass);
+  background: $bg-glass;
   padding: 4px;
-  border-radius: 6px;
-  box-shadow: var(--shadow-sm);
+  border-radius: $border-radius-sm;
+  box-shadow: $shadow-sm;
 }
 
 .option-row {
@@ -2264,17 +2243,17 @@ onMounted(() => {
   align-items: center;
   gap: 12px;
   padding: 8px 0;
-  border-bottom: 1px solid var(--panel-border);
-}
+  border-bottom: 1px solid $panel-border;
 
-.option-row:last-child {
-  border-bottom: none;
+  &:last-child {
+    border-bottom: none;
+  }
 }
 
 .option-label {
   min-width: 120px;
   font-weight: 500;
-  color: var(--option-label);
+  color: $option-label;
   font-size: 14px;
 }
 
@@ -2282,7 +2261,7 @@ onMounted(() => {
   min-width: 30px;
   text-align: center;
   font-weight: 600;
-  color: var(--option-value);
+  color: $option-value;
   font-size: 14px;
 }
 
@@ -2292,9 +2271,12 @@ onMounted(() => {
   gap: 8px;
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid var(--panel-border);
+  border-top: 1px solid $panel-border;
 }
 
+// ========================================
+// 操作日志
+// ========================================
 .log-content {
   max-height: 200px;
   overflow-y: auto;
@@ -2302,18 +2284,258 @@ onMounted(() => {
 
 .log-time {
   margin: 0;
-  color: var(--log-time);
+  color: $log-time;
   font-size: 12px;
 }
 
 .log-message {
   margin: 4px 0 0 0;
   font-size: 14px;
-  color: var(--log-message);
+  color: $log-message;
 }
 
-/* 响应式设计 - 所有屏幕尺寸统一单列布局 */
-@media (max-width: 1024px) {
+// ========================================
+// 去重配置
+// ========================================
+.deduplication-config {
+  margin-top: 16px;
+}
+
+.deduplication-header {
+  @include glass-card;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  transition: all $transition-normal ease;
+
+  @include glass-card-hover;
+}
+
+.deduplication-controls {
+  @include glass-card;
+  margin-top: 16px;
+  padding: 20px;
+  transition: all $transition-normal ease;
+
+  @include glass-card-hover;
+
+  .ant-select {
+    transition: all $transition-fast ease;
+
+    &:hover {
+      box-shadow: 0 0 0 2px $color-primary-bg;
+    }
+  }
+
+  .ant-select-focused {
+    box-shadow: 0 0 0 2px color-mix(in srgb, $color-primary 30%, transparent);
+  }
+}
+
+.deduplication-stats {
+  margin-top: 16px;
+  padding: 16px;
+  background: $gradient-primary-light;
+  border: 1px solid $color-primary-border;
+  border-radius: $border-radius-sm;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  transition: all $transition-normal ease;
+
+  &:hover {
+    background: $color-primary-bg;
+    box-shadow: $shadow-sm;
+  }
+
+  .ant-tag {
+    background: $bg-elevated;
+    border: 1px solid $color-primary-border;
+    color: $text-primary;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: $border-radius-xs;
+    transition: all $transition-fast ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: $shadow-sm;
+    }
+
+    &.ant-tag-blue {
+      border-color: color-mix(in srgb, $color-primary 30%, transparent);
+      color: $color-primary;
+    }
+
+    &.ant-tag-green {
+      border-color: color-mix(in srgb, $color-success 30%, transparent);
+      color: $color-success;
+    }
+
+    &.ant-tag-orange {
+      border-color: color-mix(in srgb, $color-warning 30%, transparent);
+      color: $color-warning;
+    }
+  }
+}
+
+// ========================================
+// 行范围选择
+// ========================================
+.row-range-config {
+  margin-top: 16px;
+}
+
+.row-range-header {
+  @include glass-card;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  transition: all $transition-normal ease;
+
+  @include glass-card-hover;
+}
+
+.row-range-controls {
+  @include glass-card;
+  margin-top: 16px;
+  padding: 20px;
+  transition: all $transition-normal ease;
+
+  @include glass-card-hover;
+}
+
+.row-range-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.row-range-input {
+  @include flex-column;
+  gap: 8px;
+
+  label {
+    font-size: 14px;
+    font-weight: 500;
+    color: $text-primary;
+    transition: color $transition-fast ease;
+  }
+
+  .ant-input-number {
+    transition: all $transition-fast ease;
+
+    &:hover {
+      box-shadow: 0 0 0 2px $color-primary-bg;
+    }
+  }
+
+  .ant-input-number:focus-within {
+    box-shadow: 0 0 0 2px color-mix(in srgb, $color-primary 30%, transparent);
+  }
+}
+
+.row-range-options {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid $card-border;
+  transition: all $transition-fast ease;
+
+  .ant-checkbox-wrapper {
+    transition: all $transition-fast ease;
+
+    &:hover {
+      color: $color-primary;
+    }
+  }
+
+  .ant-tag {
+    background: $color-primary-bg;
+    border: 1px solid $color-primary-border;
+    color: $color-primary;
+    font-weight: 500;
+    padding: 4px 12px;
+    border-radius: $border-radius-xs;
+    transition: all $transition-fast ease;
+
+    &:hover {
+      background: color-mix(in srgb, $color-primary 15%, transparent);
+      transform: translateY(-1px);
+    }
+  }
+}
+
+.row-range-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+
+  .ant-btn {
+    transition: all $transition-fast ease;
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: $shadow-sm;
+    }
+
+    &:active {
+      transform: scale(0.98);
+    }
+  }
+}
+
+.row-range-stats {
+  margin-top: 16px;
+  padding: 16px;
+  background: $gradient-primary-light;
+  border: 1px solid $color-primary-border;
+  border-radius: $border-radius-sm;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  transition: all $transition-normal ease;
+
+  &:hover {
+    background: $color-primary-bg;
+    box-shadow: $shadow-sm;
+  }
+
+  .ant-tag {
+    background: $bg-elevated;
+    border: 1px solid $color-primary-border;
+    color: $text-primary;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: $border-radius-xs;
+    transition: all $transition-fast ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: $shadow-sm;
+    }
+
+    &.ant-tag-green {
+      border-color: color-mix(in srgb, $color-success 30%, transparent);
+      color: $color-success;
+    }
+
+    &.ant-tag-orange {
+      border-color: color-mix(in srgb, $color-warning 30%, transparent);
+      color: $color-warning;
+    }
+  }
+}
+
+// ========================================
+// 响应式设计
+// ========================================
+@include respond-to(lg) {
   .content-grid {
     gap: 16px;
   }
@@ -2329,7 +2551,7 @@ onMounted(() => {
   }
 }
 
-@media (max-width: 768px) {
+@include respond-to(md) {
   .page-header {
     flex-direction: column;
     align-items: flex-start;
@@ -2344,9 +2566,34 @@ onMounted(() => {
   .mapping-actions {
     flex-direction: column;
   }
+
+  .row-range-inputs {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .row-range-options {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .row-range-actions {
+    flex-direction: column;
+    gap: 8px;
+
+    .ant-btn {
+      width: 100%;
+    }
+  }
+
+  .row-range-stats {
+    flex-direction: column;
+    gap: 8px;
+  }
 }
 
-@media (max-width: 480px) {
+@include respond-to(sm) {
   .input-card,
   .output-card {
     padding: 16px;
@@ -2363,300 +2610,7 @@ onMounted(() => {
     width: 100%;
     justify-content: space-between;
   }
-}
 
-/* 去重配置样式 - 优化版 */
-.deduplication-config {
-  margin-top: 16px;
-}
-
-.deduplication-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background: var(--card-bg, rgba(255, 255, 255, 0.85));
-  backdrop-filter: blur(var(--backdrop-blur, 20px));
-  -webkit-backdrop-filter: blur(var(--backdrop-blur, 20px));
-  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.5));
-  border-radius: var(--border-radius-md, 12px);
-  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
-  transition: all var(--transition-normal, 200ms) ease;
-}
-
-.deduplication-header:hover {
-  box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.1));
-}
-
-.deduplication-controls {
-  margin-top: 16px;
-  padding: 20px;
-  background: var(--card-bg, rgba(255, 255, 255, 0.85));
-  backdrop-filter: blur(var(--backdrop-blur, 20px));
-  -webkit-backdrop-filter: blur(var(--backdrop-blur, 20px));
-  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.5));
-  border-radius: var(--border-radius-md, 12px);
-  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
-  transition: all var(--transition-normal, 200ms) ease;
-}
-
-.deduplication-controls:hover {
-  box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.1));
-}
-
-.deduplication-controls .ant-select {
-  transition: all var(--transition-fast, 120ms) ease;
-}
-
-.deduplication-controls .ant-select:hover {
-  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
-}
-
-.deduplication-controls .ant-select-focused {
-  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.3);
-}
-
-.deduplication-stats {
-  margin-top: 16px;
-  padding: 16px;
-  background: linear-gradient(135deg, rgba(22, 119, 255, 0.05) 0%, rgba(20, 201, 201, 0.05) 100%);
-  border: 1px solid rgba(22, 119, 255, 0.1);
-  border-radius: var(--border-radius-sm, 8px);
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  transition: all var(--transition-normal, 200ms) ease;
-}
-
-.deduplication-stats:hover {
-  background: linear-gradient(135deg, rgba(22, 119, 255, 0.08) 0%, rgba(20, 201, 201, 0.08) 100%);
-  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
-}
-
-.deduplication-stats .ant-tag {
-  background: white;
-  border: 1px solid rgba(22, 119, 255, 0.2);
-  color: var(--text-primary, #1f2937);
-  font-weight: 500;
-  padding: 6px 14px;
-  border-radius: var(--border-radius-xs, 4px);
-  transition: all var(--transition-fast, 120ms) ease;
-}
-
-.deduplication-stats .ant-tag:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
-}
-
-.deduplication-stats .ant-tag.ant-tag-blue {
-  border-color: rgba(59, 130, 246, 0.3);
-  color: #3b82f6;
-}
-
-.deduplication-stats .ant-tag.ant-tag-green {
-  border-color: rgba(16, 185, 129, 0.3);
-  color: #10b981;
-}
-
-.deduplication-stats .ant-tag.ant-tag-orange {
-  border-color: rgba(245, 158, 11, 0.3);
-  color: #f59e0b;
-}
-
-/* 行范围选择样式 - 优化版 */
-.row-range-config {
-  margin-top: 16px;
-}
-
-.row-range-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background: var(--card-bg, rgba(255, 255, 255, 0.85));
-  backdrop-filter: blur(var(--backdrop-blur, 20px));
-  -webkit-backdrop-filter: blur(var(--backdrop-blur, 20px));
-  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.5));
-  border-radius: var(--border-radius-md, 12px);
-  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
-  transition: all var(--transition-normal, 200ms) ease;
-}
-
-.row-range-header:hover {
-  box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.1));
-}
-
-.row-range-controls {
-  margin-top: 16px;
-  padding: 20px;
-  background: var(--card-bg, rgba(255, 255, 255, 0.85));
-  backdrop-filter: blur(var(--backdrop-blur, 20px));
-  -webkit-backdrop-filter: blur(var(--backdrop-blur, 20px));
-  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.5));
-  border-radius: var(--border-radius-md, 12px);
-  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
-  transition: all var(--transition-normal, 200ms) ease;
-}
-
-.row-range-controls:hover {
-  box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.1));
-}
-
-.row-range-inputs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-.row-range-input {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.row-range-input label {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-primary, #1f2937);
-  transition: color var(--transition-fast, 120ms) ease;
-}
-
-.row-range-input .ant-input-number {
-  transition: all var(--transition-fast, 120ms) ease;
-}
-
-.row-range-input .ant-input-number:hover {
-  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
-}
-
-.row-range-input .ant-input-number:focus-within {
-  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.3);
-}
-
-.row-range-options {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 16px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--card-border, rgba(255, 255, 255, 0.5));
-  transition: all var(--transition-fast, 120ms) ease;
-}
-
-.row-range-options .ant-checkbox-wrapper {
-  transition: all var(--transition-fast, 120ms) ease;
-}
-
-.row-range-options .ant-checkbox-wrapper:hover {
-  color: var(--primary-gradient, linear-gradient(135deg, #1677ff 0%, #14c9c9 100%));
-}
-
-.row-range-options .ant-tag {
-  background: linear-gradient(135deg, rgba(22, 119, 255, 0.1) 0%, rgba(20, 201, 201, 0.1) 100%);
-  border: 1px solid rgba(22, 119, 255, 0.2);
-  color: #1677ff;
-  font-weight: 500;
-  padding: 4px 12px;
-  border-radius: var(--border-radius-xs, 4px);
-  transition: all var(--transition-fast, 120ms) ease;
-}
-
-.row-range-options .ant-tag:hover {
-  background: linear-gradient(135deg, rgba(22, 119, 255, 0.15) 0%, rgba(20, 201, 201, 0.15) 100%);
-  transform: translateY(-1px);
-}
-
-.row-range-actions {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.row-range-actions .ant-btn {
-  transition: all var(--transition-fast, 120ms) ease;
-}
-
-.row-range-actions .ant-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
-}
-
-.row-range-actions .ant-btn:active {
-  transform: scale(0.98);
-}
-
-.row-range-stats {
-  margin-top: 16px;
-  padding: 16px;
-  background: linear-gradient(135deg, rgba(22, 119, 255, 0.05) 0%, rgba(20, 201, 201, 0.05) 100%);
-  border: 1px solid rgba(22, 119, 255, 0.1);
-  border-radius: var(--border-radius-sm, 8px);
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  transition: all var(--transition-normal, 200ms) ease;
-}
-
-.row-range-stats:hover {
-  background: linear-gradient(135deg, rgba(22, 119, 255, 0.08) 0%, rgba(20, 201, 201, 0.08) 100%);
-  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
-}
-
-.row-range-stats .ant-tag {
-  background: white;
-  border: 1px solid rgba(22, 119, 255, 0.2);
-  color: var(--text-primary, #1f2937);
-  font-weight: 500;
-  padding: 6px 14px;
-  border-radius: var(--border-radius-xs, 4px);
-  transition: all var(--transition-fast, 120ms) ease;
-}
-
-.row-range-stats .ant-tag:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
-}
-
-.row-range-stats .ant-tag.ant-tag-green {
-  border-color: rgba(16, 185, 129, 0.3);
-  color: #10b981;
-}
-
-.row-range-stats .ant-tag.ant-tag-orange {
-  border-color: rgba(245, 158, 11, 0.3);
-  color: #f59e0b;
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .row-range-inputs {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
-  .row-range-options {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  .row-range-actions {
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .row-range-actions .ant-btn {
-    width: 100%;
-  }
-
-  .row-range-stats {
-    flex-direction: column;
-    gap: 8px;
-  }
-}
-
-@media (max-width: 480px) {
   .row-range-header,
   .row-range-controls {
     padding: 16px 12px;

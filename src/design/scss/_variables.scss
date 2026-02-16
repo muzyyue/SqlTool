@@ -1,0 +1,129 @@
+// ========================================
+// SCSS 变量定义
+// 对应 theme.js 中的 CSS 变量
+// ========================================
+
+// ===== 颜色系统 =====
+
+// 文本色
+$text-primary: var(--text-primary);
+$text-secondary: var(--text-secondary);
+$text-tertiary: var(--text-tertiary);
+$text-disabled: var(--text-disabled);
+
+// 背景色
+$bg-base: var(--bg-base);
+$bg-elevated: var(--bg-elevated);
+$bg-sunken: var(--bg-sunken);
+$bg-glass: var(--bg-glass);
+$bg-glass-light: var(--bg-glass-light);
+
+// 卡片
+$card-bg: var(--card-bg);
+$card-border: var(--card-border);
+
+// 面板
+$panel-bg: var(--panel-bg);
+$panel-border: var(--panel-border);
+
+// 边框
+$border-default: var(--border-default);
+$border-light: var(--border-light);
+$border-strong: var(--border-strong);
+$border-focus: var(--border-focus);
+$border-glass: var(--border-glass);
+$border-glass-light: var(--border-glass-light);
+$border-glass-strong: var(--border-glass-strong);
+
+// 主色
+$color-primary: var(--color-primary);
+$color-primary-hover: var(--color-primary-hover);
+$color-primary-active: var(--color-primary-active);
+$color-primary-bg: var(--color-primary-bg);
+$color-primary-border: var(--color-primary-border);
+
+// 状态色
+$color-success: var(--color-success);
+$color-success-bg: var(--color-success-bg);
+$color-success-border: var(--color-success-border);
+
+$color-warning: var(--color-warning);
+$color-warning-bg: var(--color-warning-bg);
+
+$color-error: var(--color-error);
+$color-error-bg: var(--color-error-bg);
+
+$color-info: var(--color-info);
+$color-info-bg: var(--color-info-bg);
+
+// ===== 阴影 =====
+$shadow-xs: var(--shadow-xs);
+$shadow-sm: var(--shadow-sm);
+$shadow-md: var(--shadow-md);
+$shadow-lg: var(--shadow-lg);
+$shadow-xl: var(--shadow-xl);
+$shadow-card: var(--shadow-card);
+$shadow-card-hover: var(--shadow-card-hover);
+$shadow-header: var(--shadow-header);
+$shadow-button-hover: var(--shadow-button-hover);
+
+// ===== 圆角 =====
+$border-radius-xs: var(--border-radius-xs);
+$border-radius-sm: var(--border-radius-sm);
+$border-radius-md: var(--border-radius-md);
+$border-radius-lg: var(--border-radius-lg);
+$border-radius-xl: var(--border-radius-xl);
+
+// ===== 过渡 =====
+$transition-fast: var(--transition-fast);
+$transition-normal: var(--transition-normal);
+$transition-slow: var(--transition-slow);
+
+// ===== 间距 =====
+$spacing-xs: var(--spacing-xs);
+$spacing-sm: var(--spacing-sm);
+$spacing-md: var(--spacing-md);
+$spacing-lg: var(--spacing-lg);
+$spacing-xl: var(--spacing-xl);
+
+// ===== 渐变 =====
+$gradient-primary: var(--gradient-primary);
+$gradient-secondary: var(--gradient-secondary);
+$gradient-primary-light: var(--gradient-primary-light);
+
+// ===== 滚动条 =====
+$scrollbar-track: var(--scrollbar-track);
+$scrollbar-thumb: var(--scrollbar-thumb);
+$scrollbar-thumb-hover: var(--scrollbar-thumb-hover);
+
+// ===== 页面级变量 =====
+$page-bg-gradient: var(--page-bg-gradient);
+$page-header-bg: var(--page-header-bg);
+$page-header-border: var(--page-header-border);
+$page-header-title: var(--page-header-title);
+
+// ===== 表格 =====
+$table-header-bg: var(--table-header-bg);
+
+// ===== 代码编辑器 =====
+$code-bg: var(--code-bg);
+$code-toolbar-bg: var(--code-toolbar-bg);
+$code-border: var(--code-border);
+$code-scrollbar-track: var(--code-scrollbar-track);
+$code-scrollbar-thumb: var(--code-scrollbar-thumb);
+
+// ===== 提示 =====
+$hint-warning-bg: var(--hint-warning-bg);
+$hint-warning-border: var(--hint-warning-border);
+$hint-warning-text: var(--hint-warning-text);
+
+// ===== 日志 =====
+$log-time: var(--log-time);
+$log-message: var(--log-message);
+
+// ===== 选项 =====
+$option-label: var(--option-label);
+$option-value: var(--option-value);
+
+// ===== 毛玻璃效果 =====
+$backdrop-blur: var(--backdrop-blur);
