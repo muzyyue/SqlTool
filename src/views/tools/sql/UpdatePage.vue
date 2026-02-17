@@ -718,7 +718,6 @@ const {
   endRow,
   includeHeader,
   totalExcelRows,
-  validateRange,
   resetRowRange: resetRowRangeState,
   setTotalRows,
   handleRowRangeToggle: handleRowRangeToggleBase,
@@ -728,7 +727,6 @@ const {
   showBeautifyOptions,
   beautifyOptions,
   toggleBeautifyOptions: toggleBeautifyOptionsBase,
-  applyBeautifyOptions: applyBeautifyOptionsBase,
   resetBeautifyOptions: resetBeautifyOptionsBase,
   getOptionChanges,
 } = useBeautifyOptions()
@@ -739,7 +737,6 @@ const {
   formatTime,
   clearLogs,
   exportLogs,
-  downloadLogs,
 } = useOperationLog()
 
 const ddlStatement = ref('')

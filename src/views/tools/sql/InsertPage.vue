@@ -305,7 +305,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, h, watch } from 'vue'
+import { ref, computed, onMounted, h } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import {
   ReloadOutlined,
@@ -370,16 +370,13 @@ const {
   endRow,
   includeHeader,
   totalExcelRows,
-  setTotalRows,
   resetRowRange: resetRowRangeState,
-  validateRange,
 } = useRowRange()
 
 const {
   showBeautifyOptions,
   beautifyOptions,
   toggleBeautifyOptions: toggleBeautifyOptionsBase,
-  applyBeautifyOptions: applyBeautifyOptionsBase,
   resetBeautifyOptions: resetBeautifyOptionsBase,
 } = useBeautifyOptions()
 
