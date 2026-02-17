@@ -6,7 +6,7 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 import UnoCSS from 'unocss/vite'
 
 export default defineConfig({
-  base: './',
+  base: '/',
   plugins: [vue(), vueDevTools(), UnoCSS()],
   resolve: {
     alias: {
@@ -16,9 +16,13 @@ export default defineConfig({
   css: {
     preprocessorOptions: {
       scss: {
-        additionalData: `@import "@/design/scss/variables.scss"; @import "@/design/scss/mixins.scss";`,
+        additionalData: `@use "@/design/scss/variables.scss" as *; @use "@/design/scss/mixins.scss" as *;`,
         api: 'modern-compiler',
+        silenceDeprecations: ['import'],
       },
     },
+  },
+  server: {
+    historyApiFallback: true,
   },
 })

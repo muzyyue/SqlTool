@@ -57,6 +57,20 @@ Thumbs.db
 .eslintcache
 *.tsbuildinfo
 
+# IDE/Editor configs (local only)
+.vscode/
+.idea/
+.editorconfig
+
+# Git configs (local only)
+.github/
+.gitattributes
+
+# Formatter configs (local only)
+.prettierrc
+.prettierrc.json
+.prettierrc.js
+
 # Documentation
 项目重构架构设计.md
 

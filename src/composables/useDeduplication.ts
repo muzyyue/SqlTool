@@ -40,6 +40,8 @@ export function useDeduplication() {
     excelData: any[],
     logInfo: (message: string, type: string, context?: any) => void,
   ) => {
+    deduplicationEnabled.value = checked
+
     if (!checked) {
       if (originalExcelData.value.length > 0) {
         const previousRowCount = excelData.length
@@ -184,6 +186,7 @@ export function useDeduplication() {
     deduplicationColumn,
     deduplicationStats,
     hasDeduplication,
+    originalExcelData,
     handleDeduplicationToggle,
     applyDeduplication,
     setOriginalData,

@@ -119,7 +119,7 @@
                 v-model:value="deduplicationColumn"
                 placeholder="选择去重列"
                 style="width: 100%; max-width: 300px"
-                @change="applyDeduplication"
+                @change="handleDeduplicationChange"
               >
                 <a-select-option
                   v-for="(header, idx) in excelHeaders || []"
@@ -674,6 +674,10 @@ import { useExcelParserEnhanced } from '@/composables/useExcelParserEnhanced'
 import { useFieldMatcher } from '@/composables/useFieldMatcher'
 import { useSqlGeneratorEnhanced } from '@/composables/useSqlGeneratorEnhanced'
 import { useErrorHandler } from '@/composables/useErrorHandler'
+import { useDeduplication } from '@/composables/useDeduplication'
+import { useRowRange } from '@/composables/useRowRange'
+import { useBeautifyOptions } from '@/composables/useBeautifyOptions'
+import { useOperationLog } from '@/composables/useOperationLog'
 
 // 导入SQL预览组件
 import SqlPreview from '@/components/SqlPreview/SqlPreview.vue'
@@ -698,7 +702,46 @@ const {
 } = useSqlGeneratorEnhanced()
 const { logError, logInfo, logWarning } = useErrorHandler()
 
-// 响应式数据
+const {
+  deduplicationEnabled,
+  deduplicationColumn,
+  deduplicationStats,
+  handleDeduplicationToggle: handleDeduplicationToggleBase,
+  applyDeduplication: applyDeduplicationBase,
+  setOriginalData,
+  clearDeduplication,
+} = useDeduplication()
+
+const {
+  rowRangeEnabled,
+  startRow,
+  endRow,
+  includeHeader,
+  totalExcelRows,
+  validateRange,
+  resetRowRange: resetRowRangeState,
+  setTotalRows,
+  handleRowRangeToggle: handleRowRangeToggleBase,
+} = useRowRange()
+
+const {
+  showBeautifyOptions,
+  beautifyOptions,
+  toggleBeautifyOptions: toggleBeautifyOptionsBase,
+  applyBeautifyOptions: applyBeautifyOptionsBase,
+  resetBeautifyOptions: resetBeautifyOptionsBase,
+  getOptionChanges,
+} = useBeautifyOptions()
+
+const {
+  operationLogs,
+  getLogColor,
+  formatTime,
+  clearLogs,
+  exportLogs,
+  downloadLogs,
+} = useOperationLog()
+
 const ddlStatement = ref('')
 const parsedFields = ref([])
 const conditionFields = ref([])
@@ -710,24 +753,7 @@ const uploadedFile = ref(null)
 const excelData = ref([])
 const excelHeaders = ref([])
 const generatedSql = ref('')
-const operationLogs = ref([])
 const databaseType = ref('mysql')
-
-// 去重相关
-const deduplicationEnabled = ref(false)
-const deduplicationColumn = ref(null)
-const deduplicationStats = ref({
-  originalRows: 0,
-  deduplicatedRows: 0,
-  removedRows: 0,
-})
-
-// 行范围选择相关状态
-const rowRangeEnabled = ref(false) // 是否启用行范围选择
-const startRow = ref(null) // 起始行
-const endRow = ref(null) // 结束行
-const includeHeader = ref(true) // 是否包含表头
-const totalExcelRows = ref(0) // Excel文件总行数
 
 // 自定义绑定相关
 const customBindingEnabled = ref(false)
@@ -779,16 +805,7 @@ const generating = ref(false)
 const errorModalVisible = ref(false)
 const currentErrors = ref([])
 
-// SQL注释和美化相关
 const includeComments = ref(true)
-const showBeautifyOptions = ref(false)
-const beautifyOptions = ref({
-  indentSpaces: 4,
-  formatStyle: 'expanded',
-  keywordCase: 'upper',
-  maxLineLength: 80,
-  alignValues: true,
-})
 
 // 计算属性
 const showFieldMapping = computed(() => {
@@ -1018,21 +1035,18 @@ const handleUpload = async (options) => {
   try {
     uploadedFile.value = file
 
-    // 先解析一次获取总行数
     const initialResult = await parseExcelEnhanced(file, {
       sheetIndex: 0,
       maxRows: 10000,
     })
 
-    totalExcelRows.value = initialResult.totalRows
+    setTotalRows(initialResult.totalRows)
 
-    // 根据行范围设置解析参数
     const parseOptions = {
       sheetIndex: 0,
       maxRows: 10000,
     }
 
-    // 如果启用了行范围选择，添加行范围参数
     if (rowRangeEnabled.value && startRow.value && endRow.value) {
       parseOptions.startRow = startRow.value
       parseOptions.endRow = endRow.value
@@ -1043,11 +1057,12 @@ const handleUpload = async (options) => {
     excelData.value = result.rows
     excelHeaders.value = result.headers
 
+    setOriginalData(result.rows)
+
     onSuccess('文件上传成功')
     logInfo(`成功解析Excel文件，共 ${result.rows.length} 行数据`)
     message.success('文件解析成功')
 
-    // 如果已有DDL字段，自动执行字段匹配
     if (parsedFields.value.length > 0) {
       autoMatchFields()
     }
@@ -1292,24 +1307,6 @@ const extractTableName = (ddl) => {
   return match ? match[1] : 'unknown_table'
 }
 
-const getLogColor = (level) => {
-  const colors = {
-    info: 'blue',
-    warning: 'orange',
-    error: 'red',
-  }
-  return colors[level] || 'gray'
-}
-
-const formatTime = (timestamp) => {
-  return new Date(timestamp).toLocaleTimeString('zh-CN')
-}
-
-const clearLogs = () => {
-  operationLogs.value = []
-  logInfo('操作日志已清除')
-}
-
 const handleSqlValidation = (validationResult) => {
   if (validationResult.hasErrors) {
     logWarning('SQL语法验证发现错误', 'validation', {
@@ -1354,101 +1351,34 @@ const downloadSql = (sql) => {
   }
 }
 
-const exportLogs = () => {
-  message.info('日志导出功能开发中')
-}
-
 const handleClearCache = () => {
   clearCache()
   logInfo('DDL解析缓存已清除')
   message.success('缓存已清除，下次解析将重新计算')
 }
 
-const handleDeduplicationToggle = (checked) => {
-  if (!checked) {
-    deduplicationColumn.value = null
-    deduplicationStats.value = {
-      originalRows: 0,
-      deduplicatedRows: 0,
-      removedRows: 0,
-    }
-    logInfo('已关闭数据去重')
-  } else {
-    logInfo('已启用数据去重，请选择去重列')
+const handleDeduplicationToggle = (e) => {
+  const checked = typeof e === 'boolean' ? e : e?.target?.checked
+  handleDeduplicationToggleBase(checked, excelData.value, logInfo)
+}
+
+const handleDeduplicationChange = (column) => {
+  deduplicationColumn.value = column
+  if (column !== undefined && column !== null) {
+    applyDeduplication()
   }
 }
 
 const applyDeduplication = () => {
-  if (deduplicationColumn.value === null || deduplicationColumn.value === undefined) {
-    message.warning('请先选择去重列')
-    return
-  }
-
-  if (!excelData.value || excelData.value.length === 0) {
-    message.warning('没有可去重的数据')
-    return
-  }
-
-  const columnIndex = deduplicationColumn.value
-  const seenValues = new Set()
-  const deduplicatedData = []
-
-  excelData.value.forEach((row) => {
-    const value = row[columnIndex]
-    if (!seenValues.has(value)) {
-      seenValues.add(value)
-      deduplicatedData.push(row)
-    }
-  })
-
-  const originalRows = excelData.value.length
-  const deduplicatedRows = deduplicatedData.length
-  const removedRows = originalRows - deduplicatedRows
-
-  excelData.value = deduplicatedData
-
-  deduplicationStats.value = {
-    originalRows,
-    deduplicatedRows,
-    removedRows,
-  }
-
-  if (removedRows > 0) {
-    logInfo(
-      `数据去重完成: 原始 ${originalRows} 行 → 去重后 ${deduplicatedRows} 行 (去除 ${removedRows} 行重复)`,
-      'deduplication',
-      {
-        operation: 'applyDeduplication',
-        columnIndex,
-        columnName: excelHeaders.value[columnIndex],
-        originalRows,
-        deduplicatedRows,
-        removedRows,
-      },
-    )
-    message.success(`去重完成: 原始 ${originalRows} 行 → 去重后 ${deduplicatedRows} 行`)
-  } else {
-    logInfo('数据去重完成: 未发现重复数据', 'deduplication', {
-      operation: 'applyDeduplication',
-      columnIndex,
-      columnName: excelHeaders.value[columnIndex],
-      originalRows,
-    })
-    message.info('未发现重复数据')
-  }
+  applyDeduplicationBase(excelData.value, excelHeaders.value, logInfo)
 }
 
-/**
- * 处理行范围开关切换
- * 当关闭行范围选择时，重置行范围参数
- */
-const handleRowRangeToggle = (checked) => {
+const handleRowRangeToggle = (e) => {
+  const checked = typeof e === 'boolean' ? e : e?.target?.checked
+  handleRowRangeToggleBase(checked, logInfo)
   if (!checked) {
     startRow.value = null
     endRow.value = null
-    logInfo('已关闭行范围选择')
-  } else {
-    logInfo('已启用行范围选择，请设置起始行和结束行')
   }
 }
 
@@ -1903,32 +1833,14 @@ const handleRefreshCustomFields = () => {
   // parseDdl(false)  // 注释掉，避免覆盖已配置的数据
 }
 
-/**
- * 切换美化选项面板显示状态
- */
 const toggleBeautifyOptions = () => {
-  const newState = !showBeautifyOptions.value
-  showBeautifyOptions.value = newState
-
-  logInfo(`SQL美化选项面板${newState ? '显示' : '隐藏'}`, 'beautify', {
-    operation: 'toggleBeautifyOptions',
-    operationType: 'beautify',
-    isVisible: newState,
-  })
+  toggleBeautifyOptionsBase(logInfo)
 }
 
-/**
- * 应用美化选项到生成的SQL
- */
 const applyBeautifyOptions = async () => {
   try {
-    // 记录美化选项应用前的状态
-    const previousOptions = { ...beautifyOptions.value }
-
-    // 应用美化选项到SQL生成器
     setBeautifyOptions(beautifyOptions.value)
 
-    // 如果已有生成的SQL，重新应用美化
     if (generatedSql.value) {
       const tableName = extractTableName(ddlStatement.value)
       const sql = generateUpdateSql(
@@ -1950,7 +1862,7 @@ const applyBeautifyOptions = async () => {
       generatedSql.value = sql
     }
 
-    // 记录详细的美化选项变更
+    const previousOptions = { indentSpaces: 4, formatStyle: 'expanded', keywordCase: 'upper', maxLineLength: 80, alignValues: true }
     const optionChanges = getOptionChanges(previousOptions, beautifyOptions.value)
     logInfo('SQL美化选项已应用', 'beautify', {
       operation: 'applyBeautifyOptions',
@@ -1972,63 +1884,8 @@ const applyBeautifyOptions = async () => {
   }
 }
 
-/**
- * 重置美化选项为默认值
- */
 const resetBeautifyOptions = () => {
-  const previousOptions = { ...beautifyOptions.value }
-
-  beautifyOptions.value = {
-    indentSpaces: 2,
-    formatStyle: 'standard',
-    keywordCase: 'upper',
-    maxLineLength: 80,
-    alignValues: true,
-  }
-  resetDefaultBeautifyOptions()
-
-  // 记录重置操作的详细信息
-  const optionChanges = getOptionChanges(previousOptions, beautifyOptions.value)
-  logInfo('SQL美化选项已重置为默认值', 'beautify', {
-    operation: 'resetBeautifyOptions',
-    operationType: 'beautify',
-    previousOptions: previousOptions,
-    newOptions: beautifyOptions.value,
-    changes: optionChanges,
-  })
-
-  message.info('美化选项已重置')
-}
-
-/**
- * 获取美化选项变更详情
- */
-const getOptionChanges = (previous, current) => {
-  const changes = []
-
-  if (previous.indentSpaces !== current.indentSpaces) {
-    changes.push(`缩进空格数: ${previous.indentSpaces} → ${current.indentSpaces}`)
-  }
-
-  if (previous.formatStyle !== current.formatStyle) {
-    changes.push(`格式化风格: ${previous.formatStyle} → ${current.formatStyle}`)
-  }
-
-  if (previous.keywordCase !== current.keywordCase) {
-    changes.push(`关键字大小写: ${previous.keywordCase} → ${current.keywordCase}`)
-  }
-
-  if (previous.maxLineLength !== current.maxLineLength) {
-    changes.push(`最大行长度: ${previous.maxLineLength} → ${current.maxLineLength}`)
-  }
-
-  if (previous.alignValues !== current.alignValues) {
-    changes.push(
-      `垂直对齐: ${previous.alignValues ? '开启' : '关闭'} → ${current.alignValues ? '开启' : '关闭'}`,
-    )
-  }
-
-  return changes.length > 0 ? changes : ['无变更']
+  resetBeautifyOptionsBase(logInfo, resetDefaultBeautifyOptions)
 }
 
 const resetAll = () => {
@@ -2044,13 +1901,8 @@ const resetAll = () => {
   generatedSql.value = ''
   fileList.value = []
   clearCache()
-  deduplicationEnabled.value = false
-  deduplicationColumn.value = null
-  deduplicationStats.value = {
-    originalRows: 0,
-    deduplicatedRows: 0,
-    removedRows: 0,
-  }
+  clearDeduplication()
+  resetRowRangeState()
   customBindingEnabled.value = false
   customBindingManager.resetBindings()
 

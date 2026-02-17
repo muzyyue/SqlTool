@@ -1,4 +1,4 @@
-import { createRouter, createWebHashHistory } from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router'
 
 /**
  * 动态导入工具页面
@@ -62,7 +62,7 @@ const staticRoutes = [
 ]
 
 /**
- * 404 页面
+ * 404 页面 - 捕获所有不匹配的路由
  */
 const notFoundRoute = {
   path: '/:pathMatch(.*)*',
@@ -80,9 +80,10 @@ const routes = [...staticRoutes, ...toolRoutes, notFoundRoute]
 
 /**
  * 创建路由实例
+ * 使用 HTML5 History 模式
  */
 const router = createRouter({
-  history: createWebHashHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes,
 })
 

@@ -321,6 +321,11 @@ import { useExcelParserEnhanced } from '@/composables/useExcelParserEnhanced'
 import { useFieldMatcher } from '@/composables/useFieldMatcher'
 import { useSqlGeneratorEnhanced } from '@/composables/useSqlGeneratorEnhanced'
 import { useErrorHandler } from '@/composables/useErrorHandler'
+import { useDeduplication } from '@/composables/useDeduplication'
+import { useRowRange } from '@/composables/useRowRange'
+import { useBeautifyOptions } from '@/composables/useBeautifyOptions'
+import { useOperationLog } from '@/composables/useOperationLog'
+import { useCellSplit } from '@/composables/useCellSplit'
 
 // 导入组件
 import SqlPreview from '@/components/SqlPreview/SqlPreview.vue'
@@ -341,6 +346,62 @@ const {
   customBindingManager,
   resetMappings,
 } = useFieldMatcher()
+const {
+  generateInsertSql,
+  setBeautifyOptions,
+  resetBeautifyOptions: resetDefaultBeautifyOptions,
+} = useSqlGeneratorEnhanced()
+const { logError } = useErrorHandler()
+
+const {
+  deduplicationEnabled,
+  deduplicationColumn,
+  deduplicationStats,
+  originalExcelData,
+  handleDeduplicationToggle: handleDeduplicationToggleBase,
+  applyDeduplication: applyDeduplicationBase,
+  setOriginalData,
+  clearDeduplication,
+} = useDeduplication()
+
+const {
+  rowRangeEnabled,
+  startRow,
+  endRow,
+  includeHeader,
+  totalExcelRows,
+  setTotalRows,
+  resetRowRange: resetRowRangeState,
+  validateRange,
+} = useRowRange()
+
+const {
+  showBeautifyOptions,
+  beautifyOptions,
+  toggleBeautifyOptions: toggleBeautifyOptionsBase,
+  applyBeautifyOptions: applyBeautifyOptionsBase,
+  resetBeautifyOptions: resetBeautifyOptionsBase,
+} = useBeautifyOptions()
+
+const {
+  operationLogs,
+  logInfo,
+  getLogColor,
+  formatTime,
+  formatLogMessage,
+  clearLogs,
+  exportLogs,
+} = useOperationLog()
+
+const {
+  cellSplitEnabled,
+  cellSplitSeparator,
+  customSeparator,
+  cellSplitStats,
+  handleCellSplitToggle: handleCellSplitToggleBase,
+  handleCellSplitSeparatorChange,
+  clearCellSplit,
+} = useCellSplit()
 
 /**
  * 增强匹配统计，使用DDL原始字段列表数据
@@ -405,22 +466,11 @@ const hasCustomBindingConfig = computed(() => {
 })
 
 const customFieldsData = computed(() => {
-  // customBindingManager.customFields 现在是 ref，直接访问 .value
   const fields = Array.isArray(customBindingManager.customFields.value)
     ? customBindingManager.customFields.value
     : []
-  console.log('customFieldsData computed, fields count:', fields.length, fields)
   return fields
 })
-
-// 监听 customBindingManager.customFields 的变化，确保响应式更新
-watch(
-  () => customBindingManager.customFields.value,
-  (newFields) => {
-    console.log('customBindingManager.customFields changed:', newFields?.length, newFields)
-  },
-  { deep: true },
-)
 
 const customFieldManagerKey = computed(() => {
   const fields = customFieldsData.value
@@ -432,14 +482,6 @@ const customFieldManagerKey = computed(() => {
   return `custom-field-manager-${fieldCount}-${fieldNames}`
 })
 
-const {
-  generateInsertSql,
-  setBeautifyOptions,
-  resetBeautifyOptions: resetDefaultBeautifyOptions,
-} = useSqlGeneratorEnhanced()
-const { logError, logInfo } = useErrorHandler()
-
-// 响应式数据
 const ddlStatement = ref('')
 const parsedFields = ref([])
 const fileList = ref([])
@@ -450,48 +492,9 @@ const generatedSql = ref('')
 const previewSql = ref('')
 const previewMode = ref('original')
 const batchEditRules = ref([])
-const operationLogs = ref([])
-const includeComments = ref(true) // 控制是否包含SQL注释
-const databaseType = ref('mysql') // 数据库类型：mysql, postgresql, sqlserver
+const includeComments = ref(true)
+const databaseType = ref('mysql')
 
-// 去重相关状态
-const deduplicationEnabled = ref(false) // 是否启用去重
-const deduplicationColumn = ref(undefined) // 去重列索引，undefined表示未选择
-const deduplicationStats = ref({
-  originalRows: 0, // 原始行数
-  deduplicatedRows: 0, // 去重后行数
-  removedRows: 0, // 去重数量
-}) // 去重统计信息
-const originalExcelData = ref([]) // 保存原始数据，用于多次去重切换
-
-// 行范围选择相关状态
-const rowRangeEnabled = ref(false) // 是否启用行范围选择
-const startRow = ref(null) // 起始行
-const endRow = ref(null) // 结束行
-const includeHeader = ref(true) // 是否包含表头
-const totalExcelRows = ref(0) // Excel文件总行数
-
-// 单元格拆分相关状态
-const cellSplitEnabled = ref(false) // 是否启用单元格拆分
-const cellSplitSeparator = ref(',') // 单元格拆分分隔符
-const customSeparator = ref('') // 自定义分隔符
-const cellSplitStats = ref({
-  originalRows: 0,
-  splitRows: 0,
-  expandedRows: 0,
-}) // 单元格拆分统计信息
-
-// SQL美化相关数据
-const showBeautifyOptions = ref(false)
-const beautifyOptions = ref({
-  indentSpaces: 4,
-  formatStyle: 'expanded',
-  keywordCase: 'upper',
-  maxLineLength: 80,
-  alignValues: true,
-})
-
-// 状态标志
 const parsingDdl = ref(false)
 const uploading = ref(false)
 const generating = ref(false)
@@ -606,72 +609,41 @@ const handleUpload = async (options) => {
   const { file, onSuccess, onError } = options
   uploading.value = true
 
-  console.log('=== 文件上传调试信息开始 ===')
-  console.log('上传的文件对象:', file)
-  console.log('文件名称:', file?.name)
-  console.log('文件大小:', file?.size)
-  console.log('文件类型:', file?.type)
-
   try {
     uploadedFile.value = file
 
-    console.log('开始解析Excel文件...')
-
-    // 先解析一次获取总行数
     const initialResult = await parseExcelEnhanced(file, {
       sheetIndex: 0,
       maxRows: 10000,
     })
 
     totalExcelRows.value = initialResult.totalRows
-    console.log('Excel文件总行数:', totalExcelRows.value)
 
-    // 根据行范围设置解析参数
     const parseOptions = {
       sheetIndex: 0,
       maxRows: 10000,
     }
 
-    // 如果启用了行范围选择，添加行范围参数
     if (rowRangeEnabled.value && startRow.value && endRow.value) {
       parseOptions.startRow = startRow.value
       parseOptions.endRow = endRow.value
       parseOptions.includeHeader = includeHeader.value
-      console.log(
-        `应用行范围: ${startRow.value} - ${endRow.value}, 包含表头: ${includeHeader.value}`,
-      )
     }
 
     const result = await parseExcelEnhanced(file, parseOptions)
 
-    console.log('Excel解析结果:', result)
-    console.log('解析出的数据行数:', result.rows?.length || 0)
-    console.log('解析出的表头数量:', result.headers?.length || 0)
-    console.log('表头详情:', result.headers)
-
     excelData.value = result.rows
     excelHeaders.value = result.headers
-    originalExcelData.value = [...result.rows] // 保存原始数据，用于去重功能
-
-    console.log('excelData赋值后:', excelData.value?.length || 0)
-    console.log('excelHeaders赋值后:', excelHeaders.value?.length || 0)
+    setOriginalData(result.rows)
 
     onSuccess('文件上传成功')
     logInfo(`成功解析Excel文件，共 ${result.rows?.length || 0} 行数据`)
     message.success('文件解析成功')
 
-    // 如果已有DDL字段，自动执行字段匹配
     if (parsedFields.value.length > 0) {
-      console.log('开始自动字段匹配...')
       autoMatchFields()
     }
-
-    console.log('=== 文件上传调试信息结束 ===')
   } catch (error) {
-    console.error('文件上传和解析失败:', error)
-    console.error('错误详情:', error.message)
-    console.error('错误堆栈:', error.stack)
-
     const friendlyError = logError(error, 'file', {
       operation: 'parseExcel',
       fileName: file.name,
@@ -695,40 +667,15 @@ const clearFile = () => {
   originalExcelData.value = []
   fileList.value = []
 
-  // 清除去重相关状态
-  deduplicationEnabled.value = false
-  deduplicationColumn.value = undefined
-  deduplicationStats.value = {
-    originalRows: 0,
-    deduplicatedRows: 0,
-    removedRows: 0,
-  }
+  clearDeduplication()
+  resetRowRangeState()
+  clearCellSplit()
 
-  // 清除行范围相关状态
-  rowRangeEnabled.value = false
-  startRow.value = null
-  endRow.value = null
-  includeHeader.value = true
-  totalExcelRows.value = 0
-
-  // 清除单元格拆分相关状态
-  cellSplitEnabled.value = false
-  cellSplitSeparator.value = ','
-  customSeparator.value = ''
-  cellSplitStats.value = {
-    originalRows: 0,
-    splitRows: 0,
-    expandedRows: 0,
-  }
-
-  // 清除字段映射数据 - 关键修复
   resetMappings()
 
-  // 清除自定义绑定相关状态
   customBindingEnabled.value = false
   customBindingManager.resetBindings()
 
-  // 清除生成的SQL
   generatedSql.value = ''
 
   logInfo('已清除上传的文件及相关数据', 'file', {
@@ -743,60 +690,10 @@ const clearFile = () => {
   message.info('文件及相关数据已清除')
 }
 
-/**
- * 处理去重开关切换
- * 当关闭去重时，恢复原始数据并清除所有去重相关设置
- * @param {boolean} checked - 去重开关状态
- */
 const handleDeduplicationToggle = (checked) => {
-  // 更新开关状态
-  deduplicationEnabled.value = checked
-
-  if (!checked) {
-    // 恢复原始数据
-    if (originalExcelData.value.length > 0) {
-      const previousRowCount = excelData.value.length
-      excelData.value = [...originalExcelData.value]
-      const restoredRowCount = excelData.value.length
-
-      logInfo(
-        `数据去重已关闭，已恢复原始数据（${previousRowCount} 行 → ${restoredRowCount} 行）`,
-        'deduplication',
-        {
-          operation: 'resetDeduplication',
-          previousRowCount,
-          restoredRowCount,
-          restored: true,
-        },
-      )
-      message.success(`数据去重已关闭，已恢复原始数据（${restoredRowCount} 行）`)
-    } else {
-      logInfo('数据去重已关闭（无原始数据可恢复）', 'deduplication', {
-        operation: 'resetDeduplication',
-        restored: false,
-      })
-      message.info('数据去重已关闭')
-    }
-
-    // 清除去重相关设置
-    deduplicationColumn.value = undefined
-    deduplicationStats.value = {
-      originalRows: 0,
-      deduplicatedRows: 0,
-      removedRows: 0,
-    }
-  } else {
-    logInfo('已启用数据去重，请选择去重列', 'deduplication', {
-      operation: 'enableDeduplication',
-    })
-    message.info('已启用数据去重，请选择去重列')
-  }
+  handleDeduplicationToggleBase(checked, excelData.value, logInfo)
 }
 
-/**
- * 处理去重列选择变化
- * @param {number} column - 选中的列索引
- */
 const handleDeduplicationChange = (column) => {
   deduplicationColumn.value = column
   if (column !== undefined) {
@@ -804,33 +701,14 @@ const handleDeduplicationChange = (column) => {
   }
 }
 
-/**
- * 处理单元格拆分开关切换
- * @param {boolean} enabled - 开关状态
- */
 const handleCellSplitToggle = (enabled) => {
-  cellSplitEnabled.value = enabled
+  handleCellSplitToggleBase(enabled)
 }
 
-/**
- * 处理单元格拆分分隔符变化
- * @param {string} separator - 新的分隔符
- */
-const handleCellSplitSeparatorChange = (separator) => {
-  cellSplitSeparator.value = separator
-}
-
-/**
- * 应用单元格拆分
- */
 const handleCellSplitApply = () => {
   message.info('单元格拆分功能开发中')
 }
 
-/**
- * 处理数据库类型变更
- * @param {string} type - 数据库类型
- */
 const handleDatabaseTypeChange = (type) => {
   databaseType.value = type
   logInfo(`数据库类型已切换为: ${type}`, 'database', {
@@ -839,90 +717,14 @@ const handleDatabaseTypeChange = (type) => {
   })
 }
 
-/**
- * 应用去重逻辑
- * 根据选定列的值去除重复数据行，仅保留每组的第一次出现
- * 始终基于原始数据进行去重，切换去重列时会恢复原始数据后再去重
- */
 const applyDeduplication = () => {
-  if (deduplicationColumn.value === undefined || deduplicationColumn.value === null) {
-    message.warning('请先选择去重列')
-    return
-  }
-
-  if (!excelData.value || excelData.value.length === 0) {
-    message.warning('没有可去重的数据')
-    return
-  }
-
-  // 如果有原始数据，先恢复原始数据再进行去重
-  // 这样可以确保每次切换去重列时都基于原始数据计算
-  if (originalExcelData.value.length > 0) {
-    excelData.value = [...originalExcelData.value]
-  }
-
-  const columnIndex = deduplicationColumn.value
-  const seenValues = new Set()
-  const deduplicatedData = []
-
-  excelData.value.forEach((row) => {
-    const value = row[columnIndex]
-    if (!seenValues.has(value)) {
-      seenValues.add(value)
-      deduplicatedData.push(row)
-    }
-  })
-
-  const originalRows = excelData.value.length
-  const deduplicatedRows = deduplicatedData.length
-  const removedRows = originalRows - deduplicatedRows
-
-  excelData.value = deduplicatedData
-
-  deduplicationStats.value = {
-    originalRows,
-    deduplicatedRows,
-    removedRows,
-  }
-
-  if (removedRows > 0) {
-    logInfo(
-      `数据去重完成: 原始 ${originalRows} 行 → 去重后 ${deduplicatedRows} 行 (去除 ${removedRows} 行重复)`,
-      'deduplication',
-      {
-        operation: 'applyDeduplication',
-        columnIndex,
-        columnName: excelHeaders.value[columnIndex],
-        originalRows,
-        deduplicatedRows,
-        removedRows,
-      },
-    )
-    message.success(`去重完成: 原始 ${originalRows} 行 → 去重后 ${deduplicatedRows} 行`)
-  } else {
-    logInfo('数据去重完成: 未发现重复数据', 'deduplication', {
-      operation: 'applyDeduplication',
-      columnIndex,
-      columnName: excelHeaders.value[columnIndex],
-      originalRows,
-      deduplicatedRows,
-      removedRows,
-    })
-    message.info('未发现重复数据')
-  }
+  applyDeduplicationBase(excelData.value, excelHeaders.value, logInfo)
 }
 
-/**
- * 处理行范围开关切换
- * 当关闭行范围选择时，恢复原始数据并清除所有行范围相关设置
- * @param {boolean} checked - 行范围开关状态
- */
 const handleRowRangeToggle = (checked) => {
-  // 更新开关状态
   rowRangeEnabled.value = checked
 
   if (!checked) {
-    // 恢复原始数据
     if (originalExcelData.value.length > 0) {
       const previousRowCount = excelData.value.length
       excelData.value = [...originalExcelData.value]
@@ -947,7 +749,6 @@ const handleRowRangeToggle = (checked) => {
       message.info('行范围选择已关闭')
     }
 
-    // 清除行范围相关设置
     startRow.value = null
     endRow.value = null
     includeHeader.value = true
@@ -987,45 +788,34 @@ const applyRowRange = async () => {
   uploading.value = true
 
   try {
-    // 如果需要保留原始表头，使用快速方法获取表头
     let headers = []
     let rows = []
 
     if (includeHeader.value) {
-      // 优先使用已解析的excelHeaders作为表头
       if (excelHeaders.value && excelHeaders.value.length > 0) {
         headers = excelHeaders.value
-        console.log('[applyRowRange] 使用已解析的excelHeaders:', headers)
       } else if (excelData.value && excelData.value.length > 0) {
-        // 备用方案：从第一行数据中提取
         const firstRow = excelData.value[0]
         headers = Object.keys(firstRow)
-        console.log('[applyRowRange] 从已解析数据中提取表头:', headers)
       } else {
-        // 如果没有已解析数据，使用getHeaders
         headers = await getHeaders(uploadedFile.value, {
           sheetIndex: 0,
         })
       }
 
-      // 如果设置了行范围，从原始数据中截取指定范围
       if (
         startRow.value &&
         endRow.value &&
         originalExcelData.value &&
         originalExcelData.value.length > 0
       ) {
-        // originalExcelData.value是从第2行开始的数据（不包含表头）
-        // 如果startRow=2, endRow=5，应该取originalExcelData.value的第1-4行（索引0-3）
         const startIndex = startRow.value - 1
         const endIndex = endRow.value - 1
         rows = originalExcelData.value.slice(startIndex, endIndex + 1)
       } else {
-        // 没有设置行范围，使用原始数据
         rows = originalExcelData.value || []
       }
     } else {
-      // 不包含表头的情况，直接解析数据范围
       const result = await parseExcelEnhanced(uploadedFile.value, {
         sheetIndex: 0,
         maxRows: 10000,
@@ -1058,12 +848,9 @@ const applyRowRange = async () => {
     // 注意：行范围变化只影响数据行，不影响表头和字段映射
     // 因此不需要重新执行字段匹配，保留用户已配置的映射关系
   } catch (error) {
-    console.error('应用行范围失败:', error)
-
     let errorMessage = error.message || '未知错误'
     let userFriendlyMessage = errorMessage
 
-    // 提供更友好的错误提示
     if (errorMessage.includes('无法识别表头信息')) {
       userFriendlyMessage =
         'Excel文件所有行都没有有效的表头数据，请检查文件内容或选择包含表头的行范围'
@@ -1082,10 +869,6 @@ const applyRowRange = async () => {
   }
 }
 
-/**
- * 重置行范围
- * 恢复到处理所有行
- */
 const resetRowRange = async () => {
   if (!uploadedFile.value) {
     message.warning('请先上传Excel文件')
@@ -1095,8 +878,6 @@ const resetRowRange = async () => {
   uploading.value = true
 
   try {
-    console.log('重置行范围，处理所有数据')
-
     const result = await parseExcelEnhanced(uploadedFile.value, {
       sheetIndex: 0,
       maxRows: 10000,
@@ -1114,11 +895,7 @@ const resetRowRange = async () => {
       totalRowCount: result.rows.length,
     })
     message.success(`行范围已重置，共 ${result.rows.length} 行数据`)
-
-    // 注意：行范围重置只影响数据行，不影响表头和字段映射
-    // 因此不需要重新执行字段匹配，保留用户已配置的映射关系
   } catch (error) {
-    console.error('重置行范围失败:', error)
     const friendlyError = logError(error, 'row-range', {
       operation: 'resetRowRange',
       errorMessage: error.message,
@@ -1178,38 +955,26 @@ const handleGeneratedByFunctionChange = (record) => {
 }
 
 const clearMapping = (ddlFieldName) => {
-  console.log('执行clearMapping:', ddlFieldName)
-
-  // 查找字段信息，判断是否为自定义字段
   const fieldInfo = parsedFields.value.find((field) => field.name === ddlFieldName)
-  console.log('字段信息:', fieldInfo)
 
-  // 从fieldMappings中移除对应的映射记录（无论是自定义字段还是普通字段）
   const mappingIndex = fieldMappings.value.findIndex(
     (mapping) => mapping.ddlField.name === ddlFieldName,
   )
   if (mappingIndex >= 0) {
     fieldMappings.value.splice(mappingIndex, 1)
-    console.log('已从fieldMappings移除映射记录:', ddlFieldName)
   }
 
   if (fieldInfo && fieldInfo.isCustom) {
-    // 1. 从parsedFields中移除自定义字段
     const fieldIndex = parsedFields.value.findIndex((field) => field.name === ddlFieldName)
     if (fieldIndex >= 0) {
       parsedFields.value.splice(fieldIndex, 1)
-      console.log('已从parsedFields移除自定义字段:', ddlFieldName)
     }
 
-    // 2. 从customBindingManager中移除自定义字段
     customBindingManager.removeCustomField(ddlFieldName)
-    console.log('已从customBindingManager移除自定义字段:', ddlFieldName)
 
     logInfo(`移除自定义字段: ${ddlFieldName}`)
     message.info(`已移除自定义字段: ${ddlFieldName}`)
   } else {
-    // 如果是普通字段，从fieldMappings中移除后就不再显示在界面上
-    console.log('已移除普通字段映射记录:', ddlFieldName)
     logInfo(`移除字段映射记录: ${ddlFieldName}`)
     message.info(`已移除字段映射记录: ${ddlFieldName}`)
   }
@@ -1242,27 +1007,14 @@ const handleClearCache = () => {
   message.success('缓存已清除，下次解析将重新计算')
 }
 
-// SQL美化相关方法
 const toggleBeautifyOptions = () => {
-  const newState = !showBeautifyOptions.value
-  showBeautifyOptions.value = newState
-
-  logInfo(`SQL美化选项面板${newState ? '显示' : '隐藏'}`, 'beautify', {
-    operation: 'toggleBeautifyOptions',
-    operationType: 'beautify',
-    isVisible: newState,
-  })
+  toggleBeautifyOptionsBase(logInfo)
 }
 
 const applyBeautifyOptions = async () => {
   try {
-    // 记录美化选项应用前的状态
-    const previousOptions = { ...beautifyOptions.value }
-
-    // 应用美化选项到SQL生成器
     setBeautifyOptions(beautifyOptions.value)
 
-    // 如果已有生成的SQL，重新应用美化
     if (generatedSql.value) {
       const tableName = extractTableName(ddlStatement.value)
       const sql = generateInsertSql(tableName, fieldMappings.value, excelData.value, {
@@ -1271,20 +1023,15 @@ const applyBeautifyOptions = async () => {
         batch: 100,
         comments: includeComments.value,
         beautifyOptions: beautifyOptions.value,
-        customBindingManager: customBindingManager, // 添加customBindingManager参数
+        customBindingManager: customBindingManager,
       })
       generatedSql.value = sql
     }
 
-    // 记录详细的美化选项变更
-    const optionChanges = getOptionChanges(previousOptions, beautifyOptions.value)
     logInfo('SQL美化选项已应用', 'beautify', {
       operation: 'applyBeautifyOptions',
       operationType: 'beautify',
       options: beautifyOptions.value,
-      changes: optionChanges,
-      hasSql: !!generatedSql.value,
-      sqlLength: generatedSql.value ? generatedSql.value.length : 0,
     })
     message.success('美化选项已应用')
   } catch (error) {
@@ -1298,56 +1045,7 @@ const applyBeautifyOptions = async () => {
 }
 
 const resetBeautifyOptions = () => {
-  const previousOptions = { ...beautifyOptions.value }
-
-  beautifyOptions.value = {
-    indentSpaces: 4,
-    formatStyle: 'expanded',
-    keywordCase: 'upper',
-    maxLineLength: 80,
-    alignValues: true,
-  }
-  resetDefaultBeautifyOptions()
-
-  // 记录重置操作的详细信息
-  const optionChanges = getOptionChanges(previousOptions, beautifyOptions.value)
-  logInfo('SQL美化选项已重置为默认值', 'beautify', {
-    operation: 'resetBeautifyOptions',
-    operationType: 'beautify',
-    previousOptions: previousOptions,
-    newOptions: beautifyOptions.value,
-    changes: optionChanges,
-  })
-  message.info('美化选项已重置')
-}
-
-// 获取美化选项变更详情
-const getOptionChanges = (previous, current) => {
-  const changes = []
-
-  if (previous.indentSpaces !== current.indentSpaces) {
-    changes.push(`缩进空格数: ${previous.indentSpaces} → ${current.indentSpaces}`)
-  }
-
-  if (previous.formatStyle !== current.formatStyle) {
-    changes.push(`格式化风格: ${previous.formatStyle} → ${current.formatStyle}`)
-  }
-
-  if (previous.keywordCase !== current.keywordCase) {
-    changes.push(`关键字大小写: ${previous.keywordCase} → ${current.keywordCase}`)
-  }
-
-  if (previous.maxLineLength !== current.maxLineLength) {
-    changes.push(`最大行长度: ${previous.maxLineLength} → ${current.maxLineLength}`)
-  }
-
-  if (previous.alignValues !== current.alignValues) {
-    changes.push(
-      `垂直对齐: ${previous.alignValues ? '开启' : '关闭'} → ${current.alignValues ? '开启' : '关闭'}`,
-    )
-  }
-
-  return changes.length > 0 ? changes : ['无变更']
+  resetBeautifyOptionsBase(logInfo, resetDefaultBeautifyOptions)
 }
 
 const handleSqlCopy = () => {
@@ -1465,73 +1163,6 @@ const extractTableName = (ddl) => {
   return 'unknown_table'
 }
 
-const getLogColor = (level, operationType) => {
-  // 美化操作使用特殊颜色
-  if (operationType === 'beautify') {
-    return 'green'
-  }
-
-  const colors = {
-    info: 'blue',
-    warning: 'orange',
-    error: 'red',
-  }
-  return colors[level] || 'gray'
-}
-
-const formatTime = (timestamp) => {
-  return new Date(timestamp).toLocaleTimeString('zh-CN')
-}
-
-const formatLogMessage = (log) => {
-  let message = log.message
-
-  // 美化操作的特殊格式化
-  if (log.context && log.context.operationType === 'beautify') {
-    const operation = log.context.operation || 'unknown'
-
-    switch (operation) {
-      case 'toggleBeautifyOptions': {
-        const isVisible = log.context.isVisible ? '显示' : '隐藏'
-        message += ` (${isVisible}美化选项面板)`
-        break
-      }
-
-      case 'applyBeautifyOptions':
-        if (log.context.changes && log.context.changes.length > 0) {
-          message += ` (变更: ${log.context.changes.join(', ')})`
-        }
-        break
-
-      case 'resetBeautifyOptions':
-        if (log.context.changes && log.context.changes.length > 0) {
-          message += ` (重置项: ${log.context.changes.join(', ')})`
-        }
-        break
-    }
-
-    // 添加美化选项摘要
-    if (log.context.options) {
-      const options = log.context.options
-      const summary = `[缩进:${options.indentSpaces}空格, 风格:${options.formatStyle}, 关键字:${options.keywordCase}]`
-      message += ` ${summary}`
-    }
-  }
-
-  return message
-}
-
-const clearLogs = () => {
-  operationLogs.value = []
-  logInfo('操作日志已清除')
-}
-
-const exportLogs = () => {
-  // 实现日志导出功能
-  message.info('日志导出功能开发中')
-}
-
-// 自定义绑定相关方法
 const openCustomBindingModal = () => {
   showCustomBindingModal.value = true
 }
@@ -1544,80 +1175,58 @@ const handleCustomBindingToggle = (checked) => {
 }
 
 const handleCustomBindingSave = (savedConfig) => {
-  // 保存自定义绑定配置
   logInfo('自定义绑定配置已保存')
-  console.log(
-    '保存的自定义绑定配置:==================================================',
-    customBindingManager,
-  )
 
   try {
-    // 确保自定义绑定已启用
     if (!customBindingEnabled.value) {
       customBindingEnabled.value = true
       customBindingManager.setEnableCustomBinding(true)
       logInfo('已自动启用自定义绑定')
     }
 
-    // 1. 首先导入完整的绑定配置到customBindingManager
     if (savedConfig && typeof savedConfig === 'object') {
       customBindingManager.importBindings(savedConfig)
-      console.log('已导入完整绑定配置到customBindingManager')
     }
 
-    // 2. 处理单列绑定（customBindings）- 同步到fieldMappings
     const customBindings = Array.isArray(customBindingManager.customBindings.value)
       ? customBindingManager.customBindings.value
       : []
 
-    console.log('单列绑定数据:', customBindings)
-
-    // 过滤出单列绑定
     const singleBindings = customBindings.filter((binding) => binding.bindingType === 'single')
 
-    // 遍历单列绑定，更新或创建映射记录
     singleBindings.forEach((binding) => {
       const { ddlFieldName, excelIndex } = binding
 
-      // 查找DDL字段
       let ddlField = parsedFields.value.find((field) => field.name === ddlFieldName)
 
-      // 如果DDL字段不存在（可能是自定义字段名），创建临时字段对象
       if (!ddlField) {
-        console.warn(`DDL字段 ${ddlFieldName} 不存在，创建临时字段对象`)
         ddlField = {
           name: ddlFieldName,
           type: 'string',
           nullable: true,
           isIdentity: false,
           primaryKey: false,
-          isCustom: true, // 标记为自定义字段
+          isCustom: true,
           customConfig: {
             fieldName: ddlFieldName,
-            isFromCustomBinding: true, // 标记来自自定义绑定
+            isFromCustomBinding: true,
           },
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         }
-        // 添加到parsedFields中，确保后续可以找到
         parsedFields.value.push(ddlField)
-        console.log(`已添加临时字段到parsedFields: ${ddlFieldName}`)
       }
 
-      // 查找现有映射记录
       const existingIndex = fieldMappings.value.findIndex((m) => m.ddlField?.name === ddlFieldName)
 
       if (existingIndex >= 0) {
-        // 更新现有映射记录
         fieldMappings.value[existingIndex] = {
           ...fieldMappings.value[existingIndex],
           excelIndex: excelIndex,
           excelHeader: excelIndex >= 0 ? excelHeaders.value[excelIndex] : null,
           status: excelIndex >= 0 ? 'bound' : 'unmatched',
         }
-        console.log(`已更新单列绑定映射: ${ddlFieldName} -> 列${excelIndex + 1}`)
       } else {
-        // 创建新的映射记录
         const mapping = {
           ddlField: ddlField,
           excelHeader: excelIndex >= 0 ? excelHeaders.value[excelIndex] : null,
@@ -1627,26 +1236,16 @@ const handleCustomBindingSave = (savedConfig) => {
           status: excelIndex >= 0 ? 'bound' : 'unmatched',
         }
         fieldMappings.value.push(mapping)
-        console.log(`已添加单列绑定映射: ${ddlFieldName} -> 列${excelIndex + 1}`)
       }
     })
 
-    // 2.5. 处理字段拼接规则中的自定义字段名称
     const fieldConcatenationRules = Array.isArray(
       customBindingManager.fieldConcatenationRules.value,
     )
       ? customBindingManager.fieldConcatenationRules.value
       : []
 
-    console.log('字段拼接规则数据:', fieldConcatenationRules)
-
-    // 从字段拼接规则中提取自定义字段
     fieldConcatenationRules.forEach((rule) => {
-      console.log('处理字段拼接规则:', rule)
-      console.log('  ddlFieldName:', rule.ddlFieldName)
-      console.log('  sourceColumns:', rule.sourceColumns)
-
-      // 使用 ddlFieldName 作为自定义字段名称
       if (rule.ddlFieldName && rule.ddlFieldName.trim() !== '') {
         const customField = {
           fieldName: rule.ddlFieldName,
@@ -1660,17 +1259,9 @@ const handleCustomBindingSave = (savedConfig) => {
           },
         }
 
-        // 将自定义字段添加到 customBindingManager
         customBindingManager.addCustomField(customField)
-        console.log(`从字段拼接规则添加自定义字段: ${customField.fieldName}`)
-      } else {
-        console.log('跳过规则，ddlFieldName为空')
       }
     })
-
-    // 3. 获取自定义字段数据，确保它是数组
-    console.log('savedConfig:', savedConfig)
-    console.log('customBindingManager.customFields.value:', customBindingManager.customFields.value)
 
     let customFields = []
 
@@ -1682,9 +1273,6 @@ const handleCustomBindingSave = (savedConfig) => {
         : []
     }
 
-    console.log('customFields:', customFields)
-
-    // 3. 去重处理：移除空字段名的自定义字段，并根据fieldName去重
     const validCustomFieldsMap = new Map()
     customFields.forEach((field) => {
       if (
@@ -1693,18 +1281,11 @@ const handleCustomBindingSave = (savedConfig) => {
         field.fieldName &&
         field.fieldName.trim() !== ''
       ) {
-        // 使用Map去重，保留最后一个出现的字段
         validCustomFieldsMap.set(field.fieldName.trim(), field)
       }
     })
-    // 转换为数组
     const validCustomFields = Array.from(validCustomFieldsMap.values())
 
-    console.log('有效自定义字段（去重后）:', validCustomFields)
-    console.log('有效自定义字段数量:', validCustomFields.length)
-
-    // 4. 更新或添加自定义字段到parsedFields（避免删除所有字段导致配置丢失）
-    // 创建字段名到新配置的映射
     const newFieldConfigMap = new Map()
     validCustomFields.forEach((field) => {
       if (field.fieldName) {
@@ -1712,12 +1293,10 @@ const handleCustomBindingSave = (savedConfig) => {
       }
     })
 
-    // 遍历现有的parsedFields，更新或删除自定义字段
     const fieldsToRemove = new Set()
     parsedFields.value.forEach((field, index) => {
       if (field.isCustom) {
         if (newFieldConfigMap.has(field.name)) {
-          // 更新现有的自定义字段
           const newConfig = newFieldConfigMap.get(field.name)
           parsedFields.value[index] = {
             ...parsedFields.value[index],
@@ -1726,43 +1305,34 @@ const handleCustomBindingSave = (savedConfig) => {
             type: newConfig.dataType || field.type,
             updatedAt: new Date().toISOString(),
           }
-          // 从映射中移除，表示已处理
           newFieldConfigMap.delete(field.name)
         } else {
-          // 标记需要删除的字段
           fieldsToRemove.add(field.name)
         }
       }
     })
 
-    // 删除不再存在的自定义字段
     if (fieldsToRemove.size > 0) {
       parsedFields.value = parsedFields.value.filter((field) => !fieldsToRemove.has(field.name))
       logInfo(`已移除 ${fieldsToRemove.size} 个不再存在的自定义字段`)
     }
 
-    // 添加新的自定义字段
     let addedCount = 0
     newFieldConfigMap.forEach((customField) => {
       try {
-        console.log(`添加新自定义字段:`, customField)
-
-        // 构建符合DDL解析结果结构的字段对象
         const ddlField = {
           name: customField.fieldName,
           type: customField.dataType || 'string',
           nullable: customField.nullable !== false,
-          isIdentity: false, // 自定义字段不应该被标记为数据库层的自增字段
-          primaryKey: false, // 自定义字段不应该被标记为主键字段
-          isCustom: true, // 标记为自定义字段
-          customConfig: customField, // 保存原始自定义字段配置
+          isIdentity: false,
+          primaryKey: false,
+          isCustom: true,
+          customConfig: customField,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         }
 
-        // 添加到DDL解析结果集合中
         parsedFields.value.push(ddlField)
-        console.log(`已添加到parsedFields:`, ddlField.name)
         addedCount++
         logInfo(`添加自定义字段: ${customField.fieldName}`)
       } catch (error) {
@@ -1778,10 +1348,7 @@ const handleCustomBindingSave = (savedConfig) => {
     logInfo(
       `成功更新 ${parsedFields.value.length - fieldsToRemove.size} 个现有字段，添加 ${addedCount} 个新字段`,
     )
-    console.log('最终parsedFields:', parsedFields.value)
-    console.log('最终parsedFields数量:', parsedFields.value.length)
 
-    // 6. 为新添加的自定义字段创建或更新映射记录，并同步到 customBindingManager
     validCustomFields.forEach((customField) => {
       const ddlFieldRef = parsedFields.value.find((field) => field.name === customField.fieldName)
 
@@ -1810,12 +1377,8 @@ const handleCustomBindingSave = (savedConfig) => {
         fieldMappings.value.push(mapping)
       }
 
-      // 将自定义字段添加到 customBindingManager，确保 enhancedMatchFields 能够获取到配置
       customBindingManager.addCustomField(customField)
     })
-
-    console.log('最终fieldMappings:', fieldMappings.value)
-    console.log('最终fieldMappings数量:', fieldMappings.value.length)
 
     if (parsedFields.value && excelHeaders.value) {
       fieldMappings.value = enhancedMatchFields(
@@ -1830,7 +1393,6 @@ const handleCustomBindingSave = (savedConfig) => {
       `自定义绑定配置已保存，成功处理 ${singleBindings.length} 个单列绑定和 ${addedCount} 个自定义字段`,
     )
 
-    // 清除编辑状态，确保下次打开弹窗是添加模式
     editingCustomField.value = null
   } catch (error) {
     logError(error, 'custom-binding', {
@@ -1871,10 +1433,6 @@ const handleRefreshCustomFields = () => {
   // parseDdl(false)  // 注释掉，避免覆盖已配置的数据
 }
 
-/**
- * 重置所有数据和配置
- * 清除DDL、Excel数据、去重设置、自定义绑定等所有状态
- */
 const resetAll = () => {
   ddlStatement.value = ''
   parsedFields.value = []
@@ -1887,21 +1445,8 @@ const resetAll = () => {
   previewMode.value = 'original'
   fileList.value = []
 
-  // 清除去重相关状态
-  deduplicationEnabled.value = false
-  deduplicationColumn.value = undefined
-  deduplicationStats.value = {
-    originalRows: 0,
-    deduplicatedRows: 0,
-    removedRows: 0,
-  }
-
-  // 清除行范围相关状态
-  rowRangeEnabled.value = false
-  startRow.value = null
-  endRow.value = null
-  includeHeader.value = true
-  totalExcelRows.value = 0
+  clearDeduplication()
+  resetRowRangeState()
 
   handleClearCache()
   customBindingEnabled.value = false

@@ -1,5 +1,30 @@
 # 版本变更历史
 
+## 1.5.34 (2026-02-17)
+
+**代码重构与路由优化**
+
+- UpdatePage.vue 代码重构优化
+  - 导入并使用 useDeduplication、useRowRange、useBeautifyOptions、useOperationLog composables
+  - 移除重复的响应式状态定义
+  - 简化方法使用 composable 导出
+  - 文件从 2724 行减少到 2567 行
+- 修复去重功能问题
+  - 修复 a-checkbox @change 事件传递 Event 对象而非布尔值的问题
+  - 修复 useDeduplication.handleDeduplicationToggle 未设置 deduplicationEnabled 状态的问题
+  - 导出 originalExcelData 供行范围选择使用
+- 修复 InsertPage.vue 问题
+  - 使用 setOriginalData() 替代直接赋值 originalExcelData.value
+  - 导入 originalExcelData 从 composable
+  - 移除重复的 originalExcelData 声明
+- 路由优化
+  - 将路由从 Hash 模式改为 HTML5 History 模式
+  - 添加 Vite 开发服务器 historyApiFallback 配置
+  - 404 回退路由捕获所有不匹配的路由
+- 配置文件管理
+  - 更新 .gitignore 忽略 IDE/编辑器配置文件
+  - 从 Git 缓存移除 .github、.vscode、.trae 等配置目录
+
 ## 1.5.33 (2026-02-16)
 
 **重构 SqlToolPage.vue CSS 为 SCSS 语义化变量**
