@@ -1,5 +1,25 @@
 # 版本变更历史
 
+## 1.5.36 (2026-02-17)
+
+**功能增强与代码重构**
+
+- 新增悬浮按钮组功能
+  - 为 InsertPage、UpdatePage、ExcelFillPage 添加悬浮按钮组
+  - 支持回到顶部和主题切换功能
+- 修复面包屑导航问题
+  - 修正路由名称匹配（insert → tool-insertpage, update → tool-updatepage）
+  - 修正路由路径（/insert → /sql/insert, /update → /sql/update）
+- 修复设置面板主题切换未生效问题
+  - SettingsPanel 与 useThemeStore 同步
+- 新增全局设置管理模块
+  - 创建 useSettings composable 统一管理设置
+  - 文件设置（最大文件大小、支持格式、分块处理）现在可生效
+- 代码目录结构重构
+  - composables 目录分类整理为 core/、excel/、sql/、data/ 四个子目录
+  - utils 目录分类整理为 sql/、database/、field/、file/、log/ 五个子目录
+  - 更新所有 import 引用路径
+
 ## 1.5.35 (2026-02-17)
 
 **修复 GitHub Actions 和 GitHub Pages 部署问题**

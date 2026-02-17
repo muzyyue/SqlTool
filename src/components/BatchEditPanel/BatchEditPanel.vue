@@ -379,8 +379,8 @@ import {
   CodeOutlined,
   FolderOpenOutlined,
 } from '@ant-design/icons-vue'
-import { useBatchImport } from '@/composables/useBatchImport.js'
-import { useTemplateManager } from '@/composables/useTemplateManager.js'
+import { useBatchImport } from '@/composables/data/useBatchImport.js'
+import { useTemplateManager } from '@/composables/data/useTemplateManager.js'
 import TemplateManager from './TemplateManager.vue'
 
 const props = defineProps({

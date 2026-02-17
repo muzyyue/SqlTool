@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { message } from 'ant-design-vue'
-import { useExcelParserEnhanced } from '@/composables/useExcelParserEnhanced'
+import { useExcelParserEnhanced } from '@/composables/excel/useExcelParserEnhanced'
 
 /**
  * Excel数据处理Composable

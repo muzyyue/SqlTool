@@ -297,69 +297,60 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { message } from 'ant-design-vue'
+import { storeToRefs } from 'pinia'
+import { useThemeStore } from '@/stores/theme.js'
+import { useSettings } from '@/composables/core/useSettings.js'
 
-// 定义事件
 const emit = defineEmits(['close'])
 
-// 响应式数据
+const themeStore = useThemeStore()
+const { isDark } = storeToRefs(themeStore)
+const { settings, updateSettings, resetSettings: resetAllSettings, defaultSettings } = useSettings()
+
 const activeTab = ref('general')
 
-// 基本设置
-const themeMode = ref('light')
-const language = ref('zh-CN')
-const layoutMode = ref('fluid')
-const confirmDialogs = ref(true)
-const autoSave = ref(true)
-const saveInterval = ref(5)
+const themeMode = ref(settings.value.themeMode)
+const language = ref(settings.value.language)
+const layoutMode = ref(settings.value.layoutMode)
+const confirmDialogs = ref(settings.value.confirmDialogs)
+const autoSave = ref(settings.value.autoSave)
+const saveInterval = ref(settings.value.saveInterval)
 
-// SQL设置
-const defaultDatabase = ref('mysql')
-const sqlFormat = ref('formatted')
-const batchSize = ref(100)
-const includeComments = ref(true)
-const defaultMatchingAlgorithm = ref('similarity')
-const similarityThreshold = ref(0.3)
-const autoMapping = ref(true)
+watch(themeMode, (newMode) => {
+  themeStore.setTheme(newMode)
+})
 
-// 文件设置
-const maxFileSize = ref(10)
-const supportedFormats = ref(['xlsx', 'xls', 'csv'])
-const chunkProcessing = ref(true)
-const chunkSize = ref(1000)
-const defaultExportFormat = ref('sql')
-const fileEncoding = ref('utf-8')
-const autoDownload = ref(false)
+watch(isDark, (newIsDark) => {
+  themeMode.value = newIsDark ? 'dark' : 'light'
+})
 
-// 高级设置
-const cacheSize = ref(100)
-const parallelProcessing = ref(false)
-const logLevel = ref('info')
-const developerMode = ref(false)
-const consoleLogging = ref(false)
-const performanceMonitoring = ref(false)
+const defaultDatabase = ref(settings.value.defaultDatabase)
+const sqlFormat = ref(settings.value.sqlFormat)
+const batchSize = ref(settings.value.batchSize)
+const includeComments = ref(settings.value.includeComments)
+const defaultMatchingAlgorithm = ref(settings.value.defaultMatchingAlgorithm)
+const similarityThreshold = ref(settings.value.similarityThreshold)
+const autoMapping = ref(settings.value.autoMapping)
 
-// 方法
-const loadSettings = () => {
-  // 从localStorage加载设置
-  const savedSettings = localStorage.getItem('sqlToolSettings')
-  if (savedSettings) {
-    try {
-      const settings = JSON.parse(savedSettings)
-      Object.keys(settings).forEach((key) => {
-        if (refs[key] !== undefined) {
-          refs[key].value = settings[key]
-        }
-      })
-    } catch (error) {
-      console.error('加载设置失败:', error)
-    }
-  }
-}
+const maxFileSize = ref(settings.value.maxFileSize)
+const supportedFormats = ref([...settings.value.supportedFormats])
+const chunkProcessing = ref(settings.value.chunkProcessing)
+const chunkSize = ref(settings.value.chunkSize)
+const defaultExportFormat = ref(settings.value.defaultExportFormat)
+const fileEncoding = ref(settings.value.fileEncoding)
+const autoDownload = ref(settings.value.autoDownload)
 
-const saveSettings = () => {
-  const settings = {
+const cacheSize = ref(settings.value.cacheSize)
+const parallelProcessing = ref(settings.value.parallelProcessing)
+const logLevel = ref(settings.value.logLevel)
+const developerMode = ref(settings.value.developerMode)
+const consoleLogging = ref(settings.value.consoleLogging)
+const performanceMonitoring = ref(settings.value.performanceMonitoring)
+
+const handleSave = () => {
+  const newSettings = {
     themeMode: themeMode.value,
     language: language.value,
     layoutMode: layoutMode.value,
@@ -388,89 +379,45 @@ const saveSettings = () => {
     performanceMonitoring: performanceMonitoring.value,
   }
 
-  try {
-    localStorage.setItem('sqlToolSettings', JSON.stringify(settings))
-    message.success('设置保存成功')
-    emit('close')
-  } catch (error) {
-    message.error('设置保存失败')
-    console.error('保存设置失败:', error)
-  }
-}
-
-const resetSettings = () => {
-  // 重置为默认值
-  themeMode.value = 'light'
-  language.value = 'zh-CN'
-  layoutMode.value = 'fluid'
-  confirmDialogs.value = true
-  autoSave.value = true
-  saveInterval.value = 5
-  defaultDatabase.value = 'mysql'
-  sqlFormat.value = 'formatted'
-  batchSize.value = 100
-  includeComments.value = true
-  defaultMatchingAlgorithm.value = 'similarity'
-  similarityThreshold.value = 0.3
-  autoMapping.value = true
-  maxFileSize.value = 10
-  supportedFormats.value = ['xlsx', 'xls', 'csv']
-  chunkProcessing.value = true
-  chunkSize.value = 1000
-  defaultExportFormat.value = 'sql'
-  fileEncoding.value = 'utf-8'
-  autoDownload.value = false
-  cacheSize.value = 100
-  parallelProcessing.value = false
-  logLevel.value = 'info'
-  developerMode.value = false
-  consoleLogging.value = false
-  performanceMonitoring.value = false
-
-  message.success('设置已恢复为默认值')
-}
-
-const handleSave = () => {
-  saveSettings()
+  updateSettings(newSettings)
+  message.success('设置保存成功')
+  emit('close')
 }
 
 const handleReset = () => {
-  resetSettings()
+  resetAllSettings()
+  themeMode.value = defaultSettings.themeMode
+  language.value = defaultSettings.language
+  layoutMode.value = defaultSettings.layoutMode
+  confirmDialogs.value = defaultSettings.confirmDialogs
+  autoSave.value = defaultSettings.autoSave
+  saveInterval.value = defaultSettings.saveInterval
+  defaultDatabase.value = defaultSettings.defaultDatabase
+  sqlFormat.value = defaultSettings.sqlFormat
+  batchSize.value = defaultSettings.batchSize
+  includeComments.value = defaultSettings.includeComments
+  defaultMatchingAlgorithm.value = defaultSettings.defaultMatchingAlgorithm
+  similarityThreshold.value = defaultSettings.similarityThreshold
+  autoMapping.value = defaultSettings.autoMapping
+  maxFileSize.value = defaultSettings.maxFileSize
+  supportedFormats.value = [...defaultSettings.supportedFormats]
+  chunkProcessing.value = defaultSettings.chunkProcessing
+  chunkSize.value = defaultSettings.chunkSize
+  defaultExportFormat.value = defaultSettings.defaultExportFormat
+  fileEncoding.value = defaultSettings.fileEncoding
+  autoDownload.value = defaultSettings.autoDownload
+  cacheSize.value = defaultSettings.cacheSize
+  parallelProcessing.value = defaultSettings.parallelProcessing
+  logLevel.value = defaultSettings.logLevel
+  developerMode.value = defaultSettings.developerMode
+  consoleLogging.value = defaultSettings.consoleLogging
+  performanceMonitoring.value = defaultSettings.performanceMonitoring
+  themeStore.setTheme('light')
+  message.success('设置已恢复为默认值')
 }
 
-// 引用所有响应式变量，用于批量操作
-const refs = {
-  themeMode,
-  language,
-  layoutMode,
-  confirmDialogs,
-  autoSave,
-  saveInterval,
-  defaultDatabase,
-  sqlFormat,
-  batchSize,
-  includeComments,
-  defaultMatchingAlgorithm,
-  similarityThreshold,
-  autoMapping,
-  maxFileSize,
-  supportedFormats,
-  chunkProcessing,
-  chunkSize,
-  defaultExportFormat,
-  fileEncoding,
-  autoDownload,
-  cacheSize,
-  parallelProcessing,
-  logLevel,
-  developerMode,
-  consoleLogging,
-  performanceMonitoring,
-}
-
-// 生命周期
 onMounted(() => {
-  loadSettings()
+  themeMode.value = isDark.value ? 'dark' : 'light'
 })
 </script>
 

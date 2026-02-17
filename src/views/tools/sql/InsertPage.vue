@@ -301,31 +301,65 @@
       @save="handleCustomBindingSave"
       @cancel="handleCustomBindingCancel"
     />
+
+    <!-- 悬浮按钮组 -->
+    <a-float-button-group trigger="click" type="primary" shape="circle">
+      <template #icon><SettingOutlined /></template>
+      <a-float-button @click="scrollToTop">
+        <template #icon><VerticalAlignTopOutlined /></template>
+        <template #tooltip>回到顶部</template>
+      </a-float-button>
+      <a-float-button @click="handleToggleTheme">
+        <template #icon>
+          <BulbOutlined v-if="!isDark" />
+          <BulbFilled v-else />
+        </template>
+        <template #tooltip>{{ isDark ? '切换亮色模式' : '切换暗色模式' }}</template>
+      </a-float-button>
+    </a-float-button-group>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, h } from 'vue'
 import { message, Modal } from 'ant-design-vue'
+import { storeToRefs } from 'pinia'
 import {
   ReloadOutlined,
   PlayCircleOutlined,
   QuestionCircleOutlined,
   SettingOutlined,
   ClockCircleOutlined,
+  VerticalAlignTopOutlined,
+  BulbOutlined,
+  BulbFilled,
 } from '@ant-design/icons-vue'
+import { useThemeStore } from '@/stores/theme.js'
+import { useSettings } from '@/composables/core/useSettings.js'
+
+const themeStore = useThemeStore()
+const { isDark } = storeToRefs(themeStore)
+const { getSetting } = useSettings()
+
+const scrollToTop = () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+const handleToggleTheme = () => {
+  themeStore.toggle()
+}
 
 // 导入核心功能模块
-import { useDdlParser } from '@/composables/useDdlParser'
-import { useExcelParserEnhanced } from '@/composables/useExcelParserEnhanced'
-import { useFieldMatcher } from '@/composables/useFieldMatcher'
-import { useSqlGeneratorEnhanced } from '@/composables/useSqlGeneratorEnhanced'
-import { useErrorHandler } from '@/composables/useErrorHandler'
-import { useDeduplication } from '@/composables/useDeduplication'
-import { useRowRange } from '@/composables/useRowRange'
-import { useBeautifyOptions } from '@/composables/useBeautifyOptions'
-import { useOperationLog } from '@/composables/useOperationLog'
-import { useCellSplit } from '@/composables/useCellSplit'
+import { useDdlParser } from '@/composables/sql/useDdlParser'
+import { useExcelParserEnhanced } from '@/composables/excel/useExcelParserEnhanced'
+import { useFieldMatcher } from '@/composables/data/useFieldMatcher'
+import { useSqlGeneratorEnhanced } from '@/composables/sql/useSqlGeneratorEnhanced'
+import { useErrorHandler } from '@/composables/core/useErrorHandler'
+import { useDeduplication } from '@/composables/data/useDeduplication'
+import { useRowRange } from '@/composables/data/useRowRange'
+import { useBeautifyOptions } from '@/composables/data/useBeautifyOptions'
+import { useOperationLog } from '@/composables/core/useOperationLog'
+import { useCellSplit } from '@/composables/excel/useCellSplit'
 
 // 导入组件
 import SqlPreview from '@/components/SqlPreview/SqlPreview.vue'
@@ -604,14 +638,37 @@ const parseDdl = async (forceRefresh = false) => {
 
 const handleUpload = async (options) => {
   const { file, onSuccess, onError } = options
+
+  const maxFileSizeMB = getSetting('maxFileSize') || 10
+  const maxFileSizeBytes = maxFileSizeMB * 1024 * 1024
+  if (file.size > maxFileSizeBytes) {
+    const errorMsg = `文件大小超出限制：${(file.size / 1024 / 1024).toFixed(2)}MB > ${maxFileSizeMB}MB`
+    message.error(errorMsg)
+    onError(errorMsg)
+    return
+  }
+
+  const supportedFormats = getSetting('supportedFormats') || ['xlsx', 'xls', 'csv']
+  const fileExt = file.name.split('.').pop().toLowerCase()
+  if (!supportedFormats.includes(fileExt)) {
+    const errorMsg = `不支持的文件格式：.${fileExt}，支持的格式：${supportedFormats.map(f => `.${f}`).join(', ')}`
+    message.error(errorMsg)
+    onError(errorMsg)
+    return
+  }
+
   uploading.value = true
 
   try {
     uploadedFile.value = file
 
+    const chunkSize = getSetting('chunkSize') || 1000
+    const chunkProcessing = getSetting('chunkProcessing') !== false
+
     const initialResult = await parseExcelEnhanced(file, {
       sheetIndex: 0,
       maxRows: 10000,
+      chunkSize: chunkProcessing ? chunkSize : 10000,
     })
 
     totalExcelRows.value = initialResult.totalRows
@@ -619,6 +676,7 @@ const handleUpload = async (options) => {
     const parseOptions = {
       sheetIndex: 0,
       maxRows: 10000,
+      chunkSize: chunkProcessing ? chunkSize : 10000,
     }
 
     if (rowRangeEnabled.value && startRow.value && endRow.value) {

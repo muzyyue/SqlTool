@@ -51,7 +51,7 @@ import {
   BgColorsOutlined,
   SearchOutlined,
 } from '@ant-design/icons-vue'
-import { useFavorites } from '@/composables/useFavorites.js'
+import { useFavorites } from '@/composables/data/useFavorites.js'
 
 const props = defineProps({
   /** 工具对象 */

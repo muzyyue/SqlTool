@@ -360,7 +360,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
-import { useDdlGenerator } from '@/composables/useDdlGenerator'
+import { useDdlGenerator } from '@/composables/sql/useDdlGenerator'
 import SqlPreview from '@/components/SqlPreview/SqlPreview.vue'
 import {
   ReloadOutlined,

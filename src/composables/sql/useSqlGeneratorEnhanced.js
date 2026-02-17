@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue'
-import { getFunctionInfo } from '../utils/databaseFunctions'
+import { getFunctionInfo } from '@/utils/database/databaseFunctions'
 
 /**
  * 增强版SQL生成器

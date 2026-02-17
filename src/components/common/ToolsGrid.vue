@@ -107,7 +107,7 @@ import {
   CodeOutlined as CodeOutlinedIcon,
 } from '@ant-design/icons-vue'
 import { categories, searchTools, filterToolsByCategory } from '@/config/tools.js'
-import { useFavorites } from '@/composables/useFavorites.js'
+import { useFavorites } from '@/composables/data/useFavorites.js'
 import ToolCard from '@/components/common/ToolCard.vue'
 
 const router = useRouter()

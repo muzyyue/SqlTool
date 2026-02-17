@@ -104,9 +104,9 @@
 import { ref, computed, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { CopyOutlined, DownloadOutlined, EyeOutlined, MoreOutlined } from '@ant-design/icons-vue'
-import { useErrorHandler } from '@/composables/useErrorHandler'
-import { useSqlGeneratorEnhanced } from '@/composables/useSqlGeneratorEnhanced'
-import { sqlHighlighter } from '@/utils/sqlSyntaxHighlighter'
+import { useErrorHandler } from '@/composables/core/useErrorHandler'
+import { useSqlGeneratorEnhanced } from '@/composables/sql/useSqlGeneratorEnhanced'
+import { sqlHighlighter } from '@/utils/sql/sqlSyntaxHighlighter'
 
 const props = defineProps({
   sql: {

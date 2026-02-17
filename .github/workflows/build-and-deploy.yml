@@ -179,11 +179,11 @@ jobs:
         id: generate_release_notes
         run: |
           CHANGELOG=$(git log -1 --stat --pretty=format:"%h - %s%n%b%n%ad by %an" --date=short ${{ github.sha }})
-          CHANGELOG="$CHANGELOG\n\n## 构建信息\n- 构建时间: $(date -u +"%Y-%m-%d %H:%M:%S UTC")\n- 构建编号: ${{ github.run_id }}\n- 构建触发事件: ${{ github.event_name }}\n- 触发分支: ${{ github.ref_name }}\n- 构建者: ${{ github.actor }}"
+          CHANGELOG="$CHANGELOG\n\n## 构建信息\n- 构建时间: $(date -u +"%Y-%m-%d %H:%M:%S UTC")\n- 构建编号: ${{ github.run_id }}\n- 构建触发事件: ${{ github.event_name }}\n- 触发分支: ${{ github.ref_name }}"
           echo "CHANGELOG<<EOF" >> $GITHUB_ENV
           echo "$CHANGELOG" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
-
+  
       - name: Archive build files
         run: |
           cd dist

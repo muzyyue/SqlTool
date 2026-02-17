@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue'
 import { pinyin } from 'pinyin-pro'
 import { useCustomBinding } from './useCustomBinding'
-import { batchConcatenate } from '../utils/fieldConcatenator'
+import { batchConcatenate } from '@/utils/field/fieldConcatenator'
 
 /**
  * 智能字段匹配器

@@ -139,3 +139,11 @@ README：
 八、输出格式
 请把所有源码、配置、示意图按树状结构贴在 Markdown 代码块，顶部一句：
 「复制到 VS Code → pnpm i → pnpm dev，即可看到 Vben 同款高颜值小工具箱」
+
+
+
+nginx添加(需要配置服务器（如 Nginx）将所有请求回退到 index.html):
+
+location / {
+  try_files $uri $uri/ /index.html;
+}

@@ -468,21 +468,56 @@
         </div>
       </VbenGlassCard>
     </div>
+
+    <!-- 悬浮按钮组 -->
+    <a-float-button-group trigger="click" type="primary" shape="circle">
+      <template #icon><SettingOutlined /></template>
+      <a-float-button @click="scrollToTop">
+        <template #icon><VerticalAlignTopOutlined /></template>
+        <template #tooltip>回到顶部</template>
+      </a-float-button>
+      <a-float-button @click="handleToggleTheme">
+        <template #icon>
+          <BulbOutlined v-if="!isDark" />
+          <BulbFilled v-else />
+        </template>
+        <template #tooltip>{{ isDark ? '切换亮色模式' : '切换暗色模式' }}</template>
+      </a-float-button>
+    </a-float-button-group>
   </div>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
 import { message } from 'ant-design-vue'
+import { storeToRefs } from 'pinia'
 import {
   InboxOutlined,
   PlayCircleOutlined,
   ReloadOutlined,
   DownloadOutlined,
   QuestionCircleOutlined,
+  SettingOutlined,
+  VerticalAlignTopOutlined,
+  BulbOutlined,
+  BulbFilled,
 } from '@ant-design/icons-vue'
 import VbenGlassCard from '@/components/common/VbenGlassCard.vue'
 import * as XLSX from 'xlsx'
+import { useThemeStore } from '@/stores/theme.js'
+import { useSettings } from '@/composables/core/useSettings.js'
+
+const themeStore = useThemeStore()
+const { isDark } = storeToRefs(themeStore)
+const { getSetting } = useSettings()
+
+const scrollToTop = () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+const handleToggleTheme = () => {
+  themeStore.toggle()
+}
 
 const fileList = ref([])
 const workbook = ref(null)
@@ -627,19 +662,19 @@ const previewColumns = computed(() => {
  * @returns {boolean} 是否继续上传
  */
 const beforeUpload = async (file) => {
-  const isExcel =
-    file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-    file.name.endsWith('.xlsx') ||
-    file.name.endsWith('.xlsm')
+  const supportedFormats = getSetting('supportedFormats') || ['xlsx', 'xls', 'csv']
+  const fileExt = file.name.split('.').pop().toLowerCase()
+  const isExcel = supportedFormats.includes(fileExt) || fileExt === 'xlsm'
 
   if (!isExcel) {
-    message.error('只能上传 Excel 文件！')
+    message.error(`只能上传 ${supportedFormats.map(f => `.${f}`).join('、')} 格式的文件！`)
     return false
   }
 
-  const maxSize = 50 * 1024 * 1024
+  const maxFileSizeMB = getSetting('maxFileSize') || 10
+  const maxSize = maxFileSizeMB * 1024 * 1024
   if (file.size > maxSize) {
-    message.error(`文件大小超过限制: ${(file.size / 1024 / 1024).toFixed(2)}MB > 50MB`)
+    message.error(`文件大小超过限制: ${(file.size / 1024 / 1024).toFixed(2)}MB > ${maxFileSizeMB}MB`)
     return false
   }
 

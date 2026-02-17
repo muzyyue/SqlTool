@@ -573,7 +573,7 @@ switch
 import { ref, computed, watch, h } from 'vue'
 import { PlusOutlined, CloseCircleOutlined } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
-import { getDatabaseFunctions, getSupportedDatabaseTypes } from '../utils/databaseFunctions'
+import { getDatabaseFunctions, getSupportedDatabaseTypes } from '@/utils/database/databaseFunctions'
 
 // Props
 const props = defineProps({

@@ -152,12 +152,12 @@ const currentPageTitle = computed(() => {
       return '工具箱'
     case 'sql-tool':
       return 'SQL生成工具'
-    case 'insert':
+    case 'tool-insertpage':
       return 'INSERT语句生成'
-    case 'update':
+    case 'tool-updatepage':
       return 'UPDATE语句生成'
     default:
-      return '在线工具箱'
+      return route.meta?.title || '在线工具箱'
   }
 })
 
@@ -179,10 +179,10 @@ const handleMenuClick = ({ key }) => {
       router.push('/sql-tool')
       break
     case 'insert':
-      router.push('/insert')
+      router.push('/sql/insert')
       break
     case 'update':
-      router.push('/update')
+      router.push('/sql/update')
       break
   }
 }
