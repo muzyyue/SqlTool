@@ -6,7 +6,7 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 import UnoCSS from 'unocss/vite'
 
 export default defineConfig({
-  base: '/',
+  base: '/SqlTool/',
   plugins: [vue(), vueDevTools(), UnoCSS()],
   resolve: {
     alias: {

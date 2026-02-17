@@ -1,5 +1,14 @@
 # 版本变更历史
 
+## 1.5.35 (2026-02-17)
+
+**修复 GitHub Actions 和 GitHub Pages 部署问题**
+
+- 修复 Vite base 配置为 `/SqlTool/` 以适配 GitHub Pages 子路径
+- 修复 GitHub Actions workflow 使用动态版本号
+- 移除未使用的变量导入（ESLint 错误修复）
+- 从远程仓库移除 docs 文档目录
+
 ## 1.5.34 (2026-02-17)
 
 **代码重构与路由优化**
