@@ -3,7 +3,7 @@ import {
   generateTemplateData,
   SUPPORTED_FORMATS,
   normalizeHeaders,
-} from '../../src/composables/useImportParser.js'
+} from '../../src/composables/data/useImportParser.js'
 
 describe('useImportParser - 文件解析模块', () => {
   describe('SUPPORTED_FORMATS', () => {

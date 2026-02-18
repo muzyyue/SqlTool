@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { useSqlGeneratorEnhanced } from '../../src/composables/useSqlGeneratorEnhanced'
+import { useSqlGeneratorEnhanced } from '../../src/composables/sql/useSqlGeneratorEnhanced'
 
 /**
  * 字段名修改功能测试套件
