@@ -797,9 +797,51 @@ const hasCustomBindingConfig = computed(() => {
 })
 
 const customFieldsData = computed(() => {
-  return Array.isArray(customBindingManager.customFields.value)
+  const fields = Array.isArray(customBindingManager.customFields.value)
     ? customBindingManager.customFields.value
     : []
+
+  const bindings = Array.isArray(customBindingManager.customBindings.value)
+    ? customBindingManager.customBindings.value
+    : []
+
+  const rules = Array.isArray(customBindingManager.fieldConcatenationRules.value)
+    ? customBindingManager.fieldConcatenationRules.value
+    : []
+
+  const allFields = [...fields]
+
+  bindings.forEach((binding) => {
+    if (binding.bindingType === 'single') {
+      allFields.push({
+        id: `binding-${binding.ddlFieldName}`,
+        fieldName: binding.ddlFieldName,
+        dataType: 'string',
+        dataSource: 'single_binding',
+        config: {
+          excelIndex: binding.excelIndex,
+        },
+        isSingleBinding: true,
+      })
+    }
+  })
+
+  rules.forEach((rule) => {
+    allFields.push({
+      id: `rule-${rule.ddlFieldName}`,
+      fieldName: rule.ddlFieldName,
+      dataType: rule.dataType || 'string',
+      dataSource: 'excel_combine',
+      config: {
+        sourceColumns: rule.sourceColumns,
+        separator: rule.separator,
+        format: rule.format,
+      },
+      isConcatenationRule: true,
+    })
+  })
+
+  return allFields
 })
 
 // 增强匹配统计信息，用于UI显示
@@ -1725,7 +1767,10 @@ const handleCustomBindingSave = (customFieldsData) => {
 
       // 使用 ddlFieldName 作为自定义字段名称
       if (rule.ddlFieldName && rule.ddlFieldName.trim() !== '') {
-        const customField = {
+        // 注意：拼接规则已经存储在 fieldConcatenationRules 中
+        // 不需要再调用 addCustomField，否则会在 customFieldsData 中重复显示
+
+        const customConfig = {
           fieldName: rule.ddlFieldName,
           dataType: rule.dataType || 'string',
           dataSource: 'excel_combine',
@@ -1736,10 +1781,6 @@ const handleCustomBindingSave = (customFieldsData) => {
             isFromConcatenationRule: true,
           },
         }
-
-        // 将自定义字段添加到 customBindingManager
-        customBindingManager.addCustomField(customField)
-        console.log(`从字段拼接规则添加自定义字段: ${customField.fieldName}`)
 
         // 创建或更新 ddlField 和 mapping
         let ddlField = parsedFields.value.find((field) => field.name === rule.ddlFieldName)
@@ -1752,7 +1793,7 @@ const handleCustomBindingSave = (customFieldsData) => {
             isIdentity: false,
             primaryKey: false,
             isCustom: true,
-            customConfig: customField,
+            customConfig: customConfig,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           }
@@ -1766,7 +1807,7 @@ const handleCustomBindingSave = (customFieldsData) => {
             parsedFields.value[existingFieldIndex] = {
               ...parsedFields.value[existingFieldIndex],
               isCustom: true,
-              customConfig: customField,
+              customConfig: customConfig,
               type: rule.dataType || parsedFields.value[existingFieldIndex].type,
               updatedAt: new Date().toISOString(),
             }
@@ -1946,7 +1987,9 @@ const handleEditCustomField = (record) => {
 }
 
 const handleDeleteCustomField = (record) => {
-  logInfo(`删除自定义字段: ${record.fieldName}`)
+  logInfo(`删除: ${record.fieldName}`)
+
+  const dataSource = record.dataSource
 
   // 从fieldMappings中移除对应的映射记录
   const mappingIndex = fieldMappings.value.findIndex(
@@ -1954,7 +1997,24 @@ const handleDeleteCustomField = (record) => {
   )
   if (mappingIndex >= 0) {
     fieldMappings.value.splice(mappingIndex, 1)
-    console.log('已从fieldMappings移除自定义字段映射记录:', record.fieldName)
+    console.log('已从fieldMappings移除映射记录:', record.fieldName)
+  }
+
+  // 根据数据来源从parsedFields中移除对应的字段定义
+  if (dataSource === 'single_binding') {
+    // 单列绑定：不需要从parsedFields移除，因为它是DDL字段
+  } else if (dataSource === 'excel_combine') {
+    // 拼接规则：从parsedFields移除自定义字段
+    const fieldIndex = parsedFields.value.findIndex((field) => field.name === record.fieldName)
+    if (fieldIndex >= 0) {
+      parsedFields.value.splice(fieldIndex, 1)
+    }
+  } else {
+    // 自定义字段：从parsedFields移除
+    const fieldIndex = parsedFields.value.findIndex((field) => field.name === record.fieldName)
+    if (fieldIndex >= 0) {
+      parsedFields.value.splice(fieldIndex, 1)
+    }
   }
 }
 

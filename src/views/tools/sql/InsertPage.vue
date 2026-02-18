@@ -502,7 +502,48 @@ const customFieldsData = computed(() => {
   const fields = Array.isArray(customBindingManager.customFields.value)
     ? customBindingManager.customFields.value
     : []
-  return fields
+
+  const bindings = Array.isArray(customBindingManager.customBindings.value)
+    ? customBindingManager.customBindings.value
+    : []
+
+  const rules = Array.isArray(customBindingManager.fieldConcatenationRules.value)
+    ? customBindingManager.fieldConcatenationRules.value
+    : []
+
+  const allFields = [...fields]
+
+  bindings.forEach((binding) => {
+    if (binding.bindingType === 'single') {
+      allFields.push({
+        id: `binding-${binding.ddlFieldName}`,
+        fieldName: binding.ddlFieldName,
+        dataType: 'string',
+        dataSource: 'single_binding',
+        config: {
+          excelIndex: binding.excelIndex,
+        },
+        isSingleBinding: true,
+      })
+    }
+  })
+
+  rules.forEach((rule) => {
+    allFields.push({
+      id: `rule-${rule.ddlFieldName}`,
+      fieldName: rule.ddlFieldName,
+      dataType: rule.dataType || 'string',
+      dataSource: 'excel_combine',
+      config: {
+        sourceColumns: rule.sourceColumns,
+        separator: rule.separator,
+        format: rule.format,
+      },
+      isConcatenationRule: true,
+    })
+  })
+
+  return allFields
 })
 
 const customFieldManagerKey = computed(() => {
@@ -764,6 +805,12 @@ const clearFile = () => {
  * 优先使用已保存的原始数据，避免重新读取文件
  */
 const handleReparse = async () => {
+  // 重新解析时清空自定义字段数据
+  customBindingEnabled.value = false
+  customBindingManager.resetBindings()
+  resetMappings()
+  logInfo('重新解析，已清空自定义字段数据')
+
   if (originalExcelData.value && originalExcelData.value.length > 0) {
     excelData.value = [...originalExcelData.value]
     if (excelHeaders.value && excelHeaders.value.length > 0) {
@@ -1340,7 +1387,7 @@ const handleCustomBindingToggle = (checked) => {
 }
 
 const handleCustomBindingSave = (savedConfig) => {
-  logInfo('自定义绑定配置已保存')
+  logInfo('自定义绑定配置已保存', savedConfig)
 
   try {
     if (!customBindingEnabled.value) {
@@ -1349,9 +1396,9 @@ const handleCustomBindingSave = (savedConfig) => {
       logInfo('已自动启用自定义绑定')
     }
 
-    if (savedConfig && typeof savedConfig === 'object') {
-      customBindingManager.importBindings(savedConfig)
-    }
+    // 注意：savedConfig 的结构是 { singleBindings, concatenationRules, customFields }
+    // 而不是 { customBindings, fieldConcatenationRules, customFields }
+    // 所以不需要调用 importBindings，因为 CustomBindingModal 已经更新了 customBindingManager
 
     const customBindings = Array.isArray(customBindingManager.customBindings.value)
       ? customBindingManager.customBindings.value
@@ -1416,7 +1463,10 @@ const handleCustomBindingSave = (savedConfig) => {
 
     fieldConcatenationRules.forEach((rule) => {
       if (rule.ddlFieldName && rule.ddlFieldName.trim() !== '') {
-        const customField = {
+        // 注意：拼接规则已经存储在 fieldConcatenationRules 中
+        // 不需要再调用 addCustomField，否则会在 customFieldsData 中重复显示
+
+        const customConfig = {
           fieldName: rule.ddlFieldName,
           dataType: rule.dataType || 'string',
           dataSource: 'excel_combine',
@@ -1428,8 +1478,6 @@ const handleCustomBindingSave = (savedConfig) => {
           },
         }
 
-        customBindingManager.addCustomField(customField)
-
         let ddlField = parsedFields.value.find((field) => field.name === rule.ddlFieldName)
 
         if (!ddlField) {
@@ -1440,7 +1488,7 @@ const handleCustomBindingSave = (savedConfig) => {
             isIdentity: false,
             primaryKey: false,
             isCustom: true,
-            customConfig: customField,
+            customConfig: customConfig,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           }
@@ -1453,7 +1501,7 @@ const handleCustomBindingSave = (savedConfig) => {
             parsedFields.value[existingFieldIndex] = {
               ...parsedFields.value[existingFieldIndex],
               isCustom: true,
-              customConfig: customField,
+              customConfig: customConfig,
               type: rule.dataType || parsedFields.value[existingFieldIndex].type,
               updatedAt: new Date().toISOString(),
             }
@@ -1494,12 +1542,18 @@ const handleCustomBindingSave = (savedConfig) => {
 
     let customFields = []
 
-    if (savedConfig && savedConfig.customFields) {
-      customFields = Array.isArray(savedConfig.customFields) ? savedConfig.customFields : []
-    } else {
-      customFields = Array.isArray(customBindingManager.customFields.value)
-        ? customBindingManager.customFields.value
-        : []
+    // 优先使用 customBindingManager 中的数据，因为 CustomBindingModal 已经更新了它
+    customFields = Array.isArray(customBindingManager.customFields.value)
+      ? customBindingManager.customFields.value
+      : []
+
+    // 如果 savedConfig 中有 customFields，也合并进来
+    if (savedConfig && savedConfig.customFields && Array.isArray(savedConfig.customFields)) {
+      savedConfig.customFields.forEach((field) => {
+        if (field && field.fieldName && !customFields.find((f) => f.fieldName === field.fieldName)) {
+          customFields.push(field)
+        }
+      })
     }
 
     const validCustomFieldsMap = new Map()
@@ -1640,7 +1694,9 @@ const handleEditCustomField = (record) => {
 }
 
 const handleDeleteCustomField = (record) => {
-  logInfo(`删除自定义字段: ${record.fieldName}`)
+  logInfo(`删除: ${record.fieldName}`)
+
+  const dataSource = record.dataSource
 
   // 从fieldMappings中移除对应的映射记录
   const mappingIndex = fieldMappings.value.findIndex(
@@ -1648,7 +1704,24 @@ const handleDeleteCustomField = (record) => {
   )
   if (mappingIndex >= 0) {
     fieldMappings.value.splice(mappingIndex, 1)
-    console.log('已从fieldMappings移除自定义字段映射记录:', record.fieldName)
+    console.log('已从fieldMappings移除映射记录:', record.fieldName)
+  }
+
+  // 根据数据来源从parsedFields中移除对应的字段定义
+  if (dataSource === 'single_binding') {
+    // 单列绑定：不需要从parsedFields移除，因为它是DDL字段
+  } else if (dataSource === 'excel_combine') {
+    // 拼接规则：从parsedFields移除自定义字段
+    const fieldIndex = parsedFields.value.findIndex((field) => field.name === record.fieldName)
+    if (fieldIndex >= 0) {
+      parsedFields.value.splice(fieldIndex, 1)
+    }
+  } else {
+    // 自定义字段：从parsedFields移除
+    const fieldIndex = parsedFields.value.findIndex((field) => field.name === record.fieldName)
+    if (fieldIndex >= 0) {
+      parsedFields.value.splice(fieldIndex, 1)
+    }
   }
 }
 
