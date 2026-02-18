@@ -841,6 +841,12 @@ export function useDdlParser() {
         // 清理字段名中的引号
         name = name.replace(/["']/g, '')
 
+        // 检测内联主键定义（如：fid INT PRIMARY KEY）
+        const hasInlinePrimaryKey = /\bPRIMARY\s+KEY\b/i.test(definition)
+        if (hasInlinePrimaryKey) {
+          console.log(`字段 ${name} 包含内联 PRIMARY KEY 定义`)
+        }
+
         // 处理IDENTITY字段（PostgreSQL自增字段）
         if (isIdentity) {
           type = 'SERIAL' // PostgreSQL自增字段类型
@@ -853,7 +859,7 @@ export function useDdlParser() {
           defaultValue,
           comment,
           isIdentity: !!isIdentity,
-          primaryKey: false, // 新增：主键标识，初始为false，后续通过约束关联设置
+          primaryKey: hasInlinePrimaryKey, // 检测内联主键定义
         }
       }
     }

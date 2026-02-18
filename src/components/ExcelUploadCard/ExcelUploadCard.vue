@@ -389,6 +389,7 @@ const props = defineProps({
 const emit = defineEmits([
   'upload',
   'clear-file',
+  'reparse',
   'deduplication-toggle',
   'deduplication-change',
   'cell-split-toggle',
@@ -468,10 +469,7 @@ const handleClearFile = () => {
 }
 
 const handleReupload = () => {
-  emit('clear-file')
-  setTimeout(() => {
-    emit('upload', {})
-  }, 100)
+  emit('reparse')
 }
 
 const handleDeduplicationToggle = (value) => {
@@ -530,16 +528,16 @@ const resetRowRange = () => {
 }
 
 .excel-upload-card {
-  background: var(--bg-glass);
-  backdrop-filter: blur(var(--backdrop-blur));
-  border: 1px solid var(--border-glass);
-  border-radius: var(--border-radius-md);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
   padding: 20px;
-  transition: all var(--transition-normal) ease;
+  transition: all 0.3s ease;
 }
 
 .excel-upload-card:hover {
-  box-shadow: var(--shadow-card-hover);
+  box-shadow: 0 8px 32px rgba(22, 119, 255, 0.12);
 }
 
 .card-header {
@@ -559,7 +557,7 @@ const resetRowRange = () => {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: #1f2937;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -570,16 +568,16 @@ const resetRowRange = () => {
 }
 
 .upload-zone :deep(.ant-upload-dragger) {
-  border: 2px dashed var(--input-border);
-  border-radius: var(--border-radius-md);
-  background: var(--input-bg);
+  border: 2px dashed #d9d9d9;
+  border-radius: 12px;
+  background: #fafafa;
   padding: 32px;
-  transition: all var(--transition-normal) ease;
+  transition: all 0.3s ease;
 }
 
 .upload-zone :deep(.ant-upload-dragger:hover) {
-  border-color: var(--color-primary);
-  background: var(--color-primary-bg);
+  border-color: #1677ff;
+  background: #f0f7ff;
 }
 
 .upload-content {
@@ -591,14 +589,14 @@ const resetRowRange = () => {
 
 .upload-icon {
   font-size: 48px;
-  color: var(--color-primary);
+  color: #1677ff;
   margin-bottom: 8px;
 }
 
 .upload-text {
   margin: 0;
   font-size: 16px;
-  color: var(--text-primary);
+  color: #1f2937;
 }
 
 .primary-text {
@@ -608,7 +606,7 @@ const resetRowRange = () => {
 .upload-hint {
   margin: 0;
   font-size: 13px;
-  color: var(--text-secondary);
+  color: #6b7280;
 }
 
 .upload-tips {
@@ -628,18 +626,18 @@ const resetRowRange = () => {
   align-items: center;
   gap: 16px;
   padding: 16px;
-  background: var(--gradient-primary-light);
-  border-radius: var(--border-radius-md);
-  border: 1px solid var(--color-primary-border);
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-radius: 12px;
+  border: 1px solid #bae6fd;
 }
 
 .file-icon {
   font-size: 40px;
-  color: var(--color-primary);
-  background: var(--card-bg);
+  color: #1677ff;
+  background: white;
   padding: 12px;
-  border-radius: var(--border-radius-md);
-  box-shadow: var(--shadow-sm);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .file-info {
@@ -649,7 +647,7 @@ const resetRowRange = () => {
 .file-name {
   font-size: 16px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: #1f2937;
   margin-bottom: 4px;
 }
 
@@ -657,7 +655,7 @@ const resetRowRange = () => {
   display: flex;
   gap: 16px;
   font-size: 13px;
-  color: var(--text-secondary);
+  color: #6b7280;
   margin-bottom: 8px;
 }
 
@@ -690,7 +688,7 @@ const resetRowRange = () => {
 }
 
 .preview-info {
-  color: var(--text-secondary);
+  color: #6b7280;
   font-size: 13px;
 }
 
@@ -704,10 +702,10 @@ const resetRowRange = () => {
   align-items: center;
   gap: 8px;
   padding: 12px;
-  background: var(--color-primary-bg);
-  border-radius: var(--border-radius-md);
+  background: #fafafa;
+  border-radius: 8px;
   margin-bottom: 16px;
-  color: var(--color-primary);
+  color: #6b7280;
   font-size: 13px;
 }
 
@@ -715,6 +713,11 @@ const resetRowRange = () => {
 .cell-split-panel,
 .row-range-panel {
   padding: 8px 0;
+}
+
+.panel-description {
+  background: #f0f5ff;
+  color: #2f54eb;
 }
 
 /* 行范围筛选区域响应式布局 */
@@ -883,5 +886,53 @@ const resetRowRange = () => {
   .row-range-summary {
     flex-direction: column;
   }
+}
+
+[data-theme='dark'] .excel-upload-card {
+  background: rgba(30, 41, 59, 0.6);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='dark'] .header-left h3 {
+  color: #f1f5f9;
+}
+
+[data-theme='dark'] .upload-zone :deep(.ant-upload-dragger) {
+  background: #1e293b;
+  border-color: #475569;
+}
+
+[data-theme='dark'] .upload-zone :deep(.ant-upload-dragger:hover) {
+  background: rgba(22, 119, 255, 0.1);
+}
+
+[data-theme='dark'] .file-card {
+  background: linear-gradient(135deg, rgba(22, 119, 255, 0.1) 0%, rgba(20, 201, 201, 0.1) 100%);
+  border-color: rgba(22, 119, 255, 0.3);
+}
+
+[data-theme='dark'] .file-icon {
+  background: #1e293b;
+}
+
+[data-theme='dark'] .file-name {
+  color: #f1f5f9;
+}
+
+[data-theme='dark'] .file-meta {
+  color: #9ca3af;
+}
+
+[data-theme='dark'] .upload-text {
+  color: #f1f5f9;
+}
+
+[data-theme='dark'] .panel-description {
+  background: rgba(22, 119, 255, 0.1);
+  color: #60a5fa;
+}
+
+[data-theme='dark'] .preview-info {
+  color: #9ca3af;
 }
 </style>

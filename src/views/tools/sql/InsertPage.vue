@@ -85,6 +85,7 @@
           :cell-split-stats="cellSplitStats"
           @upload="handleUpload"
           @clear-file="clearFile"
+          @reparse="handleReparse"
           @deduplication-toggle="handleDeduplicationToggle"
           @deduplication-change="handleDeduplicationChange"
           @cell-split-toggle="handleCellSplitToggle"
@@ -376,6 +377,7 @@ const {
   enhancedMatchFields,
   updateFieldMapping,
   validateEnhancedMappings,
+  validateAllFieldsMapped,
   matchingStats,
   customBindingManager,
   resetMappings,
@@ -582,7 +584,7 @@ const mappingColumns = [
     width: '10%',
   },
   {
-    title: '函数生成',
+    title: '自定义',
     key: 'generatedByFunction',
     width: '10%',
   },
@@ -604,6 +606,12 @@ const parseDdl = async (forceRefresh = false) => {
     message.warning('请输入DDL语句')
     return
   }
+
+  // 解析新DDL时清空之前的自定义字段数据
+  customBindingEnabled.value = false
+  customBindingManager.resetBindings()
+  resetMappings()
+  logInfo('解析新DDL，已清空之前的自定义字段数据')
 
   parsingDdl.value = true
 
@@ -638,6 +646,12 @@ const parseDdl = async (forceRefresh = false) => {
 
 const handleUpload = async (options) => {
   const { file, onSuccess, onError } = options
+
+  // 上传新文件时清空之前的自定义字段数据
+  customBindingEnabled.value = false
+  customBindingManager.resetBindings()
+  resetMappings()
+  logInfo('上传新文件，已清空之前的自定义字段数据')
 
   const maxFileSizeMB = getSetting('maxFileSize') || 10
   const maxFileSizeBytes = maxFileSizeMB * 1024 * 1024
@@ -743,6 +757,79 @@ const clearFile = () => {
     resetCellSplit: true,
   })
   message.info('文件及相关数据已清除')
+}
+
+/**
+ * 重新解析当前已上传的文件
+ * 优先使用已保存的原始数据，避免重新读取文件
+ */
+const handleReparse = async () => {
+  if (originalExcelData.value && originalExcelData.value.length > 0) {
+    excelData.value = [...originalExcelData.value]
+    if (excelHeaders.value && excelHeaders.value.length > 0) {
+      message.success(`数据重新加载成功，共 ${excelData.value.length} 行数据`)
+    }
+
+    if (parsedFields.value.length > 0) {
+      autoMatchFields()
+    }
+
+    logInfo('数据重新加载完成', 'file', {
+      operation: 'reparse',
+      rows: excelData.value.length,
+      columns: excelHeaders.value?.length || 0,
+    })
+    return
+  }
+
+  if (!uploadedFile.value) {
+    message.warning('没有可重新解析的数据')
+    return
+  }
+
+  uploading.value = true
+
+  try {
+    const chunkSize = getSetting('chunkSize') || 1000
+    const chunkProcessing = getSetting('chunkProcessing') !== false
+
+    const initialResult = await parseExcelEnhanced(uploadedFile.value, {
+      sheetIndex: 0,
+      maxRows: chunkProcessing ? chunkSize : undefined,
+      startRow: 1,
+      endRow: undefined,
+      includeHeader: true,
+    })
+
+    excelData.value = initialResult.data
+    excelHeaders.value = initialResult.headers
+    originalExcelData.value = initialResult.data
+
+    if (initialResult.totalRows > chunkSize) {
+      message.info(`已加载前 ${chunkSize} 行数据，共 ${initialResult.totalRows} 行`)
+    } else {
+      message.success(`文件重新解析成功，共 ${initialResult.totalRows} 行数据`)
+    }
+
+    if (parsedFields.value.length > 0) {
+      autoMatchFields()
+    }
+
+    logInfo('文件重新解析完成', 'file', {
+      operation: 'reparse',
+      fileName: uploadedFile.value.name,
+      rows: initialResult.totalRows,
+      columns: initialResult.headers.length,
+    })
+  } catch (error) {
+    const friendlyError = logError(error, 'file', {
+      operation: 'reparse',
+      fileName: uploadedFile.value?.name,
+    })
+    message.error(friendlyError)
+  } finally {
+    uploading.value = false
+  }
 }
 
 const handleDeduplicationToggle = (checked) => {
@@ -1002,9 +1089,9 @@ const handleGeneratedByFunctionChange = (record) => {
   if (mapping) {
     mapping.generatedByFunction = record.generatedByFunction
     if (record.generatedByFunction) {
-      logInfo(`字段 ${record.ddlField.name} 标记为通过函数生成，将跳过Excel列映射检查`)
+      logInfo(`字段 ${record.ddlField.name} 标记为自定义，将跳过Excel列映射检查`)
     } else {
-      logInfo(`字段 ${record.ddlField.name} 取消函数生成标记`)
+      logInfo(`字段 ${record.ddlField.name} 取消自定义标记`)
     }
   }
 }
@@ -1015,11 +1102,12 @@ const clearMapping = (ddlFieldName) => {
   const mappingIndex = fieldMappings.value.findIndex(
     (mapping) => mapping.ddlField.name === ddlFieldName,
   )
-  if (mappingIndex >= 0) {
-    fieldMappings.value.splice(mappingIndex, 1)
-  }
 
   if (fieldInfo && fieldInfo.isCustom) {
+    // 自定义字段：删除整个映射记录和字段定义
+    if (mappingIndex >= 0) {
+      fieldMappings.value.splice(mappingIndex, 1)
+    }
     const fieldIndex = parsedFields.value.findIndex((field) => field.name === ddlFieldName)
     if (fieldIndex >= 0) {
       parsedFields.value.splice(fieldIndex, 1)
@@ -1030,8 +1118,12 @@ const clearMapping = (ddlFieldName) => {
     logInfo(`移除自定义字段: ${ddlFieldName}`)
     message.info(`已移除自定义字段: ${ddlFieldName}`)
   } else {
-    logInfo(`移除字段映射记录: ${ddlFieldName}`)
-    message.info(`已移除字段映射记录: ${ddlFieldName}`)
+    // 普通DDL字段：删除映射记录
+    if (mappingIndex >= 0) {
+      fieldMappings.value.splice(mappingIndex, 1)
+      logInfo(`清除字段映射: ${ddlFieldName}`)
+      message.info(`已清除字段映射: ${ddlFieldName}`)
+    }
   }
 }
 
@@ -1143,7 +1235,25 @@ const generateSql = async () => {
           ),
         ]),
         h('p', { style: { marginTop: '15px', color: '#8c8c8c' } }, [
-          '提示：对于通过函数生成的字段（如UUID主键），请在字段映射表格中勾选"函数生成"复选框',
+          '提示：对于自定义字段（如UUID主键），请在字段映射表格中勾选"自定义"复选框',
+        ]),
+      ]),
+      okText: '我知道了',
+    })
+    return
+  }
+
+  // 验证所有DDL字段是否都有映射记录
+  const allFieldsValidation = validateAllFieldsMapped(parsedFields.value)
+  if (!allFieldsValidation.isValid) {
+    Modal.error({
+      title: '字段映射不完整',
+      content: h('div', [
+        h('p', '以下必填字段未获取到数据：'),
+        h('ul', { style: { paddingLeft: '20px', marginTop: '10px' } }, [
+          ...allFieldsValidation.errors.map((error) =>
+            h('li', { style: { marginBottom: '5px', color: '#ff4d4f' } }, error),
+          ),
         ]),
       ]),
       okText: '我知道了',
@@ -1275,8 +1385,12 @@ const handleCustomBindingSave = (savedConfig) => {
       const existingIndex = fieldMappings.value.findIndex((m) => m.ddlField?.name === ddlFieldName)
 
       if (existingIndex >= 0) {
+        const existingMapping = fieldMappings.value[existingIndex]
+        const updatedDdlField = parsedFields.value.find((f) => f.name === ddlFieldName) || existingMapping.ddlField
+
         fieldMappings.value[existingIndex] = {
-          ...fieldMappings.value[existingIndex],
+          ...existingMapping,
+          ddlField: updatedDdlField,
           excelIndex: excelIndex,
           excelHeader: excelIndex >= 0 ? excelHeaders.value[excelIndex] : null,
           status: excelIndex >= 0 ? 'bound' : 'unmatched',
@@ -1315,6 +1429,66 @@ const handleCustomBindingSave = (savedConfig) => {
         }
 
         customBindingManager.addCustomField(customField)
+
+        let ddlField = parsedFields.value.find((field) => field.name === rule.ddlFieldName)
+
+        if (!ddlField) {
+          ddlField = {
+            name: rule.ddlFieldName,
+            type: rule.dataType || 'string',
+            nullable: true,
+            isIdentity: false,
+            primaryKey: false,
+            isCustom: true,
+            customConfig: customField,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          }
+          parsedFields.value.push(ddlField)
+        } else {
+          const existingFieldIndex = parsedFields.value.findIndex(
+            (field) => field.name === rule.ddlFieldName,
+          )
+          if (existingFieldIndex >= 0) {
+            parsedFields.value[existingFieldIndex] = {
+              ...parsedFields.value[existingFieldIndex],
+              isCustom: true,
+              customConfig: customField,
+              type: rule.dataType || parsedFields.value[existingFieldIndex].type,
+              updatedAt: new Date().toISOString(),
+            }
+          }
+        }
+
+        const existingMappingIndex = fieldMappings.value.findIndex(
+          (m) => m.ddlField?.name === rule.ddlFieldName,
+        )
+
+        if (existingMappingIndex >= 0) {
+          const existingMapping = fieldMappings.value[existingMappingIndex]
+          const updatedDdlField = parsedFields.value.find((f) => f.name === rule.ddlFieldName) || existingMapping.ddlField
+
+          fieldMappings.value[existingMappingIndex] = {
+            ...existingMapping,
+            ddlField: updatedDdlField,
+            excelIndex: -1,
+            excelHeader: null,
+            status: 'unmatched',
+            confidence: 'manual',
+            generatedByFunction: true,
+          }
+        } else {
+          const mapping = {
+            ddlField: ddlField,
+            excelHeader: null,
+            excelIndex: -1,
+            similarity: 0,
+            confidence: 'manual',
+            status: 'unmatched',
+            generatedByFunction: true,
+          }
+          fieldMappings.value.push(mapping)
+        }
       }
     })
 
@@ -1443,10 +1617,6 @@ const handleCustomBindingSave = (savedConfig) => {
         true,
       )
     }
-
-    message.success(
-      `自定义绑定配置已保存，成功处理 ${singleBindings.length} 个单列绑定和 ${addedCount} 个自定义字段`,
-    )
 
     editingCustomField.value = null
   } catch (error) {

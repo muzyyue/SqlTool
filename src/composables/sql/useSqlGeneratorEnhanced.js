@@ -144,8 +144,9 @@ export function useSqlGeneratorEnhanced() {
       const mapping = fieldMappings.find(
         (m) => m.ddlField.name === groupByField || m.excelHeader === groupByField,
       )
-      if (mapping && mapping.excelIndex >= 0) {
-        return String(row[mapping.excelIndex] || '')
+      const excelIndex = mapping ? Number(mapping.excelIndex) : NaN
+      if (mapping && !isNaN(excelIndex) && excelIndex >= 0) {
+        return String(row[excelIndex] || '')
       }
       return ''
     }
@@ -154,25 +155,29 @@ export function useSqlGeneratorEnhanced() {
     // 保留所有其他字段：有映射的普通字段、无映射的普通字段（值为NULL）、有映射或无映射的自定义字段
     // 注意：标记为"函数生成"的主键字段不会被过滤
     // 注意：如果主键字段已映射到Excel列，也会被保留（允许用户手动指定主键值）
+    // 注意：自增主键字段会被排除，由数据库自动生成
+    // 保存原始顺序用于排序
+    const originalOrder = new Map(fieldMappings.map((m, i) => [m.ddlField?.name, i]))
+
     const mappedFields = fieldMappings
       .filter((mapping) => {
-        // 如果标记为通过函数生成，保留该字段
+        const excelIndex = Number(mapping.excelIndex)
+        const hasValidMapping = !isNaN(excelIndex) && excelIndex >= 0
+
         if (mapping.generatedByFunction === true) {
           return true
         }
-        // 如果主键字段已映射到Excel列，保留该字段（允许用户手动指定主键值）
-        if (mapping.ddlField.primaryKey && mapping.excelIndex >= 0) {
+        if (mapping.ddlField.primaryKey && hasValidMapping) {
           return true
         }
-        // 排除自增主键和未被映射的主键字段
         return !mapping.ddlField.isIdentity && !mapping.ddlField.primaryKey
       })
       .sort((a, b) => {
-        // 按excelIndex排序，没有excelIndex的自定义字段排在后面
-        if (a.excelIndex === -1 && b.excelIndex === -1) return 0
-        if (a.excelIndex === -1) return 1
-        if (b.excelIndex === -1) return -1
-        return a.excelIndex - b.excelIndex
+        // 按照 fieldMappings 的原始顺序排序（即 DDL 字段顺序）
+        const aOriginalIndex = originalOrder.get(a.ddlField?.name) ?? 999999
+        const bOriginalIndex = originalOrder.get(b.ddlField?.name) ?? 999999
+
+        return aOriginalIndex - bOriginalIndex
       })
 
     if (mappedFields.length === 0) {
@@ -303,8 +308,11 @@ export function useSqlGeneratorEnhanced() {
           }
         }
 
+        const currentExcelIndex = Number(mapping.excelIndex)
+        const hasValidExcelIndex = !isNaN(currentExcelIndex) && currentExcelIndex >= 0
+
         // 检查是否是自定义字段且没有映射到Excel列
-        if (mapping.ddlField.isCustom && (!mapping.excelHeader || mapping.excelIndex === -1)) {
+        if (mapping.ddlField.isCustom && (!mapping.excelHeader || !hasValidExcelIndex)) {
           // 处理自定义字段的特殊情况
           const customField = mapping.ddlField.customConfig
 
@@ -386,17 +394,17 @@ export function useSqlGeneratorEnhanced() {
             // 默认返回NULL
             return 'NULL'
           }
-        } else if (!mapping.excelHeader || mapping.excelIndex < 0) {
-          // 未映射到Excel列的普通字段，返回NULL
+        }
+
+        if (!mapping.excelHeader || !hasValidExcelIndex) {
           console.log(`字段 ${mapping.ddlField.name} 未映射到Excel列，返回NULL`)
           return 'NULL'
         } else {
-          // 正常映射的字段，从Excel数据中获取值
           console.log(
-            `处理有映射的字段: ${mapping.ddlField.name}, excelIndex: ${mapping.excelIndex}, row数据: ${JSON.stringify(row)}`,
+            `处理有映射的字段: ${mapping.ddlField.name}, excelIndex: ${currentExcelIndex}, row数据: ${JSON.stringify(row)}`,
           )
 
-          const value = row[mapping.excelIndex]
+          const value = row[currentExcelIndex]
           console.log(`字段 ${mapping.ddlField.name} 的值: ${value}`)
 
           const formattedValue = formatValue(value, mapping.ddlField.type, dbType)
@@ -481,8 +489,9 @@ export function useSqlGeneratorEnhanced() {
       const mapping = fieldMappings.find(
         (m) => m.ddlField.name === groupByField || m.excelHeader === groupByField,
       )
-      if (mapping && mapping.excelIndex >= 0) {
-        return String(rowData[mapping.excelIndex] || '')
+      const excelIndex = mapping ? Number(mapping.excelIndex) : NaN
+      if (mapping && !isNaN(excelIndex) && excelIndex >= 0) {
+        return String(rowData[excelIndex] || '')
       }
       return ''
     }
@@ -622,8 +631,11 @@ export function useSqlGeneratorEnhanced() {
         return
       }
 
+      const currentExcelIndex = Number(mapping.excelIndex)
+      const hasValidExcelIndex = !isNaN(currentExcelIndex) && currentExcelIndex >= 0
+
       // 处理自定义字段（可能没有映射到Excel列）
-      if (mapping.ddlField.isCustom && (!mapping.excelHeader || mapping.excelIndex === -1)) {
+      if (mapping.ddlField.isCustom && (!mapping.excelHeader || !hasValidExcelIndex)) {
         const customField = mapping.ddlField.customConfig
 
         if (customField.dataSource === 'system_function') {
@@ -681,19 +693,18 @@ export function useSqlGeneratorEnhanced() {
         } else {
           value = 'NULL'
         }
-      } else if (!mapping.excelHeader || mapping.excelIndex < 0) {
-        // 如果字段不在 updateFields 中，跳过未映射到Excel列的普通字段
-        // 如果字段在 updateFields 中（用户选择要更新的字段），允许使用 NULL 值
+      }
+
+      if (!mapping.excelHeader || !hasValidExcelIndex) {
         const shouldInclude = updateFields && updateFields.includes(mapping.ddlField.name)
         if (!shouldInclude) {
           console.log(`跳过未映射字段: ${mapping.ddlField.name}（不在updateFields中）`)
-          return // 跳过未映射到Excel列的普通字段
+          return
         }
-        // 字段在 updateFields 中，但未映射到 Excel 列，使用 NULL
         console.log(`字段 ${mapping.ddlField.name} 未映射到Excel列，使用NULL值`)
         value = 'NULL'
       } else {
-        value = row[mapping.excelIndex]
+        value = row[currentExcelIndex]
         value = formatValue(value, mapping.ddlField.type, dbType)
       }
 

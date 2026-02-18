@@ -728,6 +728,7 @@ const {
   validateMappings: validateFieldMappings,
   matchingStats,
   customBindingManager,
+  resetMappings,
 } = useFieldMatcher()
 const {
   generateUpdateSql,
@@ -982,7 +983,7 @@ const mappingColumns = [
     width: '10%',
   },
   {
-    title: '函数生成',
+    title: '自定义',
     key: 'generatedByFunction',
     width: '10%',
   },
@@ -1005,6 +1006,12 @@ const parseDdl = async () => {
     message.warning('请输入DDL语句')
     return
   }
+
+  // 解析新DDL时清空之前的自定义字段数据
+  customBindingEnabled.value = false
+  customBindingManager.resetBindings()
+  resetMappings()
+  logInfo('解析新DDL，已清空之前的自定义字段数据')
 
   parsingDdl.value = true
 
@@ -1063,6 +1070,13 @@ const beforeUpload = (file) => {
 
 const handleUpload = async (options) => {
   const { file, onSuccess, onError } = options
+
+  // 上传新文件时清空之前的自定义字段数据
+  customBindingEnabled.value = false
+  customBindingManager.resetBindings()
+  resetMappings()
+  logInfo('上传新文件，已清空之前的自定义字段数据')
+
   uploading.value = true
 
   try {
@@ -1156,9 +1170,9 @@ const handleGeneratedByFunctionChange = (record) => {
   if (mapping) {
     mapping.generatedByFunction = record.generatedByFunction
     if (record.generatedByFunction) {
-      logInfo(`字段 ${record.ddlField.name} 标记为通过函数生成，将跳过Excel列映射检查`)
+      logInfo(`字段 ${record.ddlField.name} 标记为自定义，将跳过Excel列映射检查`)
     } else {
-      logInfo(`字段 ${record.ddlField.name} 取消函数生成标记`)
+      logInfo(`字段 ${record.ddlField.name} 取消自定义标记`)
     }
   }
 }
@@ -1166,23 +1180,41 @@ const handleGeneratedByFunctionChange = (record) => {
 const clearMapping = (ddlFieldName) => {
   console.log('执行clearMapping:', ddlFieldName)
 
-  // 从fieldMappings中移除对应的映射记录（参考INSERT页面的实现）
+  const fieldInfo = parsedFields.value.find((field) => field.name === ddlFieldName)
+
   const mappingIndex = fieldMappings.value.findIndex(
     (mapping) => mapping.ddlField.name === ddlFieldName,
   )
-  if (mappingIndex >= 0) {
-    fieldMappings.value.splice(mappingIndex, 1)
-    console.log('已从fieldMappings移除映射记录:', ddlFieldName)
-  }
 
-  // 从 updateFields 中移除被清除的字段（如果它不在条件字段中）
-  const fieldIndex = updateFields.value.indexOf(ddlFieldName)
-  if (fieldIndex !== -1 && !conditionFields.value.includes(ddlFieldName)) {
-    updateFields.value.splice(fieldIndex, 1)
-  }
+  if (fieldInfo && fieldInfo.isCustom) {
+    // 自定义字段：删除整个映射记录和字段定义
+    if (mappingIndex >= 0) {
+      fieldMappings.value.splice(mappingIndex, 1)
+      console.log('已从fieldMappings移除自定义字段映射记录:', ddlFieldName)
+    }
+    const fieldIndex = parsedFields.value.findIndex((field) => field.name === ddlFieldName)
+    if (fieldIndex >= 0) {
+      parsedFields.value.splice(fieldIndex, 1)
+    }
+    customBindingManager.removeCustomField(ddlFieldName)
+    logInfo(`移除自定义字段: ${ddlFieldName}`)
+    message.info(`已移除自定义字段: ${ddlFieldName}`)
+  } else {
+    // 普通DDL字段：删除映射记录
+    if (mappingIndex >= 0) {
+      fieldMappings.value.splice(mappingIndex, 1)
+      console.log('已清除字段映射记录:', ddlFieldName)
+    }
 
-  logInfo(`清除字段映射: ${ddlFieldName}`)
-  message.info(`已清除字段映射: ${ddlFieldName}`)
+    // 从 updateFields 中移除被清除的字段（如果它不在条件字段中）
+    const updateFieldIndex = updateFields.value.indexOf(ddlFieldName)
+    if (updateFieldIndex !== -1 && !conditionFields.value.includes(ddlFieldName)) {
+      updateFields.value.splice(updateFieldIndex, 1)
+    }
+
+    logInfo(`清除字段映射: ${ddlFieldName}`)
+    message.info(`已清除字段映射: ${ddlFieldName}`)
+  }
 }
 
 const clearAllMappings = () => {
@@ -1294,7 +1326,7 @@ const generateSql = async () => {
           ),
         ]),
         h('p', { style: { marginTop: '15px', color: '#8c8c8c' } }, [
-          '提示：对于通过函数生成的字段（如UUID主键），请在字段映射表格中勾选"函数生成"复选框',
+          '提示：对于自定义字段（如UUID主键），请在字段映射表格中勾选"自定义"复选框',
         ]),
       ]),
       okText: '我知道了',
@@ -1708,6 +1740,71 @@ const handleCustomBindingSave = (customFieldsData) => {
         // 将自定义字段添加到 customBindingManager
         customBindingManager.addCustomField(customField)
         console.log(`从字段拼接规则添加自定义字段: ${customField.fieldName}`)
+
+        // 创建或更新 ddlField 和 mapping
+        let ddlField = parsedFields.value.find((field) => field.name === rule.ddlFieldName)
+
+        if (!ddlField) {
+          ddlField = {
+            name: rule.ddlFieldName,
+            type: rule.dataType || 'string',
+            nullable: true,
+            isIdentity: false,
+            primaryKey: false,
+            isCustom: true,
+            customConfig: customField,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          }
+          parsedFields.value.push(ddlField)
+          console.log(`已添加拼接字段到parsedFields: ${rule.ddlFieldName}`)
+        } else {
+          const existingFieldIndex = parsedFields.value.findIndex(
+            (field) => field.name === rule.ddlFieldName,
+          )
+          if (existingFieldIndex >= 0) {
+            parsedFields.value[existingFieldIndex] = {
+              ...parsedFields.value[existingFieldIndex],
+              isCustom: true,
+              customConfig: customField,
+              type: rule.dataType || parsedFields.value[existingFieldIndex].type,
+              updatedAt: new Date().toISOString(),
+            }
+            console.log(`已更新拼接字段配置: ${rule.ddlFieldName}`)
+          }
+        }
+
+        const existingMappingIndex = fieldMappings.value.findIndex(
+          (m) => m.ddlField?.name === rule.ddlFieldName,
+        )
+
+        if (existingMappingIndex >= 0) {
+          const existingMapping = fieldMappings.value[existingMappingIndex]
+          const updatedDdlField = parsedFields.value.find((f) => f.name === rule.ddlFieldName) || existingMapping.ddlField
+
+          fieldMappings.value[existingMappingIndex] = {
+            ...existingMapping,
+            ddlField: updatedDdlField,
+            excelIndex: -1,
+            excelHeader: null,
+            status: 'unmatched',
+            confidence: 'manual',
+            generatedByFunction: true,
+          }
+          console.log(`已更新拼接字段映射: ${rule.ddlFieldName}`)
+        } else {
+          const mapping = {
+            ddlField: ddlField,
+            excelHeader: null,
+            excelIndex: -1,
+            similarity: 0,
+            confidence: 'manual',
+            status: 'unmatched',
+            generatedByFunction: true,
+          }
+          fieldMappings.value.push(mapping)
+          console.log(`已添加拼接字段映射: ${rule.ddlFieldName}`)
+        }
       } else {
         console.log('跳过规则，ddlFieldName为空')
       }
@@ -1828,10 +1925,6 @@ const handleCustomBindingSave = (customFieldsData) => {
 
     console.log('最终fieldMappings:', fieldMappings.value)
     console.log('最终fieldMappings数量:', fieldMappings.value.length)
-
-    message.success(
-      `自定义绑定配置已保存，成功处理 ${singleBindings.length} 个单列绑定和 ${addedCount} 个自定义字段`,
-    )
   } catch (error) {
     logError(error, 'custom-binding', {
       operation: 'saveCustomBinding',

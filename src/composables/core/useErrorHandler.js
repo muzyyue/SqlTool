@@ -44,7 +44,7 @@ export function useErrorHandler() {
     }
 
     console.error('系统错误:', errorEntry)
-    return errorEntry
+    return getFriendlyErrorMessage(type, error)
   }
 
   /**
@@ -59,7 +59,7 @@ export function useErrorHandler() {
     }
 
     console.warn('系统警告:', warningEntry)
-    return warningEntry
+    return typeof warning === 'string' ? warning : warning?.message || '未知警告'
   }
 
   /**
@@ -74,7 +74,7 @@ export function useErrorHandler() {
     }
 
     console.info('系统信息:', infoEntry)
-    return infoEntry
+    return typeof info === 'string' ? info : info?.message || '操作完成'
   }
 
   /**

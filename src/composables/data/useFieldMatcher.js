@@ -435,6 +435,7 @@ export function useFieldMatcher() {
     const errors = []
     const usedExcelIndices = new Set()
 
+    // 检查所有DDL字段是否都有映射
     fieldMappings.value.forEach((mapping) => {
       // 确保映射对象有效
       if (!mapping) {
@@ -456,10 +457,53 @@ export function useFieldMatcher() {
       // 检查必填字段
       const isNullable = mapping.ddlField.nullable !== false
       const isGeneratedByFunction = mapping.generatedByFunction === true
+      const isIdentity = mapping.ddlField.isIdentity === true
+      const isPrimaryKey = mapping.ddlField.primaryKey === true
+      const hasCustomBinding = mapping.ddlField.isCustom === true
+      const hasValidMapping = mapping.excelHeader && mapping.excelIndex >= 0
+
+      // 自增主键字段由数据库自动生成，不需要映射
+      if (isIdentity && isPrimaryKey) {
+        return
+      }
 
       // 如果字段标记为通过函数生成，则跳过Excel列映射检查
-      if (!isGeneratedByFunction && !mapping.excelHeader && !isNullable) {
+      // 如果字段有自定义绑定，也跳过检查
+      if (!isGeneratedByFunction && !hasValidMapping && !isNullable && !hasCustomBinding) {
         errors.push(`必填字段"${mapping.ddlField.name}"未映射到Excel列`)
+      }
+    })
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+    }
+  }
+
+  /**
+   * 验证所有DDL字段是否都有映射记录（用于SQL生成前检查）
+   * @param {Array} ddlFields - DDL解析出的字段列表
+   */
+  const validateAllFieldsMapped = (ddlFields) => {
+    const errors = []
+    const mappedFieldNames = new Set(fieldMappings.value.map((m) => m.ddlField?.name))
+
+    ddlFields.forEach((field) => {
+      // 跳过自增主键字段
+      if (field.isIdentity && field.primaryKey) {
+        return
+      }
+
+      // 跳过自定义字段（它们可能不在映射列表中）
+      if (field.isCustom) {
+        return
+      }
+
+      // 检查字段是否有映射记录
+      if (!mappedFieldNames.has(field.name)) {
+        if (field.nullable === false) {
+          errors.push(`必填字段"${field.name}"未获取到数据`)
+        }
       }
     })
 
@@ -764,6 +808,7 @@ export function useFieldMatcher() {
     processDataWithConcatenation,
     getFieldBindingInfo,
     validateEnhancedMappings,
+    validateAllFieldsMapped,
 
     // 自定义绑定管理器
     customBindingManager,

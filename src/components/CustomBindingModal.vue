@@ -1119,7 +1119,7 @@ const isColumnUsed = (columnIndex, currentBindingId) => {
 }
 
 const getConcatenationPreview = (rule) => {
-  if (!rule.ddlFieldName || rule.sourceColumns.length === 0) {
+  if (!rule.customFieldName || rule.sourceColumns.length === 0) {
     return '请配置规则'
   }
 
@@ -1601,7 +1601,17 @@ const saveBindings = () => {
     enableCustomBinding: enableCustomBinding.value,
   })
 
-  message.success('自定义绑定配置已保存')
+  const singleCount = singleBindings.value.filter(
+    (b) => b.ddlFieldName && b.excelIndex >= 0,
+  ).length
+  const concatCount = concatenationRules.value.filter(
+    (r) => r.customFieldName && r.sourceColumns?.length > 0,
+  ).length
+  const customCount = customFields.value.filter((f) => f.fieldName).length
+
+  message.success(
+    `自定义绑定配置已保存：${singleCount} 个单列绑定、${concatCount} 个拼接规则、${customCount} 个自定义字段`,
+  )
   closeModal()
 }
 

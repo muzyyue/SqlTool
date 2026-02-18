@@ -85,7 +85,10 @@
                         <div class="field-badge" :class="getFieldTypeClass(record.ddlField?.type)">
                           {{ record.ddlField?.name }}
                         </div>
-                        <a-tag v-if="!record.ddlField?.nullable" color="red" size="small"
+                        <a-tag v-if="record.ddlField?.isIdentity" color="blue" size="small"
+                          >自增</a-tag
+                        >
+                        <a-tag v-else-if="!record.ddlField?.nullable" color="red" size="small"
                           >必填</a-tag
                         >
                         <a-tag v-if="record.ddlField?.isCustom" color="purple" size="small"
@@ -198,7 +201,7 @@
                           @change="handleGeneratedByFunctionChange(record)"
                           size="small"
                         >
-                          函数生成
+                          自定义
                         </a-checkbox>
                       </div>
                     </template>
