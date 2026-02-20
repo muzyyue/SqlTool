@@ -1214,8 +1214,10 @@ export function useSqlGeneratorEnhanced() {
     if (format === 'minified') {
       let minified = sql
         .replace(/\s+/g, ' ')
-        .replace(/\s*([(),;])\s*/g, '$1')
-        .replace(/\s+/g, ' ')
+        .replace(/\s*,\s*/g, ',')
+        .replace(/\s*\(\s*/g, '(')
+        .replace(/\s*\)\s*/g, ')')
+        .replace(/\s*;\s*/g, ';')
         .trim()
 
       minified = minified.replace(/' ([A-Z_]+\(\))/gi, "', $1")
@@ -1229,6 +1231,9 @@ export function useSqlGeneratorEnhanced() {
       minified = minified.replace(/NULL ([A-Z_]+\(\))/gi, "NULL, $1")
 
       minified = minified.replace(/([A-Z_]+\(\)) NULL/gi, "$1, NULL")
+
+      minified = minified.replace(/\)VALUES\(/gi, ')VALUES(')
+      minified = minified.replace(/\),\s*\(/g, '),(')
 
       console.log('输出SQL:', minified)
       console.log('=== 结束 ===')
