@@ -1083,6 +1083,7 @@ export function useSqlGeneratorEnhanced() {
         result.push(' '.repeat(currentIndent) + trimmedLine)
       } else {
         const startsWithComma = trimmedLine.startsWith(',')
+        const endsWithComma = trimmedLine.endsWith(',')
         const contentToProcess = startsWithComma ? trimmedLine.substring(1).trim() : trimmedLine
 
         if (contentToProcess.length > maxLineLength && formatStyle === 'expanded') {
@@ -1106,8 +1107,13 @@ export function useSqlGeneratorEnhanced() {
 
   /**
    * 拆分长行（智能分割，保护引号内的内容）
+   * 注意：此函数用于拆分单个VALUES组内的多个值，而不是拆分多个VALUES组
    */
   const splitLongLine = (line, maxLineLength, indent) => {
+    if (line.length <= maxLineLength) {
+      return [indent + line]
+    }
+
     const parts = []
     let currentPart = ''
     let inQuotes = false
@@ -1126,23 +1132,19 @@ export function useSqlGeneratorEnhanced() {
       } else if (!inQuotes && char === ')') {
         parenDepth = Math.max(0, parenDepth - 1)
         currentToken += char
-      } else if (!inQuotes && char === ',') {
-        if (parenDepth === 0) {
-          const trimmedToken = currentToken.trim()
-          if (currentPart) {
-            if (currentPart.length + trimmedToken.length + 2 > maxLineLength) {
-              parts.push(indent + currentPart + ',')
-              currentPart = trimmedToken
-            } else {
-              currentPart += ',' + trimmedToken
-            }
-          } else {
+      } else if (!inQuotes && char === ',' && parenDepth === 1) {
+        const trimmedToken = currentToken.trim()
+        if (currentPart) {
+          if (currentPart.length + trimmedToken.length + 2 > maxLineLength) {
+            parts.push(indent + currentPart + ',')
             currentPart = trimmedToken
+          } else {
+            currentPart += ',' + trimmedToken
           }
-          currentToken = ''
         } else {
-          currentToken += char
+          currentPart = trimmedToken
         }
+        currentToken = ''
       } else {
         currentToken += char
       }
