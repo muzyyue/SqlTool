@@ -406,7 +406,6 @@ import {
   QuestionCircleOutlined,
   ClockCircleOutlined,
   SettingOutlined,
-  CheckOutlined,
   VerticalAlignTopOutlined,
   BulbOutlined,
   BulbFilled,
@@ -440,7 +439,6 @@ import { useOperationLog } from '@/composables/core/useOperationLog'
 // 导入SQL预览组件
 import SqlPreview from '@/components/SqlPreview/SqlPreview.vue'
 import CustomBindingModal from '@/components/CustomBindingModal.vue'
-import CustomFieldManager from '@/components/CustomFieldManager/CustomFieldManager.vue'
 import ExcelUploadCard from '@/components/ExcelUploadCard/ExcelUploadCard.vue'
 import FieldMappingCard from '@/components/FieldMappingCard/FieldMappingCard.vue'
 
@@ -624,51 +622,6 @@ const showFieldMapping = computed(() => {
   return parsedFields.value.length > 0 && excelHeaders.value.length > 0
 })
 
-/**
- * 优化后的数据预览计算属性
- * 使用缓存和限制数据量来提升性能
- */
-const previewData = computed(() => {
-  // 如果没有数据，直接返回空数组
-  if (!excelData.value || excelData.value.length === 0) {
-    return []
-  }
-
-  // 只预览前10行数据，避免大量数据影响性能
-  const previewLimit = 10
-  const data = excelData.value.slice(0, previewLimit).map((row, index) => ({
-    key: `preview-${index}-${Date.now()}`, // 添加唯一key，避免Vue警告
-    ...row,
-  }))
-
-  return data
-})
-
-/**
- * 优化后的预览列配置计算属性
- * 添加缓存和错误处理
- */
-const previewColumns = computed(() => {
-  // 如果没有表头，返回空数组
-  if (!excelHeaders.value || excelHeaders.value.length === 0) {
-    return []
-  }
-
-  // 限制列数量，避免过多列影响性能
-  const maxColumns = 20
-  const headersToDisplay = excelHeaders.value.slice(0, maxColumns)
-
-  const columns = headersToDisplay.map((header, index) => ({
-    title: `${header} (列${index + 1})`,
-    dataIndex: index,
-    key: `col-${index}`,
-    ellipsis: true,
-    width: 150, // 固定列宽，提升渲染性能
-  }))
-
-  return columns
-})
-
 const sqlStats = computed(() => {
   if (!generatedSql.value) {
     return { statementCount: 0, affectedRows: 0, generationTime: 0, fileSize: 0 }
@@ -740,40 +693,6 @@ watch(
   { deep: true },
 )
 
-// 表格列定义
-const mappingColumns = [
-  {
-    title: '字段名',
-    key: 'fieldName',
-    width: '15%',
-  },
-  {
-    title: 'DDL字段',
-    key: 'ddlField',
-    width: '30%',
-  },
-  {
-    title: 'Excel列',
-    key: 'excelHeader',
-    width: '20%',
-  },
-  {
-    title: '相似度',
-    key: 'similarity',
-    width: '10%',
-  },
-  {
-    title: '自定义',
-    key: 'generatedByFunction',
-    width: '10%',
-  },
-  {
-    title: '操作',
-    key: 'actions',
-    width: '15%',
-  },
-]
-
 // 方法
 const handleDdlChange = () => {
   parsedFields.value = []
@@ -827,25 +746,6 @@ const parseDdl = async () => {
   } finally {
     parsingDdl.value = false
   }
-}
-
-const beforeUpload = (file) => {
-  const supportedFormats = getSetting('supportedFormats') || ['xlsx', 'xls', 'csv']
-  const isValidType = supportedFormats.some((ext) => file.name.toLowerCase().endsWith(ext))
-
-  if (!isValidType) {
-    message.error(`只支持 ${supportedFormats.map(f => `.${f}`).join('、')} 格式的文件`)
-    return false
-  }
-
-  const maxFileSizeMB = getSetting('maxFileSize') || 10
-  const isLtMaxSize = file.size / 1024 / 1024 < maxFileSizeMB
-  if (!isLtMaxSize) {
-    message.error(`文件大小不能超过${maxFileSizeMB}MB`)
-    return false
-  }
-
-  return true
 }
 
 const handleUpload = async (options) => {
@@ -1038,22 +938,6 @@ const clearAllMappings = () => {
   message.info('已清除所有字段映射')
 }
 
-const isColumnUsed = (columnIndex) => {
-  return fieldMappings.value.some((mapping) => mapping.excelIndex === columnIndex)
-}
-
-const getConfidenceColor = (confidence) => {
-  const colors = {
-    'very-high': 'green',
-    high: 'blue',
-    medium: 'orange',
-    low: 'red',
-    'very-low': 'gray',
-    manual: 'purple',
-  }
-  return colors[confidence] || 'gray'
-}
-
 const getConfidenceText = (confidence) => {
   const texts = {
     'very-high': '极高',
@@ -1071,34 +955,6 @@ const getSimilarityColor = (similarity) => {
   if (similarity >= 0.6) return '#1890ff'
   if (similarity >= 0.4) return '#faad14'
   return '#ff4d4f'
-}
-
-const validateMappings = () => {
-  const validation = validateFieldMappings()
-
-  // 额外验证条件字段是否已映射
-  const conditionFieldsNotMapped = conditionFields.value.filter((fieldName) => {
-    const mapping = fieldMappings.value.find((m) => m.ddlField.name === fieldName)
-    return !mapping || mapping.excelIndex === -1
-  })
-
-  if (conditionFieldsNotMapped.length > 0) {
-    validation.errors.push(`条件字段 ${conditionFieldsNotMapped.join(', ')} 未正确映射到Excel列`)
-    validation.isValid = false
-  }
-
-  if (validation.isValid) {
-    message.success('字段映射验证通过')
-    logInfo('字段映射验证通过')
-  } else {
-    currentErrors.value = validation.errors.map((error) => ({
-      id: Date.now() + Math.random(),
-      message: '映射验证失败',
-      context: error,
-    }))
-    errorModalVisible.value = true
-    logWarning('字段映射验证失败', 'validation', { errors: validation.errors })
-  }
 }
 
 const generateSql = async () => {

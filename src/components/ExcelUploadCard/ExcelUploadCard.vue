@@ -320,10 +320,8 @@ import {
   DeleteOutlined,
   RedoOutlined,
   CheckOutlined,
-  UndoOutlined,
   CloudUploadOutlined,
   ReloadOutlined,
-  QuestionCircleOutlined,
 } from '@ant-design/icons-vue'
 
 const props = defineProps({
