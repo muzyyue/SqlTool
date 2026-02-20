@@ -1071,23 +1071,32 @@ export function useSqlGeneratorEnhanced() {
     let currentIndent = 0
 
     for (let i = 0; i < lines.length; i++) {
-      let line = lines[i].trim()
-      if (!line) continue
+      let line = lines[i]
+      const trimmedLine = line.trim()
+      if (!trimmedLine) continue
 
-      // 处理缩进级别
-      if (line.endsWith('(')) {
-        result.push(' '.repeat(currentIndent) + line)
+      if (trimmedLine.endsWith('(')) {
+        result.push(' '.repeat(currentIndent) + trimmedLine)
         currentIndent += indentSpaces
-      } else if (line.startsWith(')')) {
+      } else if (trimmedLine.startsWith(')')) {
         currentIndent = Math.max(0, currentIndent - indentSpaces)
-        result.push(' '.repeat(currentIndent) + line)
+        result.push(' '.repeat(currentIndent) + trimmedLine)
       } else {
-        // 处理长行拆分
-        if (line.length > maxLineLength && formatStyle === 'expanded') {
-          const splitLine = splitLongLine(line, maxLineLength, indent + ' '.repeat(currentIndent))
+        const startsWithComma = trimmedLine.startsWith(',')
+        const contentToProcess = startsWithComma ? trimmedLine.substring(1).trim() : trimmedLine
+
+        if (contentToProcess.length > maxLineLength && formatStyle === 'expanded') {
+          const splitLine = splitLongLine(contentToProcess, maxLineLength, indent + ' '.repeat(currentIndent))
+          if (startsWithComma) {
+            splitLine[0] = ' '.repeat(currentIndent) + ',' + splitLine[0].trim()
+          }
           result.push(...splitLine)
         } else {
-          result.push(' '.repeat(currentIndent) + line)
+          if (startsWithComma) {
+            result.push(' '.repeat(currentIndent) + ', ' + contentToProcess)
+          } else {
+            result.push(' '.repeat(currentIndent) + trimmedLine)
+          }
         }
       }
     }
@@ -1118,17 +1127,17 @@ export function useSqlGeneratorEnhanced() {
         parenDepth = Math.max(0, parenDepth - 1)
         currentToken += char
       } else if (!inQuotes && char === ',') {
-        const trimmedToken = currentToken.trim()
         if (parenDepth === 0) {
-          if (currentPart.length + trimmedToken.length + 1 > maxLineLength && currentPart) {
-            parts.push(indent + currentPart + ',')
-            currentPart = trimmedToken
-          } else {
-            if (currentPart) {
-              currentPart += ',' + trimmedToken
-            } else {
+          const trimmedToken = currentToken.trim()
+          if (currentPart) {
+            if (currentPart.length + trimmedToken.length + 2 > maxLineLength) {
+              parts.push(indent + currentPart + ',')
               currentPart = trimmedToken
+            } else {
+              currentPart += ',' + trimmedToken
             }
+          } else {
+            currentPart = trimmedToken
           }
           currentToken = ''
         } else {
@@ -1141,19 +1150,17 @@ export function useSqlGeneratorEnhanced() {
 
     if (currentToken.trim()) {
       const trimmedToken = currentToken.trim()
-      if (currentPart.length + trimmedToken.length + 1 > maxLineLength && currentPart) {
-        parts.push(indent + currentPart)
-        parts.push(indent + trimmedToken)
-      } else {
-        if (currentPart) {
-          currentPart += ',' + trimmedToken
+      if (currentPart) {
+        if (currentPart.length + trimmedToken.length + 2 > maxLineLength) {
+          parts.push(indent + currentPart + ',')
+          parts.push(indent + trimmedToken)
         } else {
-          currentPart = trimmedToken
+          parts.push(indent + currentPart + ',' + trimmedToken)
         }
+      } else {
+        parts.push(indent + trimmedToken)
       }
-    }
-
-    if (currentPart) {
+    } else if (currentPart) {
       parts.push(indent + currentPart)
     }
 

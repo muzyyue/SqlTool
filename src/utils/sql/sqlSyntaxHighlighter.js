@@ -141,9 +141,18 @@ class SqlSyntaxParser {
     while (i < length) {
       const char = sql[i]
 
-      // 跳过空白字符
       if (char === ' ' || char === '\t' || char === '\n' || char === '\r') {
-        i++
+        let whitespaceEnd = i
+        while (whitespaceEnd < length && (sql[whitespaceEnd] === ' ' || sql[whitespaceEnd] === '\t' || sql[whitespaceEnd] === '\n' || sql[whitespaceEnd] === '\r')) {
+          whitespaceEnd++
+        }
+        tokens.push({
+          type: 'whitespace',
+          value: sql.slice(i, whitespaceEnd),
+          start: i,
+          end: whitespaceEnd,
+        })
+        i = whitespaceEnd
         continue
       }
 
@@ -638,6 +647,9 @@ class SqlHighlighter {
           break
         case TOKEN_TYPES.COLUMN:
           html += `<span class="sql-column">${escapedValue}</span>`
+          break
+        case 'whitespace':
+          html += escapedValue
           break
         default:
           html += escapedValue
