@@ -1083,7 +1083,6 @@ export function useSqlGeneratorEnhanced() {
         result.push(' '.repeat(currentIndent) + trimmedLine)
       } else {
         const startsWithComma = trimmedLine.startsWith(',')
-        const endsWithComma = trimmedLine.endsWith(',')
         const contentToProcess = startsWithComma ? trimmedLine.substring(1).trim() : trimmedLine
 
         if (contentToProcess.length > maxLineLength && formatStyle === 'expanded') {
