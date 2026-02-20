@@ -938,25 +938,6 @@ const clearAllMappings = () => {
   message.info('已清除所有字段映射')
 }
 
-const getConfidenceText = (confidence) => {
-  const texts = {
-    'very-high': '极高',
-    high: '高',
-    medium: '中',
-    low: '低',
-    'very-low': '极低',
-    manual: '手动',
-  }
-  return texts[confidence] || '未知'
-}
-
-const getSimilarityColor = (similarity) => {
-  if (similarity >= 0.8) return '#52c41a'
-  if (similarity >= 0.6) return '#1890ff'
-  if (similarity >= 0.4) return '#faad14'
-  return '#ff4d4f'
-}
-
 const generateSql = async () => {
   if (parsedFields.value.length === 0) {
     message.warning('请先解析DDL语句')
