@@ -881,6 +881,8 @@ const handleReparse = async () => {
 
 const handleDeduplicationToggle = (checked) => {
   handleDeduplicationToggleBase(checked, excelData.value, logInfo)
+  totalExcelRows.value = excelData.value.length
+  originalExcelData.value = [...excelData.value]
 }
 
 const handleDeduplicationChange = (column) => {
@@ -908,6 +910,8 @@ const handleDatabaseTypeChange = (type) => {
 
 const applyDeduplication = () => {
   applyDeduplicationBase(excelData.value, excelHeaders.value, logInfo)
+  totalExcelRows.value = excelData.value.length
+  originalExcelData.value = [...excelData.value]
 }
 
 const handleStartRowUpdate = (val) => {
@@ -1003,14 +1007,14 @@ const applyRowRange = async () => {
       if (
         startRow.value &&
         endRow.value &&
-        originalExcelData.value &&
-        originalExcelData.value.length > 0
+        excelData.value &&
+        excelData.value.length > 0
       ) {
         const startIndex = startRow.value - 1
         const endIndex = endRow.value - 1
-        rows = originalExcelData.value.slice(startIndex, endIndex + 1)
+        rows = excelData.value.slice(startIndex, endIndex + 1)
       } else {
-        rows = originalExcelData.value || []
+        rows = excelData.value || []
       }
     } else {
       const result = await parseExcelEnhanced(uploadedFile.value, {
@@ -1026,6 +1030,7 @@ const applyRowRange = async () => {
 
     excelData.value = rows
     excelHeaders.value = headers
+    totalExcelRows.value = rows.length
 
     const selectedRowCount = rows.length
     logInfo(
