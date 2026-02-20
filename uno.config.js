@@ -51,9 +51,9 @@ export default defineConfig({
   },
   shortcuts: {
     'glass-card': 'bg-white/85 backdrop-blur-20px shadow-lg border border-white/50',
-    'gradient-button': 'text-white rounded-sm shadow-sm hover:shadow-md active:scale-95',
+    'primary-button': 'text-white rounded-sm shadow-sm hover:shadow-md active:scale-95',
     'gradient-text': 'bg-clip-text text-transparent',
   },
   darkMode: 'class',
-  safelist: ['glass-card', 'gradient-button', 'gradient-text'],
+  safelist: ['glass-card', 'primary-button', 'gradient-text'],
 })

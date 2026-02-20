@@ -127,6 +127,7 @@
             </a-collapse-panel>
 
             <a-collapse-panel
+              v-if="showCellSplit"
               key="cellSplit"
               :collapsible="!excelData?.length ? 'disabled' : undefined"
             >
@@ -214,86 +215,49 @@
                 </div>
               </template>
               <div class="row-range-panel">
-                <div class="panel-description">
-                  <InfoCircleOutlined />
-                  只处理指定范围内的数据行，支持跳过表头
-                </div>
-                <div class="row-range-config-wrapper">
-                  <!-- 输入区域：包含行号输入和开关 -->
-                  <div class="row-range-inputs-row">
-                    <div class="range-input-group">
-                      <div class="range-input">
-                        <label>起始行号</label>
-                        <a-input-number
-                          v-model:value="startRowLocal"
-                          :min="1"
-                          :max="totalExcelRows"
-                          :disabled="!rowRangeEnabled"
-                          @change="handleRowRangeChange"
-                          class="range-number-input"
-                          :placeholder="`1-${totalExcelRows || 1}`"
-                        />
-                        <span class="input-hint" v-if="totalExcelRows > 0"
-                          >共 {{ totalExcelRows }} 行</span
-                        >
-                      </div>
-                      <div class="range-input">
-                        <label>结束行号</label>
-                        <a-input-number
-                          v-model:value="endRowLocal"
-                          :min="startRowLocal || 1"
-                          :max="totalExcelRows"
-                          :disabled="!rowRangeEnabled"
-                          @change="handleRowRangeChange"
-                          class="range-number-input"
-                          :placeholder="`1-${totalExcelRows || 1}`"
-                        />
-                        <span class="input-hint" v-if="totalExcelRows > 0"
-                          >共 {{ totalExcelRows }} 行</span
-                        >
-                      </div>
-                      <div class="range-input header-toggle">
-                        <label>包含表头</label>
-                        <a-switch
-                          v-model:checked="includeHeaderLocal"
-                          :disabled="!rowRangeEnabled"
-                          @change="handleIncludeHeaderChange"
-                        />
-                      </div>
+                <div class="row-range-controls">
+                  <div class="row-range-inputs">
+                    <div class="row-range-input">
+                      <label>起始行:</label>
+                      <a-input-number
+                        v-model:value="startRowLocal"
+                        :min="1"
+                        :max="totalExcelRows"
+                        :placeholder="`1-${totalExcelRows}`"
+                        style="width: 100%"
+                        :disabled="!rowRangeEnabled"
+                        @change="handleRowRangeChange"
+                      />
                     </div>
-                    <!-- 操作按钮区域 -->
-                    <div class="row-range-actions">
-                      <a-button
-                        type="primary"
-                        @click="applyRowRange"
+                    <div class="row-range-input">
+                      <label>结束行:</label>
+                      <a-input-number
+                        v-model:value="endRowLocal"
+                        :min="startRowLocal || 1"
+                        :max="totalExcelRows"
+                        :placeholder="`1-${totalExcelRows}`"
+                        style="width: 100%"
                         :disabled="!rowRangeEnabled"
-                        class="action-btn"
-                      >
-                        <template #icon><CheckOutlined /></template>
-                        应用范围
-                      </a-button>
-                      <a-button
-                        @click="resetRowRange"
-                        :disabled="!rowRangeEnabled"
-                        class="action-btn"
-                      >
-                        <template #icon><UndoOutlined /></template>
-                        重置
-                      </a-button>
+                        @change="handleRowRangeChange"
+                      />
                     </div>
                   </div>
-                </div>
-                <div
-                  class="row-range-summary"
-                  v-if="rowRangeEnabled && startRowLocal && endRowLocal"
-                >
-                  <a-tag color="processing">
-                    将处理第 {{ startRowLocal }} 至 {{ endRowLocal }} 行
-                    {{ includeHeaderLocal ? '(含表头)' : '(不含表头)' }}
-                  </a-tag>
-                  <a-tag v-if="totalExcelRows > 0" color="cyan">
-                    {{ deduplicationEnabled ? '去重后' : '共' }} {{ excelData?.length || 0 }} 行
-                  </a-tag>
+                  <div class="row-range-options">
+                    <a-checkbox v-model:checked="includeHeaderLocal" @change="handleIncludeHeaderChange" :disabled="!rowRangeEnabled">
+                      包含表头
+                    </a-checkbox>
+                    <a-tag color="blue">文件总行数: {{ totalExcelRows }}</a-tag>
+                  </div>
+                  <div class="row-range-actions">
+                    <a-button type="primary" size="small" @click="applyRowRange" :disabled="!rowRangeEnabled">
+                      <template #icon><CheckOutlined /></template>
+                      应用行范围
+                    </a-button>
+                    <a-button size="small" @click="resetRowRange" :disabled="!rowRangeEnabled">
+                      <template #icon><ReloadOutlined /></template>
+                      重置范围
+                    </a-button>
+                  </div>
                 </div>
               </div>
             </a-collapse-panel>
@@ -358,6 +322,8 @@ import {
   CheckOutlined,
   UndoOutlined,
   CloudUploadOutlined,
+  ReloadOutlined,
+  QuestionCircleOutlined,
 } from '@ant-design/icons-vue'
 
 const props = defineProps({
@@ -384,6 +350,7 @@ const props = defineProps({
   endRow: { type: Number, default: null },
   includeHeader: { type: Boolean, default: true },
   totalExcelRows: { type: Number, default: 0 },
+  showCellSplit: { type: Boolean, default: true },
 })
 
 const emit = defineEmits([
@@ -398,6 +365,9 @@ const emit = defineEmits([
   'row-range-toggle',
   'row-range-apply',
   'row-range-reset',
+  'update:startRow',
+  'update:endRow',
+  'update:includeHeader',
 ])
 
 const activeCollapseKeys = ref([])
@@ -511,6 +481,8 @@ const handleIncludeHeaderChange = () => {
 }
 
 const applyRowRange = () => {
+  emit('update:startRow', startRowLocal.value)
+  emit('update:endRow', endRowLocal.value)
   emit('row-range-apply')
 }
 
@@ -522,28 +494,26 @@ const resetRowRange = () => {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .excel-upload-wrapper {
   width: 100%;
 }
 
 .excel-upload-card {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 12px;
+  background: $card-bg;
+  backdrop-filter: blur($backdrop-blur);
+  border: 1px solid $card-border;
+  border-radius: $border-radius-md;
   padding: 20px;
-  transition: all 0.3s ease;
-}
+  transition: all $transition-normal ease;
 
-.excel-upload-card:hover {
-  box-shadow: 0 8px 32px rgba(22, 119, 255, 0.12);
+  &:hover {
+    box-shadow: $shadow-card-hover;
+  }
 }
 
 .card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  @include flex-between;
   margin-bottom: 16px;
 }
 
@@ -551,52 +521,50 @@ const resetRowRange = () => {
   display: flex;
   align-items: center;
   gap: 12px;
-}
 
-.header-left h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: #1f2937;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: $text-primary;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
 }
 
 .upload-zone {
   margin-bottom: 16px;
-}
 
-.upload-zone :deep(.ant-upload-dragger) {
-  border: 2px dashed #d9d9d9;
-  border-radius: 12px;
-  background: #fafafa;
-  padding: 32px;
-  transition: all 0.3s ease;
-}
+  :deep(.ant-upload-dragger) {
+    border: 2px dashed $border-default;
+    border-radius: $border-radius-md;
+    background: $bg-elevated;
+    padding: 32px;
+    transition: all $transition-normal ease;
 
-.upload-zone :deep(.ant-upload-dragger:hover) {
-  border-color: #1677ff;
-  background: #f0f7ff;
+    &:hover {
+      border-color: $color-primary;
+      background: $color-primary-bg;
+    }
+  }
 }
 
 .upload-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  @include flex-column-center;
   gap: 12px;
 }
 
 .upload-icon {
   font-size: 48px;
-  color: #1677ff;
+  color: $color-primary;
   margin-bottom: 8px;
 }
 
 .upload-text {
   margin: 0;
   font-size: 16px;
-  color: #1f2937;
+  color: $text-primary;
 }
 
 .primary-text {
@@ -606,7 +574,7 @@ const resetRowRange = () => {
 .upload-hint {
   margin: 0;
   font-size: 13px;
-  color: #6b7280;
+  color: $text-secondary;
 }
 
 .upload-tips {
@@ -616,8 +584,7 @@ const resetRowRange = () => {
 }
 
 .file-details {
-  display: flex;
-  flex-direction: column;
+  @include flex-column;
   gap: 16px;
 }
 
@@ -626,18 +593,18 @@ const resetRowRange = () => {
   align-items: center;
   gap: 16px;
   padding: 16px;
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-  border-radius: 12px;
-  border: 1px solid #bae6fd;
+  background: $gradient-primary-light;
+  border-radius: $border-radius-md;
+  border: 1px solid $color-primary-border;
 }
 
 .file-icon {
   font-size: 40px;
-  color: #1677ff;
-  background: white;
+  color: $color-primary;
+  background: $bg-elevated;
   padding: 12px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-radius: $border-radius-md;
+  box-shadow: $shadow-sm;
 }
 
 .file-info {
@@ -647,7 +614,7 @@ const resetRowRange = () => {
 .file-name {
   font-size: 16px;
   font-weight: 600;
-  color: #1f2937;
+  color: $text-primary;
   margin-bottom: 4px;
 }
 
@@ -655,14 +622,14 @@ const resetRowRange = () => {
   display: flex;
   gap: 16px;
   font-size: 13px;
-  color: #6b7280;
+  color: $text-secondary;
   margin-bottom: 8px;
-}
 
-.file-meta span {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
 }
 
 .data-options {
@@ -670,17 +637,15 @@ const resetRowRange = () => {
 }
 
 .collapse-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  @include flex-between;
   width: 100%;
   padding-right: 8px;
-}
 
-.collapse-header span {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  span {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
 }
 
 .preview-header {
@@ -688,7 +653,7 @@ const resetRowRange = () => {
 }
 
 .preview-info {
-  color: #6b7280;
+  color: $text-secondary;
   font-size: 13px;
 }
 
@@ -702,10 +667,10 @@ const resetRowRange = () => {
   align-items: center;
   gap: 8px;
   padding: 12px;
-  background: #fafafa;
-  border-radius: 8px;
+  background: $color-primary-bg;
+  border-radius: $border-radius-sm;
   margin-bottom: 16px;
-  color: #6b7280;
+  color: $color-primary;
   font-size: 13px;
 }
 
@@ -715,162 +680,94 @@ const resetRowRange = () => {
   padding: 8px 0;
 }
 
-.panel-description {
-  background: #f0f5ff;
-  color: #2f54eb;
+// 行范围筛选样式
+.row-range-config {
+  margin-top: 8px;
 }
 
-/* 行范围筛选区域响应式布局 */
-.row-range-config-wrapper {
-  width: 100%;
-}
-
-.row-range-inputs-row {
+.row-range-header {
+  @include glass-card;
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 16px;
-}
-
-.range-input-group {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
-  flex: 1;
-  min-width: 280px;
+  padding: 12px 16px;
+  transition: all $transition-normal ease;
+
+  @include glass-card-hover;
 }
 
-.range-input {
-  display: flex;
-  flex-direction: column;
+.row-range-controls {
+  @include glass-card;
+  margin-top: 16px;
+  padding: 20px;
+  transition: all $transition-normal ease;
+
+  @include glass-card-hover;
+}
+
+.row-range-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.row-range-input {
+  @include flex-column;
   gap: 8px;
-  position: relative;
+
+  label {
+    font-size: 14px;
+    font-weight: 500;
+    color: $text-primary;
+  }
 }
 
-.range-input label {
-  font-size: 12px;
-  color: #6b7280;
-  font-weight: 500;
-  white-space: nowrap;
-  line-height: 1;
-  height: 12px;
+.row-range-options {
   display: flex;
   align-items: center;
-}
-
-.input-hint {
-  font-size: 11px;
-  color: #9ca3af;
-  margin-top: 2px;
-  white-space: nowrap;
-}
-
-.range-number-input {
-  width: 100px;
-}
-
-.range-number-input :deep(.ant-input-number) {
-  width: 100%;
-}
-
-.header-toggle {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-  /* 与 .range-input 对齐 */
-  justify-content: flex-start;
-}
-
-.header-toggle label {
-  margin-bottom: 0;
-  font-size: 12px;
-  color: #6b7280;
-  font-weight: 500;
-  white-space: nowrap;
-  line-height: 1;
-  height: 12px;
-  display: flex;
-  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: $bg-sunken;
+  border-radius: $border-radius-sm;
 }
 
 .row-range-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: flex-end;
+  gap: 12px;
 }
 
 .action-btn {
   min-width: 100px;
 }
 
-.row-range-summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 16px;
-  padding: 12px;
-  background: linear-gradient(135deg, rgba(22, 119, 255, 0.05) 0%, rgba(20, 201, 201, 0.05) 100%);
-  border-radius: 8px;
-}
-
-/* 平板端适配 */
-@media screen and (max-width: 768px) {
-  .row-range-inputs-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .range-input-group {
-    min-width: auto;
-    justify-content: flex-start;
-  }
-
-  .range-number-input {
-    width: 90px;
-  }
-
-  .row-range-actions {
-    width: 100%;
-    justify-content: flex-start;
-    margin-top: 8px;
-  }
-
-  .action-btn {
-    flex: 1;
-    min-width: auto;
-    max-width: 140px;
-  }
-}
-
-/* 移动端适配 */
-@media screen and (max-width: 480px) {
-  .range-input-group {
-    flex-direction: column;
-    align-items: stretch;
+// 响应式适配
+@include respond-to(md) {
+  .row-range-inputs {
+    grid-template-columns: 1fr;
     gap: 12px;
   }
 
-  .range-input {
-    width: 100%;
+  .row-range-options {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
   }
 
-  .range-number-input {
+  .row-range-actions {
+    flex-direction: column;
     width: 100%;
   }
+}
 
-  .range-number-input :deep(.ant-input-number) {
-    width: 100%;
+@include respond-to(sm) {
+  .row-range-inputs {
+    grid-template-columns: 1fr;
   }
 
-  .header-toggle {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    padding-bottom: 0;
-    padding-top: 8px;
+  .row-range-input {
+    width: 100%;
   }
 
   .row-range-actions {
@@ -882,57 +779,5 @@ const resetRowRange = () => {
     width: 100%;
     max-width: none;
   }
-
-  .row-range-summary {
-    flex-direction: column;
-  }
-}
-
-[data-theme='dark'] .excel-upload-card {
-  background: rgba(30, 41, 59, 0.6);
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-[data-theme='dark'] .header-left h3 {
-  color: #f1f5f9;
-}
-
-[data-theme='dark'] .upload-zone :deep(.ant-upload-dragger) {
-  background: #1e293b;
-  border-color: #475569;
-}
-
-[data-theme='dark'] .upload-zone :deep(.ant-upload-dragger:hover) {
-  background: rgba(22, 119, 255, 0.1);
-}
-
-[data-theme='dark'] .file-card {
-  background: linear-gradient(135deg, rgba(22, 119, 255, 0.1) 0%, rgba(20, 201, 201, 0.1) 100%);
-  border-color: rgba(22, 119, 255, 0.3);
-}
-
-[data-theme='dark'] .file-icon {
-  background: #1e293b;
-}
-
-[data-theme='dark'] .file-name {
-  color: #f1f5f9;
-}
-
-[data-theme='dark'] .file-meta {
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .upload-text {
-  color: #f1f5f9;
-}
-
-[data-theme='dark'] .panel-description {
-  background: rgba(22, 119, 255, 0.1);
-  color: #60a5fa;
-}
-
-[data-theme='dark'] .preview-info {
-  color: #9ca3af;
 }
 </style>

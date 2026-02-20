@@ -105,7 +105,7 @@ const handleClick = (event) => {
   font-weight: 500;
   line-height: 1.5;
   color: #ffffff;
-  background: var(--gradient-primary);
+  background: var(--color-primary);
   border: none;
   border-radius: var(--border-radius-sm);
   box-shadow: var(--shadow-sm);
@@ -116,10 +116,10 @@ const handleClick = (event) => {
 }
 
 /**
- * Hover 效果：亮度 +10%
+ * Hover 效果：背景色加深
  */
 .gradient-button:hover:not(.gradient-button-disabled):not(.gradient-button-loading) {
-  filter: brightness(1.1);
+  background: var(--color-primary-hover);
   box-shadow: var(--shadow-md);
 }
 
@@ -190,10 +190,10 @@ const handleClick = (event) => {
 }
 
 /**
- * 按钮类型：primary（主渐变）
+ * 按钮类型：primary（主色纯色）
  */
 .gradient-button-primary {
-  background: var(--gradient-primary);
+  background: var(--color-primary);
 }
 
 /**

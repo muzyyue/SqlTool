@@ -94,8 +94,8 @@
           @row-range-toggle="handleRowRangeToggle"
           @row-range-apply="applyRowRange"
           @row-range-reset="resetRowRange"
-          @update:startRow="(val) => (startRow = val)"
-          @update:endRow="(val) => (endRow = val)"
+          @update:startRow="handleStartRowUpdate"
+          @update:endRow="handleEndRowUpdate"
         />
 
         <!-- 字段映射 - 使用现有组件 -->
@@ -908,6 +908,14 @@ const handleDatabaseTypeChange = (type) => {
 
 const applyDeduplication = () => {
   applyDeduplicationBase(excelData.value, excelHeaders.value, logInfo)
+}
+
+const handleStartRowUpdate = (val) => {
+  startRow.value = val
+}
+
+const handleEndRowUpdate = (val) => {
+  endRow.value = val
 }
 
 const handleRowRangeToggle = (checked) => {

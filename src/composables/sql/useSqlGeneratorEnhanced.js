@@ -430,10 +430,22 @@ export function useSqlGeneratorEnhanced() {
         if (v === 'NULL' || v === null) {
           return 'NULL'
         }
+        // 确保返回值不是 undefined
+        if (v === undefined) {
+          console.warn(`字段返回了undefined，强制转换为NULL`)
+          return 'NULL'
+        }
         return v
       })
 
       console.log(`第${rowIndex + 1}行finalValues:`, finalValues)
+      console.log(`第${rowIndex + 1}行finalValues包含undefined:`, finalValues.includes(undefined))
+
+      // 检查每个值
+      finalValues.forEach((v, idx) => {
+        console.log(`  [${idx}] = ${JSON.stringify(v)}, 类型: ${typeof v}`)
+      })
+
       console.log(`第${rowIndex + 1}行finalValues.join(', '):`, finalValues.join(', '))
 
       valuesList.push(`(${finalValues.join(', ')})`)
@@ -449,9 +461,15 @@ export function useSqlGeneratorEnhanced() {
     console.log('valuesList:', valuesList)
     console.log('valuesList[0]:', valuesList[0])
     console.log('valuesClause:', valuesClause)
+    console.log('valuesClause前50字符:', valuesClause.substring(0, 50))
     console.log('=== 结束 ===')
 
-    return `INSERT INTO ${escapeFieldName(tableName, dbType)} (${fieldNames.join(', ')})\n${valuesClause};`
+    const finalSql = `INSERT INTO ${escapeFieldName(tableName, dbType)} (${fieldNames.join(', ')})\n${valuesClause};`
+    console.log('=== 最终SQL前200字符 ===')
+    console.log(finalSql.substring(0, 200))
+    console.log('=== 结束 ===')
+
+    return finalSql
   }
 
   /**
@@ -904,18 +922,14 @@ export function useSqlGeneratorEnhanced() {
   const escapeString = (str, dbType) => {
     let escaped = str
 
-    // 不同数据库的特殊转义规则
     switch (dbType) {
       case 'mysql':
-        // MySQL: 单引号需要转义为双引号
         escaped = escaped.replace(/'/g, "''")
         break
       case 'postgresql':
-        // PostgreSQL: 单引号需要转义为双引号
         escaped = escaped.replace(/'/g, "''")
         break
       case 'sqlserver':
-        // SQL Server: 单引号需要转义为双引号
         escaped = escaped.replace(/'/g, "''")
         break
     }
@@ -1082,18 +1096,53 @@ export function useSqlGeneratorEnhanced() {
   }
 
   /**
-   * 拆分长行
+   * 拆分长行（智能分割，保护引号内的内容）
    */
   const splitLongLine = (line, maxLineLength, indent) => {
     const parts = []
     let currentPart = ''
-    const tokens = line.split(',')
+    let inQuotes = false
+    let inFunction = false
+    let parenDepth = 0
+    let currentToken = ''
 
-    tokens.forEach((token, index) => {
-      const trimmedToken = token.trim()
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i]
+
+      if (char === "'" && (i === 0 || line[i - 1] !== '\\')) {
+        inQuotes = !inQuotes
+        currentToken += char
+      } else if (!inQuotes && char === '(') {
+        parenDepth++
+        inFunction = parenDepth > 0
+        currentToken += char
+      } else if (!inQuotes && char === ')') {
+        parenDepth = Math.max(0, parenDepth - 1)
+        inFunction = parenDepth > 0
+        currentToken += char
+      } else if (!inQuotes && !inFunction && char === ',') {
+        const trimmedToken = currentToken.trim()
+        if (currentPart.length + trimmedToken.length + 1 > maxLineLength && currentPart) {
+          parts.push(indent + currentPart + ',')
+          currentPart = trimmedToken
+        } else {
+          if (currentPart) {
+            currentPart += ',' + trimmedToken
+          } else {
+            currentPart = trimmedToken
+          }
+        }
+        currentToken = ''
+      } else {
+        currentToken += char
+      }
+    }
+
+    if (currentToken.trim()) {
+      const trimmedToken = currentToken.trim()
       if (currentPart.length + trimmedToken.length + 1 > maxLineLength && currentPart) {
-        parts.push(indent + currentPart + (index < tokens.length - 1 ? ',' : ''))
-        currentPart = trimmedToken
+        parts.push(indent + currentPart)
+        parts.push(indent + trimmedToken)
       } else {
         if (currentPart) {
           currentPart += ',' + trimmedToken
@@ -1101,13 +1150,13 @@ export function useSqlGeneratorEnhanced() {
           currentPart = trimmedToken
         }
       }
-    })
+    }
 
     if (currentPart) {
       parts.push(indent + currentPart)
     }
 
-    return parts
+    return parts.length > 0 ? parts : [indent + line]
   }
 
   /**
@@ -1173,23 +1222,28 @@ export function useSqlGeneratorEnhanced() {
     console.log('format:', format)
 
     if (format === 'minified') {
-      const minified = sql
+      let minified = sql
         .replace(/\s+/g, ' ')
         .replace(/\s*([(),;])\s*/g, '$1')
         .replace(/\s+/g, ' ')
         .trim()
 
-      // 修复：确保VALUES子句中的逗号正确保留
-      // 检查是否有类似 '...value'4) 或 '...value',4) 的模式
-      const fixedMinified = minified.replace(
-        /'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[^']*)'(\d+)/g,
-        "$1',$2",
-      )
+      minified = minified.replace(/' ([A-Z_]+\(\))/gi, "', $1")
 
-      console.log('输出SQL:', fixedMinified)
+      minified = minified.replace(/([A-Z_]+\(\)) '/gi, "$1, '")
+
+      minified = minified.replace(/(\d) ([A-Z_]+\(\))/gi, "$1, $2")
+
+      minified = minified.replace(/([A-Z_]+\(\)) (\d)/gi, "$1, $2")
+
+      minified = minified.replace(/NULL ([A-Z_]+\(\))/gi, "NULL, $1")
+
+      minified = minified.replace(/([A-Z_]+\(\)) NULL/gi, "$1, NULL")
+
+      console.log('输出SQL:', minified)
       console.log('=== 结束 ===')
 
-      return fixedMinified
+      return minified
     }
 
     // 应用高级美化功能

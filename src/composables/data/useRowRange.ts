@@ -146,6 +146,7 @@ export function useRowRange() {
     checked: boolean,
     logInfo: (message: string, type: string, context?: any) => void,
   ) => {
+    rowRangeEnabled.value = checked
     if (!checked) {
       logInfo('已关闭行范围选择，将处理所有数据', 'row-range', {
         operation: 'disableRowRange',

@@ -65,334 +65,59 @@
         </div>
 
         <!-- Excel上传 -->
-        <div class="input-card">
-          <div class="card-header">
-            <h3>Excel文件上传</h3>
-            <a-tooltip title="支持.xlsx、.xls、.csv格式，最大文件大小10MB">
-              <QuestionCircleOutlined />
-            </a-tooltip>
-          </div>
-          <a-upload
-            v-model:file-list="fileList"
-            :before-upload="beforeUpload"
-            :custom-request="handleUpload"
-            :show-upload-list="false"
-            accept=".xlsx,.xls,.csv"
-          >
-            <a-button :loading="uploading">
-              <template #icon><UploadOutlined /></template>
-              {{ uploading ? '上传中...' : '选择文件' }}
-            </a-button>
-          </a-upload>
+        <ExcelUploadCard
+          :file-list="fileList"
+          :uploaded-file="uploadedFile"
+          :uploading="uploading"
+          :excel-data="excelData"
+          :excel-headers="excelHeaders"
+          :deduplication-enabled="deduplicationEnabled"
+          :deduplication-column="deduplicationColumn"
+          :deduplication-stats="deduplicationStats"
+          :row-range-enabled="rowRangeEnabled"
+          :start-row="startRow"
+          :end-row="endRow"
+          :include-header="includeHeader"
+          :total-excel-rows="totalExcelRows"
+          :show-cell-split="false"
+          @upload="handleUpload"
+          @clear-file="clearFile"
+          @reparse="handleReparse"
+          @deduplication-toggle="handleDeduplicationToggle"
+          @deduplication-change="handleDeduplicationChange"
+          @row-range-toggle="handleRowRangeToggle"
+          @row-range-apply="applyRowRange"
+          @row-range-reset="resetRowRange"
+          @update:startRow="handleStartRowUpdate"
+          @update:endRow="handleEndRowUpdate"
+        />
 
-          <div v-if="uploadedFile" class="file-info">
-            <a-alert
-              :message="uploadedFile.name"
-              :description="
-                excelData && excelData.length > 0
-                  ? `文件解析完成，共 ${excelData.length} 行数据`
-                  : '文件上传成功，正在解析数据...'
-              "
-              :type="excelData && excelData.length > 0 ? 'success' : 'info'"
-              show-icon
-              closable
-              @close="clearFile"
-            />
-          </div>
-
-          <!-- 去重配置 -->
-          <div v-if="excelData && excelData.length > 0" class="deduplication-config">
-            <a-divider style="margin: 12px 0" />
-            <div class="deduplication-header">
-              <a-checkbox
-                v-model:checked="deduplicationEnabled"
-                @change="handleDeduplicationToggle"
-              >
-                启用数据去重
-              </a-checkbox>
-              <a-tooltip title="根据选定列的值去除重复数据行，仅保留每组的第一次出现">
-                <QuestionCircleOutlined />
-              </a-tooltip>
-            </div>
-            <div v-if="deduplicationEnabled" class="deduplication-controls">
-              <a-select
-                v-model:value="deduplicationColumn"
-                placeholder="选择去重列"
-                style="width: 100%; max-width: 300px"
-                @change="handleDeduplicationChange"
-              >
-                <a-select-option
-                  v-for="(header, idx) in excelHeaders || []"
-                  :key="idx"
-                  :value="idx"
-                >
-                  {{ header }} (列{{ idx + 1 }})
-                </a-select-option>
-              </a-select>
-              <div v-if="deduplicationStats.removedRows > 0" class="deduplication-stats">
-                <a-tag color="blue">原始: {{ deduplicationStats.originalRows }} 行</a-tag>
-                <a-tag color="green">去重后: {{ deduplicationStats.deduplicatedRows }} 行</a-tag>
-                <a-tag color="orange">去重: {{ deduplicationStats.removedRows }} 行</a-tag>
-              </div>
-            </div>
-          </div>
-
-          <!-- 行范围选择配置 -->
-          <div v-if="excelData && excelData.length > 0" class="row-range-config">
-            <a-divider style="margin: 12px 0" />
-            <div class="row-range-header">
-              <a-checkbox v-model:checked="rowRangeEnabled" @change="handleRowRangeToggle">
-                启用行范围选择
-              </a-checkbox>
-              <a-tooltip title="只处理指定范围内的Excel行，提高处理效率">
-                <QuestionCircleOutlined />
-              </a-tooltip>
-            </div>
-            <div v-if="rowRangeEnabled" class="row-range-controls">
-              <div class="row-range-inputs">
-                <div class="row-range-input">
-                  <label>起始行:</label>
-                  <a-input-number
-                    v-model:value="startRow"
-                    :min="1"
-                    :max="totalExcelRows"
-                    :placeholder="`1-${totalExcelRows}`"
-                    style="width: 100%"
-                  />
-                </div>
-                <div class="row-range-input">
-                  <label>结束行:</label>
-                  <a-input-number
-                    v-model:value="endRow"
-                    :min="1"
-                    :max="totalExcelRows"
-                    :placeholder="`1-${totalExcelRows}`"
-                    style="width: 100%"
-                  />
-                </div>
-              </div>
-              <div class="row-range-options">
-                <a-checkbox v-model:checked="includeHeader"> 包含表头 </a-checkbox>
-                <a-tag color="blue">文件总行数: {{ totalExcelRows }}</a-tag>
-              </div>
-              <div class="row-range-actions">
-                <a-button type="primary" size="small" @click="applyRowRange">
-                  <template #icon><CheckOutlined /></template>
-                  应用行范围
-                </a-button>
-                <a-button size="small" @click="resetRowRange">
-                  <template #icon><ReloadOutlined /></template>
-                  重置范围
-                </a-button>
-              </div>
-              <div v-if="startRow && endRow" class="row-range-stats">
-                <a-tag color="green">选择范围: {{ startRow }} - {{ endRow }}</a-tag>
-                <a-tag color="orange">将处理 {{ endRow - startRow + 1 }} 行</a-tag>
-              </div>
-            </div>
-          </div>
-
-          <div v-if="excelData && excelData.length > 0" class="data-preview">
-            <a-collapse>
-              <a-collapse-panel key="preview" header="数据预览">
-                <a-table
-                  :data-source="previewData"
-                  :columns="previewColumns"
-                  :pagination="false"
-                  size="small"
-                  :scroll="{ x: true }"
-                />
-                <div class="preview-footer">显示前10行，共 {{ excelData.length }} 行数据</div>
-              </a-collapse-panel>
-            </a-collapse>
-          </div>
-        </div>
-
-        <!-- 字段映射 -->
-        <div class="input-card" v-if="showFieldMapping">
-          <div class="card-header">
-            <h3>字段映射配置</h3>
-            <a-tooltip title="建立DDL字段与Excel列的映射关系，支持自动匹配和手动调整">
-              <QuestionCircleOutlined />
-            </a-tooltip>
-          </div>
-
-          <div class="mapping-stats">
-            <a-statistic
-              title="匹配率"
-              :value="enhancedMatchingStats.matchRate"
-              :precision="1"
-              suffix="%"
-            />
-            <a-statistic
-              title="已匹配"
-              :value="enhancedMatchingStats.matched"
-              :value-style="{ color: '#3f8600' }"
-            />
-            <a-statistic
-              title="未匹配"
-              :value="enhancedMatchingStats.unmatched"
-              :value-style="{ color: '#cf1322' }"
-            />
-
-            <!-- 自定义绑定统计 -->
-            <div v-if="hasCustomBindingConfig" class="custom-binding-stats">
-              <a-divider type="vertical" />
-              <a-statistic
-                title="自定义绑定"
-                :value="enhancedMatchingStats.customBindings || 0"
-                :value-style="{ color: '#1890ff' }"
-              />
-              <a-statistic
-                title="字段拼接"
-                :value="enhancedMatchingStats.concatenationRules || 0"
-                :value-style="{ color: '#722ed1' }"
-              />
-            </div>
-          </div>
-
-          <a-table
-            :data-source="filteredFieldMappings"
-            :columns="mappingColumns"
-            :pagination="false"
-            size="small"
-          >
-            <template #bodyCell="{ column, record }">
-              <template v-if="column.key === 'fieldName'">
-                <span>{{ record.ddlField.name }}</span>
-              </template>
-
-              <template v-if="column.key === 'ddlField'">
-                <div class="ddl-field-cell">
-                  <div class="ddl-field-info">
-                    <strong>{{ record.ddlField.name }}</strong>
-                    <div class="field-type">{{ record.ddlField.type }}</div>
-                    <a-tag v-if="!record.ddlField.nullable" color="red" size="small"> 必填 </a-tag>
-                    <a-tag
-                      v-if="record.status === 'unmatched' || record.excelIndex === -1"
-                      color="orange"
-                      size="small"
-                    >
-                      未匹配
-                    </a-tag>
-                  </div>
-                  <a-select
-                    v-if="excelHeaders && excelHeaders.length > 0"
-                    v-model:value="record.excelIndex"
-                    style="width: 100%; max-width: 280px; margin-top: 8px"
-                    placeholder="选择Excel列"
-                    size="small"
-                    @change="(value) => updateMapping(record.ddlField.name, value)"
-                  >
-                    <a-select-option :value="-1">未绑定</a-select-option>
-                    <a-select-option
-                      v-for="(header, idx) in excelHeaders || []"
-                      :key="idx"
-                      :value="idx"
-                      :disabled="isColumnUsed(idx)"
-                    >
-                      {{ header }} (列{{ idx + 1 }})
-                    </a-select-option>
-                  </a-select>
-                  <div v-else class="no-excel-hint">
-                    <small>请先上传Excel文件</small>
-                  </div>
-                </div>
-              </template>
-
-              <template v-if="column.key === 'excelHeader'">
-                <span v-if="record.excelIndex === -1 || !record.excelHeader">
-                  <a-tag color="gray" size="small">未绑定</a-tag>
-                </span>
-                <span v-else>
-                  {{ record.excelHeader }}
-                  <a-tag
-                    v-if="record.confidence && record.confidence !== 'manual'"
-                    :color="getConfidenceColor(record.confidence)"
-                    size="small"
-                  >
-                    {{ getConfidenceText(record.confidence) }}
-                  </a-tag>
-                  <a-tag v-else-if="record.confidence === 'manual'" color="purple" size="small">
-                    手动
-                  </a-tag>
-                </span>
-              </template>
-
-              <template v-if="column.key === 'similarity'">
-                <span v-if="record.excelIndex === -1 || !record.similarity">-</span>
-                <a-progress
-                  v-else
-                  :percent="Math.round(record.similarity * 100)"
-                  size="small"
-                  :stroke-color="getSimilarityColor(record.similarity)"
-                />
-              </template>
-
-              <template v-if="column.key === 'generatedByFunction'">
-                <a-checkbox
-                  v-model:checked="record.generatedByFunction"
-                  @change="handleGeneratedByFunctionChange(record)"
-                />
-              </template>
-
-              <template v-if="column.key === 'actions'">
-                <a-space>
-                  <a-button type="link" size="small" @click="clearMapping(record.ddlField.name)">
-                    清除
-                  </a-button>
-                </a-space>
-              </template>
-            </template>
-          </a-table>
-
-          <div class="mapping-actions">
-            <a-button @click="autoMatchFields">自动匹配</a-button>
-            <a-button @click="clearAllMappings">清除所有</a-button>
-            <a-button type="primary" @click="validateMappings">验证映射</a-button>
-
-            <!-- 自定义绑定操作 -->
-            <a-divider type="vertical" />
-            <a-switch
-              v-model:checked="customBindingEnabled"
-              checked-children="自定义绑定"
-              un-checked-children="标准模式"
-              size="small"
-              @change="handleCustomBindingToggle"
-            />
-            <a-button
-              type="dashed"
-              @click="openCustomBindingModal"
-              :disabled="!customBindingEnabled"
-            >
-              <template #icon><SettingOutlined /></template>
-              配置绑定
-            </a-button>
-          </div>
-
-          <!-- 自定义字段管理 -->
-          <CustomFieldManager
-            v-if="customBindingEnabled"
-            :custom-fields="customFieldsData"
-            :custom-binding-manager="customBindingManager"
-            @edit="handleEditCustomField"
-            @delete="handleDeleteCustomField"
-            @refresh="handleRefreshCustomFields"
-          />
-
-          <!-- 数据库类型选择 -->
-          <div class="database-type-section">
-            <h4>数据库类型</h4>
-            <a-radio-group v-model:value="databaseType" button-style="solid">
-              <a-radio-button value="mysql">MySQL</a-radio-button>
-              <a-radio-button value="postgresql">PostgreSQL</a-radio-button>
-              <a-radio-button value="sqlserver">SQL Server</a-radio-button>
-            </a-radio-group>
-            <div class="database-type-hint">
-              <small>选择目标数据库类型，确保生成的SQL符合对应语法规范</small>
-            </div>
-          </div>
-        </div>
+        <!-- 字段映射 - 使用现有组件 -->
+        <FieldMappingCard
+          v-if="showFieldMapping"
+          :show-field-mapping="showFieldMapping"
+          :enhanced-matching-stats="enhancedMatchingStats"
+          :filtered-field-mappings="filteredFieldMappings"
+          :excel-headers="excelHeaders"
+          :custom-binding-enabled="customBindingEnabled"
+          :custom-fields-data="customFieldsData"
+          :custom-field-manager-key="customFieldManagerKey"
+          :custom-binding-manager="customBindingManager"
+          :database-type="databaseType"
+          :has-custom-binding-config="hasCustomBindingConfig"
+          @auto-match-fields="autoMatchFields"
+          @clear-all-mappings="clearAllMappings"
+          @validate-enhanced-mappings="validateEnhancedMappings"
+          @update-mapping="updateMapping"
+          @handle-generated-by-function-change="handleGeneratedByFunctionChange"
+          @clear-mapping="clearMapping"
+          @handle-custom-binding-toggle="handleCustomBindingToggle"
+          @open-custom-binding-modal="openCustomBindingModal"
+          @handle-edit-custom-field="handleEditCustomField"
+          @handle-delete-custom-field="handleDeleteCustomField"
+          @handle-refresh-custom-fields="handleRefreshCustomFields"
+          @update:database-type="handleDatabaseTypeChange"
+        />
 
         <!-- 条件字段配置 -->
         <div class="input-card" v-if="parsedFields.length > 0">
@@ -679,7 +404,6 @@ import {
   ReloadOutlined,
   PlayCircleOutlined,
   QuestionCircleOutlined,
-  UploadOutlined,
   ClockCircleOutlined,
   SettingOutlined,
   CheckOutlined,
@@ -717,6 +441,8 @@ import { useOperationLog } from '@/composables/core/useOperationLog'
 import SqlPreview from '@/components/SqlPreview/SqlPreview.vue'
 import CustomBindingModal from '@/components/CustomBindingModal.vue'
 import CustomFieldManager from '@/components/CustomFieldManager/CustomFieldManager.vue'
+import ExcelUploadCard from '@/components/ExcelUploadCard/ExcelUploadCard.vue'
+import FieldMappingCard from '@/components/FieldMappingCard/FieldMappingCard.vue'
 
 // 初始化核心功能模块
 const { parseDdl: parseDdlWithParser, clearCache } = useDdlParser()
@@ -726,6 +452,7 @@ const {
   matchFields,
   updateFieldMapping,
   validateMappings: validateFieldMappings,
+  validateEnhancedMappings,
   matchingStats,
   customBindingManager,
   resetMappings,
@@ -784,6 +511,7 @@ const fileList = ref([])
 const uploadedFile = ref(null)
 const excelData = ref([])
 const excelHeaders = ref([])
+const originalExcelData = ref([])
 const generatedSql = ref('')
 const databaseType = ref('mysql')
 
@@ -794,6 +522,16 @@ const editingCustomField = ref(null)
 const hasCustomBindingConfig = computed(() => {
   const stats = customBindingManager.getBindingStats()
   return stats.hasCustomConfig
+})
+
+const customFieldManagerKey = computed(() => {
+  const fields = customFieldsData.value
+  const fieldCount = fields.length
+  const fieldNames = fields
+    .map((f) => f.fieldName)
+    .sort()
+    .join(',')
+  return `custom-fields-${fieldCount}-${fieldNames}`
 })
 
 const customFieldsData = computed(() => {
@@ -1150,6 +888,7 @@ const handleUpload = async (options) => {
     const result = await parseExcelEnhanced(file, parseOptions)
     excelData.value = result.rows
     excelHeaders.value = result.headers
+    originalExcelData.value = [...result.rows]
 
     setOriginalData(result.rows)
 
@@ -1177,8 +916,35 @@ const clearFile = () => {
   uploadedFile.value = null
   excelData.value = []
   excelHeaders.value = []
+  originalExcelData.value = []
   fileList.value = []
   logInfo('已清除上传的文件')
+}
+
+const handleReparse = async () => {
+  customBindingEnabled.value = false
+  customBindingManager.resetBindings()
+  resetMappings()
+  logInfo('重新解析，已清空自定义字段数据')
+
+  if (originalExcelData.value && originalExcelData.value.length > 0) {
+    excelData.value = [...originalExcelData.value]
+    if (excelHeaders.value && excelHeaders.value.length > 0) {
+      message.success(`数据重新加载成功，共 ${excelData.value.length} 行数据`)
+    }
+
+    if (parsedFields.value.length > 0) {
+      autoMatchFields()
+    }
+
+    logInfo('数据重新加载完成', 'file', {
+      operation: 'reparse',
+      rows: excelData.value.length,
+      columns: excelHeaders.value?.length || 0,
+    })
+  } else {
+    message.warning('没有可重新加载的数据')
+  }
 }
 
 const autoMatchFields = () => {
@@ -1494,6 +1260,14 @@ const handleRowRangeToggle = (e) => {
   }
 }
 
+const handleStartRowUpdate = (val) => {
+  startRow.value = val
+}
+
+const handleEndRowUpdate = (val) => {
+  endRow.value = val
+}
+
 /**
  * 应用行范围
  * 根据用户设置的行范围重新解析Excel文件
@@ -1522,52 +1296,34 @@ const applyRowRange = async () => {
   uploading.value = true
 
   try {
-    // 如果需要保留原始表头，使用快速方法获取表头
     let headers = []
     let rows = []
 
     if (includeHeader.value) {
-      // 直接从已解析的excelData中提取第一行作为表头
-      if (excelData.value && excelData.value.length > 0) {
-        // 使用第一行数据作为表头
+      if (excelHeaders.value && excelHeaders.value.length > 0) {
+        headers = excelHeaders.value
+      } else if (excelData.value && excelData.value.length > 0) {
         const firstRow = excelData.value[0]
-        headers = Object.keys(firstRow).map((key) => {
-          // 如果key是数字（如"0", "1"），转换为列名
-          const colIndex = parseInt(key)
-          if (!isNaN(colIndex)) {
-            return key
-          }
-          // 如果key是数字，说明是默认列名，使用excelHeaders
-          if (excelHeaders.value && excelHeaders.value.length > colIndex) {
-            return excelHeaders.value[colIndex]
-          }
-          return `Column_${colIndex + 1}`
-        })
-
-        console.log('[applyRowRange] 从已解析数据中提取表头:', headers)
-
-        // 使用已解析的数据
-        rows = excelData.value
+        headers = Object.keys(firstRow)
       } else {
-        // 如果没有已解析数据，使用getHeaders
         headers = await getHeaders(uploadedFile.value, {
           sheetIndex: 0,
         })
       }
 
-      // 如果需要获取数据范围，重新解析
-      if (rows.length === 0 && startRow.value && endRow.value) {
-        const dataResult = await parseExcelEnhanced(uploadedFile.value, {
-          sheetIndex: 0,
-          maxRows: 10000,
-          startRow: startRow.value,
-          endRow: endRow.value,
-          includeHeader: false, // 数据范围不包含表头
-        })
-        rows = dataResult.rows
+      if (
+        startRow.value &&
+        endRow.value &&
+        originalExcelData.value &&
+        originalExcelData.value.length > 0
+      ) {
+        const startIndex = startRow.value - 1
+        const endIndex = endRow.value - 1
+        rows = originalExcelData.value.slice(startIndex, endIndex + 1)
+      } else {
+        rows = originalExcelData.value || []
       }
     } else {
-      // 不包含表头的情况，直接解析数据范围
       const result = await parseExcelEnhanced(uploadedFile.value, {
         sheetIndex: 0,
         maxRows: 10000,
@@ -1596,11 +1352,6 @@ const applyRowRange = async () => {
       },
     )
     message.success(`行范围应用成功，共 ${rows.length} 行数据`)
-
-    // 如果已有DDL字段，自动执行字段匹配
-    if (parsedFields.value.length > 0) {
-      autoMatchFields()
-    }
   } catch (error) {
     console.error('应用行范围失败:', error)
 
@@ -2020,8 +1771,14 @@ const handleDeleteCustomField = (record) => {
 
 const handleRefreshCustomFields = () => {
   logInfo('刷新自定义字段列表')
-  // 删除自定义字段后不需要重新解析DDL，只需要更新字段映射
-  // parseDdl(false)  // 注释掉，避免覆盖已配置的数据
+}
+
+const handleDatabaseTypeChange = (type) => {
+  databaseType.value = type
+  logInfo(`数据库类型已切换为: ${type}`, 'database', {
+    operation: 'changeDatabaseType',
+    databaseType: type,
+  })
 }
 
 const toggleBeautifyOptions = () => {
@@ -2497,213 +2254,6 @@ onMounted(() => {
       border-color: rgba(245, 158, 11, 0.3);
       color: #f59e0b;
     }
-  }
-}
-
-// 行范围选择样式 - 优化版
-.row-range-config {
-  margin-top: 16px;
-}
-
-.row-range-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background: $card-bg;
-  backdrop-filter: blur($backdrop-blur);
-  -webkit-backdrop-filter: blur($backdrop-blur);
-  border: 1px solid $card-border;
-  border-radius: $border-radius-md;
-  box-shadow: $shadow-sm;
-  transition: all $transition-normal ease;
-
-  &:hover {
-    box-shadow: $shadow-md;
-  }
-}
-
-.row-range-controls {
-  margin-top: 16px;
-  padding: 20px;
-  background: $card-bg;
-  backdrop-filter: blur($backdrop-blur);
-  -webkit-backdrop-filter: blur($backdrop-blur);
-  border: 1px solid $card-border;
-  border-radius: $border-radius-md;
-  box-shadow: $shadow-sm;
-  transition: all $transition-normal ease;
-
-  &:hover {
-    box-shadow: $shadow-md;
-  }
-}
-
-.row-range-inputs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-.row-range-input {
-  @include flex-column;
-  gap: 8px;
-
-  label {
-    font-size: 14px;
-    font-weight: 500;
-    color: $text-primary;
-    transition: color $transition-fast ease;
-  }
-
-  .ant-input-number {
-    transition: all $transition-fast ease;
-
-    &:hover {
-      box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
-    }
-  }
-
-  .ant-input-number:focus-within {
-    box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.3);
-  }
-}
-
-.row-range-options {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 16px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid $card-border;
-  transition: all $transition-fast ease;
-
-  .ant-checkbox-wrapper {
-    transition: all $transition-fast ease;
-
-    &:hover {
-      color: $gradient-primary;
-    }
-  }
-
-  .ant-tag {
-    background: linear-gradient(135deg, rgba(22, 119, 255, 0.1) 0%, rgba(20, 201, 201, 0.1) 100%);
-    border: 1px solid rgba(22, 119, 255, 0.2);
-    color: #1677ff;
-    font-weight: 500;
-    padding: 4px 12px;
-    border-radius: $border-radius-xs;
-    transition: all $transition-fast ease;
-
-    &:hover {
-      background: linear-gradient(135deg, rgba(22, 119, 255, 0.15) 0%, rgba(20, 201, 201, 0.15) 100%);
-      transform: translateY(-1px);
-    }
-  }
-}
-
-.row-range-actions {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
-
-  .ant-btn {
-    transition: all $transition-fast ease;
-
-    &:hover {
-      transform: translateY(-1px);
-      box-shadow: $shadow-sm;
-    }
-
-    &:active {
-      transform: scale(0.98);
-    }
-  }
-}
-
-.row-range-stats {
-  margin-top: 16px;
-  padding: 16px;
-  background: linear-gradient(135deg, rgba(22, 119, 255, 0.05) 0%, rgba(20, 201, 201, 0.05) 100%);
-  border: 1px solid rgba(22, 119, 255, 0.1);
-  border-radius: $border-radius-sm;
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  transition: all $transition-normal ease;
-
-  &:hover {
-    background: linear-gradient(135deg, rgba(22, 119, 255, 0.08) 0%, rgba(20, 201, 201, 0.08) 100%);
-    box-shadow: $shadow-sm;
-  }
-
-  .ant-tag {
-    background: white;
-    border: 1px solid rgba(22, 119, 255, 0.2);
-    color: $text-primary;
-    font-weight: 500;
-    padding: 6px 14px;
-    border-radius: $border-radius-xs;
-    transition: all $transition-fast ease;
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: $shadow-sm;
-    }
-
-    &.ant-tag-green {
-      border-color: rgba(16, 185, 129, 0.3);
-      color: #10b981;
-    }
-
-    &.ant-tag-orange {
-      border-color: rgba(245, 158, 11, 0.3);
-      color: #f59e0b;
-    }
-  }
-}
-
-// 行范围响应式设计
-@include respond-to(md) {
-  .row-range-inputs {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
-  .row-range-options {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  .row-range-actions {
-    flex-direction: column;
-    gap: 8px;
-
-    .ant-btn {
-      width: 100%;
-    }
-  }
-
-  .row-range-stats {
-    flex-direction: column;
-    gap: 8px;
-  }
-}
-
-@media (max-width: 480px) {
-  .row-range-header,
-  .row-range-controls {
-    padding: 16px 12px;
-  }
-
-  .row-range-input label {
-    font-size: 13px;
-  }
-
-  .row-range-stats {
-    padding: 12px;
   }
 }
 
