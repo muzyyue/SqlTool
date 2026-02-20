@@ -880,9 +880,14 @@ const handleReparse = async () => {
 }
 
 const handleDeduplicationToggle = (checked) => {
+  if (!checked && originalExcelData.value.length > 0) {
+    excelData.value = [...originalExcelData.value]
+    totalExcelRows.value = excelData.value.length
+  }
   handleDeduplicationToggleBase(checked, excelData.value, logInfo)
-  totalExcelRows.value = excelData.value.length
-  originalExcelData.value = [...excelData.value]
+  if (checked) {
+    totalExcelRows.value = excelData.value.length
+  }
 }
 
 const handleDeduplicationChange = (column) => {
@@ -911,7 +916,6 @@ const handleDatabaseTypeChange = (type) => {
 const applyDeduplication = () => {
   applyDeduplicationBase(excelData.value, excelHeaders.value, logInfo)
   totalExcelRows.value = excelData.value.length
-  originalExcelData.value = [...excelData.value]
 }
 
 const handleStartRowUpdate = (val) => {
