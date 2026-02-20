@@ -1102,6 +1102,8 @@ export function useSqlGeneratorEnhanced() {
     const parts = []
     let currentPart = ''
     let inQuotes = false
+    let inFunction = false
+    let parenDepth = 0
     let currentToken = ''
 
     for (let i = 0; i < line.length; i++) {
@@ -1110,7 +1112,15 @@ export function useSqlGeneratorEnhanced() {
       if (char === "'" && (i === 0 || line[i - 1] !== '\\')) {
         inQuotes = !inQuotes
         currentToken += char
-      } else if (!inQuotes && char === ',') {
+      } else if (!inQuotes && char === '(') {
+        parenDepth++
+        inFunction = parenDepth > 0
+        currentToken += char
+      } else if (!inQuotes && char === ')') {
+        parenDepth = Math.max(0, parenDepth - 1)
+        inFunction = parenDepth > 0
+        currentToken += char
+      } else if (!inQuotes && !inFunction && char === ',') {
         const trimmedToken = currentToken.trim()
         if (currentPart.length + trimmedToken.length + 1 > maxLineLength && currentPart) {
           parts.push(indent + currentPart + ',')
@@ -1214,11 +1224,13 @@ export function useSqlGeneratorEnhanced() {
     if (format === 'minified') {
       let minified = sql
         .replace(/\s+/g, ' ')
-        .replace(/\s*,\s*/g, ',')
         .replace(/\s*\(\s*/g, '(')
         .replace(/\s*\)\s*/g, ')')
+        .replace(/\s*,\s*/g, ',')
         .replace(/\s*;\s*/g, ';')
         .trim()
+
+      minified = minified.replace(/\),\(/g, '), (')
 
       minified = minified.replace(/' ([A-Z_]+\(\))/gi, "', $1")
 
@@ -1231,9 +1243,6 @@ export function useSqlGeneratorEnhanced() {
       minified = minified.replace(/NULL ([A-Z_]+\(\))/gi, "NULL, $1")
 
       minified = minified.replace(/([A-Z_]+\(\)) NULL/gi, "$1, NULL")
-
-      minified = minified.replace(/\)VALUES\(/gi, ')VALUES(')
-      minified = minified.replace(/\),\s*\(/g, '),(')
 
       console.log('输出SQL:', minified)
       console.log('=== 结束 ===')
