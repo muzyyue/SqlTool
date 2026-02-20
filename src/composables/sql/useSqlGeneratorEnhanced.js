@@ -1102,7 +1102,6 @@ export function useSqlGeneratorEnhanced() {
     const parts = []
     let currentPart = ''
     let inQuotes = false
-    let inFunction = false
     let parenDepth = 0
     let currentToken = ''
 
@@ -1114,25 +1113,27 @@ export function useSqlGeneratorEnhanced() {
         currentToken += char
       } else if (!inQuotes && char === '(') {
         parenDepth++
-        inFunction = parenDepth > 0
         currentToken += char
       } else if (!inQuotes && char === ')') {
         parenDepth = Math.max(0, parenDepth - 1)
-        inFunction = parenDepth > 0
         currentToken += char
-      } else if (!inQuotes && !inFunction && char === ',') {
+      } else if (!inQuotes && char === ',') {
         const trimmedToken = currentToken.trim()
-        if (currentPart.length + trimmedToken.length + 1 > maxLineLength && currentPart) {
-          parts.push(indent + currentPart + ',')
-          currentPart = trimmedToken
-        } else {
-          if (currentPart) {
-            currentPart += ',' + trimmedToken
-          } else {
+        if (parenDepth === 0) {
+          if (currentPart.length + trimmedToken.length + 1 > maxLineLength && currentPart) {
+            parts.push(indent + currentPart + ',')
             currentPart = trimmedToken
+          } else {
+            if (currentPart) {
+              currentPart += ',' + trimmedToken
+            } else {
+              currentPart = trimmedToken
+            }
           }
+          currentToken = ''
+        } else {
+          currentToken += char
         }
-        currentToken = ''
       } else {
         currentToken += char
       }
