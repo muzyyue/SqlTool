@@ -936,7 +936,7 @@ const handlePreviewSheetChange = (sheetName) => {
  * 处理源列变更
  * @param {string} value - 选中的列值
  */
-const handleSourceColumnChange = (value) => {
+const handleSourceColumnChange = () => {
   // 源列变更处理
 }
 
@@ -944,7 +944,7 @@ const handleSourceColumnChange = (value) => {
  * 处理目标列变更
  * @param {string} value - 选中的列值
  */
-const handleTargetColumnChange = (value) => {
+const handleTargetColumnChange = () => {
   // 目标列变更处理
 }
 
@@ -952,7 +952,7 @@ const handleTargetColumnChange = (value) => {
  * 处理源数据列变更
  * @param {string} value - 选中的列值
  */
-const handleSourceColumnForSplitChange = (value) => {
+const handleSourceColumnForSplitChange = () => {
   // 源数据列变更处理
 }
 
@@ -994,7 +994,7 @@ const handleMatchColumnChange = (value) => {
  * 处理提取列变更
  * @param {Array} value - 选中的列值数组
  */
-const handleExtractColumnsChange = (value) => {
+const handleExtractColumnsChange = () => {
   // 提取列变更处理
 }
 
