@@ -1,5 +1,26 @@
 # 版本变更历史
 
+## 1.5.41 (2026-02-25)
+
+**Excel数据填充工具Tab布局重构与组件拆分**
+
+- 新增引号转换功能
+  - 将Excel中的逗号分隔数据转换为引号包裹格式
+  - 例如：`Aa,AAA,ccc` → `"Aa","AAA","ccc"`
+  - 支持自定义分隔符和引号样式配置
+  - 支持独立工作表选择
+- 页面布局重构为Tab切换模式
+  - 基础填充、高级填充、引号转换三个功能独立显示
+  - 使用Ant Design Vue Tabs组件实现
+  - 解决页面功能臃肿问题
+- 组件拆分优化
+  - 创建BasicFillTab.vue组件
+  - 创建AdvancedFillTab.vue组件
+  - 创建QuoteConvertTab.vue组件
+  - 降低单文件代码行数，提升可维护性
+- 修复删除文件后引号转换配置未清除的问题
+- 修复QuoteOutlined图标不存在的问题（替换为FormatPainterOutlined）
+
 ## 1.5.40 (2026-02-20)
 
 **修复VALUES子句逗号丢失等问题**
