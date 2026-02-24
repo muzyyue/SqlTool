@@ -986,7 +986,7 @@ const handleSourceSheetChange = (sheetName) => {
  * 处理查询匹配列变更
  * @param {string} value - 选中的列值
  */
-const handleMatchColumnChange = (value) => {
+const handleMatchColumnChange = () => {
   // 查询匹配列变更处理
 }
 
