@@ -30,294 +30,73 @@
         </div>
       </VbenGlassCard>
 
-      <VbenGlassCard title="基础配置" class="config-card" v-if="workbook">
-        <a-form :model="config" layout="vertical">
-          <a-form-item label="工作表">
-            <a-select
-              v-model:value="config.sheetName"
-              placeholder="选择源工作表"
-              @change="handleSheetChange"
-            >
-              <a-select-option v-for="sheet in sheetNames" :key="sheet" :value="sheet">
-                {{ sheet }}
-              </a-select-option>
-            </a-select>
-          </a-form-item>
-
-          <a-form-item label="源列">
-            <a-select
-              v-model:value="config.sourceColumn"
-              placeholder="选择源列"
-              show-search
-              :filter-option="filterOption"
-              @change="handleSourceColumnChange"
-            >
-              <a-select-option v-for="col in columns" :key="col.letter" :value="col.letter">
-                {{ col.letter }} ({{ col.name }})
-              </a-select-option>
-            </a-select>
-          </a-form-item>
-
-          <a-form-item label="目标工作表">
-            <a-select
-              v-model:value="config.targetSheetName"
-              placeholder="选择目标工作表"
-              @change="handleTargetSheetChange"
-            >
-              <a-select-option v-for="sheet in sheetNames" :key="sheet" :value="sheet">
-                {{ sheet }}
-              </a-select-option>
-            </a-select>
-          </a-form-item>
-
-          <a-form-item label="目标列">
-            <a-select
-              v-model:value="config.targetColumn"
-              placeholder="选择目标列"
-              show-search
-              :filter-option="filterOption"
-              @change="handleTargetColumnChange"
-            >
-              <a-select-option v-for="col in targetColumns" :key="col.letter" :value="col.letter">
-                {{ col.letter }} ({{ col.name }})
-              </a-select-option>
-            </a-select>
-          </a-form-item>
-
-          <a-form-item label="数据起始行">
-            <a-input-number
-              v-model:value="config.startRow"
-              :min="1"
-              :max="1000"
-              placeholder="默认为 2（跳过表头）"
-            />
-          </a-form-item>
-
-          <a-form-item label="保持合并单元格格式">
-            <a-switch v-model:checked="config.keepMergedFormat" />
-            <template #extra>
-              <span class="hint-text"> 开启后，合并单元格会先解除合并，填充数据后再重新合并 </span>
-            </template>
-          </a-form-item>
-        </a-form>
-      </VbenGlassCard>
-
-      <VbenGlassCard title="高级数据处理" class="advanced-card" v-if="workbook">
-        <a-form :model="advancedConfig" layout="vertical">
-          <a-form-item>
-            <template #label>
-              <span>启用高级数据处理</span>
-              <a-tooltip title="启用后可以对源列数据进行分割、查询匹配、提取和拼接操作">
-                <QuestionCircleOutlined style="margin-left: 8px" />
-              </a-tooltip>
-            </template>
-            <a-switch v-model:checked="advancedConfig.enabled" />
-          </a-form-item>
-
-          <template v-if="advancedConfig.enabled">
-            <a-alert
-              v-if="!canProcessAdvanced"
-              type="warning"
-              show-icon
-              style="margin-bottom: 16px"
-              :message="`请完成以下配置后才能开始处理：${!advancedConfig.sourceSheetName ? '选择源数据工作表' : ''}${!advancedConfig.sourceColumnForSplit ? '选择源数据列' : ''}${!advancedConfig.splitDelimiter ? '设置数据分割符' : ''}${!advancedConfig.matchColumn ? '选择查询匹配列' : ''}${!advancedConfig.extractColumns || advancedConfig.extractColumns.length === 0 ? '选择提取列（至少一列）' : ''}`"
-            />
-
-            <a-form-item label="源数据工作表" v-if="hasMultipleSheets">
-              <a-select
-                v-model:value="advancedConfig.sourceSheetName"
-                placeholder="选择源数据工作表"
-                @change="handleSourceSheetChange"
-                style="width: 300px"
-              >
-                <a-select-option v-for="sheet in sheetNames" :key="sheet" :value="sheet">
-                  {{ sheet }}
-                </a-select-option>
-              </a-select>
-              <template #extra>
-                <span class="hint-text"> 选择包含源数据列的工作表 </span>
-              </template>
-            </a-form-item>
-
-            <a-alert
-              v-if="advancedConfig.sourceSheetName && sourceWorksheet"
-              type="info"
-              show-icon
-              style="margin-bottom: 16px"
-            >
-              <template #message>
-                <div class="sheet-info">
-                  <div class="sheet-info-item">
-                    <span class="sheet-info-label">工作表名称:</span>
-                    <span class="sheet-info-value">{{ advancedConfig.sourceSheetName }}</span>
-                  </div>
-                  <div class="sheet-info-item">
-                    <span class="sheet-info-label">列数:</span>
-                    <span class="sheet-info-value">{{ sourceColumns.length }}</span>
-                  </div>
-                  <div class="sheet-info-item">
-                    <span class="sheet-info-label">行数:</span>
-                    <span class="sheet-info-value">{{ getSheetRowCount(sourceWorksheet) }}</span>
-                  </div>
-                </div>
-              </template>
-            </a-alert>
-
-            <a-form-item label="源数据列">
-              <a-select
-                v-model:value="advancedConfig.sourceColumnForSplit"
-                placeholder="选择源数据列（用于分割）"
-                show-search
-                :filter-option="filterOption"
-                style="width: 300px"
-                @change="handleSourceColumnForSplitChange"
-              >
-                <a-select-option v-for="col in sourceColumns" :key="col.letter" :value="col.letter">
-                  {{ col.letter }} ({{ col.name }})
-                </a-select-option>
-              </a-select>
-              <template #extra>
-                <span class="hint-text"> 选择包含需要分割的数据的列 </span>
-              </template>
-            </a-form-item>
-
-            <a-form-item label="数据分割符">
-              <a-select
-                v-model:value="advancedConfig.splitDelimiterType"
-                placeholder="选择分割符"
-                style="width: 300px"
-                @change="handleSplitDelimiterTypeChange"
-              >
-                <a-select-option
-                  v-for="option in splitDelimiterOptions"
-                  :key="option.value"
-                  :value="option.value"
-                >
-                  {{ option.label }}
-                </a-select-option>
-              </a-select>
-              <a-input
-                v-if="isCustomSplitDelimiter"
-                v-model:value="advancedConfig.customSplitDelimiter"
-                placeholder="请输入自定义分割符"
-                style="width: 300px; margin-top: 8px"
-              />
-              <template #extra>
-                <span class="hint-text"> 用于分割源列中的多个数据项 </span>
-              </template>
-            </a-form-item>
-
-            <a-form-item label="查询匹配列">
-              <a-select
-                v-model:value="advancedConfig.matchColumn"
-                placeholder="选择用于匹配查询的列"
-                show-search
-                :filter-option="filterOption"
-                style="width: 300px"
-                @change="handleMatchColumnChange"
-              >
-                <a-select-option v-for="col in targetColumns" :key="col.letter" :value="col.letter">
-                  {{ col.letter }} ({{ col.name }})
-                </a-select-option>
-              </a-select>
-              <template #extra>
-                <span class="hint-text"> 在此列中查找与分割后的数据项匹配的行 </span>
-              </template>
-            </a-form-item>
-
-            <a-form-item label="提取列选择">
-              <a-select
-                v-model:value="advancedConfig.extractColumns"
-                mode="multiple"
-                placeholder="选择需要提取的列"
-                show-search
-                :filter-option="filterOption"
-                style="width: 100%"
-                @change="handleExtractColumnsChange"
-              >
-                <a-select-option v-for="col in targetColumns" :key="col.letter" :value="col.letter">
-                  {{ col.letter }} ({{ col.name }})
-                </a-select-option>
-              </a-select>
-              <template #extra>
-                <span class="hint-text"> 从匹配到的行中提取指定列的数据 </span>
-              </template>
-            </a-form-item>
-
-            <a-form-item label="结果拼接符">
-              <a-input
-                v-model:value="advancedConfig.joinDelimiter"
-                placeholder="请输入拼接符，如：, 或 ; 或 空格"
-                style="width: 300px"
-              />
-              <template #extra>
-                <span class="hint-text"> 用于拼接多个提取的数据项 </span>
-              </template>
-            </a-form-item>
-
-            <a-form-item label="结果填充列">
-              <a-select
-                v-model:value="advancedConfig.resultColumn"
-                placeholder="选择结果填充列（可选）"
-                show-search
-                :filter-option="filterOption"
-                allow-clear
-                style="width: 300px"
-                @change="handleResultColumnChange"
-              >
-                <a-select-option v-for="col in sourceColumns" :key="col.letter" :value="col.letter">
-                  {{ col.letter }} ({{ col.name }})
-                </a-select-option>
-              </a-select>
-              <template #extra>
-                <span class="hint-text"> 不选择则直接覆盖源列数据 </span>
-              </template>
-            </a-form-item>
-
-            <a-form-item label="未匹配处理">
-              <a-radio-group v-model:value="advancedConfig.noMatchAction">
-                <a-radio value="skip">跳过处理</a-radio>
-                <a-radio value="default">使用默认值</a-radio>
-              </a-radio-group>
-            </a-form-item>
-
-            <a-form-item label="默认值" v-if="advancedConfig.noMatchAction === 'default'">
-              <a-input
-                v-model:value="advancedConfig.defaultValue"
-                placeholder="请输入默认值"
-                style="width: 300px"
-              />
-            </a-form-item>
-
-            <a-form-item label="处理进度">
-              <a-progress
-                :percent="processingProgress"
-                :status="processingStatus"
-                :stroke-color="progressColor"
-              />
-              <template #extra>
-                <span class="hint-text">{{ processingStatusText }}</span>
-              </template>
-            </a-form-item>
-
-            <a-form-item>
-              <a-button
-                type="primary"
-                size="large"
-                :loading="processing"
-                :disabled="!canProcessAdvanced"
-                @click="handleProcess"
-                block
-              >
-                <template #icon>
-                  <PlayCircleOutlined />
-                </template>
-                开始高级数据处理
-              </a-button>
-            </a-form-item>
+      <a-tabs v-model:activeKey="activeTabKey" v-if="workbook" class="config-tabs">
+        <a-tab-pane key="basic">
+          <template #tab>
+            <span><FormOutlined /> 基础配置</span>
           </template>
-        </a-form>
-      </VbenGlassCard>
+          <BasicFillTab
+            :config="config"
+            :columns="columns"
+            :sheet-names="sheetNames"
+            :target-columns="targetColumns"
+            :filter-option="filterOption"
+            @sheet-change="handleSheetChange"
+            @source-column-change="handleSourceColumnChange"
+            @target-sheet-change="handleTargetSheetChange"
+            @target-column-change="handleTargetColumnChange"
+          />
+        </a-tab-pane>
+
+        <a-tab-pane key="advanced">
+          <template #tab>
+            <span><SettingOutlined /> 高级数据处理</span>
+          </template>
+          <AdvancedFillTab
+            :advanced-config="advancedConfig"
+            :columns="columns"
+            :sheet-names="sheetNames"
+            :target-columns="targetColumns"
+            :source-columns="sourceColumns"
+            :source-worksheet="sourceWorksheet"
+            :has-multiple-sheets="hasMultipleSheets"
+            :can-process-advanced="canProcessAdvanced"
+            :processing="processing"
+            :processing-progress="processingProgress"
+            :processing-status-text="processingStatusText"
+            :processing-status="processingStatus"
+            :progress-color="progressColor"
+            :split-delimiter-options="splitDelimiterOptions"
+            :is-custom-split-delimiter="isCustomSplitDelimiter"
+            :filter-option="filterOption"
+            @source-sheet-change="handleSourceSheetChange"
+            @source-column-for-split-change="handleSourceColumnForSplitChange"
+            @split-delimiter-type-change="handleSplitDelimiterTypeChange"
+            @match-column-change="handleMatchColumnChange"
+            @extract-columns-change="handleExtractColumnsChange"
+            @result-column-change="handleResultColumnChange"
+            @process="handleProcess"
+          />
+        </a-tab-pane>
+
+        <a-tab-pane key="quote">
+          <template #tab>
+            <span><FormatPainterOutlined /> 引号转换</span>
+          </template>
+          <QuoteConvertTab
+            :quote-config="quoteConfig"
+            :sheet-names="sheetNames"
+            :columns="columns"
+            :can-process-quote="canProcessQuote"
+            :quote-processing="quoteProcessing"
+            :quote-progress="quoteProgress"
+            :quote-status-text="quoteStatusText"
+            :filter-option="filterOption"
+            @sheet-change="handleQuoteSheetChange"
+            @process="handleQuoteProcess"
+          />
+        </a-tab-pane>
+      </a-tabs>
 
       <VbenGlassCard title="数据预览" class="preview-card" v-if="workbook">
         <a-form layout="inline" style="margin-bottom: 16px">
@@ -344,18 +123,18 @@
         />
       </VbenGlassCard>
 
-      <div class="action-buttons" v-if="workbook">
+      <div class="action-buttons" v-if="workbook && activeTabKey !== 'quote'">
         <a-button
           type="primary"
           size="large"
           :loading="processing"
-          :disabled="!canProcessBasic"
+          :disabled="advancedConfig.enabled ? !canProcessAdvanced : !canProcessBasic"
           @click="handleProcess"
         >
           <template #icon>
             <PlayCircleOutlined />
           </template>
-          开始处理
+          {{ advancedConfig.enabled ? '开始高级数据处理' : '开始处理' }}
         </a-button>
         <a-button size="large" @click="handleReset">
           <template #icon>
@@ -435,6 +214,14 @@
               {{ result.extractedCount }}
             </a-descriptions-item>
           </template>
+          <template v-if="result.quoteConverted">
+            <a-descriptions-item label="转换类型">
+              引号转换
+            </a-descriptions-item>
+            <a-descriptions-item label="处理数量">
+              {{ result.processedCount }} 个单元格
+            </a-descriptions-item>
+          </template>
           <a-descriptions-item label="总处理单元数">
             {{ result.totalCellsProcessed }}
           </a-descriptions-item>
@@ -468,21 +255,66 @@
         </div>
       </VbenGlassCard>
     </div>
+
+    <!-- 悬浮按钮组 -->
+    <a-float-button-group trigger="click" type="primary" shape="circle">
+      <template #icon><SettingOutlined /></template>
+      <a-float-button @click="scrollToTop">
+        <template #icon><VerticalAlignTopOutlined /></template>
+        <template #tooltip>回到顶部</template>
+      </a-float-button>
+      <a-float-button @click="handleToggleTheme">
+        <template #icon>
+          <BulbOutlined v-if="!isDark" />
+          <BulbFilled v-else />
+        </template>
+        <template #tooltip>{{ isDark ? '切换亮色模式' : '切换暗色模式' }}</template>
+      </a-float-button>
+    </a-float-button-group>
   </div>
 </template>
 
 <script setup>
+/**
+ * @fileoverview Excel数据填充工具页面
+ * @description 提供Excel数据填充、高级数据处理和引号转换功能
+ * @author SqlTool
+ */
+
 import { ref, computed } from 'vue'
 import { message } from 'ant-design-vue'
+import { storeToRefs } from 'pinia'
 import {
   InboxOutlined,
   PlayCircleOutlined,
   ReloadOutlined,
   DownloadOutlined,
-  QuestionCircleOutlined,
+  SettingOutlined,
+  VerticalAlignTopOutlined,
+  BulbOutlined,
+  BulbFilled,
+  FormOutlined,
+  FormatPainterOutlined,
 } from '@ant-design/icons-vue'
 import VbenGlassCard from '@/components/common/VbenGlassCard.vue'
+import BasicFillTab from '@/components/excel/BasicFillTab.vue'
+import AdvancedFillTab from '@/components/excel/AdvancedFillTab.vue'
+import QuoteConvertTab from '@/components/excel/QuoteConvertTab.vue'
 import * as XLSX from 'xlsx'
+import { useThemeStore } from '@/stores/theme.js'
+import { useSettings } from '@/composables/core/useSettings.js'
+
+const themeStore = useThemeStore()
+const { isDark } = storeToRefs(themeStore)
+const { getSetting } = useSettings()
+
+const scrollToTop = () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+const handleToggleTheme = () => {
+  themeStore.toggle()
+}
 
 const fileList = ref([])
 const workbook = ref(null)
@@ -503,6 +335,21 @@ const processingProgress = ref(0)
 const processingStatusText = ref('')
 const uploadProgress = ref(0)
 const uploadStatusText = ref('')
+const activeTabKey = ref('basic')
+
+const quoteConfig = ref({
+  sheetName: '',
+  sourceColumn: '',
+  delimiter: 'comma',
+  customDelimiter: '',
+  quoteStyle: 'double',
+  targetColumn: '',
+})
+
+// 引号转换相关状态
+const quoteProcessing = ref(false)
+const quoteProgress = ref(0)
+const quoteStatusText = ref('')
 
 const hasMultipleSheets = computed(() => {
   return sheetNames.value.length > 1
@@ -545,8 +392,6 @@ const advancedConfig = ref({
 })
 
 const canProcessAdvanced = computed(() => {
-  console.log('工作簿数据:', workbook.value)
-
   if (!workbook.value) return false
 
   return (
@@ -575,6 +420,140 @@ const canProcessBasic = computed(() => {
     config.value.targetColumn
   )
 })
+
+/**
+ * 引号转换是否可处理
+ * 检查工作簿、源列和分隔符配置是否完整
+ */
+const canProcessQuote = computed(() => {
+  if (!workbook.value) return false
+  if (!quoteConfig.value.sourceColumn) return false
+  if (quoteConfig.value.delimiter === 'custom' && !quoteConfig.value.customDelimiter) return false
+  return true
+})
+
+/**
+ * 获取实际分隔符
+ * 根据配置返回对应的分隔符字符
+ * @returns {string} 分隔符字符
+ */
+const getQuoteDelimiter = () => {
+  const delimiterMap = {
+    comma: ',',
+    semicolon: ';',
+    space: ' ',
+    newline: '\n',
+    custom: quoteConfig.value.customDelimiter,
+  }
+  return delimiterMap[quoteConfig.value.delimiter] || ','
+}
+
+/**
+ * 处理引号转换
+ * 将源列数据按分隔符分割后添加引号并输出到目标列
+ */
+const handleQuoteProcess = async () => {
+  if (!canProcessQuote.value) {
+    message.warning('请先配置所有参数！')
+    return
+  }
+
+  quoteProcessing.value = true
+  quoteProgress.value = 0
+  quoteStatusText.value = '准备处理...'
+
+  try {
+    const sheetName = quoteConfig.value.sheetName || config.value.sheetName
+    const ws = workbook.value.Sheets[sheetName]
+    if (!ws) {
+      throw new Error('工作表不存在')
+    }
+    const sourceColIndex = columns.value.find(c => c.letter === quoteConfig.value.sourceColumn)?.index
+    if (sourceColIndex === undefined) {
+      throw new Error('无效的源列选择')
+    }
+
+    const range = XLSX.utils.decode_range(ws['!ref'])
+    const maxRow = range.e.r + 1
+    const delimiter = getQuoteDelimiter()
+    const quoteChar = quoteConfig.value.quoteStyle === 'double' ? '"' : "'"
+
+    // 确定目标列
+    let targetColIndex
+    if (quoteConfig.value.targetColumn) {
+      targetColIndex = columns.value.find(c => c.letter === quoteConfig.value.targetColumn)?.index
+    } else {
+      // 新增列
+      targetColIndex = range.e.c + 1
+      range.e.c = targetColIndex
+      ws['!ref'] = XLSX.utils.encode_range(range)
+    }
+
+    let processedCount = 0
+    const startRow = config.value.startRow || 2
+
+    for (let row = startRow - 1; row < maxRow; row++) {
+      const sourceCellAddress = XLSX.utils.encode_col(sourceColIndex) + (row + 1)
+      const cell = ws[sourceCellAddress]
+
+      if (cell && cell.v !== undefined && cell.v !== '') {
+        const value = String(cell.v)
+        const items = value.split(delimiter).map(item => item.trim()).filter(item => item !== '')
+        const quotedItems = items.map(item => `${quoteChar}${item}${quoteChar}`)
+        const result = quotedItems.join(',')
+
+        const targetCellAddress = XLSX.utils.encode_col(targetColIndex) + (row + 1)
+        if (!ws[targetCellAddress]) {
+          ws[targetCellAddress] = {}
+        }
+        ws[targetCellAddress].v = result
+        ws[targetCellAddress].t = 's'
+        processedCount++
+      }
+
+      quoteProgress.value = Math.round(((row - startRow + 2) / (maxRow - startRow + 1)) * 100)
+      quoteStatusText.value = `处理中... ${row - startRow + 2}/${maxRow - startRow + 1}`
+    }
+
+    // 更新列信息
+    if (!quoteConfig.value.targetColumn) {
+      const newColLetter = XLSX.utils.encode_col(targetColIndex)
+      columns.value.push({
+        letter: newColLetter,
+        name: '引号转换结果',
+        index: targetColIndex,
+      })
+    }
+
+    // 生成输出文件
+    outputBlob.value = generateOutputFile(workbook.value, sheetNames.value)
+
+    result.value = {
+      inputFile: fileList.value[0]?.name || 'unknown',
+      outputFile: `quote_converted_${fileList.value[0]?.name || 'output.xlsx'}`,
+      sourceSheetName: config.value.sheetName,
+      targetSheetName: config.value.sheetName,
+      sourceColumn: quoteConfig.value.sourceColumn,
+      targetColumn: quoteConfig.value.targetColumn || XLSX.utils.encode_col(targetColIndex),
+      processedCount,
+      totalCellsProcessed: processedCount,
+      quoteConverted: true,
+    }
+
+    quoteProgress.value = 100
+    quoteStatusText.value = `处理完成！共转换 ${processedCount} 个单元格`
+    message.success('引号转换完成！')
+
+    // 刷新预览
+    loadPreview()
+  } catch (error) {
+    console.error('引号转换失败:', error)
+    message.error(`引号转换失败: ${error.message}`)
+    quoteStatusText.value = '处理失败'
+  } finally {
+    quoteProcessing.value = false
+  }
+}
 
 const processingStatus = computed(() => {
   return processingProgress.value === 100
@@ -627,19 +606,19 @@ const previewColumns = computed(() => {
  * @returns {boolean} 是否继续上传
  */
 const beforeUpload = async (file) => {
-  const isExcel =
-    file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-    file.name.endsWith('.xlsx') ||
-    file.name.endsWith('.xlsm')
+  const supportedFormats = getSetting('supportedFormats') || ['xlsx', 'xls', 'csv']
+  const fileExt = file.name.split('.').pop().toLowerCase()
+  const isExcel = supportedFormats.includes(fileExt) || fileExt === 'xlsm'
 
   if (!isExcel) {
-    message.error('只能上传 Excel 文件！')
+    message.error(`只能上传 ${supportedFormats.map(f => `.${f}`).join('、')} 格式的文件！`)
     return false
   }
 
-  const maxSize = 50 * 1024 * 1024
+  const maxFileSizeMB = getSetting('maxFileSize') || 10
+  const maxSize = maxFileSizeMB * 1024 * 1024
   if (file.size > maxSize) {
-    message.error(`文件大小超过限制: ${(file.size / 1024 / 1024).toFixed(2)}MB > 50MB`)
+    message.error(`文件大小超过限制: ${(file.size / 1024 / 1024).toFixed(2)}MB > ${maxFileSizeMB}MB`)
     return false
   }
 
@@ -776,6 +755,15 @@ const handleRemove = () => {
     resultColumn: '',
     noMatchAction: 'skip',
     defaultValue: '',
+  }
+  quoteProgress.value = 0
+  quoteStatusText.value = ''
+  quoteConfig.value = {
+    sourceColumn: '',
+    delimiter: 'comma',
+    customDelimiter: '',
+    quoteStyle: 'double',
+    targetColumn: '',
   }
 }
 
@@ -948,24 +936,24 @@ const handlePreviewSheetChange = (sheetName) => {
  * 处理源列变更
  * @param {string} value - 选中的列值
  */
-const handleSourceColumnChange = (value) => {
-  console.log('源列已选择:', value)
+const handleSourceColumnChange = () => {
+  // 源列变更处理
 }
 
 /**
  * 处理目标列变更
  * @param {string} value - 选中的列值
  */
-const handleTargetColumnChange = (value) => {
-  console.log('目标列已选择:', value)
+const handleTargetColumnChange = () => {
+  // 目标列变更处理
 }
 
 /**
  * 处理源数据列变更
  * @param {string} value - 选中的列值
  */
-const handleSourceColumnForSplitChange = (value) => {
-  console.log('源数据列已选择:', value)
+const handleSourceColumnForSplitChange = () => {
+  // 源数据列变更处理
 }
 
 /**
@@ -995,38 +983,46 @@ const handleSourceSheetChange = (sheetName) => {
 }
 
 /**
- * 获取工作表行数
- * @param {Object} worksheet - 工作表对象
- * @returns {number} 行数
- */
-const getSheetRowCount = (worksheet) => {
-  if (!worksheet || !worksheet['!ref']) return 0
-  const range = XLSX.utils.decode_range(worksheet['!ref'])
-  return range.e.r + 1
-}
-
-/**
  * 处理查询匹配列变更
  * @param {string} value - 选中的列值
  */
-const handleMatchColumnChange = (value) => {
-  console.log('查询匹配列已选择:', value)
+const handleMatchColumnChange = () => {
+  // 查询匹配列变更处理
 }
 
 /**
  * 处理提取列变更
  * @param {Array} value - 选中的列值数组
  */
-const handleExtractColumnsChange = (value) => {
-  console.log('提取列已选择:', value)
+const handleExtractColumnsChange = () => {
+  // 提取列变更处理
 }
 
 /**
- * 处理结果填充列变更
- * @param {string} value - 选中的列值
+ * 处理引号转换工作表变更
+ * @param {string} sheetName - 新的工作表名称
  */
-const handleResultColumnChange = (value) => {
-  console.log('结果填充列已选择:', value)
+const handleQuoteSheetChange = (sheetName) => {
+  const ws = workbook.value.Sheets[sheetName]
+  const range = XLSX.utils.decode_range(ws['!ref'])
+  const maxCol = range.e.c + 1
+
+  const newColumns = []
+  for (let i = 0; i < maxCol; i++) {
+    const colLetter = XLSX.utils.encode_col(i)
+    const cellAddress = colLetter + '1'
+    const cell = ws[cellAddress]
+    const colName = cell ? cell.v : `列${i + 1}`
+
+    newColumns.push({
+      letter: colLetter,
+      name: colName,
+      index: i,
+    })
+  }
+  columns.value = newColumns
+  quoteConfig.value.sourceColumn = ''
+  quoteConfig.value.targetColumn = ''
 }
 
 /**
@@ -1669,14 +1665,29 @@ const handleReset = () => {
     defaultValue: '',
   }
 
+  // 重置引号转换状态
+  quoteProgress.value = 0
+  quoteStatusText.value = ''
+  quoteConfig.value = {
+    sourceColumn: '',
+    delimiter: 'comma',
+    customDelimiter: '',
+    quoteStyle: 'double',
+    targetColumn: '',
+  }
+
   message.info('已重置，可以重新处理')
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+// ========================================
+// Excel 数据填充工具页面样式
+// ========================================
+
 .excel-fill-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: $bg-base;
   padding: 40px 20px;
 }
 
@@ -1688,32 +1699,61 @@ const handleReset = () => {
 .page-title {
   font-size: 48px;
   font-weight: 700;
-  color: #1890ff;
+  color: $color-primary;
   margin-bottom: 16px;
   line-height: 1.2;
 }
 
 .page-subtitle {
   font-size: 20px;
-  color: #666;
+  color: $text-secondary;
   margin-bottom: 0;
   line-height: 1.6;
 }
 
 .content-container {
+  @include flex-column;
+
   max-width: 1200px;
   margin: 0 auto;
-  display: flex;
-  flex-direction: column;
   gap: 32px;
 }
 
+// 卡片统一样式
 .upload-card,
-.config-card,
-.advanced-card,
 .preview-card,
 .result-card {
   padding: 32px;
+}
+
+.config-tabs {
+  margin-bottom: 32px;
+
+  :deep(.ant-tabs-nav) {
+    margin-bottom: 24px;
+  }
+
+  :deep(.ant-tabs-tab) {
+    padding: 12px 24px;
+    font-size: 15px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+
+    &:hover {
+      color: $color-primary;
+    }
+  }
+
+  :deep(.ant-tabs-tab-active) {
+    background: rgba(22, 119, 255, 0.08);
+    border-radius: 8px 8px 0 0;
+  }
+
+  :deep(.ant-tabs-ink-bar) {
+    height: 3px;
+    background: $color-primary;
+    border-radius: 2px;
+  }
 }
 
 .action-buttons {
@@ -1725,68 +1765,32 @@ const handleReset = () => {
 
 .hint-text {
   font-size: 12px;
-  color: #999;
+  color: $text-secondary;
 }
 
 .upload-progress-container {
   margin-top: 16px;
   padding: 16px;
-  background: #f5f5f5;
-  border-radius: 4px;
+  background: $bg-elevated;
+  border-radius: $border-radius-sm;
 }
 
 .upload-status-text {
   margin-top: 8px;
   font-size: 14px;
-  color: #666;
+  color: $text-secondary;
   text-align: center;
 }
 
-.sheet-info {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.sheet-info-item {
-  display: flex;
-  gap: 8px;
-}
-
-.sheet-info-label {
-  font-weight: 500;
-  color: #666;
-}
-
-.sheet-info-value {
-  font-weight: 600;
-  color: #1890ff;
-}
-
-.result-actions {
+.result-actions{
   display: flex;
   gap: 16px;
   margin-top: 24px;
   justify-content: center;
 }
 
-[data-theme='dark'] .excel-fill-page {
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-}
-
-[data-theme='dark'] .page-title {
-  color: #60a5fa;
-}
-
-[data-theme='dark'] .page-subtitle {
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .hint-text {
-  color: #6b7280;
-}
-
-@media (max-width: 1024px) {
+// 响应式布局
+@include respond-to(lg) {
   .page-title {
     font-size: 36px;
   }
@@ -1796,15 +1800,13 @@ const handleReset = () => {
   }
 
   .upload-card,
-  .config-card,
-  .advanced-card,
   .preview-card,
   .result-card {
     padding: 24px;
   }
 }
 
-@media (max-width: 768px) {
+@include respond-to(md) {
   .page-title {
     font-size: 28px;
   }
@@ -1820,9 +1822,24 @@ const handleReset = () => {
   .result-actions {
     flex-direction: column;
   }
+
+  .config-tabs {
+    :deep(.ant-tabs-nav) {
+      .ant-tabs-nav-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+    }
+
+    :deep(.ant-tabs-tab) {
+      padding: 10px 16px;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+  }
 }
 
-@media (max-width: 480px) {
+@include respond-to(sm) {
   .excel-fill-page {
     padding: 20px 15px;
   }

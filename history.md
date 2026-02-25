@@ -1,5 +1,383 @@
 # 版本变更历史
 
+## 1.5.41 (2026-02-25)
+
+**Excel数据填充工具Tab布局重构与组件拆分**
+
+- 新增引号转换功能
+  - 将Excel中的逗号分隔数据转换为引号包裹格式
+  - 例如：`Aa,AAA,ccc` → `"Aa","AAA","ccc"`
+  - 支持自定义分隔符和引号样式配置
+  - 支持独立工作表选择
+- 页面布局重构为Tab切换模式
+  - 基础填充、高级填充、引号转换三个功能独立显示
+  - 使用Ant Design Vue Tabs组件实现
+  - 解决页面功能臃肿问题
+- 组件拆分优化
+  - 创建BasicFillTab.vue组件
+  - 创建AdvancedFillTab.vue组件
+  - 创建QuoteConvertTab.vue组件
+  - 降低单文件代码行数，提升可维护性
+- 修复删除文件后引号转换配置未清除的问题
+- 修复QuoteOutlined图标不存在的问题（替换为FormatPainterOutlined）
+
+## 1.5.40 (2026-02-20)
+
+**修复VALUES子句逗号丢失等问题**
+
+- 修复去重功能与行范围筛选的交互问题
+  - 去重后更新totalExcelRows为实际数据行数
+  - 去重后同步更新originalExcelData，确保关闭行范围时恢复去重后数据
+  - 应用行范围时使用当前excelData而非originalExcelData
+- 修复关闭去重后数据未恢复的问题
+  - 关闭去重时先恢复原始数据再调用base函数
+  - 移除去重后更新originalExcelData的逻辑，保持原始数据不变
+- 修复SQL生成中VALUES子句数据行之间逗号丢失的问题
+  - 修复splitLongLine函数错误地在parenDepth===0时按逗号分割
+  - 改为只在parenDepth===1时按逗号分割（即VALUES组内的值）
+  - 添加行长度检查，避免不必要的分割
+- 修复语法高亮器跳过空白字符的问题
+  - 将空白字符作为独立的token处理，而不是跳过
+  - 在渲染时保留空白字符
+
+## 1.5.39 (2026-02-20)
+
+**修复SQL生成中逗号丢失问题**
+
+- 修复 formatSql 函数中 minified 模式的逗号丢失问题
+  - 添加多个正则表达式修复规则
+  - 确保字符串后跟函数、函数后跟字符串等情况逗号正确保留
+- 重写 splitLongLine 函数，实现智能分割
+  - 跟踪引号状态，避免分割引号内的内容
+  - 跟踪括号深度，避免分割函数调用内部
+  - 只在安全位置按逗号分割
+
+## 1.5.38 (2026-02-19)
+
+**自定义字段管理优化**
+
+- 修复添加模式下单列绑定和拼接规则数据未清空的问题
+  - 添加模式下所有标签页数据都为空
+  - 编辑模式下只加载对应类型的数据
+- 修复编辑按钮跳转到错误标签页的问题
+  - 单列绑定跳转到"单列绑定"标签页
+  - 字段拼接跳转到"拼接规则"标签页
+  - 自定义字段跳转到"自定义字段"标签页
+- 修复保存后模态框无法再次打开的问题
+  - 使用 `closeModal()` 正确关闭模态框
+  - 正确 emit `update:open` 事件
+- 修复添加字段拼接时重复显示的问题
+  - 移除对拼接规则的 `addCustomField` 调用
+  - 拼接规则只存储在 `fieldConcatenationRules` 中
+- 修复重新解析按钮未清空自定义字段数据的问题
+- 单列绑定现在显示在自定义字段表格中
+  - 合并 `customFields`、`customBindings`、`fieldConcatenationRules`
+  - 添加"单列绑定"筛选选项和青色标签
+- 优化删除逻辑
+  - 根据数据来源调用对应的删除方法
+  - 单列绑定、拼接规则、自定义字段分别处理
+
+## 1.5.37 (2026-02-18)
+
+**SQL生成和字段映射功能优化**
+
+- 修复DDL解析器检测内联PRIMARY KEY的问题
+  - 添加内联主键定义检测（如 `fid INT PRIMARY KEY`）
+  - 正确设置 `primaryKey` 属性
+- 修复SQL生成时字段顺序错误
+  - 按DDL字段原始顺序排序，而非Excel列顺序
+  - 确保字段顺序与DDL定义一致
+- 修复currentExcelIndex重复声明的语法错误
+- 为自增主键添加蓝色"自增"标识
+  - 自增字段显示蓝色标签
+  - 必填字段显示红色标签
+  - 自定义字段显示紫色标签
+- 将"函数生成"改为"自定义"命名
+  - 更新复选框文字、表格列标题、提示信息
+- 修复拼接字段在映射列表中显示为未绑定状态
+  - 拼接字段不再显示绑定到单个Excel列
+  - 自动勾选"自定义"复选框
+- 添加必填字段未映射时的错误提示
+  - 生成SQL前检查所有必填字段是否有映射
+  - 弹窗显示未映射的必填字段列表
+- 修复清除映射后验证逻辑
+  - 清除映射时删除映射记录
+  - 验证时检查所有DDL字段是否有映射记录
+- 上传新文件或解析新DDL时清空自定义字段数据
+  - 避免旧数据干扰新操作
+- 移除重复的提示消息
+  - 只保留CustomBindingModal中的提示
+- 修复错误消息显示[object Object]的问题
+- 修复重新解析按钮错误删除文件的问题
+  - 添加reparse事件，使用原始数据重新解析
+
+## 1.5.36 (2026-02-17)
+
+**功能增强与代码重构**
+
+- 新增悬浮按钮组功能
+  - 为 InsertPage、UpdatePage、ExcelFillPage 添加悬浮按钮组
+  - 支持回到顶部和主题切换功能
+- 修复面包屑导航问题
+  - 修正路由名称匹配（insert → tool-insertpage, update → tool-updatepage）
+  - 修正路由路径（/insert → /sql/insert, /update → /sql/update）
+- 修复设置面板主题切换未生效问题
+  - SettingsPanel 与 useThemeStore 同步
+- 新增全局设置管理模块
+  - 创建 useSettings composable 统一管理设置
+  - 文件设置（最大文件大小、支持格式、分块处理）现在可生效
+- 代码目录结构重构
+  - composables 目录分类整理为 core/、excel/、sql/、data/ 四个子目录
+  - utils 目录分类整理为 sql/、database/、field/、file/、log/ 五个子目录
+  - 更新所有 import 引用路径
+
+## 1.5.35 (2026-02-17)
+
+**修复 GitHub Actions 和 GitHub Pages 部署问题**
+
+- 修复 Vite base 配置为 `/SqlTool/` 以适配 GitHub Pages 子路径
+- 修复 GitHub Actions workflow 使用动态版本号
+- 移除未使用的变量导入（ESLint 错误修复）
+- 从远程仓库移除 docs 文档目录
+
+## 1.5.34 (2026-02-17)
+
+**代码重构与路由优化**
+
+- UpdatePage.vue 代码重构优化
+  - 导入并使用 useDeduplication、useRowRange、useBeautifyOptions、useOperationLog composables
+  - 移除重复的响应式状态定义
+  - 简化方法使用 composable 导出
+  - 文件从 2724 行减少到 2567 行
+- 修复去重功能问题
+  - 修复 a-checkbox @change 事件传递 Event 对象而非布尔值的问题
+  - 修复 useDeduplication.handleDeduplicationToggle 未设置 deduplicationEnabled 状态的问题
+  - 导出 originalExcelData 供行范围选择使用
+- 修复 InsertPage.vue 问题
+  - 使用 setOriginalData() 替代直接赋值 originalExcelData.value
+  - 导入 originalExcelData 从 composable
+  - 移除重复的 originalExcelData 声明
+- 路由优化
+  - 将路由从 Hash 模式改为 HTML5 History 模式
+  - 添加 Vite 开发服务器 historyApiFallback 配置
+  - 404 回退路由捕获所有不匹配的路由
+- 配置文件管理
+  - 更新 .gitignore 忽略 IDE/编辑器配置文件
+  - 从 Git 缓存移除 .github、.vscode、.trae 等配置目录
+
+## 1.5.33 (2026-02-16)
+
+**重构 SqlToolPage.vue CSS 为 SCSS 语义化变量**
+
+- 添加 SCSS 语言标记：`<style scoped>` → `<style scoped lang="scss">`
+- 使用 SCSS 变量替换 CSS 变量
+  - `var(--page-bg-gradient)` → `$page-bg-gradient`
+  - `var(--color-primary)` → `$color-primary`
+  - `var(--text-secondary)` → `$text-secondary`
+  - `var(--text-primary)` → `$text-primary`
+  - `var(--bg-elevated)` → `$bg-elevated`
+  - `var(--border-radius-md)` → `$border-radius-md`
+  - `var(--transition-normal)` → `$transition-normal`
+  - `var(--shadow-md)` → `$shadow-md`
+  - `var(--card-bg)` → `$card-bg`
+- 使用 SCSS 混入简化布局样式
+  - `@include flex-column-center` 用于功能特性项
+  - `@include card-base` 用于步骤容器
+  - `@include respond-to(lg/md/xs)` 替代媒体查询
+- 利用 SCSS 嵌套特性简化选择器结构
+- 添加 SCSS 注释说明各区块用途
+
+## 1.5.32 (2026-02-16)
+
+**重构 DdlPage.vue CSS 为 SCSS 语义化变量**
+
+- 添加 SCSS 语言标记：`<style scoped>` → `<style scoped lang="scss">`
+- 使用 SCSS 变量替换硬编码颜色值
+  - `#f0f0f0` → `$border-default`
+  - `#fafafa` → `$bg-elevated`
+  - `#1890ff` → `$color-primary`
+  - `white` → `$card-bg`
+  - `#f5f5f5` / `#f8f9fa` → `$bg-sunken`
+  - `#999` → `$text-tertiary`
+  - `8px` → `$border-radius-md`
+  - `4px` → `$border-radius-sm`
+  - `rgba(0, 0, 0, 0.1)` → `$shadow-sm`
+- 使用 SCSS 混入简化布局样式
+  - `@include flex-between` 用于页面头部、卡片头部、区域头部
+  - `@include flex-column` 用于输入/输出区域
+- 利用 SCSS 嵌套特性简化选择器结构
+- 添加 SCSS 注释说明各区块用途
+
+## 1.5.31 (2026-02-16)
+
+**重构 CellSplitConfig.vue CSS 为语义化变量**
+
+- 将硬编码背景色替换为 `var(--card-bg)`
+- 将硬编码边框色替换为 `var(--border-default)`
+- 将硬编码文本色替换为 `var(--text-primary)`
+- 将渐变背景简化为 `var(--color-primary-bg)`
+- 将标签背景色替换为 `var(--bg-base)`
+- 删除所有 `[data-theme='dark']` 暗色主题选择器块(共25行)
+- 主题切换现在通过 CSS 变量自动生效
+- 保留语义化状态颜色(蓝色/绿色/橙色标签)
+
+## 1.5.28 (2026-02-16)
+
+**重构 DeduplicationConfig.vue CSS 为语义化变量**
+
+- 将硬编码颜色值替换为语义化 CSS 变量
+  - Select 焦点效果：使用 `var(--color-primary-bg)` 和 `color-mix()` 函数
+  - 统计区域背景：使用 `var(--color-primary-bg)` 替代渐变背景
+  - 统计区域边框：使用 `var(--border-default)` 替代硬编码颜色
+  - 标签背景：使用 `var(--bg-elevated)` 替代 `white`
+  - 标签边框：使用 `var(--border-default)` 替代硬编码颜色
+- 删除所有 `[data-theme='dark']` 暗色主题选择器块（共 4 个）
+- 主题切换现在通过 CSS 变量自动生效
+
+## 1.5.29 (2026-02-16)
+
+**重构 RowRangeConfig.vue CSS 为语义化变量**
+
+- 将硬编码背景色 `rgba(255, 255, 255, 0.85)` 替换为 `var(--card-bg)`
+- 将硬编码边框颜色 `rgba(255, 255, 255, 0.5)` 替换为 `var(--border-default)`
+- 将硬编码文本颜色 `#1f2937` 替换为 `var(--text-primary)`
+- 将渐变背景 `linear-gradient(...)` 替换为 `var(--color-primary-bg)`
+- 删除所有 `[data-theme='dark']` 暗色主题选择器块（4个）
+- CSS 代码从 99 行减少到 80 行
+- 主题切换现在通过 CSS 变量自动生效
+
+## 1.5.28 (2026-02-16)
+
+**重构 JsonFormat.vue CSS 为语义化变量**
+
+- 将硬编码边框颜色 `#f0f0f0` 替换为 `var(--border-default)`
+- 删除 `[data-theme='dark']` 暗色主题选择器块
+- 主题切换现在通过 CSS 变量自动生效
+
+## 1.5.27 (2025-12-16)
+
+**完善暗黑主题适配**
+
+- 修复SqlPreview.vue中SQL语法高亮暗黑主题选择器（使用:deep()替代:global()）
+- 为FieldMappingCard.vue补充标签页、标题、折叠面板暗黑主题
+- 为CustomBindingModal.vue补充模态框外层容器暗黑主题
+- 增强SQL语法高亮在暗黑模式下的对比度
+
+## 1.5.26 (2025-12-16)
+
+**优化多个组件暗黑主题支持**
+
+- 为CustomFieldManager.vue添加完整的暗黑主题样式
+- 为CustomBindingModal.vue添加暗黑主题支持
+- 为ExcelUploadCard.vue补充折叠面板、进度条等暗黑主题样式
+- 为标签页导航、表格、统计信息等组件添加暗黑主题适配
+- 为操作组、配置区域添加暗黑主题样式
+
+## 1.5.25 (2025-12-16)
+
+**优化UpdatePage布局和暗黑主题支持**
+
+- 将UpdatePage布局改为单列展示（所有屏幕尺寸）
+- 为UpdatePage.vue添加完整的暗黑主题样式
+- 为页面容器、卡片组件添加暗黑背景和边框
+- 为所有Ant Design组件添加暗黑主题适配
+- 为条件配置区域、SQL预览区域添加暗黑主题样式
+- 为折叠面板、进度条、复选框等组件添加暗黑主题适配
+
+## 1.5.24 (2025-12-16)
+
+**优化SqlPreview组件暗黑主题支持**
+
+- 为SqlPreview.vue添加完整的暗黑主题样式
+- 为预览控件区域添加暗黑背景和边框
+- 为SQL预览区域、行号区域添加暗黑主题样式
+- 为统计信息区域添加暗黑主题样式
+- 为操作按钮区域添加暗黑主题样式
+- 为Ant Design组件（单选按钮组、开关、按钮）添加暗黑主题适配
+- 为禁用状态的按钮添加暗黑主题样式
+
+## 1.5.23 (2025-12-16)
+
+**优化InsertPage暗黑主题支持**
+
+- 为InsertPage.vue添加完整的暗黑主题样式
+- 为页面容器、卡片组件添加暗黑背景和边框
+- 为所有Ant Design组件添加暗黑主题适配
+- 确保WCAG AA级对比度标准（文字与背景对比度≥4.5:1）
+- 修复输入框、下拉选择、按钮、开关等表单控件在暗黑模式下的显示问题
+- 为SQL预览区域、美化选项面板添加暗黑主题样式
+- 为操作日志、时间线组件添加暗黑主题支持
+- 为表格、模态框、提示框添加暗黑主题适配
+
+## 1.5.22 (2025-12-16)
+
+**优化ToolsGrid和SqlToolPage暗黑主题支持**
+
+- 为ToolsGrid.vue的tools-header区域添加暗黑主题样式
+- 为搜索框(a-input-search)添加暗黑背景和文字颜色
+- 为分类过滤按钮(a-radio-group)添加暗黑主题样式
+- 为视图切换按钮添加暗黑主题适配
+- 为SqlToolPage.vue的steps-container添加完整的暗黑主题支持
+- 修复ant-steps组件在暗黑模式下标题和描述文字不可见的问题
+- 为步骤图标、连接线添加暗黑主题样式
+
+## 1.5.21 (2025-12-16)
+
+**优化MainLayout暗黑主题支持**
+
+- 修复a-menu组件主题硬编码问题，改为动态根据isDark切换主题
+- 为header-content添加暗黑主题样式和过渡动画
+- 为nav-menu添加暗黑主题菜单样式
+- 为header-actions按钮添加暗黑主题样式
+- 为content区域添加暗黑主题背景支持
+- 为page-content卡片添加暗黑主题样式和阴影
+- 为footer添加暗黑主题样式和过渡效果
+- 添加200ms主题切换过渡动画，避免闪烁
+
+## 1.5.20 (2026-02-13)
+
+**修复自定义字段功能和数据联动问题**
+
+- 修复文件删除时字段映射数据未清除的问题
+  - 在 clearFile 函数中添加 resetMappings() 调用
+  - 清除单元格拆分、自定义绑定、生成SQL等相关状态
+- 修复行范围选择导致映射配置重置的问题
+  - 移除 applyRowRange 和 resetRowRange 中的自动匹配调用
+  - 行范围变化只影响数据行，不影响表头和字段映射
+- 添加自定义字段功能入口
+  - 在 FieldMappingCard 中添加"配置自定义字段"按钮
+  - 启用自定义绑定后显示配置按钮
+- 修复自定义字段表格只显示最新数据的问题
+  - 修改 useCustomBinding.js 直接导出 ref 而非计算属性
+  - 使用展开运算符创建新数组触发响应式更新
+  - 修复 importBindings 函数的响应式问题
+- 修复自定义字段弹窗编辑模式不显示数据的问题
+  - 在 loadBindings 函数中根据 editingField 判断模式
+  - 编辑模式加载字段数据，添加模式为空
+- 优化自定义字段弹窗行为
+  - 添加模式：每次打开弹窗都是空的
+  - 编辑模式：加载要编辑的字段数据
+  - 保存后清除编辑状态
+- 所有代码通过ESLint检查
+
+## 1.5.19 (2026-02-11)
+
+**InsertPage.vue代码重构优化**
+
+- 提取公共工具函数
+  - 新建 src/utils/sqlBeautifier.ts：SQL格式化工具
+  - 新建 src/utils/operationLogger.ts：操作日志工具
+  - 新建 src/utils/sqlStats.ts：SQL统计工具
+  - 新建 src/utils/fileUploader.ts：文件上传工具
+  - 新建 src/utils/fieldMapping.ts：字段映射工具
+  - 新建 src/utils/index.ts：统一导出文件
+- 拆分UI组件
+  - 将Excel上传区域替换为ExcelUploadCard组件
+  - 将字段映射区域替换为FieldMappingCard组件
+  - 移除约268行重复代码
+  - 代码从2663行减少到2364行
+- 所有代码通过ESLint检查
+
 ## 1.5.18 (2026-01-26)
 
 **添加复制原始SQL功能**

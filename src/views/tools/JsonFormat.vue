@@ -107,7 +107,7 @@ const downloadOutput = () => {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .json-format-page {
   padding: 40px 20px;
   max-width: 1400px;
@@ -115,9 +115,7 @@ const downloadOutput = () => {
 }
 
 .page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  @include flex-between;
   margin-bottom: 32px;
 }
 
@@ -141,16 +139,11 @@ const downloadOutput = () => {
 .output-actions {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #f0f0f0;
+  @include divider-top;
 }
 
-/* 暗色主题支持 */
-[data-theme='dark'] .output-actions {
-  border-top-color: #374151;
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
+// 响应式设计
+@include respond-to(md) {
   .content-grid {
     grid-template-columns: 1fr;
   }

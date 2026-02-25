@@ -573,7 +573,7 @@ switch
 import { ref, computed, watch, h } from 'vue'
 import { PlusOutlined, CloseCircleOutlined } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
-import { getDatabaseFunctions, getSupportedDatabaseTypes } from '../utils/databaseFunctions'
+import { getDatabaseFunctions, getSupportedDatabaseTypes } from '@/utils/database/databaseFunctions'
 
 // Props
 const props = defineProps({
@@ -908,9 +908,16 @@ watch(
     if (newVal) {
       // 模态框打开时加载数据
       loadBindings()
-      // 如果有编辑字段，切换到自定义字段标签页
+      // 如果有编辑字段，根据数据来源切换到对应标签页
       if (props.editingField) {
-        activeTab.value = 'customFields'
+        const dataSource = props.editingField.dataSource
+        if (dataSource === 'single_binding') {
+          activeTab.value = 'single'
+        } else if (dataSource === 'excel_combine') {
+          activeTab.value = 'concatenation'
+        } else {
+          activeTab.value = 'customFields'
+        }
       }
     }
   },
@@ -918,61 +925,74 @@ watch(
 
 // 方法
 const loadBindings = () => {
-  // 加载单列绑定 - 确保customBindings是数组
-  const customBindings = Array.isArray(props.customBindingManager.customBindings)
-    ? props.customBindingManager.customBindings
-    : []
-  singleBindings.value = customBindings
-    .filter((binding) => binding.bindingType === 'single')
-    .map((binding) => {
-      const isInDdl = props.ddlFields.some((field) => field.name === binding.ddlFieldName)
-      return {
-        id: binding.id,
-        ddlFieldName: binding.ddlFieldName,
+  // 根据是否为编辑模式决定是否加载已保存的数据
+  if (props.editingField) {
+    // 编辑模式：根据数据来源只加载对应的数据
+    const dataSource = props.editingField.dataSource
+
+    if (dataSource === 'single_binding') {
+      // 编辑单列绑定：只加载这一条数据
+      singleBindings.value = []
+      const isInDdl = props.ddlFields.some((field) => field.name === props.editingField.fieldName)
+      singleBindings.value.push({
+        id: props.editingField.id || generateId(),
+        ddlFieldName: isInDdl ? props.editingField.fieldName : '',
         inputMode: isInDdl ? 'select' : 'custom',
-        customFieldName: isInDdl ? '' : binding.ddlFieldName,
-        excelIndex: binding.excelIndex,
-      }
-    })
-
-  // 加载字段拼接规则 - 确保fieldConcatenationRules是数组
-  const fieldConcatenationRules = Array.isArray(props.customBindingManager.fieldConcatenationRules)
-    ? props.customBindingManager.fieldConcatenationRules
-    : []
-  concatenationRules.value = fieldConcatenationRules.map((rule) => ({
-    id: rule.id,
-    inputMode: 'select',
-    customFieldName: rule.ddlFieldName || '',
-    dataType: rule.dataType || 'string',
-    sourceColumns: rule.sourceColumns,
-    columnVariables: rule.columnVariables || {},
-    separator: rule.separator || '',
-    format: rule.format || '',
-  }))
-
-  // 加载自定义字段 - 确保customFields是数组
-  const customFieldsData = Array.isArray(props.customBindingManager.customFields)
-    ? props.customBindingManager.customFields
-    : []
-  customFields.value = customFieldsData.map((field) => ({
-    id: field.id,
-    inputMode: 'select',
-    fieldName: field.fieldName,
-    dataSource: field.dataSource || 'system_function',
-    systemFunctionConfig: {
-      databaseType: field.systemFunctionConfig?.databaseType || 'mysql',
-      functionName: field.systemFunctionConfig?.functionName || 'NOW',
-    },
-    excelCombineConfig: {
-      columns: field.excelCombineConfig?.columns || [],
-      separator: field.excelCombineConfig?.separator || '',
-      format: field.excelCombineConfig?.format || '',
-    },
-    autoIncrementConfig: {
-      start: field.autoIncrementConfig?.start || 1,
-      step: field.autoIncrementConfig?.step || 1,
-    },
-  }))
+        customFieldName: isInDdl ? '' : props.editingField.fieldName,
+        excelIndex: props.editingField.config?.excelIndex || -1,
+      })
+      concatenationRules.value = []
+      customFields.value = []
+    } else if (dataSource === 'excel_combine') {
+      // 编辑拼接规则：只加载这一条数据
+      singleBindings.value = []
+      concatenationRules.value = [
+        {
+          id: props.editingField.id || generateId(),
+          inputMode: 'select',
+          customFieldName: props.editingField.fieldName,
+          dataType: props.editingField.dataType || 'string',
+          sourceColumns: props.editingField.config?.sourceColumns || [],
+          columnVariables: {},
+          separator: props.editingField.config?.separator || '',
+          format: props.editingField.config?.format || '',
+        },
+      ]
+      customFields.value = []
+    } else {
+      // 编辑自定义字段：只加载这一条数据
+      console.log('编辑模式：加载字段数据', props.editingField)
+      singleBindings.value = []
+      concatenationRules.value = []
+      customFields.value = [
+        {
+          id: props.editingField.id || generateId(),
+          inputMode: 'select',
+          fieldName: props.editingField.fieldName,
+          dataType: props.editingField.dataType || 'string',
+          dataSource: props.editingField.dataSource || 'system_function',
+          systemFunctionConfig: {
+            databaseType: props.editingField.systemFunctionConfig?.databaseType || 'mysql',
+            functionName: props.editingField.systemFunctionConfig?.functionName || 'NOW',
+          },
+          excelCombineConfig: {
+            columns: props.editingField.excelCombineConfig?.columns || [],
+            separator: props.editingField.excelCombineConfig?.separator || '',
+            format: props.editingField.excelCombineConfig?.format || '',
+          },
+          autoIncrementConfig: {
+            start: props.editingField.autoIncrementConfig?.start || 1,
+            step: props.editingField.autoIncrementConfig?.step || 1,
+          },
+        },
+      ]
+    }
+  } else {
+    // 添加模式：所有数据都应该是空的
+    singleBindings.value = []
+    concatenationRules.value = []
+    customFields.value = []
+  }
 }
 
 const handleToggleChange = (checked) => {
@@ -1107,7 +1127,7 @@ const isColumnUsed = (columnIndex, currentBindingId) => {
 }
 
 const getConcatenationPreview = (rule) => {
-  if (!rule.ddlFieldName || rule.sourceColumns.length === 0) {
+  if (!rule.customFieldName || rule.sourceColumns.length === 0) {
     return '请配置规则'
   }
 
@@ -1206,7 +1226,9 @@ const addCustomField = () => {
     excel_combine: 'Excel组合',
     auto_increment: '自增',
   }
-  const defaultFieldName = `${typeLabels['system_function'] || '自定义'}_${Date.now().toString(36)}`
+
+  // 使用 generateId() 生成唯一字段名，确保不会重复
+  const defaultFieldName = `${typeLabels['system_function'] || '自定义'}_${generateId()}`
 
   // 检查生成的默认字段名是否冲突
   const conflictResult = checkFieldConflict(defaultFieldName)
@@ -1272,7 +1294,13 @@ const handleCustomFieldChange = (record) => {
 
   // 检查字段名是否与其他配置冲突
   // 只在字段名变更且不为空时检查
-  const conflictResult = checkFieldConflictExcludingCurrent(record.fieldName, record.id)
+  // 编辑模式下，如果字段名没有改变，不视为冲突
+  const originalFieldName = props.editingField?.fieldName || ''
+  const conflictResult = checkFieldConflictExcludingCurrent(
+    record.fieldName,
+    record.id,
+    originalFieldName,
+  )
   if (conflictResult.isConflict) {
     Modal.warning({
       title: '字段名冲突',
@@ -1301,9 +1329,10 @@ const handleCustomFieldChange = (record) => {
  * 检查字段名是否与现有配置冲突（排除当前记录）
  * @param {string} fieldName - 要检查的字段名
  * @param {string} currentId - 当前记录的ID，排除自己
+ * @param {string} currentFieldName - 当前字段的原始名称（用于编辑模式判断）
  * @returns {Object} 冲突检测结果 { isConflict: boolean, conflictSource: string }
  */
-const checkFieldConflictExcludingCurrent = (fieldName, currentId) => {
+const checkFieldConflictExcludingCurrent = (fieldName, currentId, currentFieldName = '') => {
   if (!fieldName || typeof fieldName !== 'string') {
     return { isConflict: false, conflictSource: '' }
   }
@@ -1314,11 +1343,17 @@ const checkFieldConflictExcludingCurrent = (fieldName, currentId) => {
   }
 
   // 检查字段映射中显示的DDL字段名（映射配置中显示的字段）
+  // 编辑模式：如果字段名没有改变，不视为冲突
   if (
     props.fieldMappings &&
     props.fieldMappings.some((mapping) => mapping.ddlField?.name === trimmedName)
   ) {
-    return { isConflict: true, conflictSource: '字段映射' }
+    // 编辑模式且字段名未改变，不视为冲突
+    if (currentFieldName && currentFieldName === trimmedName) {
+      // 继续检查其他冲突
+    } else {
+      return { isConflict: true, conflictSource: '字段映射' }
+    }
   }
 
   // 检查单列绑定中的自定义字段名
@@ -1430,151 +1465,106 @@ const saveBindings = () => {
     customFields.value,
   )
 
-  // 核心修复：将本地单列绑定同步到customBindingManager
-  // 1. 先清空管理器中现有的单列绑定
-  const currentCustomBindings = Array.isArray(props.customBindingManager.customBindings.value)
-    ? props.customBindingManager.customBindings.value
-    : []
+  // 判断是编辑模式还是添加模式
+  const isEditMode = !!props.editingField
 
-  // 记录需要删除的DDL字段名
-  const ddlFieldNamesToRemove = currentCustomBindings
-    .filter((binding) => binding.bindingType === 'single')
-    .map((binding) => binding.ddlFieldName)
+  if (isEditMode) {
+    // 编辑模式：只更新被编辑的数据
+    const dataSource = props.editingField.dataSource
 
-  // 逐个删除单列绑定
-  ddlFieldNamesToRemove.forEach((ddlFieldName) => {
-    props.customBindingManager.removeCustomBinding(ddlFieldName)
-  })
-
-  // 2. 将本地单列绑定添加到管理器中
-  singleBindings.value.forEach((binding) => {
-    // 确定最终使用的字段名
-    const finalFieldName =
-      binding.inputMode === 'custom' ? binding.customFieldName : binding.ddlFieldName
-
-    // 只有当字段名有效且Excel列已绑定时才添加
-    if (finalFieldName && binding.excelIndex >= 0) {
-      props.customBindingManager.addCustomBinding(finalFieldName, binding.excelIndex, 'single')
-    }
-  })
-
-  // 核心修复：将本地字段拼接规则同步到customBindingManager
-  // 3. 先清空管理器中现有的字段拼接规则
-  const currentConcatenationRules = Array.isArray(
-    props.customBindingManager.fieldConcatenationRules.value,
-  )
-    ? props.customBindingManager.fieldConcatenationRules.value
-    : []
-
-  // 记录需要删除的拼接规则的DDL字段名
-  const ddlFieldNamesToRemoveFromConcat = currentConcatenationRules.map((rule) => rule.ddlFieldName)
-
-  // 逐个删除字段拼接规则
-  ddlFieldNamesToRemoveFromConcat.forEach((ddlFieldName) => {
-    props.customBindingManager.removeConcatenationRule(ddlFieldName)
-  })
-
-  // 4. 将本地字段拼接规则添加到管理器中
-  concatenationRules.value.forEach((rule) => {
-    if (rule.customFieldName && rule.sourceColumns && rule.sourceColumns.length > 0) {
-      props.customBindingManager.addConcatenationRule(
-        rule.customFieldName,
-        rule.sourceColumns,
-        rule.separator || '',
-        rule.format || '',
-        rule.dataType || 'string',
-      )
-    }
-  })
-
-  // 核心修复：将本地自定义字段同步到customBindingManager
-  // 5. 先清空管理器中现有的自定义字段
-  const currentCustomFields = Array.isArray(props.customBindingManager.customFields.value)
-    ? props.customBindingManager.customFields.value
-    : []
-
-  // 记录需要删除的自定义字段名（只删除不在当前列表中的）
-  const newFieldNames = new Set(
-    customFields.value.filter((f) => f.fieldName).map((f) => f.fieldName),
-  )
-
-  // 只删除不在新列表中的字段
-  currentCustomFields.forEach((field) => {
-    if (!newFieldNames.has(field.fieldName)) {
-      props.customBindingManager.removeCustomField(field.fieldName)
-    }
-  })
-
-  // 6. 处理字段拼接规则中的自定义字段名称
-  concatenationRules.value.forEach((rule) => {
-    if (rule.customFieldName && rule.customFieldName.trim() !== '') {
-      // 创建独立的自定义字段
-      const customField = {
-        fieldName: rule.customFieldName,
-        dataType: rule.dataType || 'string',
-        dataSource: 'excel_combine',
-        excelCombineConfig: {
-          columns: rule.sourceColumns || [],
-          separator: rule.separator || '',
-          format: rule.format || '',
-          isFromConcatenationRule: true,
-        },
-      }
-      props.customBindingManager.addCustomField(customField)
-    }
-  })
-
-  // 7. 将本地所有自定义字段添加到管理器中
-  console.log('准备添加自定义字段到管理器:', customFields.value)
-  customFields.value.forEach((field) => {
-    console.log('检查字段:', field)
-    if (field.fieldName) {
-      console.log('添加字段:', field.fieldName)
-      const fieldToSave = {
-        fieldName: field.fieldName,
-        dataType: field.dataType,
-        dataSource: field.dataSource,
-        systemFunctionConfig: field.systemFunctionConfig,
-        excelCombineConfig: field.excelCombineConfig,
-        autoIncrementConfig: field.autoIncrementConfig,
-      }
-      props.customBindingManager.addCustomField(fieldToSave)
+    if (dataSource === 'single_binding') {
+      // 编辑单列绑定：先删除旧的，再添加新的
+      props.customBindingManager.removeCustomBinding(props.editingField.fieldName)
+      singleBindings.value.forEach((binding) => {
+        const finalFieldName =
+          binding.inputMode === 'custom' ? binding.customFieldName : binding.ddlFieldName
+        if (finalFieldName && binding.excelIndex >= 0) {
+          props.customBindingManager.addCustomBinding(finalFieldName, binding.excelIndex, 'single')
+        }
+      })
+    } else if (dataSource === 'excel_combine') {
+      // 编辑拼接规则：先删除旧的，再添加新的
+      props.customBindingManager.removeConcatenationRule(props.editingField.fieldName)
+      concatenationRules.value.forEach((rule) => {
+        if (rule.customFieldName && rule.sourceColumns && rule.sourceColumns.length > 0) {
+          props.customBindingManager.addConcatenationRule(
+            rule.customFieldName,
+            rule.sourceColumns,
+            rule.separator || '',
+            rule.format || '',
+            rule.dataType || 'string',
+          )
+        }
+      })
     } else {
-      console.log('跳过字段，因为fieldName为空')
+      // 编辑自定义字段：先删除旧的，再添加新的
+      props.customBindingManager.removeCustomField(props.editingField.fieldName)
+      customFields.value.forEach((field) => {
+        if (field.fieldName) {
+          props.customBindingManager.addCustomField(field)
+        }
+      })
     }
-  })
-  console.log(
-    '添加后customBindingManager.customFields.value:',
-    props.customBindingManager.customFields.value,
-  )
+  } else {
+    // 添加模式：只添加新数据，不清空已有数据
 
-  // 验证配置
-  const validation = props.customBindingManager.validateBindings()
-
-  if (!validation.isValid) {
-    Modal.error({
-      title: '保存失败',
-      content: h('div', [
-        h('p', '以下配置存在问题，请修复后再保存：'),
-        h('ul', { style: { paddingLeft: '20px', marginTop: '10px' } }, [
-          ...validation.errors.map((error) =>
-            h('li', { style: { marginBottom: '5px', color: '#ff4d4f' } }, error),
-          ),
-        ]),
-      ]),
-      okText: '我知道了',
+    // 1. 添加本地单列绑定
+    singleBindings.value.forEach((binding) => {
+      const finalFieldName =
+        binding.inputMode === 'custom' ? binding.customFieldName : binding.ddlFieldName
+      if (finalFieldName && binding.excelIndex >= 0) {
+        // 先删除同名的旧绑定（如果存在）
+        props.customBindingManager.removeCustomBinding(finalFieldName)
+        props.customBindingManager.addCustomBinding(finalFieldName, binding.excelIndex, 'single')
+      }
     })
-    return
+
+    // 2. 添加本地字段拼接规则
+    concatenationRules.value.forEach((rule) => {
+      if (rule.customFieldName && rule.sourceColumns && rule.sourceColumns.length > 0) {
+        // 先删除同名的旧规则（如果存在）
+        props.customBindingManager.removeConcatenationRule(rule.customFieldName)
+        props.customBindingManager.addConcatenationRule(
+          rule.customFieldName,
+          rule.sourceColumns,
+          rule.separator || '',
+          rule.format || '',
+          rule.dataType || 'string',
+        )
+      }
+    })
+
+    // 3. 添加本地自定义字段
+    customFields.value.forEach((field) => {
+      if (field.fieldName) {
+        // 先删除同名的旧字段（如果存在）
+        props.customBindingManager.removeCustomField(field.fieldName)
+        props.customBindingManager.addCustomField(field)
+      }
+    })
   }
 
+  // 统计保存的数据
+  const singleCount = isEditMode
+    ? (props.editingField.dataSource === 'single_binding' ? singleBindings.value.length : 0)
+    : singleBindings.value.length
+  const concatCount = isEditMode
+    ? (props.editingField.dataSource === 'excel_combine' ? concatenationRules.value.length : 0)
+    : concatenationRules.value.length
+  const customCount = isEditMode
+    ? (!['single_binding', 'excel_combine'].includes(props.editingField.dataSource) ? customFields.value.length : 0)
+    : customFields.value.length
+
   emit('save', {
-    customBindings: props.customBindingManager.customBindings.value,
-    fieldConcatenationRules: props.customBindingManager.fieldConcatenationRules.value,
-    customFields: props.customBindingManager.customFields.value,
-    enableCustomBinding: enableCustomBinding.value,
+    singleBindings: singleBindings.value,
+    concatenationRules: concatenationRules.value,
+    customFields: customFields.value,
   })
 
-  message.success('自定义绑定配置已保存')
+  message.success(
+    `自定义绑定配置已保存：${singleCount} 个单列绑定、${concatCount} 个拼接规则、${customCount} 个自定义字段`,
+  )
+
   closeModal()
 }
 
@@ -1599,13 +1589,13 @@ const generateId = () => {
   align-items: center;
   margin-bottom: 16px;
   padding: 12px;
-  background: #f5f5f5;
-  border-radius: 4px;
+  background: var(--table-header-bg);
+  border-radius: var(--border-radius-sm);
 }
 
 .toggle-description {
   margin-left: 12px;
-  color: #666;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -1634,7 +1624,7 @@ const generateId = () => {
 
 .preview-value {
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
   word-break: break-all;
 }
 
@@ -1651,16 +1641,16 @@ const generateId = () => {
 .config-section {
   margin-top: 8px;
   padding: 8px;
-  background: #f8f9fa;
-  border-radius: 4px;
-  border: 1px solid #e9ecef;
+  background: var(--panel-bg);
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--panel-border);
 }
 
 .modal-actions {
   margin-top: 16px;
   text-align: right;
   padding-top: 16px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--border-default);
 }
 
 .ddl-field-input-wrapper {

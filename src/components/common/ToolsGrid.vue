@@ -107,7 +107,7 @@ import {
   CodeOutlined as CodeOutlinedIcon,
 } from '@ant-design/icons-vue'
 import { categories, searchTools, filterToolsByCategory } from '@/config/tools.js'
-import { useFavorites } from '@/composables/useFavorites.js'
+import { useFavorites } from '@/composables/data/useFavorites.js'
 import ToolCard from '@/components/common/ToolCard.vue'
 
 const router = useRouter()
@@ -235,27 +235,27 @@ onMounted(() => {
 
 .title-icon {
   font-size: 24px;
-  color: #1890ff;
+  color: var(--color-primary);
 }
 
 .section-title h3 {
   font-size: 24px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   margin: 0;
   flex: 1;
 }
 
 .tool-count {
   font-size: 14px;
-  color: #999;
+  color: var(--text-secondary);
   font-weight: 400;
 }
 
 /* 收藏夹区域 */
 .favorites-section {
   margin-bottom: 40px;
-  background: #f8f9fa;
+  background: var(--bg-elevated);
   padding: 24px;
   border-radius: 12px;
 }
@@ -284,55 +284,26 @@ onMounted(() => {
 .empty-state {
   text-align: center;
   padding: 60px 20px;
-  color: #999;
+  color: var(--text-secondary);
 }
 
 .empty-icon {
   font-size: 64px;
   margin-bottom: 16px;
-  color: #d9d9d9;
+  color: var(--text-secondary);
 }
 
 .empty-state h3 {
   font-size: 20px;
   font-weight: 600;
-  color: #666;
+  color: var(--text-secondary);
   margin: 0 0 12px 0;
 }
 
 .empty-state p {
   font-size: 14px;
-  color: #999;
+  color: var(--text-secondary);
   margin: 0;
-}
-
-/* 暗色主题支持 */
-[data-theme='dark'] .tools-grid {
-  background: #0f172a;
-}
-
-[data-theme='dark'] .section-title h3 {
-  color: #f3f4f6;
-}
-
-[data-theme='dark'] .tool-count {
-  color: #6b7280;
-}
-
-[data-theme='dark'] .favorites-section {
-  background: #1e293b;
-}
-
-[data-theme='dark'] .empty-icon {
-  color: #4b5563;
-}
-
-[data-theme='dark'] .empty-state h3 {
-  color: #9ca3af;
-}
-
-[data-theme='dark'] .empty-state p {
-  color: #6b7280;
 }
 
 /* 响应式设计 */

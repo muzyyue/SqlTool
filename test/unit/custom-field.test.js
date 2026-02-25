@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { useSqlGeneratorEnhanced } from '../../src/composables/useSqlGeneratorEnhanced'
+import { useSqlGeneratorEnhanced } from '../../src/composables/sql/useSqlGeneratorEnhanced'
 
 /**
  * 自定义字段功能测试套件

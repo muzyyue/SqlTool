@@ -27,6 +27,7 @@
           <a-select-option value="all">全部</a-select-option>
           <a-select-option value="system_function">系统函数</a-select-option>
           <a-select-option value="excel_combine">Excel组合</a-select-option>
+          <a-select-option value="single_binding">单列绑定</a-select-option>
           <a-select-option value="auto_increment">自增</a-select-option>
           <a-select-option value="static_value">静态值</a-select-option>
         </a-select>
@@ -71,13 +72,19 @@
 
             <template v-else-if="record.dataSource === 'excel_combine'">
               <div class="config-item">
-                <span>列: {{ formatColumns(record.excelCombineConfig?.columns) }}</span>
+                <span>列: {{ formatColumns(record.excelCombineConfig?.columns || record.config?.sourceColumns) }}</span>
               </div>
               <div class="config-item">
-                <span>分隔符: {{ record.excelCombineConfig?.separator || '' }}</span>
+                <span>分隔符: {{ record.excelCombineConfig?.separator || record.config?.separator || '' }}</span>
               </div>
-              <div v-if="record.excelCombineConfig?.format" class="config-item">
-                <span>格式: {{ record.excelCombineConfig.format }}</span>
+              <div v-if="record.excelCombineConfig?.format || record.config?.format" class="config-item">
+                <span>格式: {{ record.excelCombineConfig?.format || record.config?.format }}</span>
+              </div>
+            </template>
+
+            <template v-else-if="record.dataSource === 'single_binding'">
+              <div class="config-item">
+                <span>Excel列索引: {{ record.config?.excelIndex }}</span>
               </div>
             </template>
 
@@ -210,6 +217,7 @@ const getDataSourceLabel = (dataSource) => {
     excel_combine: 'Excel组合',
     auto_increment: '自增',
     static_value: '静态值',
+    single_binding: '单列绑定',
   }
   return labels[dataSource] || dataSource
 }
@@ -220,6 +228,7 @@ const getDataSourceColor = (dataSource) => {
     excel_combine: 'green',
     auto_increment: 'orange',
     static_value: 'purple',
+    single_binding: 'cyan',
   }
   return colors[dataSource] || 'default'
 }
@@ -238,17 +247,27 @@ const handleEdit = (record) => {
 const handleDelete = (record) => {
   Modal.confirm({
     title: '确认删除',
-    content: `确定要删除自定义字段 "${record.fieldName}" 吗？`,
+    content: `确定要删除 "${record.fieldName}" 吗？`,
     okText: '确定',
     okType: 'danger',
     cancelText: '取消',
     onOk: () => {
       try {
-        props.customBindingManager.removeCustomField(record.fieldName)
+        const dataSource = record.dataSource
+
+        if (dataSource === 'single_binding') {
+          // 删除单列绑定
+          props.customBindingManager.removeCustomBinding(record.fieldName)
+        } else if (dataSource === 'excel_combine') {
+          // 删除拼接规则
+          props.customBindingManager.removeConcatenationRule(record.fieldName)
+        } else {
+          // 删除自定义字段
+          props.customBindingManager.removeCustomField(record.fieldName)
+        }
+
         emit('delete', record)
-        // 不再触发refresh事件，避免重新解析DDL导致配置数据被覆盖
-        // emit('refresh')
-        message.success(`已删除自定义字段: ${record.fieldName}`)
+        message.success(`已删除: ${record.fieldName}`)
       } catch (error) {
         message.error(`删除失败: ${error.message}`)
       }
@@ -259,8 +278,8 @@ const handleDelete = (record) => {
 
 <style scoped>
 .custom-field-manager {
-  background: white;
-  border-radius: 4px;
+  background: var(--card-bg);
+  border-radius: var(--border-radius-sm);
 }
 
 .manager-header {
@@ -269,8 +288,8 @@ const handleDelete = (record) => {
   align-items: center;
   margin-bottom: 16px;
   padding: 12px;
-  background: #fafafa;
-  border-radius: 4px;
+  background: var(--table-header-bg);
+  border-radius: var(--border-radius-sm);
 }
 
 .search-filter-group {
@@ -291,7 +310,7 @@ const handleDelete = (record) => {
 }
 
 .config-item {
-  color: #666;
+  color: var(--text-secondary);
 }
 
 :deep(.ant-table) {

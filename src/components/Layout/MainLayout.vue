@@ -12,7 +12,7 @@
           <a-menu
             v-model:selectedKeys="selectedKeys"
             mode="horizontal"
-            theme="dark"
+            :theme="menuTheme"
             @click="handleMenuClick"
           >
             <a-menu-item key="home">
@@ -152,17 +152,21 @@ const currentPageTitle = computed(() => {
       return '工具箱'
     case 'sql-tool':
       return 'SQL生成工具'
-    case 'insert':
+    case 'tool-insertpage':
       return 'INSERT语句生成'
-    case 'update':
+    case 'tool-updatepage':
       return 'UPDATE语句生成'
     default:
-      return '在线工具箱'
+      return route.meta?.title || '在线工具箱'
   }
 })
 
 const showBreadcrumb = computed(() => {
   return route.name !== 'home' && route.name !== 'sql-tool'
+})
+
+const menuTheme = computed(() => {
+  return isDark.value ? 'dark' : 'light'
 })
 
 // 方法
@@ -175,10 +179,10 @@ const handleMenuClick = ({ key }) => {
       router.push('/sql-tool')
       break
     case 'insert':
-      router.push('/insert')
+      router.push('/sql/insert')
       break
     case 'update':
-      router.push('/update')
+      router.push('/sql/update')
       break
   }
 }
@@ -224,14 +228,19 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/**
+ * 主布局
+ * 使用 CSS 变量实现主题切换
+ */
 .main-layout {
   min-height: 100vh;
 }
 
 .header {
-  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  background: linear-gradient(135deg, var(--header-bg-start) 0%, var(--header-bg-end) 100%);
   padding: 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-header);
+  transition: all var(--transition-normal) ease;
 }
 
 .header-content {
@@ -242,12 +251,13 @@ onMounted(() => {
   margin: 0 auto;
   padding: 0 24px;
   height: 64px;
+  transition: all var(--transition-normal) ease;
 }
 
 .logo {
   display: flex;
   align-items: center;
-  color: white;
+  color: var(--header-text);
 }
 
 .logo h1 {
@@ -266,20 +276,27 @@ onMounted(() => {
   flex: 1;
   display: flex;
   justify-content: center;
+  transition: all var(--transition-normal) ease;
 }
 
 .nav-menu :deep(.ant-menu) {
   background: transparent;
   border: none;
+  transition: all var(--transition-normal) ease;
 }
 
 .nav-menu :deep(.ant-menu-item) {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--nav-item-text);
+}
+
+.nav-menu :deep(.ant-menu-item:hover) {
+  color: var(--nav-item-text-hover);
+  background: var(--nav-item-bg-hover);
 }
 
 .nav-menu :deep(.ant-menu-item-selected) {
-  color: white;
-  background: rgba(255, 255, 255, 0.1);
+  color: var(--nav-item-text-hover);
+  background: var(--nav-item-bg-selected);
 }
 
 .header-actions {
@@ -290,17 +307,19 @@ onMounted(() => {
 
 .theme-toggle,
 .settings-btn {
-  color: white !important;
+  color: var(--header-text) !important;
+  transition: all var(--transition-normal) ease;
 }
 
 .theme-toggle:hover,
 .settings-btn:hover {
-  background: rgba(255, 255, 255, 0.1) !important;
+  background: var(--interactive-hover-inverse) !important;
 }
 
 .content {
-  background: #f5f5f5;
+  background: var(--bg-base);
   min-height: calc(100vh - 64px - 70px);
+  transition: background var(--transition-normal) ease;
 }
 
 .content-wrapper {
@@ -314,16 +333,18 @@ onMounted(() => {
 }
 
 .page-content {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: var(--card-bg);
+  border-radius: var(--border-radius-sm);
+  box-shadow: var(--shadow-sm);
   min-height: 600px;
+  transition: all var(--transition-normal) ease;
 }
 
 .footer {
-  background: #001529;
-  color: rgba(255, 255, 255, 0.8);
+  background: linear-gradient(135deg, var(--header-bg-start) 0%, var(--header-bg-end) 100%);
+  color: var(--header-text-secondary);
   padding: 16px 0;
+  transition: all var(--transition-normal) ease;
 }
 
 .footer-content {
@@ -342,12 +363,13 @@ onMounted(() => {
 }
 
 .footer a {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--header-text-secondary);
   text-decoration: none;
+  transition: color var(--transition-normal) ease;
 }
 
 .footer a:hover {
-  color: white;
+  color: var(--text-link-hover);
 }
 
 /* 响应式设计 */

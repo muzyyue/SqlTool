@@ -1,14 +1,33 @@
 <script setup>
+import { computed } from 'vue'
+import { theme } from 'ant-design-vue'
+import { useThemeStore } from '@/stores/theme'
 import MainLayout from '@/components/Layout/MainLayout.vue'
+
+const themeStore = useThemeStore()
+
+const antdTheme = computed(() => ({
+  algorithm: themeStore.isDark ? theme.darkAlgorithm : theme.defaultAlgorithm,
+  token: {
+    colorPrimary: '#1677ff',
+    borderRadius: 6,
+  },
+}))
 </script>
 
 <template>
-  <MainLayout>
-    <router-view />
-  </MainLayout>
+  <a-config-provider :theme="antdTheme">
+    <MainLayout>
+      <router-view />
+    </MainLayout>
+  </a-config-provider>
 </template>
 
 <style>
+/**
+ * 全局基础样式
+ * 使用 CSS 变量实现主题切换
+ */
 * {
   margin: 0;
   padding: 0;
@@ -24,6 +43,7 @@ body {
 
 #app {
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background-color: var(--bg-base);
+  transition: background-color var(--transition-normal) ease;
 }
 </style>

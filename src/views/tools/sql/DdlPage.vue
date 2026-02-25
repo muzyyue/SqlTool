@@ -360,7 +360,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
-import { useDdlGenerator } from '@/composables/useDdlGenerator'
+import { useDdlGenerator } from '@/composables/sql/useDdlGenerator'
 import SqlPreview from '@/components/SqlPreview/SqlPreview.vue'
 import {
   ReloadOutlined,
@@ -651,30 +651,34 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+// ========================================
+// DDL 页面样式
+// ========================================
+
 .ddl-page {
   padding: 0;
   min-height: 100%;
 }
 
+// 页面头部
 .page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  @include flex-between;
   margin-bottom: 24px;
   padding: 10px 20px;
-  border-bottom: 1px solid #f0f0f0;
-  background: #fafafa;
-  border-radius: 8px;
+  border-bottom: 1px solid $border-default;
+  background: $bg-elevated;
+  border-radius: $border-radius-md;
+
+  h2 {
+    margin: 0;
+    color: $color-primary;
+    font-size: 24px;
+    font-weight: 600;
+  }
 }
 
-.page-header h2 {
-  margin: 0;
-  color: #1890ff;
-  font-size: 24px;
-  font-weight: 600;
-}
-
+// 内容网格布局
 .content-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -682,34 +686,35 @@ onMounted(() => {
   min-height: calc(100vh - 120px);
 }
 
+// 输入/输出区域
 .input-section,
 .output-section {
-  display: flex;
-  flex-direction: column;
+  @include flex-column;
   gap: 16px;
 }
 
+// 卡片样式
 .input-card,
 .output-card {
-  background: white;
-  border-radius: 8px;
+  background: $card-bg;
+  border-radius: $border-radius-md;
   padding: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: $shadow-sm;
 }
 
+// 卡片头部
 .card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  @include flex-between;
   margin-bottom: 12px;
+
+  h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+  }
 }
 
-.card-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-}
-
+// 数据库选项样式
 .database-option {
   display: flex;
   align-items: center;
@@ -726,7 +731,7 @@ onMounted(() => {
 
 .db-version {
   font-size: 12px;
-  color: #999;
+  color: $text-tertiary;
   margin-left: auto;
 }
 
@@ -734,52 +739,55 @@ onMounted(() => {
   margin-top: 12px;
 }
 
+// 表单行
 .form-row {
   margin-bottom: 12px;
 }
 
+// 字段和约束区域
 .fields-section,
 .constraints-section {
   margin-top: 16px;
 }
 
+// 区域头部
 .section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  @include flex-between;
   margin-bottom: 12px;
+
+  h4 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+  }
 }
 
-.section-header h4 {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-}
-
+// 约束项
 .constraint-item {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 8px;
-  background: #f5f5f5;
-  border-radius: 4px;
+  background: $bg-sunken;
+  border-radius: $border-radius-sm;
   margin-bottom: 4px;
 }
 
 .constraint-type {
   font-weight: 500;
-  color: #1890ff;
+  color: $color-primary;
 }
 
 .no-constraints {
   text-align: center;
-  color: #999;
+  color: $text-tertiary;
   padding: 20px;
 }
 
+// SQL 预览区域
 .sql-preview {
-  background: #f8f9fa;
-  border-radius: 4px;
+  background: $bg-sunken;
+  border-radius: $border-radius-sm;
   padding: 12px;
   max-height: 400px;
   overflow: auto;
@@ -797,6 +805,7 @@ onMounted(() => {
   min-height: 80px;
 }
 
+// 响应式布局
 @media (max-width: 1200px) {
   .content-grid {
     grid-template-columns: 1fr;

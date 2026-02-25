@@ -1,0 +1,317 @@
+// ========================================
+// SCSS 混入 (Mixins)
+// 可复用的样式模式
+// ========================================
+
+@use 'variables' as *;
+
+// ===== 布局混入 =====
+
+@mixin flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+@mixin flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+@mixin flex-column-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+// ===== 卡片混入 =====
+
+@mixin card-base {
+  background: $card-bg;
+  border-radius: $border-radius-md;
+  padding: 20px;
+  box-shadow: $shadow-md;
+  border: 1px solid $card-border;
+  overflow: hidden;
+  position: relative;
+  transition: all $transition-normal ease;
+}
+
+@mixin card-hover {
+  &:hover {
+    box-shadow: $shadow-lg;
+    transform: translateY(-1px);
+  }
+}
+
+@mixin glass-card {
+  background: $bg-glass;
+  backdrop-filter: blur($backdrop-blur);
+  -webkit-backdrop-filter: blur($backdrop-blur);
+  border: 1px solid $border-glass;
+  border-radius: $border-radius-md;
+  box-shadow: $shadow-card;
+}
+
+@mixin glass-card-hover {
+  &:hover {
+    box-shadow: $shadow-card-hover;
+    border-color: $border-glass-strong;
+  }
+}
+
+// ===== 按钮混入 =====
+
+@mixin button-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: $border-radius-sm;
+  font-weight: 500;
+  transition: all $transition-fast ease;
+  cursor: pointer;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: $shadow-button-hover;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+@mixin button-primary {
+  @include button-base;
+  background: $color-primary;
+  color: white;
+  border: none;
+
+  &:hover {
+    background: $color-primary-hover;
+  }
+}
+
+@mixin button-ghost {
+  @include button-base;
+  background: transparent;
+  color: $text-primary;
+  border: 1px solid $border-default;
+
+  &:hover {
+    border-color: $color-primary;
+    color: $color-primary;
+  }
+}
+
+// ===== 输入框混入 =====
+
+@mixin input-base {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid $border-default;
+  border-radius: $border-radius-sm;
+  background: $bg-elevated;
+  color: $text-primary;
+  font-size: 14px;
+  transition: all $transition-fast ease;
+
+  &:hover {
+    border-color: $color-primary;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $color-primary;
+    box-shadow: 0 0 0 2px $color-primary-bg;
+  }
+
+  &::placeholder {
+    color: $text-tertiary;
+  }
+}
+
+@mixin input-focus-ring {
+  &:focus-within {
+    box-shadow: 0 0 0 2px $color-primary-bg;
+  }
+}
+
+// ===== 滚动条混入 =====
+
+@mixin custom-scrollbar {
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: $scrollbar-track;
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: $scrollbar-thumb;
+    border-radius: 4px;
+
+    &:hover {
+      background: $scrollbar-thumb-hover;
+    }
+  }
+}
+
+// ===== 文本混入 =====
+
+@mixin text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@mixin text-clamp($lines: 2) {
+  display: -webkit-box;
+  -webkit-line-clamp: $lines;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+// ===== 分隔线混入 =====
+
+@mixin divider-top {
+  border-top: 1px solid $border-default;
+}
+
+@mixin divider-bottom {
+  border-bottom: 1px solid $border-default;
+}
+
+@mixin divider-left {
+  border-left: 1px solid $border-default;
+}
+
+@mixin divider-right {
+  border-right: 1px solid $border-default;
+}
+
+// ===== 面板混入 =====
+
+@mixin panel-base {
+  background: $panel-bg;
+  border: 1px solid $panel-border;
+  border-radius: $border-radius-sm;
+  padding: 16px;
+}
+
+// ===== 标签混入 =====
+
+@mixin tag-base {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: $border-radius-xs;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all $transition-fast ease;
+}
+
+@mixin tag-primary {
+  @include tag-base;
+  background: $color-primary-bg;
+  border: 1px solid $color-primary-border;
+  color: $color-primary;
+}
+
+@mixin tag-success {
+  @include tag-base;
+  background: $color-success-bg;
+  border: 1px solid $color-success-border;
+  color: $color-success;
+}
+
+// ===== 响应式断点 =====
+
+$breakpoint-xs: 480px;
+$breakpoint-sm: 640px;
+$breakpoint-md: 768px;
+$breakpoint-lg: 1024px;
+$breakpoint-xl: 1280px;
+
+@mixin respond-to($breakpoint) {
+  @if $breakpoint == xs {
+    @media (max-width: $breakpoint-xs) {
+      @content;
+    }
+  } @else if $breakpoint == sm {
+    @media (max-width: $breakpoint-sm) {
+      @content;
+    }
+  } @else if $breakpoint == md {
+    @media (max-width: $breakpoint-md) {
+      @content;
+    }
+  } @else if $breakpoint == lg {
+    @media (max-width: $breakpoint-lg) {
+      @content;
+    }
+  } @else if $breakpoint == xl {
+    @media (max-width: $breakpoint-xl) {
+      @content;
+    }
+  }
+}
+
+// ===== 动画混入 =====
+
+@mixin fade-in($duration: 0.3s) {
+  animation: fadeIn $duration ease;
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+@mixin slide-up($duration: 0.3s, $distance: 10px) {
+  animation: slideUp $duration ease;
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY($distance);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+// ===== 统计面板混入 =====
+
+@mixin stats-grid($columns: 3) {
+  display: grid;
+  grid-template-columns: repeat($columns, 1fr);
+  gap: 16px;
+  padding: 16px;
+  background: $table-header-bg;
+  border-radius: $border-radius-xs;
+}
+
+// ===== 表格头部混入 =====
+
+@mixin table-header {
+  background: $table-header-bg;
+  font-weight: 600;
+}

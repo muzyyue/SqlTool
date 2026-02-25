@@ -130,24 +130,16 @@ jobs:
           echo "Detailed build contents:"
           find dist/ -type f -exec ls -lh {} \; | sort -k5 -hr
 
-      - name: Archive build files
-        run: |
-          cd dist
-          zip -r ../dist-1.0.0.zip ./*
-
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist-zip
-          path: dist-1.0.0.zip
-          retention-days: 30
-
   # 发布到GitHub Releases
   release:
     name: Release to GitHub
     runs-on: ubuntu-latest
     needs: build
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/rebuild')
+    if: |
+      (github.event_name == 'push' && 
+       contains(github.event.head_commit.message, 'Deploy') &&
+       (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/rebuild')) ||
+      github.event_name == 'workflow_dispatch'
 
     permissions:
       contents: write
@@ -159,11 +151,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Download build artifact
+      - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
-          name: dist-zip
-          path: ./
+          name: dist-files
+          path: dist
 
       - name: Set Git commit name
         run: |
@@ -180,29 +172,45 @@ jobs:
 
           echo "已设置Git提交名称：$GIT_USER_NAME <$GIT_USER_EMAIL>"
 
+      - name: Get version from package.json
+        id: get_version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $VERSION"
+
       - name: Generate release notes
         id: generate_release_notes
         run: |
-          # 生成当前提交的详细修改内容
           CHANGELOG=$(git log -1 --stat --pretty=format:"%h - %s%n%b%n%ad by %an" --date=short ${{ github.sha }})
-          # 添加构建信息
-          CHANGELOG="$CHANGELOG\n\n## 构建信息\n- 构建时间: $(date -u +"%Y-%m-%d %H:%M:%S UTC")\n- 构建编号: ${{ github.run_id }}\n- 构建触发事件: ${{ github.event_name }}\n- 触发分支: ${{ github.ref_name }}\n- 构建者: ${{ github.actor }}"
-          # 设置为环境变量
+          CHANGELOG="$CHANGELOG\n\n## 构建信息\n- 构建时间: $(date -u +"%Y-%m-%d %H:%M:%S UTC")\n- 构建编号: ${{ github.run_id }}\n- 构建触发事件: ${{ github.event_name }}\n- 触发分支: ${{ github.ref_name }}"
           echo "CHANGELOG<<EOF" >> $GITHUB_ENV
           echo "$CHANGELOG" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
+  
+      - name: Archive build files
+        run: |
+          cd dist
+          zip -r ../dist-${{ steps.get_version.outputs.version }}.zip ./*
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-zip
+          path: dist-${{ steps.get_version.outputs.version }}.zip
+          retention-days: 30
 
       - name: Create GitHub Release
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: 1.0.0
-          name: Release 1.0.0
+          tag_name: v${{ steps.get_version.outputs.version }}
+          name: Release v${{ steps.get_version.outputs.version }}
           draft: false
           prerelease: false
           body: ${{ env.CHANGELOG }}
           files: |
-            ./dist-1.0.0.zip
+            ./dist-${{ steps.get_version.outputs.version }}.zip
           generate_release_notes: true
 
       - name: Verify release
@@ -216,7 +224,11 @@ jobs:
     name: Deploy to GitHub Pages
     runs-on: ubuntu-latest
     needs: build
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/rebuild')
+    if: |
+      (github.event_name == 'push' && 
+       contains(github.event.head_commit.message, 'Deploy') &&
+       (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/rebuild')) ||
+      github.event_name == 'workflow_dispatch'
 
     permissions:
       contents: write

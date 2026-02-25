@@ -14,12 +14,34 @@
 11.自定义字段-字段拼接中，选择目标DDL字段后无法添加到映射配置表中；输入ddl项会冲突 （缓存的原因 之前添加了后面删除掉这项，（缓存未删除）映射配置中未显示 添加新的字段项会弹出ddl项冲突 ） 在字段拼接中，给字段配置添加一个数据类型以控制生成的sql中的数据类型（字符串、整数、小数等）
 12.在正常的自定义字段（字段拼接）与自定义字段使用自增数字的字段之间（数据库插入表中的之间）会缺少逗号
 13.输出的 输入参数项  总是会转行，可能是复制的文本处理器中的数据就是转行的，测一测是否会转行，以及能否在 格式化（美化）过程中去掉转行       参数中的 \ 这个符号 在生成的sql中会变成  \\\   以及去除空格的功能（前置审查项、文件参数间的空格）excel中是没有空格的  应该是美化sql造成的  默认不需要美化sql（添加一个下载原始sql的按钮）   美化出问题了，添加一个复制原始sql的按钮
-14.
-15.
+14.重复操作性差，在已经生成了一遍sql的基础上，在进行修改（选择行范围）会导致原来的配置错误且不可使用，显示自定义绑定的表格无法显示所有添加的自定义字段，只会显示最新的添加的字段且编辑功能不可用（点击编辑会进入添加自定义字段弹窗，但没有数据显示）  在生成sql数据后，在进行行范围选择会导致之前编辑好的映射配置部分的数据被重置
+15.字段拼接中的勾选 “是否添加 '' ” 的选项消失了 ？ 现在添加函数有 '' 包裹着
 
 16.修改美化风格后，设置效果没有呈现
 
-17.
+17.找一找ai生成代码的规范skill，避免代码堆积问题       excel文件上传部分--启用单元格拆分配置（根据符号拆分单元格数据，每一条数据都生成一条数据sql） 
+
+18.添加一个计数的工具，用按键增大/减少数字
+
+19.
+
+20.
+
+21.给excel数据填充工具中添加一个功能，功能作用：在excel中将 Aa,AAA,ccc 这样的数据转变成 “Aa”,"AAA","ccc"
+
+22.
+
+23.
+
+24.
+
+25.去掉项目仓库中的不需要上传的文件 例如：.trae  .github   . [.editorconfig](https://github.com/muzyyue/SqlTool/blob/master/.editorconfig) 之类的配置文件  添加一个nginx的配置文件  确认nginx兼不兼容其他系统 如:麒麟等   如果不兼容，添加其他方法启动一个web服务器来运行这个项目（或者将所有代码都集中在一个index.html 文件中 ？？？）
+
+26.
+
+
+
+使用 skill，在系统中存在重复操作性差的问题，具体表现为：在已生成SQL配置的基础上，当用户尝试进行修改操作（包括选择行范围、删除映射配置等）时，会导致原有配置出现错误且无法正常使用。此外，系统显示的自定义绑定表格存在功能异常：无法完整显示所有已添加的自定义字段，仅能显示最新添加的字段；同时，编辑功能失效，点击编辑按钮后会进入添加自定义字段的弹窗，但弹窗内未展示任何数据。请针对上述问题进行全面分析，定位根本原因，并提供解决方案以修复这些功能缺陷
 
 
 
@@ -46,120 +68,84 @@
 5. 添加可以动态添加字段，以及设置这个字段的值；如果只添加字段而不添加值，则该字段的数据项设置为NULL
 6. 添加过滤对应字段的功能，过滤后该字段不计入sql语句
 
-### 第一次修改后结果
 
-- 数据编辑后，下方的sql语句并未更新。 且添加一个新功能，能修改某一个字段的所有符合条件的值（例如 XX="abd"）,让其变为输入值并更新到下方sql语句
-- 动态添加字段的值项，添加一些常用的数据库函数（下拉选择且可搜索等）
--
-
-### 第二次修改后结果
-
-- 动态添加字段的下拉选择函数功能，下拉框有点窄无法看见函数内容 ， 另外添加一些达梦数据库的函数 如果能添加搜索功能，那就加上
-- 将这个文件从仓库中去掉
-- 添加的字段可以选择类型，添加一个类型数字递增，可以输入开始的数字；可以选择要不要在最终生成的sql语句参数添加''
--
-
-### 第三次修改后结果
-
-- 现在添加生成update语句的功能，添加生成update语句的vue文件、页面及路由，最开始App.vue页面作为起始页面，用于选择去往那个页面（选择update或者insert）；将现在的生成insert的功能都转到insert.vue文件中去;对起始页面的介绍进行修改
--
-
-### 第四次修改结果
-
-- 在insert页面中添加一个功能根据数据库表的DDL语句生成sql语句来选择字段名，不再是根据Exccel文件的第一行生成字段
-- 添加函数项 ：CONCAT('gyss',SUBSTR(SYS_GUID(), 1, 28)) 并且选择的函数项要可以编辑
-- 删掉数据编辑那块功能，保留批量修改字段值的功能，删去主键字段那里的显示区域，不再显示主键字段区域
--
--
-
-### 第五次修改
-
-- 生成的sql语句的字段名是由DDL语句提供的，上传的excel表格用于提供数据。
-- 提取ddl语句字段时，也要提取对应的字段注释
-- 解析完ddl语句后可以修改生成的sql语句中的字段，这个字段可以与excel中的第一行的字段名绑定，结合生成sql语句
-
-### 第六次修改
-
-- 添加复制数据行的功能，添加时数据的字段可以自定义
-  - 字段类型为数字递增时，添加选项，根据某个字段的名称来自增，当名称变化时 自增的数字从之前确定的自增数字开始自增
-  - 添加字段拼接功能，参考Excel的拼接方法，拼接时添加新的字段，字段内容可以选择存在的excel数据列以及用户输入
-  -
-
-### 第七次修改
-
-- 绑定excel数据列未成功
-- 拼接字段的功能也未成功
-- 添加自定义默认字段，可以用一个文件保存自定义的字段 eg：CREATED_AT 等等
-- 添加函数列表 达梦的GUID
 
 整体优化项目： 升级项目为小工具站
 
 角色定位
-你是一位「Vue3 + Ant Design Vue」静态页面美学专家，深耕 UnoCSS、动画、视觉降噪与无障碍交互。本次任务：打造一款 “在线小工具箱” Web 项目（示例工具：JSON 格式化、SQL 生成、时间戳转换、正则测试、MD5 加密、二维码生成…）。要求纯前端、0 后端、可秒级部署到 GitHub Pages，同时延续 ant.vben.pro 同款「高饱和渐变 + 玻璃卡片 + 圆角网格」风格。
+你是一位「Vue3 + Ant Design Vue」静态页面美学专家，深耕 UnoCSS、动画、视觉降噪与无障碍交互。本次任务：打造一款 "在线小工具箱" Web 项目（示例工具：JSON 格式化、SQL 生成、时间戳转换、正则测试、MD5 加密、二维码生成…）。要求纯前端、0 后端、可秒级部署到 GitHub Pages
 一、美术硬指标（不对 antd 默认样式开刀，仅用覆盖）
-主渐变：linear-gradient(135deg, #1677FF 0%, #14C9C9 100%)
+主色：#1677FF（亮色）、#60A5FA（暗色）
+次色：#14C9C9
 玻璃卡片：背景 rgba(255,255,255,0.85) + backdrop-blur-20px + 外发光 0 8 32 0 rgba(22,119,255,0.12) + 圆角 12px
 圆角规范：4px（小标签）、8px（按钮）、12px（卡片）、16px（大图标）
 阴影层级：sm → 0 2 8 0 rgba(0,0,0,0.08)　lg → 0 8 32 0 rgba(22,119,255,0.12)
 字体：Inter + 阿里巴巴普惠体；主标题 24px 500、正文 14px 400、代码 13px JetBrains Mono
 暗色模式：背景 #151C28 → 卡片 #1E293B 60% 不透明，一键切换 ≤ 30ms
 二、技术栈（纯前端，可按功能随时插拔）
-Vue3 <script setup> + TypeScript + Vite
+Vue3 <script setup> + Vite
 Ant Design Vue 4.x（仅基础组件：Input、Button、Table、Tabs、Modal…）
 UnoCSS（原子化 + 主题变量 + shortcuts）
+SCSS（复杂组件样式 + mixins）
 Vue-Router 4（每个工具一个路由，懒加载）
 Pinia（存主题、偏好语言、收藏夹）
 Iconify（离线图标包 @iconify/json）
 CodeMirror 6 + lang-json / lang-sql（工具内嵌编辑器，支持主题切换）
 Clipboard API（一键复制）
-FileSaver.js（一键下载）
-PWA：workbox 预缓存，离线可访问常用工具
+PWA：workbox 预缓存，离线可访问常用工具（待添加）
 部署：GitHub Actions 自动推 dist → GitHub Pages（HTTPS）
 三、目录规范
 src/
-├─ assets/ # 字体、lottie、静态插画
-├─ components/ # 通用 VbenGlassCard、VbenGradientButton、CodeEditor
-├─ composables/ # useCopy、useDownload、useDebounce、useTheme
-├─ layouts/ # 默认玻璃导航布局
-├─ views/ # 各工具页面（每个单文件组件）
-├─ router/ # 路由表，自动扫描 views 目录生成
-├─ stores/ # pinia 模块
-├─ utils/ # 纯函数工具（json2tree、sqlInsert、timestampFormat…）
-├─ design/ # 色板、uno.config.ts、vben.css
-└─ App.vue / main.ts
+├─ components/       # 组件（BatchEditPanel、ExcelUploadCard、Layout、SqlPreview、common）
+├─ composables/      # useCopy、useDownload、useDebounce、useTheme（core/data/excel/sql 分类）
+├─ config/           # 工具配置
+├─ design/           # CSS变量、SCSS变量/混入
+├─ router/           # 路由表
+├─ stores/           # pinia 模块
+├─ utils/            # 纯函数工具（sql/field/file/log 分类）
+└─ views/            # 各工具页面（tools/sql、JsonPage、TimestampPage、ExcelFillPage）
 四、页面 & 交互（静态即可，预留后续 API 插槽）
 首页 /
-Hero：主渐变文字 + 搜索框（可快速定位工具）
-工具网格：图标 + 名称 + 一句话描述；支持“收藏”星标
+Hero：主色文字 + 搜索框（可快速定位工具）
+工具网格：图标 + 名称 + 一句话描述；支持"收藏"星标
 底部 Footer：GitHub 链接、主题切换、语言切换
-工具详情（各路由）
-JSON 格式化：左侧粘贴 → 右侧树形高亮；错误行红色波浪；支持压缩、转义、下载
-SQL 生成：表单输入表名 & 列 → 实时生成 CREATE / INSERT / UPDATE 语句；支持 MySQL、PostgreSQL 方言切换
-时间戳转换：双向绑定 → 输入时间戳回显本地时间；输入日期回显时间戳；支持毫秒、秒、UTC
+工具详情（各路由）- 已实现
+SQL INSERT 生成：DDL 解析 + Excel 上传 → 批量 INSERT 语句
+SQL UPDATE 生成：DDL 解析 + Excel 上传 → 批量 UPDATE 语句
+DDL 解析：解析 CREATE TABLE 语句，提取字段信息
+JSON 格式化：左侧粘贴 → 右侧格式化；支持压缩、转义、下载
+时间戳转换：双向绑定 → 输入时间戳回显本地时间；支持毫秒、秒、UTC
+Excel 数据填充：跨工作表数据填充
+工具详情（各路由）- 待实现
 正则测试：正则输入 + flags 多选 → 高亮匹配结果 + 分组表格 + 常用正则快捷插入
 MD5/SHA 加密：实时计算 32/16 位大/小写；支持文件拖入哈希
 二维码生成：输入文本 → 实时二维码 + 下载 SVG/PNG
 通用微交互
-按钮点击：缩放 0.98 + 亮度 +10%　120ms ease
+按钮点击：缩放 0.98，120ms ease
 卡片 hover：抬高 2px + 阴影 lg 过渡 200ms
 代码编辑器：Tab 键插入 2 空格；切换暗色时编辑器主题同步 monokai / vs-light
-五、暗色/亮色切换实现
-在 src/design/theme.ts 定义 CSS 变量，并写入 html[data-theme='dark'] 作用域
-Pinia 中 useTheme().toggle() 切换 data-theme 属性，UnoCSS 用 dark: 前缀适配
+五、样式架构
+CSS变量（theme.js）→ UnoCSS（高频原子类）→ SCSS（复杂组件）→ Ant Design（基础UI）
+CSS变量作为桥梁，三者共享主题；主题切换时变量值自动更新；元素只引用变量，不直接写颜色值
 六、性能 & 兼容性
 首屏 JS ≤ 150 KB（gzip）
 Lighthouse 性能 ≥ 95、可访问性 ≥ 95
 支持 Chrome 90+、Edge、Firefox、Safari；不支持 IE
 七、交付清单
 完整源码（每个工具独立 view 文件，代码内嵌中文注释）
-uno.config.ts + vben.css（玻璃卡片、渐变按钮 0 依赖）
+uno.config.js + SCSS 变量/混入（玻璃卡片、按钮 0 依赖）
 CodeMirror 主题切换钩子（同步亮色/暗色）
-README：
-一键运行 / 构建 / 部署到 GitHub Pages
-如何新增一个工具（复制模板 → 写 util → 加路由）
-主题换色、图标、国际化说明
+PWA 配置（待添加）
+README：一键运行 / 构建 / 部署到 GitHub Pages
 在线演示（GitHub Pages 地址）
-架构图（drawio）+ 新增工具流程图（PlantUML）
 八、输出格式
 请把所有源码、配置、示意图按树状结构贴在 Markdown 代码块，顶部一句：
 「复制到 VS Code → pnpm i → pnpm dev，即可看到 Vben 同款高颜值小工具箱」
+
+
+
+nginx添加(需要配置服务器（如 Nginx）将所有请求回退到 index.html):
+
+location / {
+  try_files $uri $uri/ /index.html;
+}

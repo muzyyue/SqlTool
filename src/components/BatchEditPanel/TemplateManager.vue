@@ -176,7 +176,7 @@ import {
 } from '@ant-design/icons-vue'
 import ASelect from 'ant-design-vue/es/select'
 import AInput from 'ant-design-vue/es/input'
-import { useTemplateManager } from '@/composables/useTemplateManager.js'
+import { useTemplateManager } from '@/composables/data/useTemplateManager.js'
 
 const Select = ASelect
 const Input = AInput

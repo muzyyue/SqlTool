@@ -105,22 +105,22 @@ const handleClick = (event) => {
   font-weight: 500;
   line-height: 1.5;
   color: #ffffff;
-  background: var(--primary-gradient, linear-gradient(135deg, #1677ff 0%, #14c9c9 100%));
+  background: var(--color-primary);
   border: none;
-  border-radius: var(--border-radius-sm, 8px);
-  box-shadow: var(--shadow-sm, 0 2px 8px 0 rgba(0, 0, 0, 0.08));
+  border-radius: var(--border-radius-sm);
+  box-shadow: var(--shadow-sm);
   cursor: pointer;
-  transition: all var(--transition-fast, 120ms) ease;
+  transition: all var(--transition-normal) ease;
   user-select: none;
   outline: none;
 }
 
 /**
- * Hover 效果：亮度 +10%
+ * Hover 效果：背景色加深
  */
 .gradient-button:hover:not(.gradient-button-disabled):not(.gradient-button-loading) {
-  filter: brightness(1.1);
-  box-shadow: var(--shadow-md, 0 4px 16px 0 rgba(0, 0, 0, 0.1));
+  background: var(--color-primary-hover);
+  box-shadow: var(--shadow-md);
 }
 
 /**
@@ -134,7 +134,7 @@ const handleClick = (event) => {
  * Focus 状态：显示焦点环
  */
 .gradient-button:focus-visible:not(.gradient-button-disabled) {
-  box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.3);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 30%, transparent);
 }
 
 /**
@@ -190,14 +190,15 @@ const handleClick = (event) => {
 }
 
 /**
- * 按钮类型：primary（主渐变）
+ * 按钮类型：primary（主色纯色）
  */
 .gradient-button-primary {
-  background: var(--primary-gradient, linear-gradient(135deg, #1677ff 0%, #14c9c9 100%));
+  background: var(--color-primary);
 }
 
 /**
  * 按钮类型：secondary（次级样式）
+ * 注意：使用灰色渐变，后续可考虑添加 --gradient-secondary 变量
  */
 .gradient-button-secondary {
   background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
@@ -210,7 +211,7 @@ const handleClick = (event) => {
   height: 28px;
   padding: 0 12px;
   font-size: 12px;
-  border-radius: var(--border-radius-xs, 4px);
+  border-radius: var(--border-radius-sm);
 }
 
 .gradient-button-sm .gradient-button-icon {
@@ -224,7 +225,7 @@ const handleClick = (event) => {
   height: 36px;
   padding: 0 16px;
   font-size: 14px;
-  border-radius: var(--border-radius-sm, 8px);
+  border-radius: var(--border-radius-sm);
 }
 
 .gradient-button-md .gradient-button-icon {
@@ -238,25 +239,11 @@ const handleClick = (event) => {
   height: 44px;
   padding: 0 24px;
   font-size: 16px;
-  border-radius: var(--border-radius-md, 12px);
+  border-radius: var(--border-radius-md);
 }
 
 .gradient-button-lg .gradient-button-icon {
   font-size: 18px;
-}
-
-/* 暗色主题支持 */
-[data-theme='dark'] .gradient-button {
-  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.3);
-}
-
-[data-theme='dark']
-  .gradient-button:hover:not(.gradient-button-disabled):not(.gradient-button-loading) {
-  box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.4);
-}
-
-[data-theme='dark'] .gradient-button:focus-visible:not(.gradient-button-disabled) {
-  box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.5);
 }
 
 /* 响应式设计 */

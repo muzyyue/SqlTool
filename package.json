@@ -1,6 +1,6 @@
 {
   "name": "sqltool",
-  "version": "1.5.18",
+  "version": "1.5.41",
   "private": true,
   "type": "module",
   "engines": {
@@ -60,6 +60,8 @@
     "globals": "^16.5.0",
     "jsdom": "^27.3.0",
     "prettier": "3.6.2",
+    "sass": "^1.97.3",
+    "sass-embedded": "^1.97.3",
     "unocss": "^66.5.12",
     "vite": "^7.2.4",
     "vite-plugin-vue-devtools": "^8.0.5",

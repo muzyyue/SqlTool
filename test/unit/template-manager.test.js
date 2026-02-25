@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { useTemplateManager } from '../../src/composables/useTemplateManager.js'
+import { useTemplateManager } from '../../src/composables/data/useTemplateManager.js'
 
 describe('useTemplateManager - 模板管理模块', () => {
   beforeEach(() => {
