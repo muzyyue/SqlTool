@@ -28,6 +28,7 @@ export class MySqlStrategy extends DatabaseStrategy {
       fields: [],
       indexes: [],
       constraints: [],
+      triggers: [],
       databaseType: this.databaseType,
       version: this.detectVersion(ddlStatement),
     }
@@ -44,6 +45,9 @@ export class MySqlStrategy extends DatabaseStrategy {
 
       // 4. 提取约束
       result.constraints = this.extractConstraints(ddlStatement)
+
+      // 5. 提取触发器
+      result.triggers = this.extractTriggers(ddlStatement)
 
       console.log('MySQL DDL解析成功:', result)
       return result
@@ -159,11 +163,42 @@ export class MySqlStrategy extends DatabaseStrategy {
   extractFieldDefinitions(ddlStatement) {
     const fields = []
 
-    // 提取字段定义部分
-    const fieldSectionMatch = ddlStatement.match(/CREATE\s+TABLE[^(]*\(([\s\S]*?)\)/i)
-    if (!fieldSectionMatch) return fields
+    // 提取字段定义部分 - 使用改进的正则表达式，匹配到CREATE TABLE语句的完整括号内容
+    // 处理多个括号的情况，确保匹配到完整的字段定义部分
+    const createTableIndex = ddlStatement.indexOf('CREATE TABLE')
+    if (createTableIndex === -1) return fields
 
-    const fieldSection = fieldSectionMatch[1]
+    let depth = 0
+    let startIndex = -1
+    let endIndex = -1
+
+    // 找到第一个左括号
+    for (let i = createTableIndex; i < ddlStatement.length; i++) {
+      if (ddlStatement[i] === '(') {
+        startIndex = i + 1
+        depth = 1
+        break
+      }
+    }
+
+    if (startIndex === -1) return fields
+
+    // 找到匹配的右括号
+    for (let i = startIndex; i < ddlStatement.length; i++) {
+      if (ddlStatement[i] === '(') {
+        depth++
+      } else if (ddlStatement[i] === ')') {
+        depth--
+        if (depth === 0) {
+          endIndex = i
+          break
+        }
+      }
+    }
+
+    if (endIndex === -1) return fields
+
+    const fieldSection = ddlStatement.substring(startIndex, endIndex)
 
     // 分割字段定义（处理逗号分隔，但排除括号内的逗号）
     const fieldDefinitions = this.splitFieldDefinitions(fieldSection)
@@ -231,10 +266,10 @@ export class MySqlStrategy extends DatabaseStrategy {
       comment: '',
     }
 
-    // 提取字段名（支持引号包围的字段名）
-    const nameMatch = fieldDef.match(/^([\w.`[]+)/)
+    // 提取字段名（支持引号包围的字段名，包括双引号和反引号）
+    const nameMatch = fieldDef.match(/^["`]?([\w.]+)["`]?/)
     if (nameMatch) {
-      field.name = nameMatch[1].replace(/[`[]/g, '')
+      field.name = nameMatch[1]
     }
 
     // 提取数据类型
@@ -323,6 +358,35 @@ export class MySqlStrategy extends DatabaseStrategy {
     }
 
     return '5.6' // 默认版本
+  }
+
+  /**
+   * 提取触发器定义
+   */
+  extractTriggers(ddlStatement) {
+    const triggers = []
+
+    // 简化的触发器正则，更灵活处理引号和空格，支持DEFINER
+    const triggerRegex = /CREATE\s+(?:DEFINER[^\s]+\s+)?TRIGGER\s+("[^"]+"|`[^`]+`|\w+)\s+(BEFORE|AFTER)\s+(INSERT|UPDATE|DELETE)\s+ON\s+("[^"]+"|`[^`]+`|\w+)\s+FOR\s+EACH\s+ROW\s+begin\s+([\s\S]*?)\s+end/gi
+
+    let match
+    while ((match = triggerRegex.exec(ddlStatement)) !== null) {
+      // 清理引号
+      const triggerName = match[1].replace(/["`]/g, '')
+      const tableName = match[4].replace(/["`]/g, '')
+
+      triggers.push({
+        name: triggerName,
+        definer: null, // 简化处理，暂不提取definer
+        timing: match[2].toUpperCase(),
+        events: [match[3].toUpperCase()],
+        table: tableName,
+        body: match[5].trim(),
+        forEachRow: true
+      })
+    }
+
+    return triggers
   }
 
   convertParsedResult(parsedResult, targetDatabaseType) {
