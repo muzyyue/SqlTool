@@ -1,5 +1,21 @@
 # 版本变更历史
 
+## 1.5.42 (2026-03-09)
+
+**SQL生成模块重构：提取自定义字段值生成公共函数**
+
+- 重构useSqlGeneratorEnhanced.js，消除代码重复
+  - 提取generateCustomFieldValue统一入口函数
+  - 提取generateSystemFunctionValue处理系统函数字段
+  - 提取generateAutoIncrementValue处理自增字段
+  - 提取generateExcelCombineValue处理Excel组合字段
+  - 提取generateStaticValue处理静态值字段
+  - 提取getGroupValue处理分组字段值
+- 重构generateBatchInsertSql函数，使用提取的公共函数
+- 重构generateSingleUpdateSql函数，使用提取的公共函数
+- 代码行数从1485行减少到1302行，减少约12%
+- 提高代码可维护性和一致性
+
 ## 1.5.41 (2026-02-25)
 
 **Excel数据填充工具Tab布局重构与组件拆分**
