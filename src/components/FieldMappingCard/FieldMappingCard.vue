@@ -7,7 +7,9 @@
             <LinkOutlined />
             <span>字段映射</span>
           </h3>
-          <div class="match-rate-badge" :class="matchRateClass">{{ matchRate }}% 匹配率</div>
+          <div class="match-rate-badge" :class="matchRateClass">
+            {{ matchRate }}% 匹配率
+          </div>
         </div>
         <div class="header-stats">
           <a-space>
@@ -35,15 +37,23 @@
                 <div class="auto-match-section">
                   <div class="section-header">
                     <h4><RobotOutlined /> 自动字段匹配</h4>
-                    <p class="section-desc">基于字段名称、类型和语义的智能匹配算法</p>
+                    <p class="section-desc">
+                      基于字段名称、类型和语义的智能匹配算法
+                    </p>
                   </div>
 
                   <div class="match-algorithm">
-                    <a-radio-group v-model:value="algorithm" button-style="solid" size="small">
+                    <a-radio-group
+                      v-model:value="algorithm"
+                      button-style="solid"
+                      size="small"
+                    >
                       <a-radio-button value="exact">
                         <ThunderboltOutlined /> 精确匹配
                       </a-radio-button>
-                      <a-radio-button value="fuzzy"> <SearchOutlined /> 模糊匹配 </a-radio-button>
+                      <a-radio-button value="fuzzy">
+                        <SearchOutlined /> 模糊匹配
+                      </a-radio-button>
                       <a-radio-button value="semantic">
                         <ExperimentOutlined /> 语义匹配
                       </a-radio-button>
@@ -61,7 +71,11 @@
                   </a-button>
 
                   <div class="match-progress" v-if="matchingLoading">
-                    <a-progress :percent="matchProgress" status="active" size="small" />
+                    <a-progress
+                      :percent="matchProgress"
+                      status="active"
+                      size="small"
+                    />
                     <span class="progress-text">正在分析字段相似度...</span>
                   </div>
                 </div>
@@ -75,23 +89,38 @@
                   :columns="mappingColumns"
                   :pagination="false"
                   size="small"
-                  :rowClassName="(record) => (record.excelIndex === -1 ? 'unmatched-row' : '')"
+                  :rowClassName="
+                    (record) =>
+                      record.excelIndex === -1 ? 'unmatched-row' : ''
+                  "
                   class="mapping-table"
                 >
                   <template #bodyCell="{ column, record }">
                     <!-- DDL字段列 -->
                     <template v-if="column.key === 'ddlField'">
                       <div class="field-cell">
-                        <div class="field-badge" :class="getFieldTypeClass(record.ddlField?.type)">
+                        <div
+                          class="field-badge"
+                          :class="getFieldTypeClass(record.ddlField?.type)"
+                        >
                           {{ record.ddlField?.name }}
                         </div>
-                        <a-tag v-if="record.ddlField?.isIdentity" color="blue" size="small"
+                        <a-tag
+                          v-if="record.ddlField?.isIdentity"
+                          color="blue"
+                          size="small"
                           >自增</a-tag
                         >
-                        <a-tag v-else-if="!record.ddlField?.nullable" color="red" size="small"
+                        <a-tag
+                          v-else-if="!record.ddlField?.nullable"
+                          color="red"
+                          size="small"
                           >必填</a-tag
                         >
-                        <a-tag v-if="record.ddlField?.isCustom" color="purple" size="small"
+                        <a-tag
+                          v-if="record.ddlField?.isCustom"
+                          color="purple"
+                          size="small"
                           >自定义</a-tag
                         >
                       </div>
@@ -104,7 +133,10 @@
                         placeholder="选择Excel列"
                         style="width: 100%"
                         size="small"
-                        @change="(value) => handleUpdateMapping(record.ddlField?.name, value)"
+                        @change="
+                          (value) =>
+                            handleUpdateMapping(record.ddlField?.name, value)
+                        "
                         :disabled="!props.excelHeaders?.length"
                       >
                         <a-select-option :value="-1">
@@ -142,10 +174,18 @@
                                 class="match-type-tag"
                               >
                                 <template #icon>
-                                  <CheckCircleOutlined v-if="record.confidence === 'high'" />
-                                  <InfoCircleOutlined v-else-if="record.confidence === 'medium'" />
-                                  <WarningOutlined v-else-if="record.confidence === 'low'" />
-                                  <EditOutlined v-else-if="record.confidence === 'manual'" />
+                                  <CheckCircleOutlined
+                                    v-if="record.confidence === 'high'"
+                                  />
+                                  <InfoCircleOutlined
+                                    v-else-if="record.confidence === 'medium'"
+                                  />
+                                  <WarningOutlined
+                                    v-else-if="record.confidence === 'low'"
+                                  />
+                                  <EditOutlined
+                                    v-else-if="record.confidence === 'manual'"
+                                  />
                                   <QuestionCircleOutlined v-else />
                                 </template>
                                 {{ getConfidenceText(record.confidence) }}
@@ -156,7 +196,9 @@
                                 v-if="record.similarity"
                                 :percent="Math.round(record.similarity * 100)"
                                 size="small"
-                                :stroke-color="getSimilarityColor(record.similarity)"
+                                :stroke-color="
+                                  getSimilarityColor(record.similarity)
+                                "
                                 :show-info="false"
                                 class="similarity-progress"
                               />
@@ -177,7 +219,11 @@
                         <template v-else>
                           <!-- 未匹配状态 - 添加操作引导 -->
                           <div class="unmatched-status">
-                            <a-tag color="default" size="small" class="unmatched-tag">
+                            <a-tag
+                              color="default"
+                              size="small"
+                              class="unmatched-tag"
+                            >
                               <template #icon><MinusCircleOutlined /></template>
                               待匹配
                             </a-tag>
@@ -251,7 +297,9 @@
                         配置自定义字段
                       </a-button>
                     </div>
-                    <p class="action-hint">启用后可创建复合字段和自定义映射规则</p>
+                    <p class="action-hint">
+                      启用后可创建复合字段和自定义映射规则
+                    </p>
                   </div>
 
                   <CustomFieldManager
@@ -276,9 +324,15 @@
             button-style="solid"
             @change="handleDatabaseTypeChange"
           >
-            <a-radio-button value="mysql"> <MySQLOutlined /> MySQL </a-radio-button>
-            <a-radio-button value="postgresql"> <PostgreSQLOutlined /> PostgreSQL </a-radio-button>
-            <a-radio-button value="sqlserver"> <SqlServerOutlined /> SQL Server </a-radio-button>
+            <a-radio-button value="mysql">
+              <MySQLOutlined /> MySQL
+            </a-radio-button>
+            <a-radio-button value="postgresql">
+              <PostgreSQLOutlined /> PostgreSQL
+            </a-radio-button>
+            <a-radio-button value="sqlserver">
+              <SqlServerOutlined /> SQL Server
+            </a-radio-button>
           </a-radio-group>
           <div class="database-hint">
             选择目标数据库类型，确保生成的 INSERT 语句符合对应语法规范
@@ -307,7 +361,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed } from "vue";
 import {
   LinkOutlined,
   CheckCircleOutlined,
@@ -332,13 +386,13 @@ import {
   QuestionCircleOutlined,
   MinusCircleOutlined,
   SettingOutlined,
-} from '@ant-design/icons-vue'
+} from "@ant-design/icons-vue";
 
 // 数据库图标使用通用图标替代
-const MySQLOutlined = DatabaseOutlined
-const PostgreSQLOutlined = DatabaseOutlined
-const SqlServerOutlined = DatabaseOutlined
-import CustomFieldManager from '@/components/CustomFieldManager/CustomFieldManager.vue'
+const MySQLOutlined = DatabaseOutlined;
+const PostgreSQLOutlined = DatabaseOutlined;
+const SqlServerOutlined = DatabaseOutlined;
+import CustomFieldManager from "@/components/CustomFieldManager/CustomFieldManager.vue";
 
 const props = defineProps({
   showFieldMapping: { type: Boolean, default: false },
@@ -359,32 +413,32 @@ const props = defineProps({
   excelHeaders: { type: Array, default: () => [] },
   customBindingEnabled: { type: Boolean, default: false },
   customFieldsData: { type: Array, default: () => [] },
-  customFieldManagerKey: { type: String, default: '' },
+  customFieldManagerKey: { type: String, default: "" },
   customBindingManager: { type: Object, default: () => ({}) },
-  databaseType: { type: String, default: 'mysql' },
+  databaseType: { type: String, default: "mysql" },
   hasCustomBindingConfig: { type: Boolean, default: false },
-})
+});
 
 const emit = defineEmits([
-  'autoMatchFields',
-  'clearAllMappings',
-  'validateEnhancedMappings',
-  'updateMapping',
-  'handleGeneratedByFunctionChange',
-  'clearMapping',
-  'handleCustomBindingToggle',
-  'openCustomBindingModal',
-  'handleEditCustomField',
-  'handleDeleteCustomField',
-  'handleRefreshCustomFields',
-  'update:databaseType',
-  'update:customBindingEnabled',
-])
+  "autoMatchFields",
+  "clearAllMappings",
+  "validateEnhancedMappings",
+  "updateMapping",
+  "handleGeneratedByFunctionChange",
+  "clearMapping",
+  "handleCustomBindingToggle",
+  "openCustomBindingModal",
+  "handleEditCustomField",
+  "handleDeleteCustomField",
+  "handleRefreshCustomFields",
+  "update:databaseType",
+  "update:customBindingEnabled",
+]);
 
-const activeTab = ref('manual')
-const algorithm = ref('fuzzy')
-const matchingLoading = ref(false)
-const matchProgress = ref(0)
+const activeTab = ref("manual");
+const algorithm = ref("fuzzy");
+const matchingLoading = ref(false);
+const matchProgress = ref(0);
 
 const stats = computed(() => {
   return {
@@ -392,60 +446,60 @@ const stats = computed(() => {
     unmatched: props.enhancedMatchingStats.unmatched || 0,
     total: props.enhancedMatchingStats.total || 0,
     customBindings: props.enhancedMatchingStats.customBindings || 0,
-  }
-})
+  };
+});
 
 const matchRate = computed(() => {
-  return props.enhancedMatchingStats.matchRate || 0
-})
+  return props.enhancedMatchingStats.matchRate || 0;
+});
 
 const matchRateClass = computed(() => {
-  const rate = matchRate.value
-  if (rate >= 80) return 'excellent'
-  if (rate >= 60) return 'good'
-  if (rate >= 40) return 'warning'
-  return 'danger'
-})
+  const rate = matchRate.value;
+  if (rate >= 80) return "excellent";
+  if (rate >= 60) return "good";
+  if (rate >= 40) return "warning";
+  return "danger";
+});
 
 const customBindingEnabled = computed({
   get: () => props.customBindingEnabled,
-  set: (val) => emit('update:customBindingEnabled', val),
-})
+  set: (val) => emit("update:customBindingEnabled", val),
+});
 
 const mappingFields = computed(() => {
-  return props.filteredFieldMappings || []
-})
+  return props.filteredFieldMappings || [];
+});
 
 const mappingColumns = [
   {
-    title: 'DDL字段',
-    key: 'ddlField',
-    width: '25%',
-    align: 'left',
+    title: "DDL字段",
+    key: "ddlField",
+    width: "25%",
+    align: "left",
   },
   {
-    title: 'Excel列',
-    key: 'excelColumn',
-    width: '30%',
-    align: 'left',
+    title: "Excel列",
+    key: "excelColumn",
+    width: "30%",
+    align: "left",
   },
   {
-    title: '匹配状态',
-    key: 'status',
-    width: '20%',
-    align: 'center',
+    title: "匹配状态",
+    key: "status",
+    width: "20%",
+    align: "center",
   },
   {
-    title: '操作',
-    key: 'actions',
-    width: '25%',
-    align: 'center',
+    title: "操作",
+    key: "actions",
+    width: "25%",
+    align: "center",
   },
-]
+];
 
 const hasValidMappings = computed(() => {
-  return mappingFields.value.some((field) => field.excelIndex !== -1)
-})
+  return mappingFields.value.some((field) => field.excelIndex !== -1);
+});
 
 const isColumnUsed = (columnIndex, currentExcelIndex = -1) => {
   return mappingFields.value.some(
@@ -453,28 +507,28 @@ const isColumnUsed = (columnIndex, currentExcelIndex = -1) => {
       mapping.excelIndex === columnIndex &&
       mapping.excelIndex !== -1 &&
       mapping.excelIndex !== currentExcelIndex,
-  )
-}
+  );
+};
 
 const getConfidenceColor = (confidence) => {
   const colorMap = {
-    high: 'green',
-    medium: 'orange',
-    low: 'red',
-    manual: 'purple',
-  }
-  return colorMap[confidence] || 'default'
-}
+    high: "green",
+    medium: "orange",
+    low: "red",
+    manual: "purple",
+  };
+  return colorMap[confidence] || "default";
+};
 
 const getConfidenceText = (confidence) => {
   const textMap = {
-    high: '高匹配',
-    medium: '中匹配',
-    low: '低匹配',
-    manual: '手动绑定',
-  }
-  return textMap[confidence] || '已绑定'
-}
+    high: "高匹配",
+    medium: "中匹配",
+    low: "低匹配",
+    manual: "手动绑定",
+  };
+  return textMap[confidence] || "已绑定";
+};
 
 /**
  * 获取匹配状态提示信息
@@ -483,28 +537,28 @@ const getConfidenceText = (confidence) => {
  */
 const getStatusTooltip = (record) => {
   if (!record.confidence) {
-    return `已绑定到: ${props.excelHeaders?.[record.excelIndex] || '未知列'}`
+    return `已绑定到: ${props.excelHeaders?.[record.excelIndex] || "未知列"}`;
   }
 
   const confidenceText = {
-    high: '高置信度匹配',
-    medium: '中等置信度匹配',
-    low: '低置信度匹配，建议检查',
-    manual: '手动绑定',
-  }
+    high: "高置信度匹配",
+    medium: "中等置信度匹配",
+    low: "低置信度匹配，建议检查",
+    manual: "手动绑定",
+  };
 
-  let tooltip = confidenceText[record.confidence] || '已绑定'
+  let tooltip = confidenceText[record.confidence] || "已绑定";
 
   if (record.similarity) {
-    tooltip += `\n相似度: ${(record.similarity * 100).toFixed(1)}%`
+    tooltip += `\n相似度: ${(record.similarity * 100).toFixed(1)}%`;
   }
 
   if (props.excelHeaders?.[record.excelIndex]) {
-    tooltip += `\nExcel列: ${props.excelHeaders[record.excelIndex]}`
+    tooltip += `\nExcel列: ${props.excelHeaders[record.excelIndex]}`;
   }
 
-  return tooltip
-}
+  return tooltip;
+};
 
 /**
  * 显示匹配详情
@@ -512,95 +566,103 @@ const getStatusTooltip = (record) => {
  */
 const showMatchDetail = (record) => {
   // 可以扩展为打开详情弹窗或侧边面板
-  console.log('匹配详情:', record)
-}
+  console.log("匹配详情:", record);
+};
 
 const getSimilarityColor = (similarity) => {
-  if (similarity >= 0.8) return '#52c41a'
-  if (similarity >= 0.6) return '#faad14'
-  if (similarity >= 0.4) return '#fa8c16'
-  return '#ff4d4f'
-}
+  if (similarity >= 0.8) return "#52c41a";
+  if (similarity >= 0.6) return "#faad14";
+  if (similarity >= 0.4) return "#fa8c16";
+  return "#ff4d4f";
+};
 
 const getFieldTypeClass = (type) => {
-  if (!type) return 'default'
-  const lowerType = type.toLowerCase()
-  if (lowerType.includes('int') || lowerType.includes('float') || lowerType.includes('decimal')) {
-    return 'number'
+  if (!type) return "default";
+  const lowerType = type.toLowerCase();
+  if (
+    lowerType.includes("int") ||
+    lowerType.includes("float") ||
+    lowerType.includes("decimal")
+  ) {
+    return "number";
   }
-  if (lowerType.includes('varchar') || lowerType.includes('text') || lowerType.includes('char')) {
-    return 'string'
+  if (
+    lowerType.includes("varchar") ||
+    lowerType.includes("text") ||
+    lowerType.includes("char")
+  ) {
+    return "string";
   }
-  if (lowerType.includes('date') || lowerType.includes('time')) {
-    return 'date'
+  if (lowerType.includes("date") || lowerType.includes("time")) {
+    return "date";
   }
-  if (lowerType.includes('bool')) {
-    return 'boolean'
+  if (lowerType.includes("bool")) {
+    return "boolean";
   }
-  return 'default'
-}
+  return "default";
+};
 
 const handleAutoMatchFields = async () => {
-  matchingLoading.value = true
-  matchProgress.value = 0
+  matchingLoading.value = true;
+  matchProgress.value = 0;
   const interval = setInterval(() => {
     if (matchProgress.value < 90) {
-      matchProgress.value += 10
+      matchProgress.value += 10;
     }
-  }, 100)
-  await emit('autoMatchFields')
-  clearInterval(interval)
-  matchProgress.value = 100
+  }, 100);
+  await emit("autoMatchFields");
+  clearInterval(interval);
+  matchProgress.value = 100;
   setTimeout(() => {
-    matchingLoading.value = false
-    matchProgress.value = 0
-  }, 500)
-}
+    matchingLoading.value = false;
+    matchProgress.value = 0;
+  }, 500);
+};
 
 const handleUpdateMapping = (ddlFieldName, excelIndex) => {
-  emit('updateMapping', ddlFieldName, excelIndex)
-}
+  emit("updateMapping", ddlFieldName, excelIndex);
+};
 
 const handleGeneratedByFunctionChange = (record) => {
-  emit('handleGeneratedByFunctionChange', record)
-}
+  emit("handleGeneratedByFunctionChange", record);
+};
 
 const handleClearMapping = (ddlFieldName) => {
-  emit('clearMapping', ddlFieldName)
-}
+  emit("clearMapping", ddlFieldName);
+};
 
 const handleClearAllMappings = () => {
-  emit('clearAllMappings')
-}
+  emit("clearAllMappings");
+};
 
 const handleValidateEnhancedMappings = () => {
-  emit('validateEnhancedMappings')
-}
+  emit("validateEnhancedMappings");
+};
 
 const handleCustomBindingToggle = (checked) => {
-  customBindingEnabled.value = checked
-  emit('handleCustomBindingToggle', checked)
-}
+  customBindingEnabled.value = checked;
+  emit("handleCustomBindingToggle", checked);
+};
 
 const handleOpenCustomBindingModal = () => {
-  emit('openCustomBindingModal')
-}
+  emit("openCustomBindingModal");
+};
 
 const handleEditCustomField = (record) => {
-  emit('handleEditCustomField', record)
-}
+  emit("handleEditCustomField", record);
+};
 
 const handleDeleteCustomField = (record) => {
-  emit('handleDeleteCustomField', record)
-}
+  emit("handleDeleteCustomField", record);
+};
 
 const handleRefreshCustomFields = () => {
-  emit('handleRefreshCustomFields')
-}
+  emit("handleRefreshCustomFields");
+};
 
 const handleDatabaseTypeChange = (e) => {
-  emit('update:databaseType', e.target.value)
-}
+  emit("update:databaseType", e.target.value);
+};
 </script>
 
 <style scoped>
@@ -801,7 +863,7 @@ const handleDatabaseTypeChange = (e) => {
   border-radius: var(--border-radius-xs);
   font-size: 12px;
   font-weight: 500;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: "JetBrains Mono", monospace;
   background: var(--bg-sunken);
   color: var(--text-primary);
 }

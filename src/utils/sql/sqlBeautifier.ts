@@ -173,7 +173,7 @@ const beautifyInsertSql = (sql: string, options: SqlBeautifyOptions): string => 
 
     const columns = columnsPart.split(',').map((col) => col.trim())
 
-    let columnLine = `INSERT INTO ${tableName} (\n  ${columns.map((col) => formatKeyword(col, keywordCase)).join(',\n  ')}\n)`
+    const columnLine = `INSERT INTO ${tableName} (\n  ${columns.map((col) => formatKeyword(col, keywordCase)).join(',\n  ')}\n)`
     result = result.replace(insertRegex, columnLine + '\nVALUES')
 
     if (alignValues) {

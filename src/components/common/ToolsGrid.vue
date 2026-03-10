@@ -134,7 +134,7 @@ const categoryIconMap = {
 /**
  * 带图标的分类列表（计算属性保留，用于后续扩展）
  */
-// eslint-disable-next-line no-unused-vars
+ 
 const categoriesWithIcons = computed(() => {
   return categories.map((category) => ({
     ...category,

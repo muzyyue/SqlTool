@@ -92,7 +92,7 @@ import GradientButton from '@/components/common/GradientButton.vue'
 import { useThemeStore } from '@/stores/theme.js'
 
 const themeStore = useThemeStore()
-// eslint-disable-next-line no-unused-vars
+ 
 const { isDark } = storeToRefs(themeStore)
 
 const timestampInput = ref('')

@@ -1,5 +1,86 @@
 # 版本变更历史
 
+## 1.5.43 (2026-03-08)
+
+**AI 功能集成 - 完整实现**
+
+- 新增 AI Pinia Store（src/stores/ai.ts）
+  - AI 功能启用/禁用状态管理
+  - AI 服务可用性监控
+  - 状态持久化到 localStorage
+  - 与 useModelManager 和 useAiConfig 集成
+
+- 新增 AI UI 组件（src/components/ai/）
+  - AiConfigPanel.vue：AI 配置面板（API Key、模型选择）
+  - AiAssistButton.vue：AI 辅助按钮（状态感知）
+  - AiDialog.vue：AI 对话框（自然语言输入）
+  - AiStatusIndicator.vue：AI 状态指示器
+  - SqlAiAssistant.vue：SQL AI 助手（自然语言转 SQL、SQL 优化）
+  - RegexAiAssistant.vue：正则 AI 助手（生成正则、解释正则）
+  - JsonAiAssistant.vue：JSON AI 助手（结构分析、质量评估）
+
+- 实现完整降级机制（useAiFallback.ts）
+  - 三级降级：API → LOCAL → ORIGINAL
+  - 降级日志记录和事件通知
+  - 冷却期机制（连续降级后暂停）
+  - 降级统计信息
+
+- 增强错误处理（errorHandler.ts）
+  - 错误分类（NETWORK/API/MODEL/CONFIG/PERMISSION/RESOURCE）
+  - 错误严重级别（LOW/MEDIUM/HIGH/CRITICAL）
+  - 用户友好提示和恢复建议
+  - 重试延迟策略（指数退避）
+
+- 编写完整测试（ai-integration.test.ts）
+  - 54 个测试用例全部通过
+  - 覆盖 AI 启用/禁用状态、降级流程、功能隔离
+
+- 更新 ESLint 配置
+  - 添加 TypeScript ESLint 支持
+  - 添加 vue-eslint-parser 支持
+
+## 1.5.42 (2026-03-08)
+
+**AI本地模型集成功能 - 双模式架构实现**
+
+- 新增AI模块核心架构
+  - 创建统一模型接口类型定义（types.ts）
+  - 实现模型状态管理（UNINITIALIZED/LOADING/READY/ERROR/DISPOSED）
+  - 支持本地模型和API模型双模式切换
+- 实现本地模型适配器（LocalModelAdapter.ts）
+  - 基于@xenova/transformers在浏览器运行AI模型
+  - 支持文本生成和嵌入向量生成
+  - 支持模型量化配置和缓存
+  - 支持加载进度回调
+- 实现API模型适配器（ApiModelAdapter.ts）
+  - 支持OpenAI API（GPT-4/GPT-3.5等）
+  - 支持Anthropic API（Claude系列）
+  - 支持自定义API端点
+  - 支持请求取消和超时控制
+- 创建模型管理器（useModelManager.ts）
+  - 统一调用接口，透明切换模型
+  - 自动降级策略（API失败自动切换本地）
+  - 单例模式管理全局状态
+  - 支持预加载和资源释放
+- 实现AI配置管理（useAiConfig.ts）
+  - API Key加密存储（localStorage）
+  - 本地模型配置（模型ID、量化开关）
+  - 配置导入/导出功能
+  - 自动降级开关
+- 添加错误处理模块（errorHandler.ts）
+  - 错误类型分类（网络/超时/频率限制/API Key无效等）
+  - 可恢复性判断
+  - 建议操作提示
+  - 自动重试机制
+- 创建模型缓存模块（modelCache.ts）
+  - 内存缓存（LRU策略）
+  - IndexedDB持久化缓存
+  - 缓存命中率统计
+  - 过期自动清理
+- 编写单元测试（ai-module.test.ts）
+  - 22个测试用例全部通过
+  - 覆盖配置管理、缓存、错误处理等核心功能
+
 ## 1.5.41 (2026-02-25)
 
 **Excel数据填充工具Tab布局重构与组件拆分**
