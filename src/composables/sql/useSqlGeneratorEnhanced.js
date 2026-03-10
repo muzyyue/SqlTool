@@ -123,6 +123,181 @@ export function useSqlGeneratorEnhanced() {
   }
 
   /**
+   * 获取分组字段值
+   * @param {Object} row - 数据行
+   * @param {string} groupByField - 分组字段名
+   * @param {Array} fieldMappings - 字段映射数组
+   * @returns {string} 分组字段值
+   */
+  const getGroupValue = (row, groupByField, fieldMappings) => {
+    if (!groupByField) return ''
+
+    const mapping = fieldMappings.find(
+      (m) => m.ddlField.name === groupByField || m.excelHeader === groupByField,
+    )
+    const excelIndex = mapping ? Number(mapping.excelIndex) : NaN
+    if (mapping && !isNaN(excelIndex) && excelIndex >= 0) {
+      return String(row[excelIndex] || '')
+    }
+    return ''
+  }
+
+  /**
+   * 生成系统函数字段的值
+   * @param {Object} customField - 自定义字段配置
+   * @param {string} dbType - 数据库类型
+   * @param {string} fieldName - 字段名（用于日志）
+   * @returns {string} 生成的字段值
+   */
+  const generateSystemFunctionValue = (customField, dbType, fieldName) => {
+    const funcName = customField.systemFunctionConfig?.functionName || 'NOW'
+    const funcInfo = getFunctionInfo(dbType, funcName)
+
+    if (funcInfo) {
+      console.log(`字段 ${fieldName} 使用函数: ${funcInfo.syntax}`)
+      return funcInfo.syntax
+    } else {
+      console.log(`字段 ${fieldName} 使用默认函数: ${funcName}()`)
+      return `${funcName}()`
+    }
+  }
+
+  /**
+   * 生成自增字段的值
+   * @param {Object} customField - 自定义字段配置
+   * @param {Object} row - 数据行
+   * @param {Object} customBindingManager - 自定义绑定管理器
+   * @param {Object} ddlField - DDL字段对象
+   * @param {Array} fieldMappings - 字段映射数组
+   * @param {string} dbType - 数据库类型
+   * @returns {string} 生成的字段值
+   */
+  const generateAutoIncrementValue = (
+    customField,
+    row,
+    customBindingManager,
+    ddlField,
+    fieldMappings,
+    dbType,
+  ) => {
+    if (customBindingManager && customBindingManager.generateAutoIncrementValue) {
+      const groupValue = getGroupValue(row, customField.autoIncrementConfig?.groupBy, fieldMappings)
+      const autoIncrementValue = customBindingManager.generateAutoIncrementValue(
+        ddlField.name,
+        customField.autoIncrementConfig || {},
+        groupValue,
+      )
+      console.log(`自增字段 ${ddlField.name} 的值: ${autoIncrementValue}`)
+      return formatValue(autoIncrementValue, ddlField.type, dbType)
+    } else {
+      console.log(`警告: 自增字段 ${ddlField.name} 缺少customBindingManager，返回NULL`)
+      return 'NULL'
+    }
+  }
+
+  /**
+   * 生成Excel组合字段的值
+   * @param {Object} customField - 自定义字段配置
+   * @param {Object} row - 数据行
+   * @param {Object} ddlField - DDL字段对象
+   * @param {string} dbType - 数据库类型
+   * @returns {string} 生成的字段值
+   */
+  const generateExcelCombineValue = (customField, row, ddlField, dbType) => {
+    const combineConfig = customField.excelCombineConfig || {}
+    const columnIndices = combineConfig.columns || []
+    const separator = combineConfig.separator || ''
+    const formatTemplate = combineConfig.format || ''
+
+    const columnValues = columnIndices
+      .map((colIndex) => {
+        if (colIndex !== undefined && colIndex >= 0 && row[colIndex] !== undefined) {
+          return row[colIndex]
+        }
+        return ''
+      })
+      .filter((v) => v !== undefined && v !== null && v !== '')
+
+    let combinedValue = columnValues.join(separator)
+
+    if (formatTemplate) {
+      combinedValue = formatTemplate.replace(/\{value(\d+)\}/g, (match, num) => {
+        const index = parseInt(num, 10) - 1
+        return columnValues[index] !== undefined ? columnValues[index] : ''
+      })
+      combinedValue = combinedValue.replace(/\{value\}/g, columnValues.join(separator))
+    }
+
+    console.log(`Excel组合字段 ${ddlField.name} 的值: ${combinedValue}`)
+    return formatValue(combinedValue, ddlField.type, dbType)
+  }
+
+  /**
+   * 生成静态值字段的值
+   * @param {Object} customField - 自定义字段配置
+   * @param {Object} ddlField - DDL字段对象
+   * @param {string} dbType - 数据库类型
+   * @returns {string} 生成的字段值
+   */
+  const generateStaticValue = (customField, ddlField, dbType) => {
+    const staticValue = customField.staticValue !== undefined ? customField.staticValue : 'NULL'
+    const fieldType = ddlField?.type || 'VARCHAR'
+    console.log(`静态值字段 ${ddlField.name} 的值: ${staticValue}`)
+    return formatValue(staticValue, fieldType, dbType)
+  }
+
+  /**
+   * 生成自定义字段的值（统一入口）
+   * @param {Object} mapping - 字段映射对象
+   * @param {Object} row - Excel数据行
+   * @param {string} dbType - 数据库类型
+   * @param {Object} customBindingManager - 自定义绑定管理器
+   * @param {Array} fieldMappings - 字段映射数组（用于分组字段查找）
+   * @returns {string} 生成的字段值
+   */
+  const generateCustomFieldValue = (mapping, row, dbType, customBindingManager, fieldMappings) => {
+    if (!mapping.ddlField.isCustom || !mapping.ddlField.customConfig) {
+      const funcInfo = getFunctionInfo(dbType, 'UUID')
+      if (funcInfo) {
+        console.log(`字段 ${mapping.ddlField.name} 使用默认UUID函数: ${funcInfo.syntax}`)
+        return funcInfo.syntax
+      } else {
+        console.log(`字段 ${mapping.ddlField.name} 使用默认UUID()函数`)
+        return 'UUID()'
+      }
+    }
+
+    const customField = mapping.ddlField.customConfig
+    console.log(
+      `处理自定义字段: ${mapping.ddlField.name}, 数据源类型: ${customField.dataSource}`,
+    )
+
+    switch (customField.dataSource) {
+      case 'system_function':
+        return generateSystemFunctionValue(customField, dbType, mapping.ddlField.name)
+
+      case 'auto_increment':
+        return generateAutoIncrementValue(
+          customField,
+          row,
+          customBindingManager,
+          mapping.ddlField,
+          fieldMappings,
+          dbType,
+        )
+
+      case 'excel_combine':
+        return generateExcelCombineValue(customField, row, mapping.ddlField, dbType)
+
+      case 'static_value':
+        return generateStaticValue(customField, mapping.ddlField, dbType)
+
+      default:
+        return 'NULL'
+    }
+  }
+
+  /**
    * 生成批量INSERT语句（自动排除自增主键字段和主键字段）
    */
   const generateBatchInsertSql = (
@@ -132,24 +307,6 @@ export function useSqlGeneratorEnhanced() {
     dbType,
     customBindingManager,
   ) => {
-    /**
-     * 获取分组字段值
-     * @param {Object} row - 数据行
-     * @param {string} groupByField - 分组字段名
-     * @returns {string} 分组字段值
-     */
-    const getGroupValue = (row, groupByField) => {
-      if (!groupByField) return ''
-
-      const mapping = fieldMappings.find(
-        (m) => m.ddlField.name === groupByField || m.excelHeader === groupByField,
-      )
-      const excelIndex = mapping ? Number(mapping.excelIndex) : NaN
-      if (mapping && !isNaN(excelIndex) && excelIndex >= 0) {
-        return String(row[excelIndex] || '')
-      }
-      return ''
-    }
 
     // 过滤掉自增主键字段和主键字段
     // 保留所有其他字段：有映射的普通字段、无映射的普通字段（值为NULL）、有映射或无映射的自定义字段
@@ -213,99 +370,7 @@ export function useSqlGeneratorEnhanced() {
         // 检查是否标记为通过函数生成
         if (mapping.generatedByFunction === true) {
           console.log(`字段 ${mapping.ddlField.name} 标记为函数生成`)
-          // 检查是否有对应的自定义字段配置
-          if (mapping.ddlField.isCustom && mapping.ddlField.customConfig) {
-            const customField = mapping.ddlField.customConfig
-            console.log(
-              `处理函数生成字段: ${mapping.ddlField.name}, 数据源类型: ${customField.dataSource}`,
-            )
-            console.log(`customConfig 完整内容:`, JSON.stringify(customField, null, 2))
-
-            // 根据自定义字段的数据源类型返回对应的值
-            if (customField.dataSource === 'system_function') {
-              // 系统函数字段，使用当前选择的数据库类型，而不是配置中的数据库类型
-              const funcName = customField.systemFunctionConfig?.functionName || 'NOW'
-              console.log(`函数配置 - 当前数据库类型: ${dbType}, 函数名: ${funcName}`)
-              const funcInfo = getFunctionInfo(dbType, funcName)
-              console.log(`getFunctionInfo 返回:`, funcInfo)
-
-              if (funcInfo) {
-                console.log(`字段 ${mapping.ddlField.name} 使用函数: ${funcInfo.syntax}`)
-                return funcInfo.syntax
-              } else {
-                // 如果找不到对应的函数，回退到默认语法
-                console.log(`字段 ${mapping.ddlField.name} 使用默认函数: ${funcName}()`)
-                return `${funcName}()`
-              }
-            } else if (customField.dataSource === 'auto_increment') {
-              // 自增字段，调用customBindingManager生成自增值
-              if (customBindingManager && customBindingManager.generateAutoIncrementValue) {
-                const groupValue = getGroupValue(row, customField.autoIncrementConfig?.groupBy)
-                const autoIncrementValue = customBindingManager.generateAutoIncrementValue(
-                  mapping.ddlField.name,
-                  customField.autoIncrementConfig || {},
-                  groupValue,
-                )
-                console.log(`自增字段 ${mapping.ddlField.name} 的值: ${autoIncrementValue}`)
-                return formatValue(autoIncrementValue, mapping.ddlField.type, dbType)
-              } else {
-                // 如果没有customBindingManager，返回NULL
-                console.log(
-                  `警告: 自增字段 ${mapping.ddlField.name} 缺少customBindingManager，返回NULL`,
-                )
-                return 'NULL'
-              }
-            } else if (customField.dataSource === 'excel_combine') {
-              // Excel组合字段处理
-              const combineConfig = customField.excelCombineConfig || {}
-              const columnIndices = combineConfig.columns || []
-              const separator = combineConfig.separator || ''
-              const formatTemplate = combineConfig.format || ''
-
-              // 读取并组合Excel列的值
-              const columnValues = columnIndices
-                .map((colIndex) => {
-                  if (colIndex !== undefined && colIndex >= 0 && row[colIndex] !== undefined) {
-                    return row[colIndex]
-                  }
-                  return ''
-                })
-                .filter((v) => v !== undefined && v !== null && v !== '')
-
-              let combinedValue = columnValues.join(separator)
-
-              // 应用格式模板
-              if (formatTemplate) {
-                combinedValue = formatTemplate.replace(/\{value(\d+)\}/g, (match, num) => {
-                  const index = parseInt(num, 10) - 1
-                  return columnValues[index] !== undefined ? columnValues[index] : ''
-                })
-                combinedValue = combinedValue.replace(/\{value\}/g, columnValues.join(separator))
-              }
-
-              console.log(`Excel组合字段 ${mapping.ddlField.name} 的值: ${combinedValue}`)
-              return formatValue(combinedValue, mapping.ddlField.type, dbType)
-            } else if (customField.dataSource === 'static_value') {
-              const staticValue =
-                customField.staticValue !== undefined ? customField.staticValue : 'NULL'
-              const fieldType = mapping?.ddlField?.type || 'VARCHAR'
-              console.log(`静态值字段 ${mapping.ddlField.name} 的值: ${staticValue}`)
-              return formatValue(staticValue, fieldType, dbType)
-            } else {
-              // 默认返回NULL
-              return 'NULL'
-            }
-          } else {
-            // 没有自定义字段配置，使用默认的UUID函数
-            const funcInfo = getFunctionInfo(dbType, 'UUID')
-            if (funcInfo) {
-              console.log(`字段 ${mapping.ddlField.name} 使用默认UUID函数: ${funcInfo.syntax}`)
-              return funcInfo.syntax
-            } else {
-              console.log(`字段 ${mapping.ddlField.name} 使用默认UUID()函数`)
-              return 'UUID()'
-            }
-          }
+          return generateCustomFieldValue(mapping, row, dbType, customBindingManager, fieldMappings)
         }
 
         const currentExcelIndex = Number(mapping.excelIndex)
@@ -313,87 +378,10 @@ export function useSqlGeneratorEnhanced() {
 
         // 检查是否是自定义字段且没有映射到Excel列
         if (mapping.ddlField.isCustom && (!mapping.excelHeader || !hasValidExcelIndex)) {
-          // 处理自定义字段的特殊情况
-          const customField = mapping.ddlField.customConfig
-
           console.log(
-            `处理无映射的自定义字段: ${mapping.ddlField.name}, 数据源类型: ${customField.dataSource}`,
+            `处理无映射的自定义字段: ${mapping.ddlField.name}`,
           )
-
-          // 根据自定义字段的数据源类型返回对应的值
-          if (customField.dataSource === 'system_function') {
-            // 系统函数字段，使用当前选择的数据库类型，而不是配置中的数据库类型
-            const funcName = customField.systemFunctionConfig?.functionName || 'NOW'
-            const funcInfo = getFunctionInfo(dbType, funcName)
-
-            if (funcInfo) {
-              // 获取该数据库的函数语法
-              return funcInfo.syntax
-            } else {
-              // 如果找不到对应的函数，回退到默认语法
-              return `${funcName}()`
-            }
-          } else if (customField.dataSource === 'auto_increment') {
-            // 自增字段，调用customBindingManager生成自增值
-            if (customBindingManager && customBindingManager.generateAutoIncrementValue) {
-              const groupValue = getGroupValue(row, customField.autoIncrementConfig?.groupBy)
-              const autoIncrementValue = customBindingManager.generateAutoIncrementValue(
-                mapping.ddlField.name,
-                customField.autoIncrementConfig || {},
-                groupValue,
-              )
-              console.log(`自增字段 ${mapping.ddlField.name} 的值: ${autoIncrementValue}`)
-              return formatValue(autoIncrementValue, mapping.ddlField.type, dbType)
-            } else {
-              // 如果没有customBindingManager，返回NULL
-              console.log(
-                `警告: 自增字段 ${mapping.ddlField.name} 缺少customBindingManager，返回NULL`,
-              )
-              return 'NULL'
-            }
-          } else if (customField.dataSource === 'excel_combine') {
-            // Excel组合字段处理
-            const combineConfig = customField.excelCombineConfig || {}
-            const columnIndices = combineConfig.columns || []
-            const separator = combineConfig.separator || ''
-            const formatTemplate = combineConfig.format || ''
-
-            // 读取并组合Excel列的值
-            const columnValues = columnIndices
-              .map((colIndex) => {
-                if (colIndex !== undefined && colIndex >= 0 && row[colIndex] !== undefined) {
-                  return row[colIndex]
-                }
-                return ''
-              })
-              .filter((v) => v !== undefined && v !== null && v !== '')
-
-            let combinedValue = columnValues.join(separator)
-
-            // 应用格式模板，支持{value1}, {value2}, {value3}等变量引用
-            if (formatTemplate) {
-              // 替换{value1}, {value2}, {value3}等变量
-              combinedValue = formatTemplate.replace(/\{value(\d+)\}/g, (match, num) => {
-                const index = parseInt(num, 10) - 1
-                return columnValues[index] !== undefined ? columnValues[index] : ''
-              })
-
-              // 保持向后兼容：将{value}替换为所有列的拼接结果
-              combinedValue = combinedValue.replace(/\{value\}/g, columnValues.join(separator))
-            }
-
-            console.log(`Excel组合字段 ${mapping.ddlField.name} 的值: ${combinedValue}`)
-            return formatValue(combinedValue, mapping.ddlField.type, dbType)
-          } else if (customField.dataSource === 'static_value') {
-            const staticValue =
-              customField.staticValue !== undefined ? customField.staticValue : 'NULL'
-            const fieldType = mapping?.ddlField?.type || 'VARCHAR'
-            console.log(`静态值字段 ${mapping.ddlField.name} 的值: ${staticValue}`)
-            return formatValue(staticValue, fieldType, dbType)
-          } else {
-            // 默认返回NULL
-            return 'NULL'
-          }
+          return generateCustomFieldValue(mapping, row, dbType, customBindingManager, fieldMappings)
         }
 
         if (!mapping.excelHeader || !hasValidExcelIndex) {
@@ -484,7 +472,6 @@ export function useSqlGeneratorEnhanced() {
     updateFields = null,
     customBindingManager = null,
   ) => {
-    // 调试日志
     console.log('=== generateSingleUpdateSql 调试 ===')
     console.log('tableName:', tableName)
     console.log('whereFields:', whereFields)
@@ -495,25 +482,6 @@ export function useSqlGeneratorEnhanced() {
       fieldMappings.map((m) => ({ name: m.ddlField?.name, excelIndex: m.excelIndex })),
     )
 
-    /**
-     * 获取分组字段值
-     * @param {Object} rowData - 数据行
-     * @param {string} groupByField - 分组字段名
-     * @returns {string} 分组字段值
-     */
-    const getGroupValue = (rowData, groupByField) => {
-      if (!groupByField) return ''
-
-      const mapping = fieldMappings.find(
-        (m) => m.ddlField.name === groupByField || m.excelHeader === groupByField,
-      )
-      const excelIndex = mapping ? Number(mapping.excelIndex) : NaN
-      if (mapping && !isNaN(excelIndex) && excelIndex >= 0) {
-        return String(rowData[excelIndex] || '')
-      }
-      return ''
-    }
-
     const setClauses = []
     const whereClauses = []
 
@@ -522,8 +490,6 @@ export function useSqlGeneratorEnhanced() {
         `处理字段: ${mapping.ddlField?.name}, excelIndex: ${mapping.excelIndex}, isWhereField: ${whereFields?.includes(mapping.ddlField?.name)}`,
       )
 
-      // 排除自增主键字段和主键字段（除非它们是WHERE条件字段）
-      // 注意：标记为"函数生成"的字段不会被过滤
       const isWhereField = whereFields && whereFields.includes(mapping.ddlField.name)
       if (
         !isWhereField &&
@@ -531,14 +497,13 @@ export function useSqlGeneratorEnhanced() {
         (mapping.ddlField.isIdentity || mapping.ddlField.primaryKey)
       ) {
         console.log(`跳过自增/主键字段: ${mapping.ddlField.name}`)
-        return // 跳过自增主键字段和主键字段
+        return
       }
 
-      // 如果指定了updateFields，只更新用户选择的字段
       if (updateFields && updateFields.length > 0 && !isWhereField) {
         if (!updateFields.includes(mapping.ddlField.name)) {
           console.log(`跳过未选择的字段: ${mapping.ddlField.name}`)
-          return // 跳过未选择的字段
+          return
         }
       }
 
@@ -548,99 +513,8 @@ export function useSqlGeneratorEnhanced() {
       const fieldName = mapping.customFieldName || mapping.ddlField.name
       const escapedFieldName = escapeFieldName(fieldName, dbType)
 
-      // 检查是否标记为通过函数生成
       if (mapping.generatedByFunction === true) {
-        // 检查是否有对应的自定义字段配置
-        if (mapping.ddlField.isCustom && mapping.ddlField.customConfig) {
-          const customField = mapping.ddlField.customConfig
-          console.log(
-            `处理函数生成字段: ${mapping.ddlField.name}, 数据源类型: ${customField.dataSource}`,
-          )
-
-          // 根据自定义字段的数据源类型返回对应的值
-          if (customField.dataSource === 'system_function') {
-            // 系统函数字段，使用当前选择的数据库类型，而不是配置中的数据库类型
-            const funcName = customField.systemFunctionConfig?.functionName || 'NOW'
-            const funcInfo = getFunctionInfo(dbType, funcName)
-
-            if (funcInfo) {
-              console.log(`字段 ${mapping.ddlField.name} 使用函数: ${funcInfo.syntax}`)
-              value = funcInfo.syntax
-            } else {
-              // 如果找不到对应的函数，回退到默认语法
-              console.log(`字段 ${mapping.ddlField.name} 使用默认函数: ${funcName}()`)
-              value = `${funcName}()`
-            }
-          } else if (customField.dataSource === 'auto_increment') {
-            // 自增字段，调用customBindingManager生成自增值
-            if (customBindingManager && customBindingManager.generateAutoIncrementValue) {
-              const groupValue = getGroupValue(row, customField.autoIncrementConfig?.groupBy)
-              const autoIncrementValue = customBindingManager.generateAutoIncrementValue(
-                mapping.ddlField.name,
-                customField.autoIncrementConfig || {},
-                groupValue,
-              )
-              console.log(`自增字段 ${mapping.ddlField.name} 的值: ${autoIncrementValue}`)
-              value = formatValue(autoIncrementValue, mapping.ddlField.type, dbType)
-            } else {
-              // 如果没有customBindingManager，返回NULL
-              console.log(
-                `警告: 自增字段 ${mapping.ddlField.name} 缺少customBindingManager，返回NULL`,
-              )
-              value = 'NULL'
-            }
-          } else if (customField.dataSource === 'excel_combine') {
-            // Excel组合字段处理
-            const combineConfig = customField.excelCombineConfig || {}
-            const columnIndices = combineConfig.columns || []
-            const separator = combineConfig.separator || ''
-            const formatTemplate = combineConfig.format || ''
-
-            // 读取并组合Excel列的值
-            const columnValues = columnIndices
-              .map((colIndex) => {
-                if (colIndex !== undefined && colIndex >= 0 && row[colIndex] !== undefined) {
-                  return row[colIndex]
-                }
-                return ''
-              })
-              .filter((v) => v !== undefined && v !== null && v !== '')
-
-            let combinedValue = columnValues.join(separator)
-
-            // 应用格式模板
-            if (formatTemplate) {
-              combinedValue = formatTemplate.replace(/\{value(\d+)\}/g, (match, num) => {
-                const index = parseInt(num, 10) - 1
-                return columnValues[index] !== undefined ? columnValues[index] : ''
-              })
-              combinedValue = combinedValue.replace(/\{value\}/g, columnValues.join(separator))
-            }
-
-            console.log(`Excel组合字段 ${mapping.ddlField.name} 的值: ${combinedValue}`)
-            value = formatValue(combinedValue, mapping.ddlField.type, dbType)
-          } else if (customField.dataSource === 'static_value') {
-            const staticValue =
-              customField.staticValue !== undefined ? customField.staticValue : 'NULL'
-            const fieldType = mapping?.ddlField?.type || 'VARCHAR'
-            console.log(`静态值字段 ${mapping.ddlField.name} 的值: ${staticValue}`)
-            value = formatValue(staticValue, fieldType, dbType)
-          } else {
-            // 默认返回NULL
-            value = 'NULL'
-          }
-        } else {
-          // 没有自定义字段配置，使用默认的UUID函数
-          const funcInfo = getFunctionInfo(dbType, 'UUID')
-          if (funcInfo) {
-            console.log(`字段 ${mapping.ddlField.name} 使用默认UUID函数: ${funcInfo.syntax}`)
-            value = funcInfo.syntax
-          } else {
-            console.log(`字段 ${mapping.ddlField.name} 使用默认UUID()函数`)
-            value = 'UUID()'
-          }
-        }
-
+        value = generateCustomFieldValue(mapping, row, dbType, customBindingManager, fieldMappings)
         if (isWhereField) {
           whereClauses.push(`${escapedFieldName} = ${value}`)
         } else {
@@ -652,65 +526,8 @@ export function useSqlGeneratorEnhanced() {
       const currentExcelIndex = Number(mapping.excelIndex)
       const hasValidExcelIndex = !isNaN(currentExcelIndex) && currentExcelIndex >= 0
 
-      // 处理自定义字段（可能没有映射到Excel列）
       if (mapping.ddlField.isCustom && (!mapping.excelHeader || !hasValidExcelIndex)) {
-        const customField = mapping.ddlField.customConfig
-
-        if (customField.dataSource === 'system_function') {
-          const funcName = customField.systemFunctionConfig?.functionName || 'NOW'
-          const funcInfo = getFunctionInfo(dbType, funcName)
-          value = funcInfo ? funcInfo.syntax : `${funcName}()`
-        } else if (customField.dataSource === 'auto_increment') {
-          // 自增字段，调用customBindingManager生成自增值
-          if (customBindingManager && customBindingManager.generateAutoIncrementValue) {
-            const groupValue = getGroupValue(row, customField.autoIncrementConfig?.groupBy)
-            const autoIncrementValue = customBindingManager.generateAutoIncrementValue(
-              mapping.ddlField.name,
-              customField.autoIncrementConfig || {},
-              groupValue,
-            )
-            console.log(`自增字段 ${mapping.ddlField.name} 的值: ${autoIncrementValue}`)
-            value = formatValue(autoIncrementValue, mapping.ddlField.type, dbType)
-          } else {
-            // 如果没有customBindingManager，返回NULL
-            console.log(
-              `警告: 自增字段 ${mapping.ddlField.name} 缺少customBindingManager，返回NULL`,
-            )
-            value = 'NULL'
-          }
-        } else if (customField.dataSource === 'excel_combine') {
-          const combineConfig = customField.excelCombineConfig || {}
-          const columnIndices = combineConfig.columns || []
-          const separator = combineConfig.separator || ''
-          const formatTemplate = combineConfig.format || ''
-
-          const columnValues = columnIndices
-            .map((colIndex) => {
-              if (colIndex !== undefined && colIndex >= 0 && row[colIndex] !== undefined) {
-                return row[colIndex]
-              }
-              return ''
-            })
-            .filter((v) => v !== undefined && v !== null && v !== '')
-
-          let combinedValue = columnValues.join(separator)
-
-          if (formatTemplate) {
-            combinedValue = formatTemplate.replace(/\{value(\d+)\}/g, (match, num) => {
-              const index = parseInt(num, 10) - 1
-              return columnValues[index] !== undefined ? columnValues[index] : ''
-            })
-            combinedValue = combinedValue.replace(/\{value\}/g, columnValues.join(separator))
-          }
-
-          value = formatValue(combinedValue, mapping.ddlField.type, dbType)
-        } else if (customField.dataSource === 'static_value') {
-          const staticValue =
-            customField.staticValue !== undefined ? customField.staticValue : 'NULL'
-          value = formatValue(staticValue, mapping.ddlField.type, dbType)
-        } else {
-          value = 'NULL'
-        }
+        value = generateCustomFieldValue(mapping, row, dbType, customBindingManager, fieldMappings)
       }
 
       if (!mapping.excelHeader || !hasValidExcelIndex) {
