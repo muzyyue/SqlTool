@@ -76,9 +76,19 @@
     <a-layout-content class="content">
       <div class="content-wrapper">
         <!-- 面包屑导航 -->
-        <a-breadcrumb class="breadcrumb" v-if="showBreadcrumb">
-          <a-breadcrumb-item>在线工具箱</a-breadcrumb-item>
-          <a-breadcrumb-item>{{ currentPageTitle }}</a-breadcrumb-item>
+        <a-breadcrumb
+          v-if="showBreadcrumb"
+          class="breadcrumb"
+          :routes="breadcrumbRoutes"
+        >
+          <template #itemRender="{ route, routes, paths }">
+            <span v-if="!route.path || routes.indexOf(route) === routes.length - 1" class="breadcrumb-current">
+              {{ route.name }}
+            </span>
+            <router-link v-else :to="route.path" class="breadcrumb-link">
+              {{ route.name }}
+            </router-link>
+          </template>
         </a-breadcrumb>
 
         <!-- 页面内容 -->
@@ -145,24 +155,32 @@ const settingsVisible = ref(false)
 const aboutVisible = ref(false)
 
 // 计算属性
-const currentPageTitle = computed(() => {
-  const routeName = route.name
-  switch (routeName) {
-    case 'home':
-      return '工具箱'
-    case 'sql-tool':
-      return 'SQL生成工具'
-    case 'tool-insertpage':
-      return 'INSERT语句生成'
-    case 'tool-updatepage':
-      return 'UPDATE语句生成'
-    default:
-      return route.meta?.title || '在线工具箱'
-  }
+/**
+ * 面包屑路由数据
+ * 从路由 meta 中读取面包屑配置
+ */
+const breadcrumbRoutes = computed(() => {
+  return route.meta?.breadcrumb || []
 })
 
+/**
+ * 当前页面标题
+ * 用于页面显示
+ */
+const currentPageTitle = computed(() => {
+  const breadcrumb = route.meta?.breadcrumb
+  if (breadcrumb && breadcrumb.length > 0) {
+    return breadcrumb[breadcrumb.length - 1].name
+  }
+  return route.meta?.title || '在线工具箱'
+})
+
+/**
+ * 是否显示面包屑
+ * 首页不显示面包屑
+ */
 const showBreadcrumb = computed(() => {
-  return route.name !== 'home' && route.name !== 'sql-tool'
+  return route.name !== 'home' && breadcrumbRoutes.value.length > 0
 })
 
 const menuTheme = computed(() => {
@@ -330,6 +348,36 @@ onMounted(() => {
 
 .breadcrumb {
   margin-bottom: 16px;
+}
+
+/**
+ * 面包屑链接样式
+ * 使用 CSS 变量实现主题切换
+ */
+.breadcrumb-link {
+  color: var(--text-link);
+  text-decoration: none;
+  transition: color var(--transition-fast) ease;
+}
+
+.breadcrumb-link:hover {
+  color: var(--text-link-hover);
+  text-decoration: underline;
+}
+
+/**
+ * 面包屑当前项样式
+ * 不可点击，显示为次要文本
+ */
+.breadcrumb-current {
+  color: var(--text-secondary);
+}
+
+/**
+ * 面包屑分隔符样式
+ */
+.breadcrumb :deep(.ant-breadcrumb-separator) {
+  color: var(--text-tertiary);
 }
 
 .page-content {
