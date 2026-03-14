@@ -1,20 +1,30 @@
 # 版本变更历史
 
-## 1.5.45 (2026-03-09)
 
-**SQL生成模块重构：提取自定义字段值生成公共函数**
+## 1.5.45 (2026-03-14)
 
-- 重构useSqlGeneratorEnhanced.js，消除代码重复
-  - 提取generateCustomFieldValue统一入口函数
-  - 提取generateSystemFunctionValue处理系统函数字段
-  - 提取generateAutoIncrementValue处理自增字段
-  - 提取generateExcelCombineValue处理Excel组合字段
-  - 提取generateStaticValue处理静态值字段
-  - 提取getGroupValue处理分组字段值
-- 重构generateBatchInsertSql函数，使用提取的公共函数
-- 重构generateSingleUpdateSql函数，使用提取的公共函数
-- 代码行数从1485行减少到1302行，减少约12%
-- 提高代码可维护性和一致性
+**路由面包屑层级配置**
+
+- 为每个路由添加 meta.breadcrumb 配置
+  - 定义路由层级关系映射表 ROUTE_HIERARCHY
+  - 定义路由元信息映射表 ROUTE_META_MAP
+  - 定义标题映射表 TITLE_MAP 用于友好的中文标题
+- 创建 generateBreadcrumb 函数动态生成面包屑配置
+  - 根据路由路径自动生成面包屑数组
+  - 父级路由包含 path 属性，当前页面不包含 path
+- 实现 getParentRoute 辅助函数
+  - 根据路由名称获取父级路由信息
+  - 返回 { name, path, title } 对象
+- 面包屑层级定义：
+  - `/` → 首页
+  - `/sql-tool` → 首页 → SQL工具
+  - `/sql/insert` → 首页 → SQL工具 → INSERT生成
+  - `/sql/update` → 首页 → SQL工具 → UPDATE生成
+  - `/tools/json` → 首页 → JSON工具
+  - `/tools/timestamp` → 首页 → 时间戳工具
+  - `/tools/excelfill` → 首页 → Excel填充工具
+- 动态路由自动生成面包屑配置
+- 所有代码通过 ESLint 检查
 
 ## 1.5.44 (2026-03-09)
 
@@ -41,7 +51,6 @@
   - AI 服务可用性监控
   - 状态持久化到 localStorage
   - 与 useModelManager 和 useAiConfig 集成
-
 - 新增 AI UI 组件（src/components/ai/）
   - AiConfigPanel.vue：AI 配置面板（API Key、模型选择）
   - AiAssistButton.vue：AI 辅助按钮（状态感知）
@@ -50,23 +59,19 @@
   - SqlAiAssistant.vue：SQL AI 助手（自然语言转 SQL、SQL 优化）
   - RegexAiAssistant.vue：正则 AI 助手（生成正则、解释正则）
   - JsonAiAssistant.vue：JSON AI 助手（结构分析、质量评估）
-
 - 实现完整降级机制（useAiFallback.ts）
   - 三级降级：API → LOCAL → ORIGINAL
   - 降级日志记录和事件通知
   - 冷却期机制（连续降级后暂停）
   - 降级统计信息
-
 - 增强错误处理（errorHandler.ts）
   - 错误分类（NETWORK/API/MODEL/CONFIG/PERMISSION/RESOURCE）
   - 错误严重级别（LOW/MEDIUM/HIGH/CRITICAL）
   - 用户友好提示和恢复建议
   - 重试延迟策略（指数退避）
-
 - 编写完整测试（ai-integration.test.ts）
   - 54 个测试用例全部通过
   - 覆盖 AI 启用/禁用状态、降级流程、功能隔离
-
 - 更新 ESLint 配置
   - 添加 TypeScript ESLint 支持
   - 添加 vue-eslint-parser 支持
@@ -220,7 +225,7 @@
   - 避免旧数据干扰新操作
 - 移除重复的提示消息
   - 只保留CustomBindingModal中的提示
-- 修复错误消息显示[object Object]的问题
+- 修复错误消息显示\[object Object]的问题
 - 修复重新解析按钮错误删除文件的问题
   - 添加reparse事件，使用原始数据重新解析
 
@@ -371,7 +376,7 @@
 
 **完善暗黑主题适配**
 
-- 修复SqlPreview.vue中SQL语法高亮暗黑主题选择器（使用:deep()替代:global()）
+- 修复SqlPreview\.vue中SQL语法高亮暗黑主题选择器（使用:deep()替代:global()）
 - 为FieldMappingCard.vue补充标签页、标题、折叠面板暗黑主题
 - 为CustomBindingModal.vue补充模态框外层容器暗黑主题
 - 增强SQL语法高亮在暗黑模式下的对比度
@@ -401,7 +406,7 @@
 
 **优化SqlPreview组件暗黑主题支持**
 
-- 为SqlPreview.vue添加完整的暗黑主题样式
+- 为SqlPreview\.vue添加完整的暗黑主题样式
 - 为预览控件区域添加暗黑背景和边框
 - 为SQL预览区域、行号区域添加暗黑主题样式
 - 为统计信息区域添加暗黑主题样式
@@ -606,7 +611,7 @@
 
 **修复字段拼接规则中添加已删除字段时出现冲突错误的问题**
 
-- 修复问题：删除"file_status"字段后重新添加时出现"与现有绑定字段冲突"错误
+- 修复问题：删除"file\_status"字段后重新添加时出现"与现有绑定字段冲突"错误
   - 修改validateBindings函数，移除对customFields与fieldConcatenationRules的冲突检测
   - 因为字段拼接规则中的自定义字段名称会同时创建对应的customField，两者的字段名相同是正常行为
   - 修改isFieldBound函数注释，说明字段拼接规则可以重复选择同一字段（可能是编辑已有规则）
@@ -760,7 +765,7 @@
 - 修复源数据读取，保存原始单元格类型信息
 - 修复数据预览功能，移除列数限制，显示所有列
 - 增加预览行数限制从10行到20行
-- 确保update_time、remark等列能正确显示
+- 确保update\_time、remark等列能正确显示
 
 ## 1.4.7 (2026-01-20)
 
@@ -899,7 +904,7 @@
 
 **修复批量导入预览和PostgreSQL DDL解析问题**
 
-- 修复批量导入预览中条件值显示错误的问题（从"file_id = file_id"修复为"file_id = 1"）
+- 修复批量导入预览中条件值显示错误的问题（从"file\_id = file\_id"修复为"file\_id = 1"）
 - 修复normalizeHeaders函数，移除过于宽泛的'条件'模式，避免与'条件字段'混淆
 - 修复PostgreSQL DDL解析，支持COLLATE语法和CHECK约束
 - 优化PostgreSqlStrategy.js，改进正则表达式匹配逻辑
@@ -982,8 +987,8 @@
 **修复批量修改数据访问错误**
 
 - 修复 row 数据对象访问问题，将数字索引转换为字符串索引
-- 修复条件字段值获取错误，使用 row[String(conditionColumnIndex)]
-- 修复字段值修改错误，使用 newRow[String(columnIndex)]
+- 修复条件字段值获取错误，使用 row\[String(conditionColumnIndex)]
+- 修复字段值修改错误，使用 newRow\[String(columnIndex)]
 
 ## 1.2.30 (2025-01-07)
 
@@ -1222,7 +1227,7 @@
 - 修改字段去重部分的placeholder为"请选择去重列"，提高用户体验
 - 修复自定义字段选择自增数据时SQL中显示null的问题
 - 在generateBatchInsertSql和generateSingleUpdateSql中添加customBindingManager参数
-- 当自定义字段数据源类型为auto_increment时，调用customBindingManager.generateAutoIncrementValue()生成自增值
+- 当自定义字段数据源类型为auto\_increment时，调用customBindingManager.generateAutoIncrementValue()生成自增值
 - 确保自增字段能够正确生成递增的数值，而不是显示NULL
 - 所有E2E测试通过（24/24），验证修复效果
 
@@ -1306,8 +1311,8 @@
 - 创建test/e2e/目录存放E2E测试文件
 - 创建test/fixtures/目录存放测试数据和fixture文件
 - 创建test/reports/目录存放测试报告（test-results和playwright-report）
-- 创建test/docs/目录存放测试文档（TEST_RULES.md、TEST_SUMMARY.md等）
-- 创建test/scripts/目录存放测试脚本（test_dm_parser_fix.js等）
+- 创建test/docs/目录存放测试文档（TEST\_RULES.md、TEST\_SUMMARY.md等）
+- 创建test/scripts/目录存放测试脚本（test\_dm\_parser\_fix.js等）
 - 创建test/config/目录存放测试配置文件（playwright.config.js、vitest.config.js）
 - 更新package.json中的所有测试脚本路径，使用新的配置文件位置
 - 更新vitest.config.js配置，添加include规则只运行test/unit/目录下的测试
@@ -1329,7 +1334,7 @@
 - 在package.json中添加7个测试脚本命令（test:e2e、test:e2e:ui、test:e2e:headed等）
 - 更新.gitignore，添加e2e/目录和playwright.config.js排除规则
 - 测试覆盖范围：页面加载、DDL解析、Excel上传、SQL生成、字段映射、错误处理等
-- 基于TEST_RULES.md和TEST_SUMMARY.md的测试经验创建自动化测试脚本
+- 基于TEST\_RULES.md和TEST\_SUMMARY.md的测试经验创建自动化测试脚本
 
 ## 1.0.9 (2025-12-28)
 
@@ -1434,7 +1439,7 @@
 
 ## 0.0.7 (2025-12-25)
 
-- 修复static_value数据源类型未处理的问题，添加静态值字段处理逻辑
+- 修复static\_value数据源类型未处理的问题，添加静态值字段处理逻辑
 - 创建自定义字段功能测试文件，实现11个测试用例覆盖多种场景
 - 修复SQL语法验证正则表达式，支持MySQL反引号表名格式
 - 所有测试通过（11/11），验证自定义字段添加、SQL生成、语法规范等功能
@@ -1457,7 +1462,7 @@
 ## 0.0.4 (2025-12-24)
 
 - 修复自定义字段选择"Excel列组合"数据来源时，生成的SQL中没有包含绑定的Excel列数据的问题
-- 实现 excel_combine 数据来源的实际读取和组合逻辑
+- 实现 excel\_combine 数据来源的实际读取和组合逻辑
 - 从 customField.excelCombineConfig.columns 获取配置的列索引
 - 从 row 数据中读取对应列的值并按分隔符组合
 - 支持格式模板配置
@@ -1479,3 +1484,4 @@
 
 - 修复SQL生成中values数组包含undefined值时逗号丢失的问题
 - 在values.join前添加验证逻辑，将undefined/null/''转换为'NULL'
+
