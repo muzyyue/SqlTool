@@ -1,30 +1,26 @@
 # 版本变更历史
 
 
-## 1.5.45 (2026-03-14)
+## 1.5.45 (2026-03-15)
 
-**路由面包屑层级配置**
+**新增 JSON 树形视图组件**
 
-- 为每个路由添加 meta.breadcrumb 配置
-  - 定义路由层级关系映射表 ROUTE_HIERARCHY
-  - 定义路由元信息映射表 ROUTE_META_MAP
-  - 定义标题映射表 TITLE_MAP 用于友好的中文标题
-- 创建 generateBreadcrumb 函数动态生成面包屑配置
-  - 根据路由路径自动生成面包屑数组
-  - 父级路由包含 path 属性，当前页面不包含 path
-- 实现 getParentRoute 辅助函数
-  - 根据路由名称获取父级路由信息
-  - 返回 { name, path, title } 对象
-- 面包屑层级定义：
-  - `/` → 首页
-  - `/sql-tool` → 首页 → SQL工具
-  - `/sql/insert` → 首页 → SQL工具 → INSERT生成
-  - `/sql/update` → 首页 → SQL工具 → UPDATE生成
-  - `/tools/json` → 首页 → JSON工具
-  - `/tools/timestamp` → 首页 → 时间戳工具
-  - `/tools/excelfill` → 首页 → Excel填充工具
-- 动态路由自动生成面包屑配置
-- 所有代码通过 ESLint 检查
+- 创建 JsonTreeView.vue 主组件
+  - 树形展示 JSON 数据，支持对象/数组/基本类型
+  - 节点展开/折叠功能，默认展开前两层
+  - 全部展开/全部折叠按钮
+  - 节点搜索功能，匹配节点高亮显示
+  - 自动展开匹配节点的父级
+  - 节点路径显示，支持复制路径
+  - 完整的主题切换支持（使用 CSS 变量）
+- 创建 JsonTreeNode.vue 递归节点组件
+  - 递归渲染树形结构
+  - 不同类型使用不同颜色标识
+  - string=#52C41A, number=#1677FF, boolean=#FA8C16, null=#FF4D4F
+  - 显示子节点数量预览
+- 创建 index.js 组件导出文件
+- 使用 Vue3 Composition API + `<script setup>`
+- 完整的 JSDoc 注释
 
 ## 1.5.44 (2026-03-09)
 
