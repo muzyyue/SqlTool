@@ -63,96 +63,100 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { DownOutlined, RightOutlined } from '@ant-design/icons-vue'
-import JsonTreeNode from './JsonTreeNode.vue'
-import type { JsonTreeNode as JsonTreeNodeType } from '@/types/json'
+import { ref, computed, watch } from "vue";
+import { DownOutlined, RightOutlined } from "@ant-design/icons-vue";
+import JsonTreeNode from "./JsonTreeNode.vue";
+import type { JsonTreeNode as JsonTreeNodeType } from "@/types/json";
 
 /**
  * 组件属性定义
  */
 interface Props {
   /** JSON 数据 */
-  modelValue?: unknown
+  modelValue?: unknown;
   /** 是否可编辑 */
-  editable?: boolean
+  editable?: boolean;
   /** 是否可删除 */
-  deletable?: boolean
+  deletable?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: null,
   editable: false,
   deletable: false,
-})
+});
 
 /**
  * 组件事件定义
  */
 const emit = defineEmits<{
-  'update:modelValue': [value: unknown]
-  edit: [path: string, value: unknown]
-  delete: [path: string]
-  expandAll: []
-  collapseAll: []
-}>()
+  "update:modelValue": [value: unknown];
+  edit: [path: string, value: unknown];
+  delete: [path: string];
+  expandAll: [];
+  collapseAll: [];
+}>();
 
-const searchText = ref('')
-const filterType = ref<string>('all')
-const expandedKeys = ref<Set<string>>(new Set())
-const treeContentRef = ref<HTMLElement | null>(null)
-const treeData = ref<JsonTreeNodeType[]>([])
+const searchText = ref("");
+const filterType = ref<string>("all");
+const expandedKeys = ref<Set<string>>(new Set());
+const treeContentRef = ref<HTMLElement | null>(null);
+const treeData = ref<JsonTreeNodeType[]>([]);
 
 watch(
   () => props.modelValue,
   (val) => {
     if (val !== null && val !== undefined) {
-      buildTree(val)
+      buildTree(val);
     } else {
-      treeData.value = []
+      treeData.value = [];
     }
   },
   { immediate: true },
-)
+);
 
 const filteredNodes = computed(() => {
-  let nodes = treeData.value
+  let nodes = treeData.value;
 
-  if (filterType.value !== 'all') {
-    nodes = filterNodesByType(nodes, filterType.value)
+  if (filterType.value !== "all") {
+    nodes = filterNodesByType(nodes, filterType.value);
   }
 
   if (searchText.value) {
-    nodes = filterNodesBySearch(nodes, searchText.value.toLowerCase())
+    nodes = filterNodesBySearch(nodes, searchText.value.toLowerCase());
   }
 
-  return nodes
-})
+  return nodes;
+});
 
-const buildTree = (data: unknown, parentPath: string = '', depth: number = 0) => {
-  const nodes: JsonTreeNodeType[] = []
-  const id = parentPath || 'root'
+const buildTree = (
+  data: unknown,
+  parentPath: string = "",
+  depth: number = 0,
+) => {
+  const nodes: JsonTreeNodeType[] = [];
+  const id = parentPath || "root";
 
   if (data === null) {
     nodes.push({
       id,
-      key: parentPath.split('.').pop() || 'root',
+      key: parentPath.split(".").pop() || "root",
       value: null,
-      valueType: 'null',
+      valueType: "null",
       path: parentPath,
       depth,
       expanded: false,
       isArrayItem: false,
-    })
-    return nodes
+    });
+    return nodes;
   }
 
   if (Array.isArray(data)) {
     nodes.push({
       id,
-      key: parentPath.split('.').pop() || 'root',
+      key: parentPath.split(".").pop() || "root",
       value: data,
-      valueType: 'array',
+      valueType: "array",
       path: parentPath,
       depth,
       expanded: expandedKeys.value.has(id),
@@ -168,17 +172,17 @@ const buildTree = (data: unknown, parentPath: string = '', depth: number = 0) =>
         isArrayItem: true,
         arrayIndex: index,
       })),
-    })
-    return nodes
+    });
+    return nodes;
   }
 
-  if (typeof data === 'object') {
-    const keys = Object.keys(data)
+  if (typeof data === "object") {
+    const keys = Object.keys(data);
     nodes.push({
       id,
-      key: parentPath.split('.').pop() || 'root',
+      key: parentPath.split(".").pop() || "root",
       value: data,
-      valueType: 'object',
+      valueType: "object",
       path: parentPath,
       depth,
       expanded: expandedKeys.value.has(id),
@@ -190,114 +194,123 @@ const buildTree = (data: unknown, parentPath: string = '', depth: number = 0) =>
         valueType: getValueType(data[key]),
         path: parentPath ? `${parentPath}.${key}` : key,
         depth: depth + 1,
-        expanded: expandedKeys.value.has(parentPath ? `${parentPath}.${key}` : key),
+        expanded: expandedKeys.value.has(
+          parentPath ? `${parentPath}.${key}` : key,
+        ),
         isArrayItem: false,
       })),
-    })
-    return nodes
+    });
+    return nodes;
   }
 
   nodes.push({
     id,
-    key: parentPath.split('.').pop() || 'root',
+    key: parentPath.split(".").pop() || "root",
     value: data,
     valueType: getValueType(data),
     path: parentPath,
     depth,
     expanded: false,
     isArrayItem: false,
-  })
+  });
 
-  return nodes
-}
+  return nodes;
+};
 
-const getValueType = (value: unknown): JsonTreeNodeType['valueType'] => {
-  if (value === null) return 'null'
-  if (Array.isArray(value)) return 'array'
-  if (typeof value === 'object') return 'object'
-  if (typeof value === 'string') return 'string'
-  if (typeof value === 'number') return 'number'
-  if (typeof value === 'boolean') return 'boolean'
-  return 'null'
-}
+const getValueType = (value: unknown): JsonTreeNodeType["valueType"] => {
+  if (value === null) return "null";
+  if (Array.isArray(value)) return "array";
+  if (typeof value === "object") return "object";
+  if (typeof value === "string") return "string";
+  if (typeof value === "number") return "number";
+  if (typeof value === "boolean") return "boolean";
+  return "null";
+};
 
-const filterNodesByType = (nodes: JsonTreeNodeType[], type: string): JsonTreeNodeType[] => {
+const filterNodesByType = (
+  nodes: JsonTreeNodeType[],
+  type: string,
+): JsonTreeNodeType[] => {
   return nodes.filter((node) => {
-    if (node.valueType === type) return true
+    if (node.valueType === type) return true;
     if (node.children) {
-      const filteredChildren = filterNodesByType(node.children, type)
-      return filteredChildren.length > 0
+      const filteredChildren = filterNodesByType(node.children, type);
+      return filteredChildren.length > 0;
     }
-    return false
-  })
-}
+    return false;
+  });
+};
 
-const filterNodesBySearch = (nodes: JsonTreeNodeType[], search: string): JsonTreeNodeType[] => {
+const filterNodesBySearch = (
+  nodes: JsonTreeNodeType[],
+  search: string,
+): JsonTreeNodeType[] => {
   return nodes.filter((node) => {
-    const keyMatch = node.key.toLowerCase().includes(search)
+    const keyMatch = node.key.toLowerCase().includes(search);
     const valueMatch =
-      typeof node.value === 'string' && node.value.toLowerCase().includes(search)
-    if (keyMatch || valueMatch) return true
+      typeof node.value === "string" &&
+      node.value.toLowerCase().includes(search);
+    if (keyMatch || valueMatch) return true;
     if (node.children) {
-      const filteredChildren = filterNodesBySearch(node.children, search)
-      return filteredChildren.length > 0
+      const filteredChildren = filterNodesBySearch(node.children, search);
+      return filteredChildren.length > 0;
     }
-    return false
-  })
-}
+    return false;
+  });
+};
 
 const handleToggle = (nodeId: string) => {
   if (expandedKeys.value.has(nodeId)) {
-    expandedKeys.value.delete(nodeId)
+    expandedKeys.value.delete(nodeId);
   } else {
-    expandedKeys.value.add(nodeId)
+    expandedKeys.value.add(nodeId);
   }
-  expandedKeys.value = new Set(expandedKeys.value)
-}
+  expandedKeys.value = new Set(expandedKeys.value);
+};
 
 const handleEdit = (path: string, value: unknown) => {
-  emit('edit', path, value)
-}
+  emit("edit", path, value);
+};
 
 const handleDelete = (path: string) => {
-  emit('delete', path)
-}
+  emit("delete", path);
+};
 
 const handleExpandAll = () => {
-  const allKeys = new Set<string>()
+  const allKeys = new Set<string>();
   const collectKeys = (nodes: JsonTreeNodeType[]) => {
     nodes.forEach((node) => {
-      if (node.valueType === 'object' || node.valueType === 'array') {
-        allKeys.add(node.id)
+      if (node.valueType === "object" || node.valueType === "array") {
+        allKeys.add(node.id);
         if (node.children) {
-          collectKeys(node.children)
+          collectKeys(node.children);
         }
       }
-    })
-  }
-  collectKeys(treeData.value)
-  expandedKeys.value = allKeys
-  emit('expandAll')
-}
+    });
+  };
+  collectKeys(treeData.value);
+  expandedKeys.value = allKeys;
+  emit("expandAll");
+};
 
 const handleCollapseAll = () => {
-  expandedKeys.value = new Set()
-  emit('collapseAll')
-}
+  expandedKeys.value = new Set();
+  emit("collapseAll");
+};
 
 const handleSearch = () => {
   // 搜索时自动展开匹配的节点
-}
+};
 
 const handleFilterChange = () => {
   // 筛选类型变化时重置展开状态
-}
+};
 
 defineExpose({
   expandAll: handleExpandAll,
   collapseAll: handleCollapseAll,
   getTreeData: () => treeData.value,
-})
+});
 </script>
 
 <style scoped lang="scss">
@@ -379,4 +392,3 @@ defineExpose({
   }
 }
 </style>
-</template>
