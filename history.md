@@ -1,5 +1,17 @@
 # 版本变更历史
 
+## 1.5.48 (2026-03-19)
+
+**JSON 工具优化与布局改进**
+
+- 修复 JsonPage.vue 编译错误（移除 template #extra 插槽）
+- 创建缺失的 JsonTreeNode.vue 组件
+- 优化页面布局：移除冗余操作模式卡片，整合到工具栏
+- 实现全宽度布局：内容区域从边缘到边缘
+- 优化响应式设计和暗色模式适配
+- 修复 JsonComparePanel.vue 中文引号编译错误
+- 添加导出别名支持（deepCompareJson、shallowCompareJson）
+
 ## 1.5.47 (2026-03-19)
 
 **PostgreSQL INSERT 语句生成测试完善**
