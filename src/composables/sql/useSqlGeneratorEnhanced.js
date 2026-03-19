@@ -256,44 +256,57 @@ export function useSqlGeneratorEnhanced() {
    * @returns {string} 生成的字段值
    */
   const generateCustomFieldValue = (mapping, row, dbType, customBindingManager, fieldMappings) => {
-    if (!mapping.ddlField.isCustom || !mapping.ddlField.customConfig) {
-      const funcInfo = getFunctionInfo(dbType, 'UUID')
-      if (funcInfo) {
-        console.log(`字段 ${mapping.ddlField.name} 使用默认UUID函数: ${funcInfo.syntax}`)
-        return funcInfo.syntax
-      } else {
-        console.log(`字段 ${mapping.ddlField.name} 使用默认UUID()函数`)
-        return 'UUID()'
+    let customField = null
+
+    // 优先使用 mapping.ddlField.customConfig
+    if (mapping.ddlField.isCustom && mapping.ddlField.customConfig) {
+      customField = mapping.ddlField.customConfig
+    } else if (customBindingManager && customBindingManager.customFields) {
+      // 如果 mapping 中没有自定义配置，从 customBindingManager 中查找
+      customField = customBindingManager.customFields.value.find(
+        (field) => field.fieldName === mapping.ddlField.name
+      )
+    }
+
+    // 如果找到了自定义字段配置，根据数据源类型生成值
+    if (customField) {
+      console.log(
+        `处理自定义字段: ${mapping.ddlField.name}, 数据源类型: ${customField.dataSource}`,
+      )
+
+      switch (customField.dataSource) {
+        case 'system_function':
+          return generateSystemFunctionValue(customField, dbType, mapping.ddlField.name)
+
+        case 'auto_increment':
+          return generateAutoIncrementValue(
+            customField,
+            row,
+            customBindingManager,
+            mapping.ddlField,
+            fieldMappings,
+            dbType,
+          )
+
+        case 'excel_combine':
+          return generateExcelCombineValue(customField, row, mapping.ddlField, dbType)
+
+        case 'static_value':
+          return generateStaticValue(customField, mapping.ddlField, dbType)
+
+        default:
+          return 'NULL'
       }
     }
 
-    const customField = mapping.ddlField.customConfig
-    console.log(
-      `处理自定义字段: ${mapping.ddlField.name}, 数据源类型: ${customField.dataSource}`,
-    )
-
-    switch (customField.dataSource) {
-      case 'system_function':
-        return generateSystemFunctionValue(customField, dbType, mapping.ddlField.name)
-
-      case 'auto_increment':
-        return generateAutoIncrementValue(
-          customField,
-          row,
-          customBindingManager,
-          mapping.ddlField,
-          fieldMappings,
-          dbType,
-        )
-
-      case 'excel_combine':
-        return generateExcelCombineValue(customField, row, mapping.ddlField, dbType)
-
-      case 'static_value':
-        return generateStaticValue(customField, mapping.ddlField, dbType)
-
-      default:
-        return 'NULL'
+    // 如果没有自定义字段配置，使用默认的 UUID 函数
+    const funcInfo = getFunctionInfo(dbType, 'UUID')
+    if (funcInfo) {
+      console.log(`字段 ${mapping.ddlField.name} 使用默认UUID函数: ${funcInfo.syntax}`)
+      return funcInfo.syntax
+    } else {
+      console.log(`字段 ${mapping.ddlField.name} 使用默认UUID()函数`)
+      return 'UUID()'
     }
   }
 

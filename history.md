@@ -1,5 +1,97 @@
 # 版本变更历史
 
+## 1.5.47 (2026-03-19)
+
+**PostgreSQL INSERT 语句生成测试完善**
+
+**测试改进**
+
+- 完成函数调用测试（7/7 通过，100% 覆盖）
+  - 验证 PostgreSQL INSERT/UPDATE 语句生成
+  - 验证系统函数语法（CURRENT_TIMESTAMP）
+  - 验证特殊字符转义（单引号 → ''）
+  - 验证多数据库支持（PostgreSQL/MySQL/达梦）
+  - 验证 NULL/undefined 值处理
+
+- 创建综合测试报告（test/README-test-report-postgresql-insert.md）
+  - 记录测试结果和覆盖率分析
+  - 识别 E2E 测试超时问题
+  - 提出改进建议和优化措施
+
+**Bug 修复**
+
+- 修复测试用例字段映射格式错误（excelColumn → excelHeader）
+- 修复 UPDATE 语句参数传递错误（whereFields 应为数组）
+- 修复 E2E 测试语法错误（缺失括号）
+- 修复数据注入测试语法错误（对象结构不完整）
+
+**已知问题**
+
+- E2E 测试超时（30s → 建议 60s）
+- 数据注入测试需重构（使用内部函数而非公开 API）
+- 跨浏览器兼容性差（Firefox/WebKit 失败率高）
+
+## 1.5.46 (2026-03-18)
+
+**JSON工具全面优化 - 模块化重构与UI设计规范**
+
+**新增功能**
+
+- 新增JSON类型定义（src/types/json.ts）
+  - JsonFormatOptions：JSON格式化选项接口
+  - JsonStats：JSON统计信息接口
+  - JsonDiff/JsonCompareResult：JSON对比结果接口
+  - JsonTreeNode：树形视图节点接口
+  - EditorState：编辑器状态接口
+  - JsonToolConfig：JSON工具配置接口
+
+- 新增JSON工具函数模块（src/utils/json/）
+  - jsonFormatter.ts：JSON格式化、压缩、转义、验证、统计等核心功能
+  - jsonCompare.ts：JSON深度对比、浅层对比、字段对比功能
+  - jsonCodeGenerator.ts：JSON转TypeScript/Java/Python/Go/C#/Kotlin/Swift/Dart代码生成
+  - jsonConverter.ts：JSON转XML/YAML/CSV/SQL/TOML格式转换
+
+- 新增JSON子组件（src/components/json/）
+  - JsonToolbar.vue：JSON工具栏组件（视图切换、格式化、压缩、转义等）
+  - JsonInputPanel.vue：JSON输入面板组件（带实时验证）
+  - JsonOutputPanel.vue：JSON输出面板组件（带统计信息）
+  - JsonComparePanel.vue：JSON对比面板组件
+  - JsonTreeView.vue：JSON树形视图组件
+
+- 新增JSON工具Composable（src/composables/json/）
+  - useJsonTools.ts：JSON工具状态管理和操作方法
+  - useJsonHistory.ts：JSON历史记录管理
+
+- 添加UI设计需求文档
+  - 页面布局结构规范（左右分栏双编辑器模式）
+  - 元素排列方式和组件尺寸比例
+  - 交互区域划分和视觉层次关系
+  - 树形视图设计规范
+  - 颜色方案（保持现有主题色彩体系）
+  - 字体排印和间距规范
+  - 响应式行为和暗黑模式适配
+
+- 功能增强
+  - 支持JSON压缩功能
+  - 支持JSON转义/反转义功能
+  - 支持8种语言代码生成（TypeScript/Java/Python/Go/C#/Kotlin/Swift/Dart）
+  - 支持5种格式转换（XML/YAML/CSV/SQL/TOML）
+  - 支持Unicode编码/解码
+  - 支持历史记录管理（localStorage持久化）
+  - 支持面包屑导航页面跳转功能
+
+- 代码质量优化
+  - 提取纯函数到独立模块，遵循单一职责原则
+  - 使用TypeScript类型定义，提高类型安全
+  - 添加完整JSDoc注释
+  - 所有文件行数控制在500行以内
+
+- Bug修复
+  - 修复jsonCodeGenerator.ts中Python三元表达式语法错误
+  - 修复MainLayout.vue中TypeScript类型声明语法错误
+  - 修复JsonPage.vue中handleDownload重复声明错误
+  - 修复JsonInputPanel.vue中TypeScript类型声明语法错误
+
 ## 1.5.45 (2026-03-09)
 
 **SQL生成模块重构：提取自定义字段值生成公共函数**
@@ -1479,3 +1571,5 @@
 
 - 修复SQL生成中values数组包含undefined值时逗号丢失的问题
 - 在values.join前添加验证逻辑，将undefined/null/''转换为'NULL'
+- 测试覆盖了正常场景、边界场景、异常场景和安全测试
+- 提供了完整的测试执行流程和报告生成机制

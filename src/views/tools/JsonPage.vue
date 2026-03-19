@@ -3,629 +3,509 @@
     <!-- 页面标题和副标题 -->
     <div class="page-header">
       <h1 class="page-title">JSON 格式化工具</h1>
-      <p class="page-subtitle">JSON 数据格式化与对比工具,支持中文逗号处理、代码折叠和深度对比</p>
+      <p class="page-subtitle">
+        JSON 数据格式化与对比工具，支持中文逗号处理、代码折叠、深度对比、代码生成和格式转换
+      </p>
     </div>
 
-    <!-- 操作按钮区域 -->
-    <div class="action-buttons">
-      <GradientButton type="secondary" size="md" @click="resetAll">
-        <template #icon><ReloadOutlined /></template>
-        重置
-      </GradientButton>
-      <GradientButton type="primary" size="md" @click="formatJson" :loading="formatting">
-        <template #icon><PlayCircleOutlined /></template>
-        格式化
-      </GradientButton>
+    <!-- 工具栏 -->
+    <div class="toolbar-container">
+      <JsonToolbar
+        v-model:model-view-mode="viewMode"
+        v-model:model-indent-spaces="indentSpaces"
+        v-model:model-font-size="fontSize"
+        :theme="isDark ? 'dark' : 'light'"
+        @format="handleFormat"
+        @compress="handleCompress"
+        @escape="handleEscape"
+        @unescape="handleUnescape"
+        @expand-all="handleExpandAll"
+        @collapse-all="handleCollapseAll"
+        @download="handleDownload"
+      />
+      
+      <!-- 模式选择器（整合到工具栏） -->
+      <div class="mode-selector">
+        <a-radio-group v-model:value="mode" button-style="solid" size="large" @change="handleModeChange">
+          <a-radio-button value="format">格式化</a-radio-button>
+          <a-radio-button value="compare">对比</a-radio-button>
+          <a-radio-button value="generate">代码生成</a-radio-button>
+          <a-radio-button value="convert">格式转换</a-radio-button>
+        </a-radio-group>
+        <span class="mode-description">{{ modeDescription }}</span>
+      </div>
     </div>
 
-    <!-- 主要内容区域 -->
-    <div class="content-grid">
+    <!-- 主要内容区域 - 全宽布局 -->
+    <div class="content-full-width">
       <!-- 左侧：输入区域 -->
-      <div class="input-section">
-        <!-- 模式选择 -->
-        <VbenGlassCard title="操作模式" description="选择JSON处理模式" hoverable>
-          <a-radio-group v-model:value="mode" button-style="solid" @change="handleModeChange">
-            <a-radio-button value="format">格式化</a-radio-button>
-            <a-radio-button value="compare">对比</a-radio-button>
-          </a-radio-group>
-        </VbenGlassCard>
+      <div class="input-panel">
+        <!-- 格式化模式 -->
+        <JsonInputPanel
+          v-if="mode === 'format'"
+          v-model="inputJson"
+          :theme="isDark ? 'dark' : 'light'"
+          :show-validation="true"
+          :realtime-validation="true"
+          @change="handleInputChange"
+        />
 
-        <!-- JSON输入区域 -->
-        <VbenGlassCard
-          :title="mode === 'format' ? 'JSON 输入' : 'JSON 对比'"
-          :description="mode === 'format' ? '输入需要格式化的JSON数据' : '输入两个JSON数据进行对比'"
-          hoverable
-        >
-          <!-- 格式化模式 -->
-          <div v-if="mode === 'format'" class="json-input-section">
+        <!-- 对比模式 -->
+        <JsonComparePanel
+          v-else-if="mode === 'compare'"
+          ref="comparePanelRef"
+          :theme="isDark ? 'dark' : 'light'"
+          @compare="handleCompareResult"
+        />
+
+        <!-- 代码生成模式 -->
+        <div v-else-if="mode === 'generate'" class="mode-card">
+          <div class="mode-card-header">
+            <h3 class="mode-card-title">代码生成</h3>
+            <p class="mode-card-desc">将 JSON 转换为各编程语言的代码</p>
+          </div>
+          <div class="generate-section">
             <div class="form-row">
-              <a-checkbox v-model:checked="handleChineseComma"> 自动处理中文逗号（，） </a-checkbox>
+              <span class="label-text">目标语言：</span>
+              <a-select v-model:value="targetLanguage" style="width: 180px">
+                <a-select-option value="typescript">TypeScript</a-select-option>
+                <a-select-option value="java">Java</a-select-option>
+                <a-select-option value="python">Python</a-select-option>
+                <a-select-option value="go">Go</a-select-option>
+                <a-select-option value="csharp">C#</a-select-option>
+                <a-select-option value="kotlin">Kotlin</a-select-option>
+                <a-select-option value="swift">Swift</a-select-option>
+                <a-select-option value="dart">Dart</a-select-option>
+              </a-select>
             </div>
             <div class="form-row">
-              <a-checkbox v-model:checked="enableFold"> 启用代码折叠 </a-checkbox>
+              <span class="label-text">根类型名称：</span>
+              <a-input v-model:value="rootTypeName" placeholder="RootType" style="width: 160px" />
+            </div>
+            <div class="form-row">
+              <a-checkbox v-model:checked="useCamelCase">使用驼峰命名</a-checkbox>
+              <a-checkbox v-model:checked="addComments">添加注释</a-checkbox>
             </div>
             <div class="editor-wrapper">
               <CodeEditor
-                ref="jsonEditor"
                 v-model="inputJson"
                 language="json"
                 :theme="isDark ? 'dark' : 'light'"
                 placeholder='{"key": "value"}'
-                :enable-fold="enableFold"
+                :enable-fold="true"
                 :enable-search="true"
               />
             </div>
+            <div class="form-actions">
+              <GradientButton type="primary" size="md" @click="handleGenerateCode" :loading="generating">
+                <template #icon><CodeOutlined /></template>
+                生成代码
+              </GradientButton>
+            </div>
           </div>
+        </div>
 
-          <!-- 对比模式 -->
-          <div v-else class="json-compare-section">
-            <div class="compare-inputs">
-              <div class="compare-input">
-                <div class="input-label">JSON 1（左侧）</div>
-                <CodeEditor
-                  ref="jsonEditor1"
-                  v-model="compareJson1"
-                  language="json"
-                  :theme="isDark ? 'dark' : 'light'"
-                  placeholder='{"key": "value"}'
-                  :enable-fold="enableFold"
-                  :enable-search="true"
-                />
-              </div>
-              <div class="compare-input">
-                <div class="input-label">JSON 2（右侧）</div>
-                <CodeEditor
-                  ref="jsonEditor2"
-                  v-model="compareJson2"
-                  language="json"
-                  :theme="isDark ? 'dark' : 'light'"
-                  placeholder='{"key": "value"}'
-                  :enable-fold="enableFold"
-                  :enable-search="true"
-                />
-              </div>
-            </div>
+        <!-- 格式转换模式 -->
+        <div v-else-if="mode === 'convert'" class="mode-card">
+          <div class="mode-card-header">
+            <h3 class="mode-card-title">格式转换</h3>
+            <p class="mode-card-desc">将 JSON 转换为其他数据格式</p>
+          </div>
+          <div class="convert-section">
             <div class="form-row">
-              <a-space direction="vertical" style="width: 100%">
-                <div>
-                  <span class="label-text">对比字段：</span>
-                  <a-input
-                    v-model:value="compareField"
-                    placeholder="输入要对比的字段路径，如：data.users[0].name"
-                    style="width: 100%"
-                  />
-                </div>
-                <a-checkbox v-model:checked="deepCompare">
-                  深度对比（递归检查所有嵌套字段）
-                </a-checkbox>
-              </a-space>
+              <span class="label-text">目标格式：</span>
+              <a-select v-model:value="targetFormat" style="width: 140px">
+                <a-select-option value="xml">XML</a-select-option>
+                <a-select-option value="yaml">YAML</a-select-option>
+                <a-select-option value="csv">CSV</a-select-option>
+                <a-select-option value="sql">SQL</a-select-option>
+                <a-select-option value="toml">TOML</a-select-option>
+              </a-select>
+            </div>
+            <div class="editor-wrapper">
+              <CodeEditor
+                v-model="inputJson"
+                language="json"
+                :theme="isDark ? 'dark' : 'light'"
+                placeholder='{"key": "value"}'
+                :enable-fold="true"
+                :enable-search="true"
+              />
+            </div>
+            <div class="form-actions">
+              <GradientButton type="primary" size="md" @click="handleConvertFormat" :loading="converting">
+                <template #icon><SwapOutlined /></template>
+                转换格式
+              </GradientButton>
             </div>
           </div>
-        </VbenGlassCard>
+        </div>
       </div>
 
       <!-- 右侧：输出区域 -->
-      <div class="output-section">
+      <div class="output-panel">
         <!-- 格式化结果 -->
-        <VbenGlassCard
+        <JsonOutputPanel
           v-if="mode === 'format'"
+          v-model="outputJson"
+          :theme="isDark ? 'dark' : 'light'"
           title="格式化结果"
-          description="查看格式化后的JSON数据"
-          hoverable
-        >
-          <template #extra>
-            <a-space>
-              <a-button size="small" @click="copyOutput">
+          description="查看处理后的 JSON 数据"
+          :show-stats="true"
+          @copy="handleCopy"
+          @download="handleDownload"
+        />
+
+        <!-- 代码生成结果 -->
+        <div v-else-if="mode === 'generate'" class="mode-card output-card">
+          <div class="mode-card-header">
+            <h3 class="mode-card-title">生成结果</h3>
+            <p class="mode-card-desc">查看生成的代码</p>
+            <div class="header-actions">
+              <a-button size="small" @click="handleCopyGenerated">
                 <template #icon><CopyOutlined /></template>
                 复制
               </a-button>
-              <a-button size="small" @click="downloadOutput">
-                <template #icon><DownloadOutlined /></template>
-                下载
-              </a-button>
-            </a-space>
-          </template>
+            </div>
+          </div>
           <div class="editor-wrapper">
             <CodeEditor
-              ref="outputEditor"
-              v-model="outputJson"
-              language="json"
+              v-model="generatedCode"
+              :language="getCodeLanguage()"
               :theme="isDark ? 'dark' : 'light'"
               :readonly="true"
-              :enable-fold="enableFold"
+              :enable-fold="true"
               :enable-search="true"
             />
           </div>
-          <!-- 统计信息 -->
-          <div v-if="jsonStats" class="stats-panel">
-            <a-descriptions size="small" :column="2" bordered>
-              <a-descriptions-item label="对象数量">{{
-                jsonStats.objectCount
-              }}</a-descriptions-item>
-              <a-descriptions-item label="数组数量">{{ jsonStats.arrayCount }}</a-descriptions-item>
-              <a-descriptions-item label="字段总数">{{ jsonStats.fieldCount }}</a-descriptions-item>
-              <a-descriptions-item label="数据大小">{{
-                formatSize(jsonStats.size)
-              }}</a-descriptions-item>
-            </a-descriptions>
-          </div>
-        </VbenGlassCard>
+        </div>
 
-        <!-- 对比结果 -->
-        <VbenGlassCard v-else title="对比结果" description="查看JSON对比结果" hoverable>
-          <template #extra>
-            <a-space>
-              <GradientButton type="primary" size="sm" @click="compareJson" :loading="comparing">
-                <template #icon><SwapOutlined /></template>
-                开始对比
-              </GradientButton>
-            </a-space>
-          </template>
-          <div v-if="compareResult" class="compare-result">
-            <a-alert
-              :message="compareResult.message"
-              :type="compareResult.type"
-              show-icon
-              style="margin-bottom: 16px"
-            />
-            <div v-if="compareResult.differences.length > 0" class="differences-list">
-              <h4>差异详情：</h4>
-              <a-collapse>
-                <a-collapse-panel
-                  v-for="(diff, index) in compareResult.differences"
-                  :key="index"
-                  :header="diff.path"
-                >
-                  <div class="diff-content">
-                    <div class="diff-item">
-                      <span class="diff-label">类型：</span>
-                      <a-tag
-                        :color="
-                          diff.type === 'missing_left'
-                            ? 'red'
-                            : diff.type === 'missing_right'
-                              ? 'orange'
-                              : 'blue'
-                        "
-                      >
-                        {{ getDiffTypeText(diff.type) }}
-                      </a-tag>
-                    </div>
-                    <div v-if="diff.leftValue !== undefined" class="diff-item">
-                      <span class="diff-label">左侧值：</span>
-                      <code class="diff-value">{{ formatValue(diff.leftValue) }}</code>
-                    </div>
-                    <div v-if="diff.rightValue !== undefined" class="diff-item">
-                      <span class="diff-label">右侧值：</span>
-                      <code class="diff-value">{{ formatValue(diff.rightValue) }}</code>
-                    </div>
-                  </div>
-                </a-collapse-panel>
-              </a-collapse>
+        <!-- 格式转换结果 -->
+        <div v-else-if="mode === 'convert'" class="mode-card output-card">
+          <div class="mode-card-header">
+            <h3 class="mode-card-title">转换结果</h3>
+            <p class="mode-card-desc">查看转换后的数据</p>
+            <div class="header-actions">
+              <a-button size="small" @click="handleCopyConverted">
+                <template #icon><CopyOutlined /></template>
+                复制
+              </a-button>
+              <a-button size="small" @click="handleDownloadConverted">
+                <template #icon><DownloadOutlined /></template>
+                下载
+              </a-button>
             </div>
           </div>
-          <div v-else class="compare-placeholder">
-            <a-empty description="点击开始对比按钮查看对比结果" />
+          <div class="editor-wrapper">
+            <CodeEditor
+              v-model="convertedData"
+              :language="getConvertLanguage()"
+              :theme="isDark ? 'dark' : 'light'"
+              :readonly="true"
+              :enable-fold="true"
+              :enable-search="true"
+            />
           </div>
-        </VbenGlassCard>
+        </div>
+
+        <!-- 对比结果 -->
+        <div v-else-if="mode === 'compare'" class="compare-placeholder">
+          <a-empty description="对比结果将在左侧面板显示" />
+        </div>
       </div>
+    </div>
+
+    <!-- 底部操作栏 -->
+    <div class="bottom-actions">
+      <a-space :size="12">
+        <a-button @click="handleEncodeUnicode">
+          <template #icon><LinkOutlined /></template>
+          中文转Unicode
+        </a-button>
+        <a-button @click="handleDecodeUnicode">
+          <template #icon><DisconnectOutlined /></template>
+          Unicode转中文
+        </a-button>
+        <a-button @click="handleReset">
+          <template #icon><ReloadOutlined /></template>
+          重置
+        </a-button>
+      </a-space>
     </div>
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted } from 'vue'
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { storeToRefs } from 'pinia'
 import {
-  ReloadOutlined,
-  PlayCircleOutlined,
+  CodeOutlined,
   CopyOutlined,
   DownloadOutlined,
   SwapOutlined,
+  LinkOutlined,
+  DisconnectOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons-vue'
 import CodeEditor from '@/components/common/CodeEditor.vue'
 import VbenGlassCard from '@/components/common/VbenGlassCard.vue'
 import GradientButton from '@/components/common/GradientButton.vue'
+import JsonToolbar from '@/components/json/JsonToolbar.vue'
+import JsonInputPanel from '@/components/json/JsonInputPanel.vue'
+import JsonOutputPanel from '@/components/json/JsonOutputPanel.vue'
+import JsonComparePanel from '@/components/json/JsonComparePanel.vue'
 import { useThemeStore } from '@/stores/theme.js'
+import { useJsonTools } from '@/composables/json/useJsonTools'
+import { useJsonHistory } from '@/composables/json/useJsonHistory'
+import { generateCode, convertFormat } from '@/utils/json'
+import type { CodeGeneratorOptions, FormatConverterOptions, JsonCompareResult } from '@/types/json'
 
 const themeStore = useThemeStore()
 const { isDark } = storeToRefs(themeStore)
 
-const mode = ref('format')
-const inputJson = ref('')
-const outputJson = ref('')
-const compareJson1 = ref('')
-const compareJson2 = ref('')
-const compareField = ref('')
-const handleChineseComma = ref(true)
-const enableFold = ref(true)
-const deepCompare = ref(false)
-const formatting = ref(false)
-const comparing = ref(false)
-const jsonStats = ref(null)
-const compareResult = ref(null)
+const jsonTools = useJsonTools()
 
-const jsonEditor = ref(null)
-const jsonEditor1 = ref(null)
-const jsonEditor2 = ref(null)
-const outputEditor = ref(null)
+const modeDescription = computed(() => {
+  const descriptions: Record<string, string> = {
+    format: '快速格式化 JSON 数据，支持语法高亮和错误检查',
+    compare: '深度对比两个 JSON 数据，找出所有差异',
+    generate: '生成 TypeScript、Java、Python 等多种语言代码',
+    convert: '转换为 XML、YAML、CSV、SQL 等格式',
+  }
+  return descriptions[mode.value] || ''
+})
+
+const {
+  inputJson,
+  outputJson,
+  indentSpaces,
+  fontSize,
+  viewMode,
+  handleFormat: formatJson,
+  handleMinify,
+  handleEscape: escapeJson,
+  handleUnescape: unescapeJson,
+  handleEncodeUnicode: encodeUnicode,
+  handleDecodeUnicode: decodeUnicode,
+  handleClear,
+  handleCopy,
+  handleDownload,
+} = jsonTools
+
+const { addHistory } = useJsonHistory()
+
+const mode = ref<'format' | 'compare' | 'generate' | 'convert'>('format')
+const targetLanguage = ref<CodeGeneratorOptions['language']>('typescript')
+const rootTypeName = ref('RootType')
+const useCamelCase = ref(true)
+const addComments = ref(true)
+const targetFormat = ref<FormatConverterOptions['targetFormat']>('xml')
+const generating = ref(false)
+const converting = ref(false)
+const generatedCode = ref('')
+const convertedData = ref('')
+const comparePanelRef = ref<InstanceType<typeof JsonComparePanel> | null>(null)
 
 const handleModeChange = () => {
-  resetAll()
-}
-
-const resetAll = () => {
-  inputJson.value = ''
   outputJson.value = ''
-  compareJson1.value = ''
-  compareJson2.value = ''
-  compareField.value = ''
-  jsonStats.value = null
-  compareResult.value = null
-  message.success('已重置')
+  generatedCode.value = ''
+  convertedData.value = ''
 }
 
-const formatJson = async () => {
+const handleFormat = async () => {
+  await formatJson()
+  if (outputJson.value) {
+    addHistory(outputJson.value, 'format', 'JSON格式化')
+  }
+}
+
+const handleCompress = () => {
+  handleMinify()
+}
+
+const handleEscape = () => {
+  escapeJson()
+}
+
+const handleUnescape = () => {
+  unescapeJson()
+}
+
+const handleExpandAll = () => {
+  message.info('全展开功能')
+}
+
+const handleCollapseAll = () => {
+  message.info('全折叠功能')
+}
+
+const handleInputChange = () => {
+  // 输入变化时的处理
+}
+
+const handleCompareResult = (result: JsonCompareResult) => {
+  addHistory(JSON.stringify(result), 'compare', 'JSON对比')
+}
+
+const handleGenerateCode = async () => {
   if (!inputJson.value.trim()) {
     message.warning('请输入JSON数据')
     return
   }
 
-  formatting.value = true
+  generating.value = true
 
   try {
-    let jsonText = inputJson.value
-
-    if (handleChineseComma.value) {
-      jsonText = jsonText.replace(/，/g, ',')
+    const options: CodeGeneratorOptions = {
+      language: targetLanguage.value,
+      rootTypeName: rootTypeName.value,
+      useCamelCase: useCamelCase.value,
+      addComments: addComments.value,
+      optionalFields: false,
+      nullChecks: true,
     }
 
-    const parsed = JSON.parse(jsonText)
-    outputJson.value = JSON.stringify(parsed, null, 2)
-    jsonStats.value = calculateJsonStats(parsed)
-    message.success('格式化成功')
+    generatedCode.value = generateCode(inputJson.value, options)
+    message.success('代码生成成功')
   } catch (error) {
-    message.error('JSON格式错误: ' + error.message)
+    message.error('代码生成失败: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
-    formatting.value = false
+    generating.value = false
   }
 }
 
-const calculateJsonStats = (data) => {
-  let objectCount = 0
-  let arrayCount = 0
-  let fieldCount = 0
-
-  const traverse = (obj) => {
-    if (Array.isArray(obj)) {
-      arrayCount++
-      obj.forEach((item) => traverse(item))
-    } else if (typeof obj === 'object' && obj !== null) {
-      objectCount++
-      Object.keys(obj).forEach((key) => {
-        fieldCount++
-        traverse(obj[key])
-      })
-    }
-  }
-
-  traverse(data)
-
-  return {
-    objectCount,
-    arrayCount,
-    fieldCount,
-    size: new Blob([JSON.stringify(data)]).size,
-  }
-}
-
-const formatSize = (bytes) => {
-  if (bytes === 0) return '0 B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i]
-}
-
-const compareJson = async () => {
-  if (!compareJson1.value.trim() || !compareJson2.value.trim()) {
-    message.warning('请输入两个JSON数据进行对比')
+const handleConvertFormat = async () => {
+  if (!inputJson.value.trim()) {
+    message.warning('请输入JSON数据')
     return
   }
 
-  comparing.value = true
+  converting.value = true
 
   try {
-    let json1Text = compareJson1.value
-    let json2Text = compareJson2.value
-
-    if (handleChineseComma.value) {
-      json1Text = json1Text.replace(/，/g, ',')
-      json2Text = json2Text.replace(/，/g, ',')
+    const options: FormatConverterOptions = {
+      targetFormat: targetFormat.value,
+      xmlRootName: 'root',
+      csvDelimiter: ',',
+      sqlTableName: 'json_data',
+      includeHeader: true,
     }
 
-    const json1 = JSON.parse(json1Text)
-    const json2 = JSON.parse(json2Text)
-
-    if (compareField.value) {
-      const result = compareByField(json1, json2, compareField.value)
-      compareResult.value = result
-    } else if (deepCompare.value) {
-      const result = deepCompareJson(json1, json2)
-      compareResult.value = result
-    } else {
-      const result = shallowCompareJson(json1, json2)
-      compareResult.value = result
-    }
-
-    message.success('对比完成')
+    convertedData.value = convertFormat(inputJson.value, options)
+    message.success('格式转换成功')
   } catch (error) {
-    message.error('对比失败: ' + error.message)
+    message.error('格式转换失败: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
-    comparing.value = false
+    converting.value = false
   }
 }
 
-const compareByField = (json1, json2, fieldPath) => {
-  const getValueByPath = (obj, path) => {
-    const keys = path.split(/[.[\]]+/).filter(Boolean)
-    let current = obj
-    for (const key of keys) {
-      if (current === null || current === undefined) {
-        return undefined
-      }
-      current = current[key]
-    }
-    return current
-  }
-
-  const value1 = getValueByPath(json1, fieldPath)
-  const value2 = getValueByPath(json2, fieldPath)
-
-  if (value1 === undefined && value2 === undefined) {
-    return {
-      type: 'warning',
-      message: '两个JSON都不包含指定字段',
-      differences: [
-        {
-          path: fieldPath,
-          type: 'missing_both',
-          leftValue: undefined,
-          rightValue: undefined,
-        },
-      ],
-    }
-  } else if (value1 === undefined) {
-    return {
-      type: 'warning',
-      message: '左侧JSON缺少指定字段',
-      differences: [
-        {
-          path: fieldPath,
-          type: 'missing_left',
-          leftValue: undefined,
-          rightValue: value2,
-        },
-      ],
-    }
-  } else if (value2 === undefined) {
-    return {
-      type: 'warning',
-      message: '右侧JSON缺少指定字段',
-      differences: [
-        {
-          path: fieldPath,
-          type: 'missing_right',
-          leftValue: value1,
-          rightValue: undefined,
-        },
-      ],
-    }
-  } else {
-    const isEqual = JSON.stringify(value1) === JSON.stringify(value2)
-    if (isEqual) {
-      return {
-        type: 'success',
-        message: '指定字段值相同',
-        differences: [],
-      }
-    } else {
-      return {
-        type: 'error',
-        message: '指定字段值不同',
-        differences: [
-          {
-            path: fieldPath,
-            type: 'different',
-            leftValue: value1,
-            rightValue: value2,
-          },
-        ],
-      }
-    }
-  }
+const handleEncodeUnicode = () => {
+  encodeUnicode()
 }
 
-const deepCompareJson = (obj1, obj2, path = '') => {
-  const differences = []
-
-  const traverse = (o1, o2, currentPath) => {
-    if (o1 === o2) return
-
-    if (o1 === undefined || o1 === null) {
-      differences.push({
-        path: currentPath,
-        type: 'missing_left',
-        leftValue: o1,
-        rightValue: o2,
-      })
-      return
-    }
-
-    if (o2 === undefined || o2 === null) {
-      differences.push({
-        path: currentPath,
-        type: 'missing_right',
-        leftValue: o1,
-        rightValue: o2,
-      })
-      return
-    }
-
-    if (typeof o1 !== typeof o2) {
-      differences.push({
-        path: currentPath,
-        type: 'different',
-        leftValue: o1,
-        rightValue: o2,
-      })
-      return
-    }
-
-    if (Array.isArray(o1) && Array.isArray(o2)) {
-      const maxLength = Math.max(o1.length, o2.length)
-      for (let i = 0; i < maxLength; i++) {
-        if (i >= o1.length) {
-          differences.push({
-            path: `${currentPath}[${i}]`,
-            type: 'missing_left',
-            leftValue: undefined,
-            rightValue: o2[i],
-          })
-        } else if (i >= o2.length) {
-          differences.push({
-            path: `${currentPath}[${i}]`,
-            type: 'missing_right',
-            leftValue: o1[i],
-            rightValue: undefined,
-          })
-        } else {
-          traverse(o1[i], o2[i], `${currentPath}[${i}]`)
-        }
-      }
-    } else if (typeof o1 === 'object' && typeof o2 === 'object') {
-      const keys1 = Object.keys(o1)
-      const keys2 = Object.keys(o2)
-      const allKeys = new Set([...keys1, ...keys2])
-
-      allKeys.forEach((key) => {
-        if (!keys1.includes(key)) {
-          differences.push({
-            path: currentPath ? `${currentPath}.${key}` : key,
-            type: 'missing_left',
-            leftValue: undefined,
-            rightValue: o2[key],
-          })
-        } else if (!keys2.includes(key)) {
-          differences.push({
-            path: currentPath ? `${currentPath}.${key}` : key,
-            type: 'missing_right',
-            leftValue: o1[key],
-            rightValue: undefined,
-          })
-        } else {
-          traverse(o1[key], o2[key], currentPath ? `${currentPath}.${key}` : key)
-        }
-      })
-    } else if (o1 !== o2) {
-      differences.push({
-        path: currentPath,
-        type: 'different',
-        leftValue: o1,
-        rightValue: o2,
-      })
-    }
-  }
-
-  traverse(obj1, obj2, path)
-
-  if (differences.length === 0) {
-    return {
-      type: 'success',
-      message: '两个JSON完全相同',
-      differences: [],
-    }
-  } else {
-    return {
-      type: 'error',
-      message: `发现 ${differences.length} 处差异`,
-      differences,
-    }
-  }
+const handleDecodeUnicode = () => {
+  decodeUnicode()
 }
 
-const shallowCompareJson = (obj1, obj2) => {
-  const str1 = JSON.stringify(obj1)
-  const str2 = JSON.stringify(obj2)
-
-  if (str1 === str2) {
-    return {
-      type: 'success',
-      message: '两个JSON完全相同',
-      differences: [],
-    }
-  } else {
-    return {
-      type: 'warning',
-      message: '两个JSON不同（使用深度对比查看详细差异）',
-      differences: [
-        {
-          path: 'root',
-          type: 'different',
-          leftValue: obj1,
-          rightValue: obj2,
-        },
-      ],
-    }
-  }
+const handleReset = () => {
+  handleClear()
+  generatedCode.value = ''
+  convertedData.value = ''
+  message.success('已重置')
 }
 
-const getDiffTypeText = (type) => {
-  const typeMap = {
-    missing_left: '左侧缺失',
-    missing_right: '右侧缺失',
-    missing_both: '两侧缺失',
-    different: '值不同',
-  }
-  return typeMap[type] || type
-}
-
-const formatValue = (value) => {
-  if (value === undefined) return 'undefined'
-  if (value === null) return 'null'
-  if (typeof value === 'object') {
-    return JSON.stringify(value, null, 2)
-  }
-  return String(value)
-}
-
-const copyOutput = async () => {
-  if (!outputJson.value) {
+const handleCopyGenerated = async () => {
+  if (!generatedCode.value) {
     message.warning('没有内容可复制')
     return
   }
   try {
-    await navigator.clipboard.writeText(outputJson.value)
+    await navigator.clipboard.writeText(generatedCode.value)
     message.success('已复制到剪贴板')
   } catch {
     message.error('复制失败')
   }
 }
 
-const downloadOutput = () => {
-  if (!outputJson.value) {
+const handleCopyConverted = async () => {
+  if (!convertedData.value) {
+    message.warning('没有内容可复制')
+    return
+  }
+  try {
+    await navigator.clipboard.writeText(convertedData.value)
+    message.success('已复制到剪贴板')
+  } catch {
+    message.error('复制失败')
+  }
+}
+
+const handleDownloadConverted = () => {
+  if (!convertedData.value) {
     message.warning('没有内容可下载')
     return
   }
-  const blob = new Blob([outputJson.value], { type: 'application/json' })
+
+  const extension = getConvertExtension()
+  const mimeType = getConvertMimeType()
+
+  const blob = new Blob([convertedData.value], { type: mimeType })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = 'formatted.json'
+  a.download = `converted.${extension}`
   a.click()
   URL.revokeObjectURL(url)
   message.success('下载成功')
+}
+
+const getCodeLanguage = (): string => {
+  const languageMap: Record<string, string> = {
+    typescript: 'typescript',
+    java: 'java',
+    python: 'python',
+    go: 'go',
+    csharp: 'csharp',
+    kotlin: 'kotlin',
+    swift: 'swift',
+    dart: 'dart',
+  }
+  return languageMap[targetLanguage.value] || 'typescript'
+}
+
+const getConvertLanguage = (): string => {
+  const languageMap: Record<string, string> = {
+    xml: 'xml',
+    yaml: 'yaml',
+    csv: 'csv',
+    sql: 'sql',
+    toml: 'toml',
+  }
+  return languageMap[targetFormat.value] || 'text'
+}
+
+const getConvertExtension = (): string => {
+  const extensionMap: Record<string, string> = {
+    xml: 'xml',
+    yaml: 'yaml',
+    csv: 'csv',
+    sql: 'sql',
+    toml: 'toml',
+  }
+  return extensionMap[targetFormat.value] || 'txt'
+}
+
+const getConvertMimeType = (): string => {
+  const mimeMap: Record<string, string> = {
+    xml: 'application/xml',
+    yaml: 'text/yaml',
+    csv: 'text/csv',
+    sql: 'application/sql',
+    toml: 'text/plain',
+  }
+  return mimeMap[targetFormat.value] || 'text/plain'
 }
 
 onMounted(() => {
@@ -647,76 +527,145 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-// ========================================
-// JSON 页面样式
-// 使用 SCSS 变量和混入实现主题切换
-// ========================================
-
-// JSON 页面容器
 .json-page {
   min-height: 100vh;
   background: $bg-base;
-  padding: 40px 20px;
+  padding: 20px 0;
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
-// 页面头部 - 居中布局
 .page-header {
   text-align: center;
-  margin-bottom: 60px;
+  margin-bottom: 20px;
+  padding: 0 24px;
 }
 
-// 页面标题 - 使用主色
 .page-title {
-  font-size: 48px;
+  font-size: 42px;
   font-weight: 700;
   color: $color-primary;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   line-height: 1.2;
 }
 
-// 页面副标题 - 说明工具功能
 .page-subtitle {
-  font-size: 20px;
+  font-size: 18px;
   color: $text-secondary;
   margin-bottom: 0;
-  line-height: 1.6;
+  line-height: 1.5;
 }
 
-// 操作按钮区域 - 居中显示
-.action-buttons {
+.toolbar-container {
   display: flex;
+  flex-direction: column;
   gap: 16px;
-  justify-content: center;
-  margin-bottom: 32px;
+  margin-bottom: 20px;
+  padding: 20px 24px;
+  background: $card-bg;
+  border-radius: 0;
+  box-shadow: none;
+  border-top: 1px solid $border-default;
+  border-bottom: 1px solid $border-default;
 }
 
-// 内容网格布局 - 响应式设计
-.content-grid {
+.mode-selector {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.mode-description {
+  font-size: 13px;
+  color: $text-secondary;
+  font-style: italic;
+}
+
+.content-full-width {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  min-height: calc(100vh - 180px);
-}
-
-// 输入和输出区域
-.input-section,
-.output-section {
-  @include flex-column;
   gap: 20px;
+  width: 100%;
+  min-height: calc(100vh - 280px);
+  padding: 0 24px;
 }
 
-// 表单行
+.input-panel,
+.output-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.mode-card {
+  display: flex;
+  flex-direction: column;
+  background: $card-bg;
+  border: 1px solid $border-default;
+  border-radius: $border-radius-lg;
+  overflow: hidden;
+  flex: 1;
+}
+
+.mode-card-header {
+  padding: 16px 20px;
+  background: $bg-elevated;
+  border-bottom: 1px solid $border-default;
+}
+
+.header-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+}
+
+.mode-card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: $text-primary;
+  margin: 0 0 4px 0;
+}
+
+.mode-card-desc {
+  font-size: 13px;
+  color: $text-secondary;
+  margin: 0;
+}
+
+.generate-section,
+.convert-section {
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  gap: 16px;
+  flex: 1;
+}
+
 .form-row {
-  margin-bottom: 16px;
-
-  &:last-child {
-    margin-bottom: 0;
-  }
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
-// 编辑器包装器
+.form-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.label-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: $text-secondary;
+  min-width: 80px;
+}
+
 .editor-wrapper {
-  margin-top: 16px;
+  flex: 1;
+  min-height: 300px;
   border-radius: $border-radius-md;
   overflow: hidden;
   transition: $transition-normal;
@@ -726,157 +675,52 @@ onMounted(() => {
   }
 }
 
-// JSON 输入区域
-.json-input-section {
-  @include flex-column;
-  gap: 12px;
-}
-
-// JSON 对比区域
-.json-compare-section {
-  @include flex-column;
-  gap: 16px;
-}
-
-// 对比输入框布局
-.compare-inputs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-// 单个对比输入框
-.compare-input {
-  @include flex-column;
-  gap: 8px;
-}
-
-// 输入标签
-.input-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: $text-secondary;
-  padding: 4px 0;
-}
-
-// 标签文本
-.label-text {
-  font-size: 13px;
-  font-weight: 500;
-  color: $text-secondary;
-}
-
-// 统计信息面板
-.stats-panel {
-  margin-top: 20px;
-  padding-top: 20px;
-  @include divider-top;
-  transition: $transition-normal;
-}
-
-// 对比结果区域
-.compare-result {
-  min-height: 200px;
-}
-
-// 对比占位符 - 居中显示
 .compare-placeholder {
-  min-height: 200px;
-  @include flex-center;
-}
-
-// 差异列表
-.differences-list {
-  h4 {
-    margin-bottom: 16px;
-    font-size: 14px;
-    font-weight: 600;
-    color: $text-primary;
-  }
-}
-
-// 差异内容
-.diff-content {
-  padding: 12px 0;
-}
-
-// 差异项
-.diff-item {
-  margin-bottom: 12px;
+  flex: 1;
+  min-height: 300px;
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
-
-  &:last-child {
-    margin-bottom: 0;
-  }
+  align-items: center;
+  justify-content: center;
+  background: $card-bg;
+  border-radius: $border-radius-lg;
 }
 
-// 差异标签
-.diff-label {
-  font-size: 13px;
-  color: $text-secondary;
-  min-width: 80px;
-  flex-shrink: 0;
+.bottom-actions {
+  display: flex;
+  justify-content: center;
+  padding: 16px 24px;
+  margin-top: 20px;
+  border-top: 1px solid $border-default;
+  background: $card-bg;
 }
-
-// 差异值
-.diff-value {
-  background: $color-primary-bg;
-  padding: 6px 12px;
-  border-radius: $border-radius-sm;
-  font-size: 12px;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-  max-width: 100%;
-  overflow-x: auto;
-  border: 1px solid $border-default;
-  transition: $transition-normal;
-
-  &:hover {
-    background: $color-primary-bg;
-    border-color: $color-primary;
-  }
-}
-
-// ========================================
-// 响应式设计
-// ========================================
 
 @media (max-width: 1400px) {
   .json-page {
-    padding: 32px 16px;
-  }
-
-  .page-header {
-    margin-bottom: 48px;
+    padding: 20px 16px;
   }
 
   .page-title {
     font-size: 36px;
   }
 
-  .page-subtitle {
-    font-size: 18px;
+  .content-full-width {
+    gap: 16px;
   }
 }
 
 @media (max-width: 1200px) {
-  .content-grid {
+  .content-full-width {
     grid-template-columns: 1fr;
   }
 
-  .compare-inputs {
-    grid-template-columns: 1fr;
+  .editor-wrapper {
+    min-height: 250px;
   }
 }
 
 @media (max-width: 768px) {
   .json-page {
-    padding: 24px 12px;
-  }
-
-  .page-header {
-    margin-bottom: 40px;
+    padding: 16px 12px;
   }
 
   .page-title {
@@ -884,35 +728,57 @@ onMounted(() => {
   }
 
   .page-subtitle {
-    font-size: 16px;
+    font-size: 15px;
   }
 
-  .action-buttons {
+  .toolbar-container {
+    padding: 16px;
+  }
+
+  .mode-selector {
     flex-direction: column;
-    width: 100%;
+  }
 
-    button {
-      width: 100%;
+  .mode-description {
+    text-align: center;
+  }
+
+  .content-full-width {
+    gap: 12px;
+  }
+
+  .mode-card-header {
+    padding: 12px 16px;
+  }
+
+  .generate-section,
+  .convert-section {
+    padding: 16px;
+  }
+
+  .form-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .label-text {
+    min-width: auto;
+  }
+
+  .bottom-actions {
+    flex-direction: column;
+    align-items: stretch;
+
+    .ant-space {
+      flex-wrap: wrap;
+      justify-content: center;
     }
-  }
-
-  .content-grid {
-    gap: 16px;
-  }
-
-  .input-section,
-  .output-section {
-    gap: 16px;
   }
 }
 
 @media (max-width: 480px) {
   .json-page {
-    padding: 20px 15px;
-  }
-
-  .page-header {
-    margin-bottom: 32px;
+    padding: 12px 10px;
   }
 
   .page-title {
@@ -923,12 +789,8 @@ onMounted(() => {
     font-size: 14px;
   }
 
-  .content-grid {
-    gap: 12px;
-  }
-
-  .compare-inputs {
-    gap: 12px;
+  .editor-wrapper {
+    min-height: 200px;
   }
 }
 </style>

@@ -77,7 +77,17 @@
       <div class="content-wrapper">
         <!-- 面包屑导航 -->
         <a-breadcrumb class="breadcrumb" v-if="showBreadcrumb">
-          <a-breadcrumb-item>在线工具箱</a-breadcrumb-item>
+          <a-breadcrumb-item>
+            <router-link to="/" class="breadcrumb-link">在线工具箱</router-link>
+          </a-breadcrumb-item>
+          <a-breadcrumb-item v-if="currentRouteMeta.parent">
+            <router-link
+              :to="currentRouteMeta.parent.path"
+              class="breadcrumb-link"
+            >
+              {{ currentRouteMeta.parent.title }}
+            </router-link>
+          </a-breadcrumb-item>
           <a-breadcrumb-item>{{ currentPageTitle }}</a-breadcrumb-item>
         </a-breadcrumb>
 
@@ -105,21 +115,31 @@
     </a-layout-footer>
 
     <!-- 全局设置模态框 -->
-    <a-modal v-model:open="settingsVisible" title="系统设置" width="600px" :footer="null">
+    <a-modal
+      v-model:open="settingsVisible"
+      title="系统设置"
+      width="600px"
+      :footer="null"
+    >
       <SettingsPanel @close="settingsVisible = false" />
     </a-modal>
 
     <!-- 关于模态框 -->
-    <a-modal v-model:open="aboutVisible" title="关于SQL生成工具" width="500px" :footer="null">
+    <a-modal
+      v-model:open="aboutVisible"
+      title="关于SQL生成工具"
+      width="500px"
+      :footer="null"
+    >
       <AboutPanel @close="aboutVisible = false" />
     </a-modal>
   </a-layout>
 </template>
 
-<script setup>
-import { ref, computed, onMounted, watch } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { storeToRefs } from 'pinia'
+<script setup lang="ts">
+import { ref, computed, onMounted, watch } from "vue";
+import { useRouter, useRoute } from "vue-router";
+import { storeToRefs } from "pinia";
 import {
   HomeOutlined,
   BulbOutlined,
@@ -129,102 +149,135 @@ import {
   ExportOutlined,
   InfoCircleOutlined,
   DatabaseOutlined,
-} from '@ant-design/icons-vue'
-import SettingsPanel from './SettingsPanel.vue'
-import AboutPanel from './AboutPanel.vue'
-import { useThemeStore } from '@/stores/theme.js'
+} from "@ant-design/icons-vue";
+import SettingsPanel from "./SettingsPanel.vue";
+import AboutPanel from "./AboutPanel.vue";
+import { useThemeStore } from "@/stores/theme.js";
 
-const router = useRouter()
-const route = useRoute()
-const themeStore = useThemeStore()
-const { isDark } = storeToRefs(themeStore)
+/**
+ * 路由配置类型
+ */
+interface RouteConfig {
+  parent: { path: string; title: string } | null;
+}
+
+const router = useRouter();
+const route = useRoute();
+const themeStore = useThemeStore();
+const { isDark } = storeToRefs(themeStore);
 
 // 响应式数据
-const selectedKeys = ref(['home'])
-const settingsVisible = ref(false)
-const aboutVisible = ref(false)
+const selectedKeys = ref(["home"]);
+const settingsVisible = ref(false);
+const aboutVisible = ref(false);
 
 // 计算属性
 const currentPageTitle = computed(() => {
-  const routeName = route.name
+  const routeName = route.name;
   switch (routeName) {
-    case 'home':
-      return '工具箱'
-    case 'sql-tool':
-      return 'SQL生成工具'
-    case 'tool-insertpage':
-      return 'INSERT语句生成'
-    case 'tool-updatepage':
-      return 'UPDATE语句生成'
+    case "home":
+      return "工具箱";
+    case "sql-tool":
+      return "SQL生成工具";
+    case "tool-insertpage":
+      return "INSERT语句生成";
+    case "tool-updatepage":
+      return "UPDATE语句生成";
     default:
-      return route.meta?.title || '在线工具箱'
+      return route.meta?.title || "在线工具箱";
   }
-})
+});
 
 const showBreadcrumb = computed(() => {
-  return route.name !== 'home' && route.name !== 'sql-tool'
-})
+  return route.name !== "home" && route.name !== "sql-tool";
+});
+
+/**
+ * 当前路由元信息
+ * 用于面包屑导航的父级路由信息
+ */
+const currentRouteMeta = computed(() => {
+  const routeName = route.name;
+  const routeConfigs: Record<string, RouteConfig> = {
+    "tool-insertpage": {
+      parent: { path: "/sql-tool", title: "SQL生成工具" },
+    },
+    "tool-updatepage": {
+      parent: { path: "/sql-tool", title: "SQL生成工具" },
+    },
+    "tool-jsonpage": {
+      parent: { path: "/", title: "工具箱" },
+    },
+    "tool-timestamppelperpage": {
+      parent: { path: "/", title: "工具箱" },
+    },
+    "tool-excelfillpage": {
+      parent: { path: "/", title: "工具箱" },
+    },
+  };
+  return routeConfigs[routeName as string] || { parent: null };
+});
 
 const menuTheme = computed(() => {
-  return isDark.value ? 'dark' : 'light'
-})
+  return isDark.value ? "dark" : "light";
+});
 
 // 方法
 const handleMenuClick = ({ key }) => {
   switch (key) {
-    case 'home':
-      router.push('/')
-      break
-    case 'sql-tool':
-      router.push('/sql-tool')
-      break
-    case 'insert':
-      router.push('/sql/insert')
-      break
-    case 'update':
-      router.push('/sql/update')
-      break
+    case "home":
+      router.push("/");
+      break;
+    case "sql-tool":
+      router.push("/sql-tool");
+      break;
+    case "insert":
+      router.push("/sql/insert");
+      break;
+    case "update":
+      router.push("/sql/update");
+      break;
   }
-}
+};
 
 const toggleTheme = () => {
-  themeStore.toggle()
-}
+  themeStore.toggle();
+};
 
 const showSettings = () => {
-  settingsVisible.value = true
-}
+  settingsVisible.value = true;
+};
 
 const showAbout = () => {
-  aboutVisible.value = true
-}
+  aboutVisible.value = true;
+};
 
 const exportLogs = () => {
-  console.log('导出日志')
-}
+  console.log("导出日志");
+};
 
 const showFeedback = () => {
-  console.log('显示反馈表单')
-}
+  console.log("显示反馈表单");
+};
 
 const showHelp = () => {
-  console.log('显示帮助文档')
-}
+  console.log("显示帮助文档");
+};
 
 // 监听路由变化
 watch(
   () => route.name,
   (routeName) => {
     if (routeName) {
-      selectedKeys.value = [routeName]
+      selectedKeys.value = [routeName];
     }
   },
-)
+);
 
 // 生命周期
 onMounted(() => {
-  console.log('MainLayout 已加载')
-})
+  console.log("MainLayout 已加载");
+});
 </script>
 
 <style scoped>
@@ -237,7 +290,11 @@ onMounted(() => {
 }
 
 .header {
-  background: linear-gradient(135deg, var(--header-bg-start) 0%, var(--header-bg-end) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--header-bg-start) 0%,
+    var(--header-bg-end) 100%
+  );
   padding: 0;
   box-shadow: var(--shadow-header);
   transition: all var(--transition-normal) ease;
@@ -332,6 +389,16 @@ onMounted(() => {
   margin-bottom: 16px;
 }
 
+.breadcrumb-link {
+  color: var(--text-link);
+  text-decoration: none;
+  transition: color var(--transition-normal) ease;
+}
+
+.breadcrumb-link:hover {
+  color: var(--text-link-hover);
+}
+
 .page-content {
   background: var(--card-bg);
   border-radius: var(--border-radius-sm);
@@ -341,7 +408,11 @@ onMounted(() => {
 }
 
 .footer {
-  background: linear-gradient(135deg, var(--header-bg-start) 0%, var(--header-bg-end) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--header-bg-start) 0%,
+    var(--header-bg-end) 100%
+  );
   color: var(--header-text-secondary);
   padding: 16px 0;
   transition: all var(--transition-normal) ease;

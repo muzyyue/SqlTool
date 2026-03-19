@@ -425,3 +425,156 @@ export class TestReporter {
 export function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
+
+/**
+ * 添加自定义字段配置
+ * @param {Page} page - Playwright页面对象
+ * @param {Object} fieldConfig - 字段配置对象
+ * @returns {Promise<boolean>} 是否成功添加
+ */
+export async function addCustomField(page, fieldConfig) {
+  const result = await page.evaluate(async (config) => {
+    try {
+      // 等待模态框完全加载
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // 点击"添加字段"按钮
+      const addButton = document.querySelector('button:has-text("添加字段")');
+      if (!addButton) {
+        return { success: false, error: '添加字段按钮未找到' };
+      }
+      addButton.click();
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // 填写字段名
+      const fieldNameInput = document.querySelector('input[placeholder*="字段名"]');
+      if (fieldNameInput) {
+        fieldNameInput.value = config.fieldName;
+        fieldNameInput.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+
+      // 选择数据类型
+      const dataTypeSelect = document.querySelector('.ant-select:has-text("选择数据类型")');
+      if (dataTypeSelect) {
+        dataTypeSelect.click();
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        const dataTypeItem = Array.from(document.querySelectorAll('.ant-select-item'))
+          .find(item => item.textContent.includes(config.dataType));
+        if (dataTypeItem) {
+          dataTypeItem.click();
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
+      }
+
+      // 选择数据来源
+      const dataSourceSelect = document.querySelector('.ant-select:has-text("选择数据来源")');
+      if (dataSourceSelect) {
+        dataSourceSelect.click();
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        const dataSourceItem = Array.from(document.querySelectorAll('.ant-select-item'))
+          .find(item => item.textContent.includes(config.dataSource));
+        if (dataSourceItem) {
+          dataSourceItem.click();
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+
+      // 如果是系统函数，配置函数参数
+      if (config.dataSource === '系统函数') {
+        // 选择数据库类型
+        const dbTypeSelect = document.querySelector('.ant-select:has-text("选择数据库")');
+        if (dbTypeSelect) {
+          dbTypeSelect.click();
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          const dbTypeItem = Array.from(document.querySelectorAll('.ant-select-item'))
+            .find(item => item.textContent.includes(config.databaseType));
+          if (dbTypeItem) {
+            dbTypeItem.click();
+            await new Promise(resolve => setTimeout(resolve, 300));
+          }
+        }
+
+        // 选择函数
+        const funcSelect = document.querySelector('.ant-select:has-text("选择函数")');
+        if (funcSelect) {
+          funcSelect.click();
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          const funcItem = Array.from(document.querySelectorAll('.ant-select-item'))
+            .find(item => item.textContent.includes(config.functionName));
+          if (funcItem) {
+            funcItem.click();
+            await new Promise(resolve => setTimeout(resolve, 300));
+          }
+        }
+      }
+
+      // 点击"确定"按钮保存配置
+      const confirmButton = document.querySelector('button:has-text("确定")');
+      if (confirmButton) {
+        confirmButton.click();
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }, fieldConfig);
+
+  return result.success;
+}
+
+/**
+ * 保存自定义字段配置
+ * @param {Page} page - Playwright页面对象
+ * @returns {Promise<void>}
+ */
+export async function saveCustomFieldConfig(page) {
+  await page.click('button:has-text("保存配置")');
+  await page.waitForTimeout(1000);
+}
+
+/**
+ * 选择数据库类型
+ * @param {Page} page - Playwright页面对象
+ * @param {string} dbType - 数据库类型（MySQL、PostgreSQL、SQL Server）
+ * @returns {Promise<void>}
+ */
+export async function selectDatabaseType(page, dbType) {
+  await page.click(`label:has-text("${dbType}")`);
+  await page.waitForTimeout(500);
+}
+
+/**
+ * 切换到自定义字段标签页
+ * @param {Page} page - Playwright页面对象
+ * @returns {Promise<void>}
+ */
+export async function switchToCustomFieldsTab(page) {
+  await page.click('div:has-text("自定义字段")');
+  await page.waitForTimeout(500);
+}
+
+/**
+ * 验证 SQL 包含系统函数
+ * @param {Object} sqlResult - SQL内容对象
+ * @param {string} functionName - 系统函数名
+ * @returns {boolean} 是否包含该函数
+ */
+export function validateSystemFunction(sqlResult, functionName) {
+  return sqlResult.fullText.includes(functionName);
+}
+
+/**
+ * 验证 SQL 不包含 UUID
+ * @param {Object} sqlResult - SQL内容对象
+ * @returns {boolean} 是否不包含 UUID
+ */
+export function validateNoUuid(sqlResult) {
+  return !sqlResult.fullText.includes('UUID()') && 
+         !sqlResult.fullText.includes('GEN_RANDOM_UUID()');
+}
