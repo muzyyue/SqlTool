@@ -1,20 +1,25 @@
-// 由于node-sql-parser是CommonJS模块，需要使用动态导入方式
+// node-sql-parser 在浏览器环境中需要使用特定数据库的构建版本
+// 使用 mysql 构建版本以避免 Node.js 全局对象依赖问题
 let Parser;
 
-// 初始化Parser的异步函数
+/**
+ * 初始化 Parser 的异步函数
+ * 使用 node-sql-parser/build/mysql 以确保浏览器兼容性
+ */
 const initParser = async () => {
   if (!Parser) {
     try {
-      const parserModule = await import("node-sql-parser");
+      // 优先使用 MySQL 构建版本（浏览器兼容）
+      const parserModule = await import("node-sql-parser/build/mysql");
       Parser =
         parserModule.Parser ||
         parserModule.default?.Parser ||
         parserModule.default;
     } catch (error) {
-      console.error("Failed to import node-sql-parser:", error);
-      // 如果动态导入失败，尝试其他方式
+      console.error("Failed to import node-sql-parser/build/mysql:", error);
+      // 回退到通用版本（可能在某些环境下工作）
       try {
-        const parserModule = await import("node-sql-parser/build/mysql");
+        const parserModule = await import("node-sql-parser");
         Parser =
           parserModule.Parser ||
           parserModule.default?.Parser ||
@@ -37,22 +42,29 @@ export function useSqlGenerator() {
     return str.replace(/'/g, "''");
   };
 
-  // 解析DDL语句获取字段名
+  // 解析 DDL 语句获取字段名
   const parseDdlForFields = async (ddlStatement) => {
     // 检查输入有效性
-    if (!ddlStatement) return [];
+    if (
+      !ddlStatement ||
+      typeof ddlStatement !== "string" ||
+      ddlStatement.trim() === ""
+    ) {
+      console.warn("parseDdlForFields: 输入为空或非字符串，返回空数组");
+      return [];
+    }
 
     try {
-      // 初始化Parser
+      // 初始化 Parser
       await initParser();
 
-      // 如果Parser初始化成功，使用node-sql-parser解析
+      // 如果 Parser 初始化成功，使用 node-sql-parser 解析
       if (Parser) {
         try {
           const parser = new Parser();
           const ast = parser.parse(ddlStatement, { database: "MySQL" });
 
-          // 从AST中提取字段名
+          // 从 AST 中提取字段名
           const fields = [];
 
           if (ast && ast.ast && ast.ast[0] && ast.ast[0].create_definitions) {
@@ -66,26 +78,32 @@ export function useSqlGenerator() {
           return fields;
         } catch (parseError) {
           console.warn(
-            "使用node-sql-parser解析失败，回退到正则表达式方法:",
-            parseError,
+            "使用 node-sql-parser 解析失败，回退到正则表达式方法:",
+            parseError.message || parseError,
           );
         }
       }
 
-      // 如果Parser未初始化或解析失败，使用原来的正则表达式方法
-      // 正则表达式方法解析达梦数据库DDL
-      // 1. 首先提取CREATE TABLE语句中的字段定义部分
+      // 如果 Parser 未初始化或解析失败，使用原来的正则表达式方法
+      // 正则表达式方法解析达梦数据库 DDL
+      // 1. 首先提取 CREATE TABLE 语句中的字段定义部分
       // 使用更可靠的方法处理嵌套括号
       const createTableIndex = ddlStatement
         .toLowerCase()
         .indexOf("create table");
       if (createTableIndex === -1) {
+        console.warn(
+          "parseDdlForFields: 未找到 CREATE TABLE 关键字，返回空数组",
+        );
         return [];
       }
 
       // 找到第一个左括号
       const leftParenIndex = ddlStatement.indexOf("(", createTableIndex);
       if (leftParenIndex === -1) {
+        console.warn(
+          "parseDdlForFields: 未找到字段定义开始的左括号，返回空数组",
+        );
         return [];
       }
 
@@ -106,6 +124,7 @@ export function useSqlGenerator() {
 
       if (depth !== 0) {
         // 没有找到匹配的右括号
+        console.warn("parseDdlForFields: 括号未正确闭合，返回空数组");
         return [];
       }
 
@@ -116,7 +135,7 @@ export function useSqlGenerator() {
       );
 
       // 3. 使用正则表达式匹配字段名
-      // 匹配模式："字段名" 数据类型(参数) 其他属性
+      // 匹配模式："字段名" 数据类型 (参数) 其他属性
       // 改进的正则表达式，支持包含括号的数据类型和换行符
       const fieldRegex = /"([^"]+)"\s+\w+(?:\([^)]*\))?/gim;
       const fields = [];
@@ -129,9 +148,11 @@ export function useSqlGenerator() {
       }
 
       // 去重并返回字段名数组
-      return [...new Set(fields)];
+      const uniqueFields = [...new Set(fields)];
+      console.log(`parseDdlForFields: 成功解析 ${uniqueFields.length} 个字段`);
+      return uniqueFields;
     } catch (error) {
-      console.error("DDL解析错误:", error);
+      console.error("DDL 解析错误:", error.message || error);
       return [];
     }
   };

@@ -1,5 +1,15 @@
 # 版本变更历史
 
+## 1.5.49 (2026-03-20)
+
+**修复生产构建代码分割导致的运行时错误**
+
+- 修复 `node-sql-parser` 单独拆分后 `Cannot read properties of undefined (reading 'hasOwnProperty')` 错误
+- 修复 `CodeMirror 6` 单独拆分后 `Cannot access 'e' before initialization` 错误
+- 优化 `manualChunks` 配置，移除 `node-sql-parser` 和 `codemirror` 的单独拆分
+- 将 `node-sql-parser` 和 `codemirror` 合并到 `vendor` chunk，确保依赖完整性
+- 保留 `vue-vendor`、`antd-vendor`、`xlsx-vendor`、`ai-transformers` 的独立拆分
+
 ## 1.5.48 (2026-03-19)
 
 **JSON 工具优化与布局改进**

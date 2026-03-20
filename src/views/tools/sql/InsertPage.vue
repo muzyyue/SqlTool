@@ -23,7 +23,9 @@
         <div class="input-card">
           <div class="card-header">
             <h3>DDL语句输入</h3>
-            <a-tooltip title="输入CREATE TABLE语句，系统将自动解析表结构和字段信息">
+            <a-tooltip
+              title="输入CREATE TABLE语句，系统将自动解析表结构和字段信息"
+            >
               <QuestionCircleOutlined />
             </a-tooltip>
           </div>
@@ -37,7 +39,12 @@
           />
           <div class="card-footer">
             <a-space>
-              <a-button type="link" size="small" @click="parseDdl(false)" :loading="parsingDdl">
+              <a-button
+                type="link"
+                size="small"
+                @click="parseDdl(false)"
+                :loading="parsingDdl"
+              >
                 解析DDL
               </a-button>
               <a-button
@@ -141,11 +148,19 @@
                   un-checked-children="纯SQL"
                   size="small"
                 />
-                <a-button @click="toggleBeautifyOptions" type="dashed" size="small">
+                <a-button
+                  @click="toggleBeautifyOptions"
+                  type="dashed"
+                  size="small"
+                >
                   <template #icon><SettingOutlined /></template>
                   美化选项
                 </a-button>
-                <a-button @click="generateSql" type="primary" :loading="generating">
+                <a-button
+                  @click="generateSql"
+                  type="primary"
+                  :loading="generating"
+                >
                   <template #icon><PlayCircleOutlined /></template>
                   生成SQL
                 </a-button>
@@ -166,7 +181,9 @@
                   :marks="{ 1: '1', 2: '2', 4: '4', 8: '8' }"
                   style="width: 200px"
                 />
-                <span class="option-value">{{ beautifyOptions.indentSpaces }}</span>
+                <span class="option-value">{{
+                  beautifyOptions.indentSpaces
+                }}</span>
               </div>
 
               <div class="option-row">
@@ -194,7 +211,9 @@
                   :marks="{ 40: '40', 80: '80', 120: '120', 200: '200' }"
                   style="width: 200px"
                 />
-                <span class="option-value">{{ beautifyOptions.maxLineLength }}</span>
+                <span class="option-value">{{
+                  beautifyOptions.maxLineLength
+                }}</span>
               </div>
 
               <div class="option-row">
@@ -208,8 +227,13 @@
               </div>
 
               <div class="option-actions">
-                <a-button @click="resetBeautifyOptions" size="small">重置默认</a-button>
-                <a-button @click="applyBeautifyOptions" type="primary" size="small"
+                <a-button @click="resetBeautifyOptions" size="small"
+                  >重置默认</a-button
+                >
+                <a-button
+                  @click="applyBeautifyOptions"
+                  type="primary"
+                  size="small"
                   >应用美化</a-button
                 >
               </div>
@@ -226,7 +250,11 @@
 
           <!-- 预览模式切换 -->
           <div v-if="previewSql" class="preview-mode-switch">
-            <a-radio-group v-model:value="previewMode" button-style="solid" size="small">
+            <a-radio-group
+              v-model:value="previewMode"
+              button-style="solid"
+              size="small"
+            >
               <a-radio-button value="original">原始SQL</a-radio-button>
               <a-radio-button value="preview">预览修改</a-radio-button>
             </a-radio-group>
@@ -271,14 +299,22 @@
               </a-timeline-item>
             </a-timeline>
 
-            <a-empty v-if="operationLogs.length === 0" description="暂无操作日志" />
+            <a-empty
+              v-if="operationLogs.length === 0"
+              description="暂无操作日志"
+            />
           </div>
         </div>
       </div>
     </div>
 
     <!-- 错误提示 -->
-    <a-modal v-model:open="errorModalVisible" title="错误信息" width="600px" :footer="null">
+    <a-modal
+      v-model:open="errorModalVisible"
+      title="错误信息"
+      width="600px"
+      :footer="null"
+    >
       <a-alert
         v-for="error in currentErrors"
         :key="error.id"
@@ -315,16 +351,18 @@
           <BulbOutlined v-if="!isDark" />
           <BulbFilled v-else />
         </template>
-        <template #tooltip>{{ isDark ? '切换亮色模式' : '切换暗色模式' }}</template>
+        <template #tooltip>{{
+          isDark ? "切换亮色模式" : "切换暗色模式"
+        }}</template>
       </a-float-button>
     </a-float-button-group>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, h } from 'vue'
-import { message, Modal } from 'ant-design-vue'
-import { storeToRefs } from 'pinia'
+import { ref, computed, onMounted, h } from "vue";
+import { message, Modal } from "ant-design-vue";
+import { storeToRefs } from "pinia";
 import {
   ReloadOutlined,
   PlayCircleOutlined,
@@ -334,44 +372,44 @@ import {
   VerticalAlignTopOutlined,
   BulbOutlined,
   BulbFilled,
-} from '@ant-design/icons-vue'
-import { useThemeStore } from '@/stores/theme.js'
-import { useSettings } from '@/composables/core/useSettings.js'
+} from "@ant-design/icons-vue";
+import { useThemeStore } from "@/stores/theme.js";
+import { useSettings } from "@/composables/core/useSettings.js";
 
-const themeStore = useThemeStore()
-const { isDark } = storeToRefs(themeStore)
-const { getSetting } = useSettings()
+const themeStore = useThemeStore();
+const { isDark } = storeToRefs(themeStore);
+const { getSetting } = useSettings();
 
 const scrollToTop = () => {
-  window.scrollTo({ top: 0, behavior: 'smooth' })
-}
+  window.scrollTo({ top: 0, behavior: "smooth" });
+};
 
 const handleToggleTheme = () => {
-  themeStore.toggle()
-}
+  themeStore.toggle();
+};
 
 // 导入核心功能模块
-import { useDdlParser } from '@/composables/sql/useDdlParser'
-import { useExcelParserEnhanced } from '@/composables/excel/useExcelParserEnhanced'
-import { useFieldMatcher } from '@/composables/data/useFieldMatcher'
-import { useSqlGeneratorEnhanced } from '@/composables/sql/useSqlGeneratorEnhanced'
-import { useErrorHandler } from '@/composables/core/useErrorHandler'
-import { useDeduplication } from '@/composables/data/useDeduplication'
-import { useRowRange } from '@/composables/data/useRowRange'
-import { useBeautifyOptions } from '@/composables/data/useBeautifyOptions'
-import { useOperationLog } from '@/composables/core/useOperationLog'
-import { useCellSplit } from '@/composables/excel/useCellSplit'
+import { useDdlParser } from "@/composables/sql/useDdlParser";
+import { useExcelParserEnhanced } from "@/composables/excel/useExcelParserEnhanced";
+import { useFieldMatcher } from "@/composables/data/useFieldMatcher";
+import { useSqlGeneratorEnhanced } from "@/composables/sql/useSqlGeneratorEnhanced";
+import { useErrorHandler } from "@/composables/core/useErrorHandler";
+import { useDeduplication } from "@/composables/data/useDeduplication";
+import { useRowRange } from "@/composables/data/useRowRange";
+import { useBeautifyOptions } from "@/composables/data/useBeautifyOptions";
+import { useOperationLog } from "@/composables/core/useOperationLog";
+import { useCellSplit } from "@/composables/excel/useCellSplit";
 
 // 导入组件
-import SqlPreview from '@/components/SqlPreview/SqlPreview.vue'
-import CustomBindingModal from '@/components/CustomBindingModal.vue'
-import BatchEditPanel from '@/components/BatchEditPanel/BatchEditPanel.vue'
-import { ExcelUploadCard } from '@/components/ExcelUploadCard'
-import { FieldMappingCard } from '@/components/FieldMappingCard'
+import SqlPreview from "@/components/SqlPreview/SqlPreview.vue";
+import CustomBindingModal from "@/components/CustomBindingModal.vue";
+import BatchEditPanel from "@/components/BatchEditPanel/BatchEditPanel.vue";
+import { ExcelUploadCard } from "@/components/ExcelUploadCard";
+import { FieldMappingCard } from "@/components/FieldMappingCard";
 
 // 初始化核心功能模块
-const { parseDdl: parseDdlWithParser, clearCache } = useDdlParser()
-const { parseExcel: parseExcelEnhanced, getHeaders } = useExcelParserEnhanced()
+const { parseDdl: parseDdlWithParser, clearCache } = useDdlParser();
+const { parseExcel: parseExcelEnhanced, getHeaders } = useExcelParserEnhanced();
 const {
   fieldMappings,
   enhancedMatchFields,
@@ -381,13 +419,13 @@ const {
   matchingStats,
   customBindingManager,
   resetMappings,
-} = useFieldMatcher()
+} = useFieldMatcher();
 const {
   generateInsertSql,
   setBeautifyOptions,
   resetBeautifyOptions: resetDefaultBeautifyOptions,
-} = useSqlGeneratorEnhanced()
-const { logError } = useErrorHandler()
+} = useSqlGeneratorEnhanced();
+const { logError } = useErrorHandler();
 
 const {
   deduplicationEnabled,
@@ -398,7 +436,7 @@ const {
   applyDeduplication: applyDeduplicationBase,
   setOriginalData,
   clearDeduplication,
-} = useDeduplication()
+} = useDeduplication();
 
 const {
   rowRangeEnabled,
@@ -407,14 +445,14 @@ const {
   includeHeader,
   totalExcelRows,
   resetRowRange: resetRowRangeState,
-} = useRowRange()
+} = useRowRange();
 
 const {
   showBeautifyOptions,
   beautifyOptions,
   toggleBeautifyOptions: toggleBeautifyOptionsBase,
   resetBeautifyOptions: resetBeautifyOptionsBase,
-} = useBeautifyOptions()
+} = useBeautifyOptions();
 
 const {
   operationLogs,
@@ -424,7 +462,7 @@ const {
   formatLogMessage,
   clearLogs,
   exportLogs,
-} = useOperationLog()
+} = useOperationLog();
 
 const {
   cellSplitEnabled,
@@ -434,7 +472,7 @@ const {
   handleCellSplitToggle: handleCellSplitToggleBase,
   handleCellSplitSeparatorChange,
   clearCellSplit,
-} = useCellSplit()
+} = useCellSplit();
 
 /**
  * 增强匹配统计，使用DDL原始字段列表数据
@@ -452,12 +490,12 @@ const enhancedMatchingStats = computed(() => {
     customFields: parsedFields.value.filter((field) => {
       return (
         field.isCustom &&
-        field.customConfig?.dataSource === 'excel_combine' &&
+        field.customConfig?.dataSource === "excel_combine" &&
         field.customConfig?.isFromConcatenationRule
-      )
+      );
     }).length,
-  }
-})
+  };
+});
 
 /**
  * 过滤后的字段映射，使用DDL原始字段列表数据
@@ -467,338 +505,350 @@ const enhancedMatchingStats = computed(() => {
 const filteredFieldMappings = computed(() => {
   return fieldMappings.value.filter((mapping) => {
     // 检查DDL字段是否存在于parsedFields中
-    const ddlFieldExists = parsedFields.value.some((field) => field.name === mapping.ddlField?.name)
+    const ddlFieldExists = parsedFields.value.some(
+      (field) => field.name === mapping.ddlField?.name,
+    );
 
     // 如果字段不在parsedFields中，但标记为自定义字段，则保留
     if (!ddlFieldExists) {
       if (mapping.ddlField?.isCustom) {
-        return true
+        return true;
       }
-      return false
+      return false;
     }
 
     // 如果是自定义字段且数据源类型为excel_combine，并且来自字段拼接规则，则过滤掉
     if (
       mapping.ddlField?.isCustom &&
-      mapping.ddlField?.customConfig?.dataSource === 'excel_combine' &&
+      mapping.ddlField?.customConfig?.dataSource === "excel_combine" &&
       mapping.ddlField?.customConfig?.isFromConcatenationRule
     ) {
-      return false
+      return false;
     }
-    return true
-  })
-})
+    return true;
+  });
+});
 
 // 自定义绑定相关
-const showCustomBindingModal = ref(false)
-const editingCustomField = ref(null)
-const customBindingEnabled = ref(false)
+const showCustomBindingModal = ref(false);
+const editingCustomField = ref(null);
+const customBindingEnabled = ref(false);
 const hasCustomBindingConfig = computed(() => {
-  const stats = customBindingManager.getBindingStats()
-  return stats.hasCustomConfig
-})
+  const stats = customBindingManager.getBindingStats();
+  return stats.hasCustomConfig;
+});
 
 const customFieldsData = computed(() => {
   const fields = Array.isArray(customBindingManager.customFields.value)
     ? customBindingManager.customFields.value
-    : []
+    : [];
 
   const bindings = Array.isArray(customBindingManager.customBindings.value)
     ? customBindingManager.customBindings.value
-    : []
+    : [];
 
-  const rules = Array.isArray(customBindingManager.fieldConcatenationRules.value)
+  const rules = Array.isArray(
+    customBindingManager.fieldConcatenationRules.value,
+  )
     ? customBindingManager.fieldConcatenationRules.value
-    : []
+    : [];
 
-  const allFields = [...fields]
+  const allFields = [...fields];
 
   bindings.forEach((binding) => {
-    if (binding.bindingType === 'single') {
+    if (binding.bindingType === "single") {
       allFields.push({
         id: `binding-${binding.ddlFieldName}`,
         fieldName: binding.ddlFieldName,
-        dataType: 'string',
-        dataSource: 'single_binding',
+        dataType: "string",
+        dataSource: "single_binding",
         config: {
           excelIndex: binding.excelIndex,
         },
         isSingleBinding: true,
-      })
+      });
     }
-  })
+  });
 
   rules.forEach((rule) => {
     allFields.push({
       id: `rule-${rule.ddlFieldName}`,
       fieldName: rule.ddlFieldName,
-      dataType: rule.dataType || 'string',
-      dataSource: 'excel_combine',
+      dataType: rule.dataType || "string",
+      dataSource: "excel_combine",
       config: {
         sourceColumns: rule.sourceColumns,
         separator: rule.separator,
         format: rule.format,
       },
       isConcatenationRule: true,
-    })
-  })
+    });
+  });
 
-  return allFields
-})
+  return allFields;
+});
 
 const customFieldManagerKey = computed(() => {
-  const fields = customFieldsData.value
-  const fieldCount = fields.length
+  const fields = customFieldsData.value;
+  const fieldCount = fields.length;
   const fieldNames = fields
     .map((f) => f.fieldName)
     .sort()
-    .join(',')
-  return `custom-field-manager-${fieldCount}-${fieldNames}`
-})
+    .join(",");
+  return `custom-field-manager-${fieldCount}-${fieldNames}`;
+});
 
-const ddlStatement = ref('')
-const parsedFields = ref([])
-const fileList = ref([])
-const uploadedFile = ref(null)
-const excelData = ref([])
-const excelHeaders = ref([])
-const generatedSql = ref('')
-const previewSql = ref('')
-const previewMode = ref('original')
-const batchEditRules = ref([])
-const includeComments = ref(true)
-const databaseType = ref('mysql')
+const ddlStatement = ref("");
+const parsedFields = ref([]);
+const fileList = ref([]);
+const uploadedFile = ref(null);
+const excelData = ref([]);
+const excelHeaders = ref([]);
+const generatedSql = ref("");
+const previewSql = ref("");
+const previewMode = ref("original");
+const batchEditRules = ref([]);
+const includeComments = ref(true);
+const databaseType = ref("mysql");
 
-const parsingDdl = ref(false)
-const uploading = ref(false)
-const generating = ref(false)
-const errorModalVisible = ref(false)
-const currentErrors = ref([])
+const parsingDdl = ref(false);
+const uploading = ref(false);
+const generating = ref(false);
+const errorModalVisible = ref(false);
+const currentErrors = ref([]);
 
 // 计算属性
 const showFieldMapping = computed(() => {
-  return parsedFields.value.length > 0 && excelHeaders.value.length > 0
-})
+  return parsedFields.value.length > 0 && excelHeaders.value.length > 0;
+});
 
 const sqlStats = computed(() => {
   const sqlToCheck =
-    previewMode.value === 'preview' && previewSql.value ? previewSql.value : generatedSql.value
+    previewMode.value === "preview" && previewSql.value
+      ? previewSql.value
+      : generatedSql.value;
 
   if (!sqlToCheck) {
-    return { statementCount: 0, affectedRows: 0, generationTime: 0 }
+    return { statementCount: 0, affectedRows: 0, generationTime: 0 };
   }
 
-  const statements = sqlToCheck.split(';').filter((s) => s.trim())
-  const affectedRows = excelData.value.length
+  const statements = sqlToCheck.split(";").filter((s) => s.trim());
+  const affectedRows = excelData.value.length;
 
   return {
     statementCount: statements.length,
     affectedRows,
     generationTime: 0, // 实际应该从生成过程中获取
-  }
-})
+  };
+});
 
 // 计算属性：显示的SQL（根据预览模式）
 const displaySql = computed(() => {
-  return previewMode.value === 'preview' && previewSql.value ? previewSql.value : generatedSql.value
-})
+  return previewMode.value === "preview" && previewSql.value
+    ? previewSql.value
+    : generatedSql.value;
+});
 
 const mappingColumns = [
   {
-    title: '字段名',
-    key: 'fieldName',
-    width: '15%',
+    title: "字段名",
+    key: "fieldName",
+    width: "15%",
   },
   {
-    title: 'DDL字段',
-    key: 'ddlField',
-    width: '30%',
+    title: "DDL字段",
+    key: "ddlField",
+    width: "30%",
   },
   {
-    title: 'Excel列',
-    key: 'excelHeader',
-    width: '20%',
+    title: "Excel列",
+    key: "excelHeader",
+    width: "20%",
   },
   {
-    title: '相似度',
-    key: 'similarity',
-    width: '10%',
+    title: "相似度",
+    key: "similarity",
+    width: "10%",
   },
   {
-    title: '自定义',
-    key: 'generatedByFunction',
-    width: '10%',
+    title: "自定义",
+    key: "generatedByFunction",
+    width: "10%",
   },
   {
-    title: '操作',
-    key: 'actions',
-    width: '15%',
+    title: "操作",
+    key: "actions",
+    width: "15%",
   },
-]
+];
 
 // 方法
 const handleDdlChange = () => {
-  parsedFields.value = []
-  logInfo('DDL语句已修改')
-}
+  parsedFields.value = [];
+  logInfo("DDL语句已修改");
+};
 
 const parseDdl = async (forceRefresh = false) => {
   if (!ddlStatement.value.trim()) {
-    message.warning('请输入DDL语句')
-    return
+    message.warning("请输入DDL语句");
+    return;
   }
 
   // 解析新DDL时清空之前的自定义字段数据
-  customBindingEnabled.value = false
-  customBindingManager.resetBindings()
-  resetMappings()
-  logInfo('解析新DDL，已清空之前的自定义字段数据')
+  customBindingEnabled.value = false;
+  customBindingManager.resetBindings();
+  resetMappings();
+  logInfo("解析新DDL，已清空之前的自定义字段数据");
 
-  parsingDdl.value = true
+  parsingDdl.value = true;
 
   try {
-    const result = await parseDdlWithParser(ddlStatement.value, forceRefresh)
+    const result = await parseDdlWithParser(ddlStatement.value, forceRefresh);
     parsedFields.value = result.fields.map((field) => ({
       ...field,
       excelIndex: -1,
-    }))
+    }));
 
-    logInfo(`成功解析DDL语句，发现 ${result.fields.length} 个字段`)
-    message.success(`DDL解析成功，发现 ${result.fields.length} 个字段`)
+    logInfo(`成功解析DDL语句，发现 ${result.fields.length} 个字段`);
+    message.success(`DDL解析成功，发现 ${result.fields.length} 个字段`);
 
     // 立即创建映射记录，确保所有DDL字段都显示
     if (excelHeaders.value.length > 0) {
       // 如果已有Excel数据，执行自动匹配
-      autoMatchFields()
+      autoMatchFields();
     } else {
       // 如果没有Excel数据，创建手动映射模板
-      enhancedMatchFields(parsedFields.value, [], 'manual')
+      enhancedMatchFields(parsedFields.value, [], "manual");
     }
   } catch (error) {
-    const friendlyError = logError(error, 'parsing', {
-      operation: 'parseDdl',
+    const friendlyError = logError(error, "parsing", {
+      operation: "parseDdl",
       ddlLength: ddlStatement.value.length,
-    })
-    message.error(friendlyError)
+    });
+    message.error(friendlyError);
   } finally {
-    parsingDdl.value = false
+    parsingDdl.value = false;
   }
-}
+};
 
 const handleUpload = async (options) => {
-  const { file, onSuccess, onError } = options
+  const { file, onSuccess, onError } = options;
 
   // 上传新文件时清空之前的自定义字段数据
-  customBindingEnabled.value = false
-  customBindingManager.resetBindings()
-  resetMappings()
-  logInfo('上传新文件，已清空之前的自定义字段数据')
+  customBindingEnabled.value = false;
+  customBindingManager.resetBindings();
+  resetMappings();
+  logInfo("上传新文件，已清空之前的自定义字段数据");
 
-  const maxFileSizeMB = getSetting('maxFileSize') || 10
-  const maxFileSizeBytes = maxFileSizeMB * 1024 * 1024
+  const maxFileSizeMB = getSetting("maxFileSize") || 10;
+  const maxFileSizeBytes = maxFileSizeMB * 1024 * 1024;
   if (file.size > maxFileSizeBytes) {
-    const errorMsg = `文件大小超出限制：${(file.size / 1024 / 1024).toFixed(2)}MB > ${maxFileSizeMB}MB`
-    message.error(errorMsg)
-    onError(errorMsg)
-    return
+    const errorMsg = `文件大小超出限制：${(file.size / 1024 / 1024).toFixed(2)}MB > ${maxFileSizeMB}MB`;
+    message.error(errorMsg);
+    onError(errorMsg);
+    return;
   }
 
-  const supportedFormats = getSetting('supportedFormats') || ['xlsx', 'xls', 'csv']
-  const fileExt = file.name.split('.').pop().toLowerCase()
+  const supportedFormats = getSetting("supportedFormats") || [
+    "xlsx",
+    "xls",
+    "csv",
+  ];
+  const fileExt = file.name.split(".").pop().toLowerCase();
   if (!supportedFormats.includes(fileExt)) {
-    const errorMsg = `不支持的文件格式：.${fileExt}，支持的格式：${supportedFormats.map(f => `.${f}`).join(', ')}`
-    message.error(errorMsg)
-    onError(errorMsg)
-    return
+    const errorMsg = `不支持的文件格式：.${fileExt}，支持的格式：${supportedFormats.map((f) => `.${f}`).join(", ")}`;
+    message.error(errorMsg);
+    onError(errorMsg);
+    return;
   }
 
-  uploading.value = true
+  uploading.value = true;
 
   try {
-    uploadedFile.value = file
+    uploadedFile.value = file;
 
-    const chunkSize = getSetting('chunkSize') || 1000
-    const chunkProcessing = getSetting('chunkProcessing') !== false
+    const chunkSize = getSetting("chunkSize") || 1000;
+    const chunkProcessing = getSetting("chunkProcessing") !== false;
 
     const initialResult = await parseExcelEnhanced(file, {
       sheetIndex: 0,
       maxRows: 10000,
       chunkSize: chunkProcessing ? chunkSize : 10000,
-    })
+    });
 
-    totalExcelRows.value = initialResult.totalRows
+    totalExcelRows.value = initialResult.totalRows;
 
     const parseOptions = {
       sheetIndex: 0,
       maxRows: 10000,
       chunkSize: chunkProcessing ? chunkSize : 10000,
-    }
+    };
 
     if (rowRangeEnabled.value && startRow.value && endRow.value) {
-      parseOptions.startRow = startRow.value
-      parseOptions.endRow = endRow.value
-      parseOptions.includeHeader = includeHeader.value
+      parseOptions.startRow = startRow.value;
+      parseOptions.endRow = endRow.value;
+      parseOptions.includeHeader = includeHeader.value;
     }
 
-    const result = await parseExcelEnhanced(file, parseOptions)
+    const result = await parseExcelEnhanced(file, parseOptions);
 
-    excelData.value = result.rows
-    excelHeaders.value = result.headers
-    setOriginalData(result.rows)
+    excelData.value = result.rows;
+    excelHeaders.value = result.headers;
+    setOriginalData(result.rows);
 
-    onSuccess('文件上传成功')
-    logInfo(`成功解析Excel文件，共 ${result.rows?.length || 0} 行数据`)
-    message.success('文件解析成功')
+    onSuccess("文件上传成功");
+    logInfo(`成功解析Excel文件，共 ${result.rows?.length || 0} 行数据`);
+    message.success("文件解析成功");
 
     if (parsedFields.value.length > 0) {
-      autoMatchFields()
+      autoMatchFields();
     }
   } catch (error) {
-    const friendlyError = logError(error, 'file', {
-      operation: 'parseExcel',
+    const friendlyError = logError(error, "file", {
+      operation: "parseExcel",
       fileName: file.name,
       fileSize: file.size,
-    })
-    onError(friendlyError)
-    message.error(friendlyError)
+    });
+    onError(friendlyError);
+    message.error(friendlyError);
   } finally {
-    uploading.value = false
+    uploading.value = false;
   }
-}
+};
 
 /**
  * 清除上传的文件及相关数据
  * 重置Excel数据、表头、去重设置、字段映射等所有文件相关状态
  */
 const clearFile = () => {
-  uploadedFile.value = null
-  excelData.value = []
-  excelHeaders.value = []
-  originalExcelData.value = []
-  fileList.value = []
+  uploadedFile.value = null;
+  excelData.value = [];
+  excelHeaders.value = [];
+  originalExcelData.value = [];
+  fileList.value = [];
 
-  clearDeduplication()
-  resetRowRangeState()
-  clearCellSplit()
+  clearDeduplication();
+  resetRowRangeState();
+  clearCellSplit();
 
-  resetMappings()
+  resetMappings();
 
-  customBindingEnabled.value = false
-  customBindingManager.resetBindings()
+  customBindingEnabled.value = false;
+  customBindingManager.resetBindings();
 
-  generatedSql.value = ''
+  generatedSql.value = "";
 
-  logInfo('已清除上传的文件及相关数据', 'file', {
-    operation: 'clearFile',
+  logInfo("已清除上传的文件及相关数据", "file", {
+    operation: "clearFile",
     resetDeduplication: true,
     resetRowRange: true,
     resetFieldMappings: true,
     resetCustomBindings: true,
     resetGeneratedSql: true,
     resetCellSplit: true,
-  })
-  message.info('文件及相关数据已清除')
-}
+  });
+  message.info("文件及相关数据已清除");
+};
 
 /**
  * 重新解析当前已上传的文件
@@ -806,39 +856,39 @@ const clearFile = () => {
  */
 const handleReparse = async () => {
   // 重新解析时清空自定义字段数据
-  customBindingEnabled.value = false
-  customBindingManager.resetBindings()
-  resetMappings()
-  logInfo('重新解析，已清空自定义字段数据')
+  customBindingEnabled.value = false;
+  customBindingManager.resetBindings();
+  resetMappings();
+  logInfo("重新解析，已清空自定义字段数据");
 
   if (originalExcelData.value && originalExcelData.value.length > 0) {
-    excelData.value = [...originalExcelData.value]
+    excelData.value = [...originalExcelData.value];
     if (excelHeaders.value && excelHeaders.value.length > 0) {
-      message.success(`数据重新加载成功，共 ${excelData.value.length} 行数据`)
+      message.success(`数据重新加载成功，共 ${excelData.value.length} 行数据`);
     }
 
     if (parsedFields.value.length > 0) {
-      autoMatchFields()
+      autoMatchFields();
     }
 
-    logInfo('数据重新加载完成', 'file', {
-      operation: 'reparse',
+    logInfo("数据重新加载完成", "file", {
+      operation: "reparse",
       rows: excelData.value.length,
       columns: excelHeaders.value?.length || 0,
-    })
-    return
+    });
+    return;
   }
 
   if (!uploadedFile.value) {
-    message.warning('没有可重新解析的数据')
-    return
+    message.warning("没有可重新解析的数据");
+    return;
   }
 
-  uploading.value = true
+  uploading.value = true;
 
   try {
-    const chunkSize = getSetting('chunkSize') || 1000
-    const chunkProcessing = getSetting('chunkProcessing') !== false
+    const chunkSize = getSetting("chunkSize") || 1000;
+    const chunkProcessing = getSetting("chunkProcessing") !== false;
 
     const initialResult = await parseExcelEnhanced(uploadedFile.value, {
       sheetIndex: 0,
@@ -846,124 +896,128 @@ const handleReparse = async () => {
       startRow: 1,
       endRow: undefined,
       includeHeader: true,
-    })
+    });
 
-    excelData.value = initialResult.data
-    excelHeaders.value = initialResult.headers
-    originalExcelData.value = initialResult.data
+    excelData.value = initialResult.data;
+    excelHeaders.value = initialResult.headers;
+    originalExcelData.value = initialResult.data;
 
     if (initialResult.totalRows > chunkSize) {
-      message.info(`已加载前 ${chunkSize} 行数据，共 ${initialResult.totalRows} 行`)
+      message.info(
+        `已加载前 ${chunkSize} 行数据，共 ${initialResult.totalRows} 行`,
+      );
     } else {
-      message.success(`文件重新解析成功，共 ${initialResult.totalRows} 行数据`)
+      message.success(`文件重新解析成功，共 ${initialResult.totalRows} 行数据`);
     }
 
     if (parsedFields.value.length > 0) {
-      autoMatchFields()
+      autoMatchFields();
     }
 
-    logInfo('文件重新解析完成', 'file', {
-      operation: 'reparse',
+    logInfo("文件重新解析完成", "file", {
+      operation: "reparse",
       fileName: uploadedFile.value.name,
       rows: initialResult.totalRows,
       columns: initialResult.headers.length,
-    })
+    });
   } catch (error) {
-    const friendlyError = logError(error, 'file', {
-      operation: 'reparse',
+    const friendlyError = logError(error, "file", {
+      operation: "reparse",
       fileName: uploadedFile.value?.name,
-    })
-    message.error(friendlyError)
+    });
+    message.error(friendlyError);
   } finally {
-    uploading.value = false
+    uploading.value = false;
   }
-}
+};
 
 const handleDeduplicationToggle = (checked) => {
   if (!checked && originalExcelData.value.length > 0) {
-    excelData.value = [...originalExcelData.value]
-    totalExcelRows.value = excelData.value.length
+    excelData.value = [...originalExcelData.value];
+    totalExcelRows.value = excelData.value.length;
   }
-  handleDeduplicationToggleBase(checked, excelData.value, logInfo)
+  handleDeduplicationToggleBase(checked, excelData.value, logInfo);
   if (checked) {
-    totalExcelRows.value = excelData.value.length
+    totalExcelRows.value = excelData.value.length;
   }
-}
+};
 
 const handleDeduplicationChange = (column) => {
-  deduplicationColumn.value = column
+  deduplicationColumn.value = column;
   if (column !== undefined) {
-    applyDeduplication()
+    applyDeduplication();
   }
-}
+};
 
 const handleCellSplitToggle = (enabled) => {
-  handleCellSplitToggleBase(enabled)
-}
+  handleCellSplitToggleBase(enabled);
+};
 
 const handleCellSplitApply = () => {
-  message.info('单元格拆分功能开发中')
-}
+  message.info("单元格拆分功能开发中");
+};
 
 const handleDatabaseTypeChange = (type) => {
-  databaseType.value = type
-  logInfo(`数据库类型已切换为: ${type}`, 'database', {
-    operation: 'changeDatabaseType',
+  databaseType.value = type;
+  logInfo(`数据库类型已切换为: ${type}`, "database", {
+    operation: "changeDatabaseType",
     databaseType: type,
-  })
-}
+  });
+};
 
 const applyDeduplication = () => {
-  applyDeduplicationBase(excelData.value, excelHeaders.value, logInfo)
-  totalExcelRows.value = excelData.value.length
-}
+  applyDeduplicationBase(excelData.value, excelHeaders.value, logInfo);
+  totalExcelRows.value = excelData.value.length;
+};
 
 const handleStartRowUpdate = (val) => {
-  startRow.value = val
-}
+  startRow.value = val;
+};
 
 const handleEndRowUpdate = (val) => {
-  endRow.value = val
-}
+  endRow.value = val;
+};
 
 const handleRowRangeToggle = (checked) => {
-  rowRangeEnabled.value = checked
+  rowRangeEnabled.value = checked;
 
   if (!checked) {
     if (originalExcelData.value.length > 0) {
-      const previousRowCount = excelData.value.length
-      excelData.value = [...originalExcelData.value]
-      const restoredRowCount = excelData.value.length
+      const previousRowCount = excelData.value.length;
+      excelData.value = [...originalExcelData.value];
+      const restoredRowCount = excelData.value.length;
 
       logInfo(
         `行范围选择已关闭，已恢复原始数据（${previousRowCount} 行 → ${restoredRowCount} 行）`,
-        'row-range',
+        "row-range",
         {
-          operation: 'resetRowRange',
+          operation: "resetRowRange",
           previousRowCount,
           restoredRowCount,
           restored: true,
         },
-      )
-      message.success(`行范围选择已关闭，已恢复原始数据（${restoredRowCount} 行）`)
+      );
+      message.success(
+        `行范围选择已关闭，已恢复原始数据（${restoredRowCount} 行）`,
+      );
     } else {
-      logInfo('行范围选择已关闭（无原始数据可恢复）', 'row-range', {
-        operation: 'resetRowRange',
+      logInfo("行范围选择已关闭（无原始数据可恢复）", "row-range", {
+        operation: "resetRowRange",
         restored: false,
-      })
-      message.info('行范围选择已关闭')
+      });
+      message.info("行范围选择已关闭");
     }
 
-    startRow.value = null
-    endRow.value = null
-    includeHeader.value = true
+    startRow.value = null;
+    endRow.value = null;
+    includeHeader.value = true;
   } else {
-    logInfo('已启用行范围选择，请设置起始行和结束行', 'row-range', {
-      operation: 'enableRowRange',
-    })
-    message.info('已启用行范围选择，请设置起始行和结束行')
+    logInfo("已启用行范围选择，请设置起始行和结束行", "row-range", {
+      operation: "enableRowRange",
+    });
+    message.info("已启用行范围选择，请设置起始行和结束行");
   }
-}
+};
 
 /**
  * 应用行范围
@@ -971,41 +1025,44 @@ const handleRowRangeToggle = (checked) => {
  */
 const applyRowRange = async () => {
   if (!uploadedFile.value) {
-    message.warning('请先上传Excel文件')
-    return
+    message.warning("请先上传Excel文件");
+    return;
   }
 
   if (!startRow.value || !endRow.value) {
-    message.warning('请设置起始行和结束行')
-    return
+    message.warning("请设置起始行和结束行");
+    return;
   }
 
   if (startRow.value > endRow.value) {
-    message.error('起始行不能大于结束行')
-    return
+    message.error("起始行不能大于结束行");
+    return;
   }
 
-  if (startRow.value > totalExcelRows.value || endRow.value > totalExcelRows.value) {
-    message.error(`行数超出范围，文件总行数为 ${totalExcelRows.value}`)
-    return
+  if (
+    startRow.value > totalExcelRows.value ||
+    endRow.value > totalExcelRows.value
+  ) {
+    message.error(`行数超出范围，文件总行数为 ${totalExcelRows.value}`);
+    return;
   }
 
-  uploading.value = true
+  uploading.value = true;
 
   try {
-    let headers = []
-    let rows = []
+    let headers = [];
+    let rows = [];
 
     if (includeHeader.value) {
       if (excelHeaders.value && excelHeaders.value.length > 0) {
-        headers = excelHeaders.value
+        headers = excelHeaders.value;
       } else if (excelData.value && excelData.value.length > 0) {
-        const firstRow = excelData.value[0]
-        headers = Object.keys(firstRow)
+        const firstRow = excelData.value[0];
+        headers = Object.keys(firstRow);
       } else {
         headers = await getHeaders(uploadedFile.value, {
           sheetIndex: 0,
-        })
+        });
       }
 
       if (
@@ -1014,11 +1071,11 @@ const applyRowRange = async () => {
         excelData.value &&
         excelData.value.length > 0
       ) {
-        const startIndex = startRow.value - 1
-        const endIndex = endRow.value - 1
-        rows = excelData.value.slice(startIndex, endIndex + 1)
+        const startIndex = startRow.value - 1;
+        const endIndex = endRow.value - 1;
+        rows = excelData.value.slice(startIndex, endIndex + 1);
       } else {
-        rows = excelData.value || []
+        rows = excelData.value || [];
       }
     } else {
       const result = await parseExcelEnhanced(uploadedFile.value, {
@@ -1027,350 +1084,378 @@ const applyRowRange = async () => {
         startRow: startRow.value,
         endRow: endRow.value,
         includeHeader: false,
-      })
-      headers = result.headers
-      rows = result.rows
+      });
+      headers = result.headers;
+      rows = result.rows;
     }
 
-    excelData.value = rows
-    excelHeaders.value = headers
-    totalExcelRows.value = rows.length
+    excelData.value = rows;
+    excelHeaders.value = headers;
+    totalExcelRows.value = rows.length;
 
-    const selectedRowCount = rows.length
+    const selectedRowCount = rows.length;
     logInfo(
       `行范围应用成功: ${startRow.value}-${endRow.value}，共 ${rows.length} 行数据`,
-      'row-range',
+      "row-range",
       {
-        operation: 'applyRowRange',
+        operation: "applyRowRange",
         startRow: startRow.value,
         endRow: endRow.value,
         includeHeader: includeHeader.value,
         selectedRowCount,
         actualRowCount: rows.length,
       },
-    )
-    message.success(`行范围应用成功，共 ${rows.length} 行数据`)
+    );
+    message.success(`行范围应用成功，共 ${rows.length} 行数据`);
 
     // 注意：行范围变化只影响数据行，不影响表头和字段映射
     // 因此不需要重新执行字段匹配，保留用户已配置的映射关系
   } catch (error) {
-    let errorMessage = error.message || '未知错误'
-    let userFriendlyMessage = errorMessage
+    let errorMessage = error.message || "未知错误";
+    let userFriendlyMessage = errorMessage;
 
-    if (errorMessage.includes('无法识别表头信息')) {
+    if (errorMessage.includes("无法识别表头信息")) {
       userFriendlyMessage =
-        'Excel文件所有行都没有有效的表头数据，请检查文件内容或选择包含表头的行范围'
-    } else if (errorMessage.includes('获取表头超时')) {
-      userFriendlyMessage = '读取Excel表头超时，请检查文件是否过大或损坏'
-    } else if (errorMessage.includes('工作表') && errorMessage.includes('为空')) {
-      userFriendlyMessage = '所选工作表为空，请选择其他工作表'
-    } else if (errorMessage.includes('没有找到有效的工作表')) {
-      userFriendlyMessage = 'Excel文件中没有有效的工作表，请检查文件格式'
-    } else if (errorMessage.includes('获取表头失败')) {
-      userFriendlyMessage = '无法读取Excel表头，请检查文件格式和内容'
+        "Excel文件所有行都没有有效的表头数据，请检查文件内容或选择包含表头的行范围";
+    } else if (errorMessage.includes("获取表头超时")) {
+      userFriendlyMessage = "读取Excel表头超时，请检查文件是否过大或损坏";
+    } else if (
+      errorMessage.includes("工作表") &&
+      errorMessage.includes("为空")
+    ) {
+      userFriendlyMessage = "所选工作表为空，请选择其他工作表";
+    } else if (errorMessage.includes("没有找到有效的工作表")) {
+      userFriendlyMessage = "Excel文件中没有有效的工作表，请检查文件格式";
+    } else if (errorMessage.includes("获取表头失败")) {
+      userFriendlyMessage = "无法读取Excel表头，请检查文件格式和内容";
     }
-    message.error(userFriendlyMessage)
+    message.error(userFriendlyMessage);
   } finally {
-    uploading.value = false
+    uploading.value = false;
   }
-}
+};
 
 const resetRowRange = async () => {
   if (!uploadedFile.value) {
-    message.warning('请先上传Excel文件')
-    return
+    message.warning("请先上传Excel文件");
+    return;
   }
 
-  uploading.value = true
+  uploading.value = true;
 
   try {
     const result = await parseExcelEnhanced(uploadedFile.value, {
       sheetIndex: 0,
       maxRows: 10000,
-    })
+    });
 
-    excelData.value = result.rows
-    excelHeaders.value = result.headers
-    originalExcelData.value = [...result.rows]
+    excelData.value = result.rows;
+    excelHeaders.value = result.headers;
+    originalExcelData.value = [...result.rows];
 
-    startRow.value = null
-    endRow.value = null
+    startRow.value = null;
+    endRow.value = null;
 
-    logInfo(`行范围已重置，共 ${result.rows.length} 行数据`, 'row-range', {
-      operation: 'resetRowRange',
+    logInfo(`行范围已重置，共 ${result.rows.length} 行数据`, "row-range", {
+      operation: "resetRowRange",
       totalRowCount: result.rows.length,
-    })
-    message.success(`行范围已重置，共 ${result.rows.length} 行数据`)
+    });
+    message.success(`行范围已重置，共 ${result.rows.length} 行数据`);
   } catch (error) {
-    const friendlyError = logError(error, 'row-range', {
-      operation: 'resetRowRange',
+    const friendlyError = logError(error, "row-range", {
+      operation: "resetRowRange",
       errorMessage: error.message,
-    })
-    message.error(friendlyError)
+    });
+    message.error(friendlyError);
   } finally {
-    uploading.value = false
+    uploading.value = false;
   }
-}
+};
 
 const autoMatchFields = () => {
   if (parsedFields.value.length === 0 || excelHeaders.value.length === 0) {
-    message.warning('请先解析DDL语句和上传Excel文件')
-    return
+    message.warning("请先解析DDL语句和上传Excel文件");
+    return;
   }
 
   try {
-    enhancedMatchFields(parsedFields.value, excelHeaders.value, 'similarity')
+    enhancedMatchFields(parsedFields.value, excelHeaders.value, "similarity");
 
     // 同步更新parsedFields中的excelIndex
     fieldMappings.value.forEach((mapping) => {
-      const field = parsedFields.value.find((f) => f.name === mapping.ddlField.name)
+      const field = parsedFields.value.find(
+        (f) => f.name === mapping.ddlField.name,
+      );
       if (field) {
-        field.excelIndex = mapping.excelIndex
+        field.excelIndex = mapping.excelIndex;
       }
-    })
+    });
 
-    logInfo('自动字段匹配完成')
-    message.success('字段自动匹配完成')
+    logInfo("自动字段匹配完成");
+    message.success("字段自动匹配完成");
   } catch (error) {
-    console.error('自动字段匹配失败:', error)
-    const friendlyError = logError(error, 'matching', {
-      operation: 'autoMatchFields',
+    console.error("自动字段匹配失败:", error);
+    const friendlyError = logError(error, "matching", {
+      operation: "autoMatchFields",
       ddlFieldsCount: parsedFields.value.length,
       excelHeadersCount: excelHeaders.value.length,
-    })
-    message.error(friendlyError)
+    });
+    message.error(friendlyError);
   }
-}
+};
 
 const updateMapping = (ddlFieldName, excelIndex) => {
-  const excelHeader = excelIndex >= 0 ? excelHeaders.value[excelIndex] : null
-  updateFieldMapping(ddlFieldName, excelHeader, excelIndex)
-  logInfo(`手动更新字段映射: ${ddlFieldName} -> ${excelHeader || '未匹配'}`)
-}
+  const excelHeader = excelIndex >= 0 ? excelHeaders.value[excelIndex] : null;
+  updateFieldMapping(ddlFieldName, excelHeader, excelIndex);
+  logInfo(`手动更新字段映射: ${ddlFieldName} -> ${excelHeader || "未匹配"}`);
+};
 
 const handleGeneratedByFunctionChange = (record) => {
-  const mapping = fieldMappings.value.find((m) => m.ddlField.name === record.ddlField.name)
+  const mapping = fieldMappings.value.find(
+    (m) => m.ddlField.name === record.ddlField.name,
+  );
   if (mapping) {
-    mapping.generatedByFunction = record.generatedByFunction
+    mapping.generatedByFunction = record.generatedByFunction;
     if (record.generatedByFunction) {
-      logInfo(`字段 ${record.ddlField.name} 标记为自定义，将跳过Excel列映射检查`)
+      logInfo(
+        `字段 ${record.ddlField.name} 标记为自定义，将跳过Excel列映射检查`,
+      );
     } else {
-      logInfo(`字段 ${record.ddlField.name} 取消自定义标记`)
+      logInfo(`字段 ${record.ddlField.name} 取消自定义标记`);
     }
   }
-}
+};
 
 const clearMapping = (ddlFieldName) => {
-  const fieldInfo = parsedFields.value.find((field) => field.name === ddlFieldName)
+  const fieldInfo = parsedFields.value.find(
+    (field) => field.name === ddlFieldName,
+  );
 
   const mappingIndex = fieldMappings.value.findIndex(
     (mapping) => mapping.ddlField.name === ddlFieldName,
-  )
+  );
 
   if (fieldInfo && fieldInfo.isCustom) {
     // 自定义字段：删除整个映射记录和字段定义
     if (mappingIndex >= 0) {
-      fieldMappings.value.splice(mappingIndex, 1)
+      fieldMappings.value.splice(mappingIndex, 1);
     }
-    const fieldIndex = parsedFields.value.findIndex((field) => field.name === ddlFieldName)
+    const fieldIndex = parsedFields.value.findIndex(
+      (field) => field.name === ddlFieldName,
+    );
     if (fieldIndex >= 0) {
-      parsedFields.value.splice(fieldIndex, 1)
+      parsedFields.value.splice(fieldIndex, 1);
     }
 
-    customBindingManager.removeCustomField(ddlFieldName)
+    customBindingManager.removeCustomField(ddlFieldName);
 
-    logInfo(`移除自定义字段: ${ddlFieldName}`)
-    message.info(`已移除自定义字段: ${ddlFieldName}`)
+    logInfo(`移除自定义字段: ${ddlFieldName}`);
+    message.info(`已移除自定义字段: ${ddlFieldName}`);
   } else {
     // 普通DDL字段：删除映射记录
     if (mappingIndex >= 0) {
-      fieldMappings.value.splice(mappingIndex, 1)
-      logInfo(`清除字段映射: ${ddlFieldName}`)
-      message.info(`已清除字段映射: ${ddlFieldName}`)
+      fieldMappings.value.splice(mappingIndex, 1);
+      logInfo(`清除字段映射: ${ddlFieldName}`);
+      message.info(`已清除字段映射: ${ddlFieldName}`);
     }
   }
-}
+};
 
 const clearAllMappings = () => {
   // 移除所有自定义字段
-  const originalLength = parsedFields.value.length
-  parsedFields.value = parsedFields.value.filter((field) => !field.isCustom)
-  const customFieldsRemoved = originalLength - parsedFields.value.length
+  const originalLength = parsedFields.value.length;
+  parsedFields.value = parsedFields.value.filter((field) => !field.isCustom);
+  const customFieldsRemoved = originalLength - parsedFields.value.length;
 
   // 清除剩余普通字段的映射关系
   parsedFields.value.forEach((field) => {
-    updateFieldMapping(field.name, null, -1)
-  })
+    updateFieldMapping(field.name, null, -1);
+  });
 
   if (customFieldsRemoved > 0) {
-    logInfo(`已移除 ${customFieldsRemoved} 个自定义字段`)
-    logInfo('已清除所有普通字段映射')
-    message.info(`已移除 ${customFieldsRemoved} 个自定义字段并清除所有普通字段映射`)
+    logInfo(`已移除 ${customFieldsRemoved} 个自定义字段`);
+    logInfo("已清除所有普通字段映射");
+    message.info(
+      `已移除 ${customFieldsRemoved} 个自定义字段并清除所有普通字段映射`,
+    );
   } else {
-    logInfo('清除所有字段映射')
-    message.info('已清除所有字段映射')
+    logInfo("清除所有字段映射");
+    message.info("已清除所有字段映射");
   }
-}
+};
 
 const handleClearCache = () => {
-  clearCache()
-  logInfo('DDL解析缓存已清除')
-  message.success('缓存已清除，下次解析将重新计算')
-}
+  clearCache();
+  logInfo("DDL解析缓存已清除");
+  message.success("缓存已清除，下次解析将重新计算");
+};
 
 const toggleBeautifyOptions = () => {
-  toggleBeautifyOptionsBase(logInfo)
-}
+  toggleBeautifyOptionsBase(logInfo);
+};
 
 const applyBeautifyOptions = async () => {
   try {
-    setBeautifyOptions(beautifyOptions.value)
+    setBeautifyOptions(beautifyOptions.value);
 
     if (generatedSql.value) {
-      const tableName = extractTableName(ddlStatement.value)
-      const sql = generateInsertSql(tableName, fieldMappings.value, excelData.value, {
-        dbType: databaseType.value,
-        format: 'formatted',
-        batch: 100,
-        comments: includeComments.value,
-        beautifyOptions: beautifyOptions.value,
-        customBindingManager: customBindingManager,
-      })
-      generatedSql.value = sql
+      const tableName = extractTableName(ddlStatement.value);
+      const sql = generateInsertSql(
+        tableName,
+        fieldMappings.value,
+        excelData.value,
+        {
+          dbType: databaseType.value,
+          format: "formatted",
+          batch: 100,
+          comments: includeComments.value,
+          beautifyOptions: beautifyOptions.value,
+          customBindingManager: customBindingManager,
+        },
+      );
+      generatedSql.value = sql;
     }
 
-    logInfo('SQL美化选项已应用', 'beautify', {
-      operation: 'applyBeautifyOptions',
-      operationType: 'beautify',
+    logInfo("SQL美化选项已应用", "beautify", {
+      operation: "applyBeautifyOptions",
+      operationType: "beautify",
       options: beautifyOptions.value,
-    })
-    message.success('美化选项已应用')
+    });
+    message.success("美化选项已应用");
   } catch (error) {
-    const friendlyError = logError(error, 'beautify', {
-      operation: 'applyBeautifyOptions',
-      operationType: 'beautify',
+    const friendlyError = logError(error, "beautify", {
+      operation: "applyBeautifyOptions",
+      operationType: "beautify",
       options: beautifyOptions.value,
-    })
-    message.error(friendlyError)
+    });
+    message.error(friendlyError);
   }
-}
+};
 
 const resetBeautifyOptions = () => {
-  resetBeautifyOptionsBase(logInfo, resetDefaultBeautifyOptions)
-}
+  resetBeautifyOptionsBase(logInfo, resetDefaultBeautifyOptions);
+};
 
 const handleSqlCopy = () => {
-  const beautifyStatus = showBeautifyOptions.value ? '应用美化' : '未美化'
-  logInfo(`INSERT SQL语句已复制到剪贴板（${beautifyStatus}）`, 'copy', {
+  const beautifyStatus = showBeautifyOptions.value ? "应用美化" : "未美化";
+  logInfo(`INSERT SQL语句已复制到剪贴板（${beautifyStatus}）`, "copy", {
     beautifyOptions: beautifyOptions.value,
     includeComments: includeComments.value,
-  })
-}
+  });
+};
 
 const handleSqlDownload = () => {
-  const beautifyStatus = showBeautifyOptions.value ? '应用美化' : '未美化'
-  logInfo(`INSERT SQL语句已下载（${beautifyStatus}）`, 'download', {
+  const beautifyStatus = showBeautifyOptions.value ? "应用美化" : "未美化";
+  logInfo(`INSERT SQL语句已下载（${beautifyStatus}）`, "download", {
     beautifyOptions: beautifyOptions.value,
     includeComments: includeComments.value,
-  })
-}
+  });
+};
 
 const generateSql = async () => {
   if (!parsedFields.value || parsedFields.value.length === 0) {
-    message.warning('请先解析DDL语句')
-    return
+    message.warning("请先解析DDL语句");
+    return;
   }
 
   if (!excelData.value || excelData.value.length === 0) {
-    message.warning('请先上传Excel文件')
-    return
+    message.warning("请先上传Excel文件");
+    return;
   }
 
   // 验证映射配置
-  const validation = validateEnhancedMappings()
+  const validation = validateEnhancedMappings();
   if (!validation.isValid) {
     Modal.error({
-      title: '字段映射配置不完整',
-      content: h('div', [
-        h('p', '以下字段存在问题，请修复后再生成SQL：'),
-        h('ul', { style: { paddingLeft: '20px', marginTop: '10px' } }, [
+      title: "字段映射配置不完整",
+      content: h("div", [
+        h("p", "以下字段存在问题，请修复后再生成SQL："),
+        h("ul", { style: { paddingLeft: "20px", marginTop: "10px" } }, [
           ...validation.errors.map((error) =>
-            h('li', { style: { marginBottom: '5px', color: '#ff4d4f' } }, error),
+            h(
+              "li",
+              { style: { marginBottom: "5px", color: "#ff4d4f" } },
+              error,
+            ),
           ),
         ]),
-        h('p', { style: { marginTop: '15px', color: '#8c8c8c' } }, [
+        h("p", { style: { marginTop: "15px", color: "#8c8c8c" } }, [
           '提示：对于自定义字段（如UUID主键），请在字段映射表格中勾选"自定义"复选框',
         ]),
       ]),
-      okText: '我知道了',
-    })
-    return
+      okText: "我知道了",
+    });
+    return;
   }
 
   // 验证所有DDL字段是否都有映射记录
-  const allFieldsValidation = validateAllFieldsMapped(parsedFields.value)
+  const allFieldsValidation = validateAllFieldsMapped(parsedFields.value);
   if (!allFieldsValidation.isValid) {
     Modal.error({
-      title: '字段映射不完整',
-      content: h('div', [
-        h('p', '以下必填字段未获取到数据：'),
-        h('ul', { style: { paddingLeft: '20px', marginTop: '10px' } }, [
+      title: "字段映射不完整",
+      content: h("div", [
+        h("p", "以下必填字段未获取到数据："),
+        h("ul", { style: { paddingLeft: "20px", marginTop: "10px" } }, [
           ...allFieldsValidation.errors.map((error) =>
-            h('li', { style: { marginBottom: '5px', color: '#ff4d4f' } }, error),
+            h(
+              "li",
+              { style: { marginBottom: "5px", color: "#ff4d4f" } },
+              error,
+            ),
           ),
         ]),
       ]),
-      okText: '我知道了',
-    })
-    return
+      okText: "我知道了",
+    });
+    return;
   }
 
-  generating.value = true
+  generating.value = true;
 
   try {
-    const tableName = extractTableName(ddlStatement.value)
+    const tableName = extractTableName(ddlStatement.value);
 
-    const mappingsToUse = fieldMappings.value
-    const customFieldsConfig = customBindingManager.customFields.value
-    const enableCustomBinding = customBindingEnabled.value
+    const mappingsToUse = fieldMappings.value;
+    const customFieldsConfig = customBindingManager.customFields.value;
+    const enableCustomBinding = customBindingEnabled.value;
 
     // 生成SQL
     const sql = generateInsertSql(tableName, mappingsToUse, excelData.value, {
       dbType: databaseType.value,
-      format: 'formatted',
+      format: "formatted",
       batch: 100,
       comments: includeComments.value,
       beautifyOptions: beautifyOptions.value,
       customBindingManager: customBindingManager,
-    })
+    });
 
-    generatedSql.value = sql
+    generatedSql.value = sql;
 
-    const beautifyStatus = showBeautifyOptions.value ? '应用美化' : '未美化'
-    const bindingMode = enableCustomBinding ? '自定义绑定模式' : '标准模式'
+    const beautifyStatus = showBeautifyOptions.value ? "应用美化" : "未美化";
+    const bindingMode = enableCustomBinding ? "自定义绑定模式" : "标准模式";
 
     logInfo(
-      `SQL生成成功（${bindingMode}，${includeComments.value ? '包含注释' : '纯SQL'}，${beautifyStatus}）`,
-      'generation',
+      `SQL生成成功（${bindingMode}，${includeComments.value ? "包含注释" : "纯SQL"}，${beautifyStatus}）`,
+      "generation",
       {
-        mode: enableCustomBinding ? 'custom' : 'standard',
+        mode: enableCustomBinding ? "custom" : "standard",
         beautifyOptions: beautifyOptions.value,
         includeComments: includeComments.value,
         customFieldsCount: customFieldsConfig.length,
       },
-    )
-    message.success('SQL生成成功')
+    );
+    message.success("SQL生成成功");
   } catch (error) {
-    const friendlyError = logError(error, 'generation', {
-      operation: 'generateInsertSql',
+    const friendlyError = logError(error, "generation", {
+      operation: "generateInsertSql",
       tableName: extractTableName(ddlStatement.value),
       dataRows: excelData.value ? excelData.value.length : 0,
-    })
-    message.error(friendlyError)
+    });
+    message.error(friendlyError);
   } finally {
-    generating.value = false
+    generating.value = false;
   }
-}
+};
 
 const extractTableName = (ddl) => {
   // 支持多种DDL语句格式
@@ -1378,60 +1463,66 @@ const extractTableName = (ddl) => {
     /CREATE TABLE\s+(?:IF NOT EXISTS\s+)?`?([^`\s(]+)`?/i,
     /CREATE TABLE\s+(?:IF NOT EXISTS\s+)?"?([^"\s(]+)"?/i,
     /CREATE TABLE\s+(?:IF NOT EXISTS\s+)?\[?([^\]\s(]+)\]?/i,
-  ]
+  ];
 
   for (const pattern of patterns) {
-    const match = ddl.match(pattern)
+    const match = ddl.match(pattern);
     if (match) {
       // 移除可能的schema前缀（如public.）
-      const tableName = match[1].replace(/^[^.]+\./, '')
-      return tableName
+      const tableName = match[1].replace(/^[^.]+\./, "");
+      return tableName;
     }
   }
 
-  return 'unknown_table'
-}
+  return "unknown_table";
+};
 
 const openCustomBindingModal = () => {
-  showCustomBindingModal.value = true
-}
+  showCustomBindingModal.value = true;
+};
 
 const handleCustomBindingToggle = (checked) => {
-  customBindingEnabled.value = checked
-  customBindingManager.setEnableCustomBinding(checked)
-  logInfo(`自定义绑定已${checked ? '启用' : '禁用'}`)
-  message.success(`自定义绑定已${checked ? '启用' : '禁用'}`)
-}
+  customBindingEnabled.value = checked;
+  customBindingManager.setEnableCustomBinding(checked);
+  logInfo(`自定义绑定已${checked ? "启用" : "禁用"}`);
+  message.success(`自定义绑定已${checked ? "启用" : "禁用"}`);
+};
 
 const handleCustomBindingSave = (savedConfig) => {
-  logInfo('自定义绑定配置已保存', savedConfig)
+  logInfo("自定义绑定配置已保存", savedConfig);
 
   try {
     if (!customBindingEnabled.value) {
-      customBindingEnabled.value = true
-      customBindingManager.setEnableCustomBinding(true)
-      logInfo('已自动启用自定义绑定')
+      customBindingEnabled.value = true;
+      customBindingManager.setEnableCustomBinding(true);
+      logInfo("已自动启用自定义绑定");
     }
 
     // 注意：savedConfig 的结构是 { singleBindings, concatenationRules, customFields }
     // 而不是 { customBindings, fieldConcatenationRules, customFields }
     // 所以不需要调用 importBindings，因为 CustomBindingModal 已经更新了 customBindingManager
 
-    const customBindings = Array.isArray(customBindingManager.customBindings.value)
+    const customBindings = Array.isArray(
+      customBindingManager.customBindings.value,
+    )
       ? customBindingManager.customBindings.value
-      : []
+      : [];
 
-    const singleBindings = customBindings.filter((binding) => binding.bindingType === 'single')
+    const singleBindings = customBindings.filter(
+      (binding) => binding.bindingType === "single",
+    );
 
     singleBindings.forEach((binding) => {
-      const { ddlFieldName, excelIndex } = binding
+      const { ddlFieldName, excelIndex } = binding;
 
-      let ddlField = parsedFields.value.find((field) => field.name === ddlFieldName)
+      let ddlField = parsedFields.value.find(
+        (field) => field.name === ddlFieldName,
+      );
 
       if (!ddlField) {
         ddlField = {
           name: ddlFieldName,
-          type: 'string',
+          type: "string",
           nullable: true,
           isIdentity: false,
           primaryKey: false,
@@ -1442,65 +1533,71 @@ const handleCustomBindingSave = (savedConfig) => {
           },
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-        }
-        parsedFields.value.push(ddlField)
+        };
+        parsedFields.value.push(ddlField);
       }
 
-      const existingIndex = fieldMappings.value.findIndex((m) => m.ddlField?.name === ddlFieldName)
+      const existingIndex = fieldMappings.value.findIndex(
+        (m) => m.ddlField?.name === ddlFieldName,
+      );
 
       if (existingIndex >= 0) {
-        const existingMapping = fieldMappings.value[existingIndex]
-        const updatedDdlField = parsedFields.value.find((f) => f.name === ddlFieldName) || existingMapping.ddlField
+        const existingMapping = fieldMappings.value[existingIndex];
+        const updatedDdlField =
+          parsedFields.value.find((f) => f.name === ddlFieldName) ||
+          existingMapping.ddlField;
 
         fieldMappings.value[existingIndex] = {
           ...existingMapping,
           ddlField: updatedDdlField,
           excelIndex: excelIndex,
           excelHeader: excelIndex >= 0 ? excelHeaders.value[excelIndex] : null,
-          status: excelIndex >= 0 ? 'bound' : 'unmatched',
-        }
+          status: excelIndex >= 0 ? "bound" : "unmatched",
+        };
       } else {
         const mapping = {
           ddlField: ddlField,
           excelHeader: excelIndex >= 0 ? excelHeaders.value[excelIndex] : null,
           excelIndex: excelIndex,
           similarity: 0,
-          confidence: 'manual',
-          status: excelIndex >= 0 ? 'bound' : 'unmatched',
-        }
-        fieldMappings.value.push(mapping)
+          confidence: "manual",
+          status: excelIndex >= 0 ? "bound" : "unmatched",
+        };
+        fieldMappings.value.push(mapping);
       }
-    })
+    });
 
     const fieldConcatenationRules = Array.isArray(
       customBindingManager.fieldConcatenationRules.value,
     )
       ? customBindingManager.fieldConcatenationRules.value
-      : []
+      : [];
 
     fieldConcatenationRules.forEach((rule) => {
-      if (rule.ddlFieldName && rule.ddlFieldName.trim() !== '') {
+      if (rule.ddlFieldName && rule.ddlFieldName.trim() !== "") {
         // 注意：拼接规则已经存储在 fieldConcatenationRules 中
         // 不需要再调用 addCustomField，否则会在 customFieldsData 中重复显示
 
         const customConfig = {
           fieldName: rule.ddlFieldName,
-          dataType: rule.dataType || 'string',
-          dataSource: 'excel_combine',
+          dataType: rule.dataType || "string",
+          dataSource: "excel_combine",
           excelCombineConfig: {
             columns: rule.sourceColumns || [],
-            separator: rule.separator || '',
-            format: rule.format || '',
+            separator: rule.separator || "",
+            format: rule.format || "",
             isFromConcatenationRule: true,
           },
-        }
+        };
 
-        let ddlField = parsedFields.value.find((field) => field.name === rule.ddlFieldName)
+        let ddlField = parsedFields.value.find(
+          (field) => field.name === rule.ddlFieldName,
+        );
 
         if (!ddlField) {
           ddlField = {
             name: rule.ddlFieldName,
-            type: rule.dataType || 'string',
+            type: rule.dataType || "string",
             nullable: true,
             isIdentity: false,
             primaryKey: false,
@@ -1508,121 +1605,134 @@ const handleCustomBindingSave = (savedConfig) => {
             customConfig: customConfig,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
-          }
-          parsedFields.value.push(ddlField)
+          };
+          parsedFields.value.push(ddlField);
         } else {
           const existingFieldIndex = parsedFields.value.findIndex(
             (field) => field.name === rule.ddlFieldName,
-          )
+          );
           if (existingFieldIndex >= 0) {
             parsedFields.value[existingFieldIndex] = {
               ...parsedFields.value[existingFieldIndex],
               isCustom: true,
               customConfig: customConfig,
-              type: rule.dataType || parsedFields.value[existingFieldIndex].type,
+              type:
+                rule.dataType || parsedFields.value[existingFieldIndex].type,
               updatedAt: new Date().toISOString(),
-            }
+            };
           }
         }
 
         const existingMappingIndex = fieldMappings.value.findIndex(
           (m) => m.ddlField?.name === rule.ddlFieldName,
-        )
+        );
 
         if (existingMappingIndex >= 0) {
-          const existingMapping = fieldMappings.value[existingMappingIndex]
-          const updatedDdlField = parsedFields.value.find((f) => f.name === rule.ddlFieldName) || existingMapping.ddlField
+          const existingMapping = fieldMappings.value[existingMappingIndex];
+          const updatedDdlField =
+            parsedFields.value.find((f) => f.name === rule.ddlFieldName) ||
+            existingMapping.ddlField;
 
           fieldMappings.value[existingMappingIndex] = {
             ...existingMapping,
             ddlField: updatedDdlField,
             excelIndex: -1,
             excelHeader: null,
-            status: 'unmatched',
-            confidence: 'manual',
+            status: "unmatched",
+            confidence: "manual",
             generatedByFunction: true,
-          }
+          };
         } else {
           const mapping = {
             ddlField: ddlField,
             excelHeader: null,
             excelIndex: -1,
             similarity: 0,
-            confidence: 'manual',
-            status: 'unmatched',
+            confidence: "manual",
+            status: "unmatched",
             generatedByFunction: true,
-          }
-          fieldMappings.value.push(mapping)
+          };
+          fieldMappings.value.push(mapping);
         }
       }
-    })
+    });
 
-    let customFields = []
+    let customFields = [];
 
     // 优先使用 customBindingManager 中的数据，因为 CustomBindingModal 已经更新了它
     customFields = Array.isArray(customBindingManager.customFields.value)
       ? customBindingManager.customFields.value
-      : []
+      : [];
 
     // 如果 savedConfig 中有 customFields，也合并进来
-    if (savedConfig && savedConfig.customFields && Array.isArray(savedConfig.customFields)) {
+    if (
+      savedConfig &&
+      savedConfig.customFields &&
+      Array.isArray(savedConfig.customFields)
+    ) {
       savedConfig.customFields.forEach((field) => {
-        if (field && field.fieldName && !customFields.find((f) => f.fieldName === field.fieldName)) {
-          customFields.push(field)
+        if (
+          field &&
+          field.fieldName &&
+          !customFields.find((f) => f.fieldName === field.fieldName)
+        ) {
+          customFields.push(field);
         }
-      })
+      });
     }
 
-    const validCustomFieldsMap = new Map()
+    const validCustomFieldsMap = new Map();
     customFields.forEach((field) => {
       if (
-        typeof field === 'object' &&
+        typeof field === "object" &&
         field !== null &&
         field.fieldName &&
-        field.fieldName.trim() !== ''
+        field.fieldName.trim() !== ""
       ) {
-        validCustomFieldsMap.set(field.fieldName.trim(), field)
+        validCustomFieldsMap.set(field.fieldName.trim(), field);
       }
-    })
-    const validCustomFields = Array.from(validCustomFieldsMap.values())
+    });
+    const validCustomFields = Array.from(validCustomFieldsMap.values());
 
-    const newFieldConfigMap = new Map()
+    const newFieldConfigMap = new Map();
     validCustomFields.forEach((field) => {
       if (field.fieldName) {
-        newFieldConfigMap.set(field.fieldName, field)
+        newFieldConfigMap.set(field.fieldName, field);
       }
-    })
+    });
 
-    const fieldsToRemove = new Set()
+    const fieldsToRemove = new Set();
     parsedFields.value.forEach((field, index) => {
       if (field.isCustom) {
         if (newFieldConfigMap.has(field.name)) {
-          const newConfig = newFieldConfigMap.get(field.name)
+          const newConfig = newFieldConfigMap.get(field.name);
           parsedFields.value[index] = {
             ...parsedFields.value[index],
             isCustom: true,
             customConfig: newConfig,
             type: newConfig.dataType || field.type,
             updatedAt: new Date().toISOString(),
-          }
-          newFieldConfigMap.delete(field.name)
+          };
+          newFieldConfigMap.delete(field.name);
         } else {
-          fieldsToRemove.add(field.name)
+          fieldsToRemove.add(field.name);
         }
       }
-    })
+    });
 
     if (fieldsToRemove.size > 0) {
-      parsedFields.value = parsedFields.value.filter((field) => !fieldsToRemove.has(field.name))
-      logInfo(`已移除 ${fieldsToRemove.size} 个不再存在的自定义字段`)
+      parsedFields.value = parsedFields.value.filter(
+        (field) => !fieldsToRemove.has(field.name),
+      );
+      logInfo(`已移除 ${fieldsToRemove.size} 个不再存在的自定义字段`);
     }
 
-    let addedCount = 0
+    let addedCount = 0;
     newFieldConfigMap.forEach((customField) => {
       try {
         const ddlField = {
           name: customField.fieldName,
-          type: customField.dataType || 'string',
+          type: customField.dataType || "string",
           nullable: customField.nullable !== false,
           isIdentity: false,
           primaryKey: false,
@@ -1630,31 +1740,35 @@ const handleCustomBindingSave = (savedConfig) => {
           customConfig: customField,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-        }
+        };
 
-        parsedFields.value.push(ddlField)
-        addedCount++
-        logInfo(`添加自定义字段: ${customField.fieldName}`)
+        parsedFields.value.push(ddlField);
+        addedCount++;
+        logInfo(`添加自定义字段: ${customField.fieldName}`);
       } catch (error) {
-        logError(error, 'custom-field', {
-          operation: 'addCustomField',
+        logError(error, "custom-field", {
+          operation: "addCustomField",
           customField: customField,
           errorMessage: error.message,
-        })
-        message.error(`处理自定义字段${customField.fieldName}时出错: ${error.message}`)
+        });
+        message.error(
+          `处理自定义字段${customField.fieldName}时出错: ${error.message}`,
+        );
       }
-    })
+    });
 
     logInfo(
       `成功更新 ${parsedFields.value.length - fieldsToRemove.size} 个现有字段，添加 ${addedCount} 个新字段`,
-    )
+    );
 
     validCustomFields.forEach((customField) => {
-      const ddlFieldRef = parsedFields.value.find((field) => field.name === customField.fieldName)
+      const ddlFieldRef = parsedFields.value.find(
+        (field) => field.name === customField.fieldName,
+      );
 
       const existingIndex = fieldMappings.value.findIndex(
         (m) => m.ddlField?.name === customField.fieldName,
-      )
+      );
 
       if (existingIndex >= 0) {
         fieldMappings.value[existingIndex] = {
@@ -1662,7 +1776,7 @@ const handleCustomBindingSave = (savedConfig) => {
           ddlField: ddlFieldRef,
           customFieldName: customField.fieldName,
           generatedByFunction: true,
-        }
+        };
       } else {
         const mapping = {
           ddlField: ddlFieldRef,
@@ -1670,158 +1784,166 @@ const handleCustomBindingSave = (savedConfig) => {
           excelHeader: null,
           excelIndex: -1,
           similarity: 0,
-          confidence: 'manual',
-          status: 'unmatched',
+          confidence: "manual",
+          status: "unmatched",
           generatedByFunction: true,
-        }
-        fieldMappings.value.push(mapping)
+        };
+        fieldMappings.value.push(mapping);
       }
 
-      customBindingManager.addCustomField(customField)
-    })
+      customBindingManager.addCustomField(customField);
+    });
 
     if (parsedFields.value && excelHeaders.value) {
       fieldMappings.value = enhancedMatchFields(
         parsedFields.value,
         excelHeaders.value,
-        'similarity',
+        "similarity",
         true,
-      )
+      );
     }
 
-    editingCustomField.value = null
+    editingCustomField.value = null;
   } catch (error) {
-    logError(error, 'custom-binding', {
-      operation: 'saveCustomBinding',
+    logError(error, "custom-binding", {
+      operation: "saveCustomBinding",
       errorMessage: error.message,
-    })
-    message.error(`自定义绑定保存失败: ${error.message}`)
+    });
+    message.error(`自定义绑定保存失败: ${error.message}`);
   }
-}
+};
 
 const handleCustomBindingCancel = () => {
-  showCustomBindingModal.value = false
-  editingCustomField.value = null
-}
+  showCustomBindingModal.value = false;
+  editingCustomField.value = null;
+};
 
 const handleEditCustomField = (record) => {
-  logInfo(`编辑自定义字段: ${record.fieldName}`)
-  editingCustomField.value = record
-  openCustomBindingModal()
-}
+  logInfo(`编辑自定义字段: ${record.fieldName}`);
+  editingCustomField.value = record;
+  openCustomBindingModal();
+};
 
 const handleDeleteCustomField = (record) => {
-  logInfo(`删除: ${record.fieldName}`)
+  logInfo(`删除: ${record.fieldName}`);
 
-  const dataSource = record.dataSource
+  const dataSource = record.dataSource;
 
   // 从fieldMappings中移除对应的映射记录
   const mappingIndex = fieldMappings.value.findIndex(
     (mapping) => mapping.ddlField?.name === record.fieldName,
-  )
+  );
   if (mappingIndex >= 0) {
-    fieldMappings.value.splice(mappingIndex, 1)
-    console.log('已从fieldMappings移除映射记录:', record.fieldName)
+    fieldMappings.value.splice(mappingIndex, 1);
+    console.log("已从fieldMappings移除映射记录:", record.fieldName);
   }
 
   // 根据数据来源从parsedFields中移除对应的字段定义
-  if (dataSource === 'single_binding') {
+  if (dataSource === "single_binding") {
     // 单列绑定：不需要从parsedFields移除，因为它是DDL字段
-  } else if (dataSource === 'excel_combine') {
+  } else if (dataSource === "excel_combine") {
     // 拼接规则：从parsedFields移除自定义字段
-    const fieldIndex = parsedFields.value.findIndex((field) => field.name === record.fieldName)
+    const fieldIndex = parsedFields.value.findIndex(
+      (field) => field.name === record.fieldName,
+    );
     if (fieldIndex >= 0) {
-      parsedFields.value.splice(fieldIndex, 1)
+      parsedFields.value.splice(fieldIndex, 1);
     }
   } else {
     // 自定义字段：从parsedFields移除
-    const fieldIndex = parsedFields.value.findIndex((field) => field.name === record.fieldName)
+    const fieldIndex = parsedFields.value.findIndex(
+      (field) => field.name === record.fieldName,
+    );
     if (fieldIndex >= 0) {
-      parsedFields.value.splice(fieldIndex, 1)
+      parsedFields.value.splice(fieldIndex, 1);
     }
   }
-}
+};
 
 const handleRefreshCustomFields = () => {
-  logInfo('刷新自定义字段列表')
+  logInfo("刷新自定义字段列表");
   // 删除自定义字段后不需要重新解析DDL，只需要更新字段映射
   // parseDdl(false)  // 注释掉，避免覆盖已配置的数据
-}
+};
 
 const resetAll = () => {
-  ddlStatement.value = ''
-  parsedFields.value = []
-  uploadedFile.value = null
-  excelData.value = []
-  excelHeaders.value = []
-  originalExcelData.value = []
-  generatedSql.value = ''
-  previewSql.value = ''
-  previewMode.value = 'original'
-  fileList.value = []
+  ddlStatement.value = "";
+  parsedFields.value = [];
+  uploadedFile.value = null;
+  excelData.value = [];
+  excelHeaders.value = [];
+  originalExcelData.value = [];
+  generatedSql.value = "";
+  previewSql.value = "";
+  previewMode.value = "original";
+  fileList.value = [];
 
-  clearDeduplication()
-  resetRowRangeState()
+  clearDeduplication();
+  resetRowRangeState();
 
-  handleClearCache()
-  customBindingEnabled.value = false
-  customBindingManager.resetBindings()
+  handleClearCache();
+  customBindingEnabled.value = false;
+  customBindingManager.resetBindings();
 
-  logInfo('所有数据已重置', 'reset', {
-    operation: 'resetAll',
+  logInfo("所有数据已重置", "reset", {
+    operation: "resetAll",
     resetDeduplication: true,
     resetRowRange: true,
     resetCustomBinding: true,
-  })
-  message.success('重置成功')
-}
+  });
+  message.success("重置成功");
+};
 
 /**
  * 处理批量预览
  * @param {Object} result - 预览结果
  */
 const handleBatchPreview = (result) => {
-  previewSql.value = generateSqlFromData(result.modifiedData)
-  previewMode.value = 'preview'
-  logInfo(`批量修改预览：将影响 ${result.affectedRows} 行数据`, 'batch-edit', {
-    operation: 'preview',
+  previewSql.value = generateSqlFromData(result.modifiedData);
+  previewMode.value = "preview";
+  logInfo(`批量修改预览：将影响 ${result.affectedRows} 行数据`, "batch-edit", {
+    operation: "preview",
     affectedRows: result.affectedRows,
-  })
-  message.info(`预览：将影响 ${result.affectedRows} 行数据`)
-}
+  });
+  message.info(`预览：将影响 ${result.affectedRows} 行数据`);
+};
 
 /**
  * 处理批量应用
  * @param {Object} result - 应用结果
  */
 const handleBatchApply = (result) => {
-  excelData.value = result.modifiedData
-  generatedSql.value = generateSqlFromData(result.modifiedData)
-  previewSql.value = ''
-  previewMode.value = 'original'
+  excelData.value = result.modifiedData;
+  generatedSql.value = generateSqlFromData(result.modifiedData);
+  previewSql.value = "";
+  previewMode.value = "original";
 
-  logInfo(`批量修改应用成功：已修改 ${result.affectedRows} 行数据`, 'batch-edit', {
-    operation: 'apply',
-    affectedRows: result.affectedRows,
-  })
-  message.success(`应用成功，已修改 ${result.affectedRows} 行数据`)
-}
+  logInfo(
+    `批量修改应用成功：已修改 ${result.affectedRows} 行数据`,
+    "batch-edit",
+    {
+      operation: "apply",
+      affectedRows: result.affectedRows,
+    },
+  );
+  message.success(`应用成功，已修改 ${result.affectedRows} 行数据`);
+};
 
 /**
  * 处理 Excel 数据更新
  * @param {Array} newData - 新的 Excel 数据
  */
 const handleExcelDataUpdate = (newData) => {
-  excelData.value = newData
-}
+  excelData.value = newData;
+};
 
 /**
  * 处理批量修改规则变化
  * @param {Array} rules - 修改规则列表
  */
 const handleBatchChange = (rules) => {
-  batchEditRules.value = rules
-}
+  batchEditRules.value = rules;
+};
 
 /**
  * 从数据生成 SQL
@@ -1830,28 +1952,28 @@ const handleBatchChange = (rules) => {
  */
 const generateSqlFromData = (data) => {
   if (!data || data.length === 0) {
-    return ''
+    return "";
   }
 
-  const tableName = extractTableName(ddlStatement.value)
-  const mappingsToUse = fieldMappings.value
+  const tableName = extractTableName(ddlStatement.value);
+  const mappingsToUse = fieldMappings.value;
 
   const sql = generateInsertSql(tableName, mappingsToUse, data, {
     dbType: databaseType.value,
-    format: 'formatted',
+    format: "formatted",
     batch: 100,
     comments: includeComments.value,
     beautifyOptions: beautifyOptions.value,
     customBindingManager: customBindingManager,
-  })
+  });
 
-  return sql
-}
+  return sql;
+};
 
 // 生命周期
 onMounted(() => {
-  logInfo('INSERT页面已加载')
-})
+  logInfo("INSERT页面已加载");
+});
 </script>
 
 <style scoped lang="scss">
@@ -2062,7 +2184,7 @@ onMounted(() => {
   padding: 12px;
   max-height: 300px;
   overflow-y: auto;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   font-size: 12px;
   line-height: 1.4;
 }
