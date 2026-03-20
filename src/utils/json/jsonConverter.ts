@@ -4,7 +4,7 @@
  * @module utils/json/jsonConverter
  */
 
-import type { FormatConverterOptions } from '@/types/json'
+import type { FormatConverterOptions } from "@/types/json";
 
 /**
  * 将 JSON 转换为指定格式
@@ -12,23 +12,30 @@ import type { FormatConverterOptions } from '@/types/json'
  * @param options - 转换选项
  * @returns 转换后的字符串
  */
-export function convertFormat(data: unknown, options: FormatConverterOptions): string {
-  const { targetFormat } = options
-  const jsonObj = typeof data === 'string' ? JSON.parse(data) : data
+export function convertFormat(
+  data: unknown,
+  options: FormatConverterOptions,
+): string {
+  const { targetFormat } = options;
+  const jsonObj = typeof data === "string" ? JSON.parse(data) : data;
 
   switch (targetFormat) {
-    case 'xml':
-      return convertToXml(jsonObj, options.xmlRootName || 'root')
-    case 'yaml':
-      return convertToYaml(jsonObj)
-    case 'csv':
-      return convertToCsv(jsonObj, options.csvDelimiter || ',', options.includeHeader !== false)
-    case 'sql':
-      return convertToSql(jsonObj, options.sqlTableName || 'json_data')
-    case 'toml':
-      return convertToToml(jsonObj)
+    case "xml":
+      return convertToXml(jsonObj, options.xmlRootName || "root");
+    case "yaml":
+      return convertToYaml(jsonObj);
+    case "csv":
+      return convertToCsv(
+        jsonObj,
+        options.csvDelimiter || ",",
+        options.includeHeader !== false,
+      );
+    case "sql":
+      return convertToSql(jsonObj, options.sqlTableName || "json_data");
+    case "toml":
+      return convertToToml(jsonObj);
     default:
-      throw new Error(`不支持的目标格式: ${targetFormat}`)
+      throw new Error(`不支持的目标格式: ${targetFormat}`);
   }
 }
 
@@ -39,54 +46,58 @@ export function convertFormat(data: unknown, options: FormatConverterOptions): s
  * @returns XML 字符串
  */
 function convertToXml(data: unknown, rootName: string): string {
-  const header = '<?xml version="1.0" encoding="UTF-8"?>'
-  const root = convertValueToXml(data, rootName)
-  return `${header}\n${root}`
+  const header = '<?xml version="1.0" encoding="UTF-8"?>';
+  const root = convertValueToXml(data, rootName);
+  return `${header}\n${root}`;
 }
 
 /**
  * 递归转换值为 XML
  */
 function convertValueToXml(value: unknown, tagName: string): string {
-  const safeTagName = sanitizeXmlTagName(tagName)
+  const safeTagName = sanitizeXmlTagName(tagName);
 
   if (value === null) {
-    return `<${safeTagName}></${safeTagName}>`
+    return `<${safeTagName}></${safeTagName}>`;
   }
 
   if (value === undefined) {
-    return `<${safeTagName}></${safeTagName}>`
+    return `<${safeTagName}></${safeTagName}>`;
   }
 
-  if (typeof value === 'boolean' || typeof value === 'number' || typeof value === 'string') {
-    return `<${safeTagName}>${escapeXml(String(value))}</${safeTagName}>`
+  if (
+    typeof value === "boolean" ||
+    typeof value === "number" ||
+    typeof value === "string"
+  ) {
+    return `<${safeTagName}>${escapeXml(String(value))}</${safeTagName}>`;
   }
 
   if (Array.isArray(value)) {
     if (value.length === 0) {
-      return `<${safeTagName}></${safeTagName}>`
+      return `<${safeTagName}></${safeTagName}>`;
     }
     const items = value
-      .map((item, index) => convertValueToXml(item, 'item'))
-      .join('\n  ')
-    return `<${safeTagName}>\n  ${items}\n</${safeTagName}>`
+      .map((item) => convertValueToXml(item, "item"))
+      .join("\n  ");
+    return `<${safeTagName}>\n  ${items}\n</${safeTagName}>`;
   }
 
-  if (typeof value === 'object') {
-    const obj = value as Record<string, unknown>
-    const keys = Object.keys(obj)
+  if (typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    const keys = Object.keys(obj);
 
     if (keys.length === 0) {
-      return `<${safeTagName}></${safeTagName}>`
+      return `<${safeTagName}></${safeTagName}>`;
     }
 
     const children = keys
       .map((key) => convertValueToXml(obj[key], key))
-      .join('\n  ')
-    return `<${safeTagName}>\n  ${children}\n</${safeTagName}>`
+      .join("\n  ");
+    return `<${safeTagName}>\n  ${children}\n</${safeTagName}>`;
   }
 
-  return `<${safeTagName}></${safeTagName}>`
+  return `<${safeTagName}></${safeTagName}>`;
 }
 
 /**
@@ -95,78 +106,78 @@ function convertValueToXml(value: unknown, tagName: string): string {
  * @returns YAML 字符串
  */
 function convertToYaml(data: unknown, indent: number = 0): string {
-  const prefix = '  '.repeat(indent)
+  const prefix = "  ".repeat(indent);
 
   if (data === null) {
-    return 'null'
+    return "null";
   }
 
   if (data === undefined) {
-    return ''
+    return "";
   }
 
-  if (typeof data === 'boolean') {
-    return data ? 'true' : 'false'
+  if (typeof data === "boolean") {
+    return data ? "true" : "false";
   }
 
-  if (typeof data === 'number') {
-    return String(data)
+  if (typeof data === "number") {
+    return String(data);
   }
 
-  if (typeof data === 'string') {
-    if (data.includes('\n') || data.includes(':') || data.includes('#')) {
-      return `"${escapeYamlString(data)}"`
+  if (typeof data === "string") {
+    if (data.includes("\n") || data.includes(":") || data.includes("#")) {
+      return `"${escapeYamlString(data)}"`;
     }
-    return data
+    return data;
   }
 
   if (Array.isArray(data)) {
     if (data.length === 0) {
-      return '[]'
+      return "[]";
     }
 
     const items = data
       .map((item) => {
-        const itemYaml = convertToYaml(item, indent + 1)
-        if (typeof item === 'object' && item !== null) {
-          return `${prefix}- ${itemYaml.trimStart()}`
+        const itemYaml = convertToYaml(item, indent + 1);
+        if (typeof item === "object" && item !== null) {
+          return `${prefix}- ${itemYaml.trimStart()}`;
         }
-        return `${prefix}- ${itemYaml}`
+        return `${prefix}- ${itemYaml}`;
       })
-      .join('\n')
+      .join("\n");
 
-    return items
+    return items;
   }
 
-  if (typeof data === 'object') {
-    const obj = data as Record<string, unknown>
-    const keys = Object.keys(obj)
+  if (typeof data === "object") {
+    const obj = data as Record<string, unknown>;
+    const keys = Object.keys(obj);
 
     if (keys.length === 0) {
-      return '{}'
+      return "{}";
     }
 
     const pairs = keys.map((key) => {
-      const value = obj[key]
-      const valueYaml = convertToYaml(value, indent + 1)
+      const value = obj[key];
+      const valueYaml = convertToYaml(value, indent + 1);
 
-      if (typeof value === 'object' && value !== null) {
+      if (typeof value === "object" && value !== null) {
         if (Array.isArray(value) && value.length === 0) {
-          return `${prefix}${key}: []`
+          return `${prefix}${key}: []`;
         }
         if (!Array.isArray(value) && Object.keys(value).length === 0) {
-          return `${prefix}${key}: {}`
+          return `${prefix}${key}: {}`;
         }
-        return `${prefix}${key}:\n${valueYaml}`
+        return `${prefix}${key}:\n${valueYaml}`;
       }
 
-      return `${prefix}${key}: ${valueYaml}`
-    })
+      return `${prefix}${key}: ${valueYaml}`;
+    });
 
-    return pairs.join('\n')
+    return pairs.join("\n");
   }
 
-  return String(data)
+  return String(data);
 }
 
 /**
@@ -176,43 +187,51 @@ function convertToYaml(data: unknown, indent: number = 0): string {
  * @param includeHeader - 是否包含表头
  * @returns CSV 字符串
  */
-function convertToCsv(data: unknown, delimiter: string = ',', includeHeader: boolean = true): string {
+function convertToCsv(
+  data: unknown,
+  delimiter: string = ",",
+  includeHeader: boolean = true,
+): string {
   if (!Array.isArray(data)) {
-    throw new Error('CSV 转换需要数组类型的数据')
+    throw new Error("CSV 转换需要数组类型的数据");
   }
 
   if (data.length === 0) {
-    return ''
+    return "";
   }
 
-  const firstItem = data[0]
-  if (typeof firstItem !== 'object' || firstItem === null || Array.isArray(firstItem)) {
-    throw new Error('CSV 转换需要对象数组类型的数据')
+  const firstItem = data[0];
+  if (
+    typeof firstItem !== "object" ||
+    firstItem === null ||
+    Array.isArray(firstItem)
+  ) {
+    throw new Error("CSV 转换需要对象数组类型的数据");
   }
 
-  const obj = firstItem as Record<string, unknown>
-  const headers = Object.keys(obj)
+  const obj = firstItem as Record<string, unknown>;
+  const headers = Object.keys(obj);
 
-  const rows: string[] = []
+  const rows: string[] = [];
 
   if (includeHeader) {
-    rows.push(headers.map((h) => escapeCsvCell(h, delimiter)).join(delimiter))
+    rows.push(headers.map((h) => escapeCsvCell(h, delimiter)).join(delimiter));
   }
 
   for (const item of data) {
-    if (typeof item !== 'object' || item === null) {
-      continue
+    if (typeof item !== "object" || item === null) {
+      continue;
     }
 
     const row = headers.map((header) => {
-      const value = (item as Record<string, unknown>)[header]
-      return escapeCsvCell(formatCsvValue(value), delimiter)
-    })
+      const value = (item as Record<string, unknown>)[header];
+      return escapeCsvCell(formatCsvValue(value), delimiter);
+    });
 
-    rows.push(row.join(delimiter))
+    rows.push(row.join(delimiter));
   }
 
-  return rows.join('\n')
+  return rows.join("\n");
 }
 
 /**
@@ -221,38 +240,47 @@ function convertToCsv(data: unknown, delimiter: string = ',', includeHeader: boo
  * @param tableName - 表名
  * @returns SQL 字符串
  */
-function convertToSql(data: unknown, tableName: string = 'json_data'): string {
+function convertToSql(data: unknown, tableName: string = "json_data"): string {
   if (!Array.isArray(data)) {
-    throw new Error('SQL 转换需要数组类型的数据')
+    throw new Error("SQL 转换需要数组类型的数据");
   }
 
   if (data.length === 0) {
-    return ''
+    return "";
   }
 
-  const firstItem = data[0]
-  if (typeof firstItem !== 'object' || firstItem === null || Array.isArray(firstItem)) {
-    throw new Error('SQL 转换需要对象数组类型的数据')
+  const firstItem = data[0];
+  if (
+    typeof firstItem !== "object" ||
+    firstItem === null ||
+    Array.isArray(firstItem)
+  ) {
+    throw new Error("SQL 转换需要对象数组类型的数据");
   }
 
-  const obj = firstItem as Record<string, unknown>
-  const columns = Object.keys(obj).map((col) => `"${col}"`).join(', ')
+  const obj = firstItem as Record<string, unknown>;
+  const columns = Object.keys(obj)
+    .map((col) => `"${col}"`)
+    .join(", ");
 
   const values = data
-    .filter((item) => typeof item === 'object' && item !== null && !Array.isArray(item))
+    .filter(
+      (item) =>
+        typeof item === "object" && item !== null && !Array.isArray(item),
+    )
     .map((item) => {
       const row = Object.values(item as Record<string, unknown>)
         .map((val) => formatSqlValue(val))
-        .join(', ')
-      return `(${row})`
+        .join(", ");
+      return `(${row})`;
     })
-    .join('\n')
+    .join("\n");
 
   if (!values) {
-    return ''
+    return "";
   }
 
-  return `INSERT INTO "${tableName}" (${columns}) VALUES\n${values};`
+  return `INSERT INTO "${tableName}" (${columns}) VALUES\n${values};`;
 }
 
 /**
@@ -261,85 +289,93 @@ function convertToSql(data: unknown, tableName: string = 'json_data'): string {
  * @returns TOML 字符串
  */
 function convertToToml(data: unknown): string {
-  if (typeof data !== 'object' || data === null || Array.isArray(data)) {
-    throw new Error('TOML 转换需要对象类型的数据')
+  if (typeof data !== "object" || data === null || Array.isArray(data)) {
+    throw new Error("TOML 转换需要对象类型的数据");
   }
 
-  return convertValueToToml(data as Record<string, unknown>, 0)
+  return convertValueToToml(data as Record<string, unknown>, 0);
 }
 
 /**
  * 递归转换值为 TOML
  */
-function convertValueToToml(obj: Record<string, unknown>, indent: number): string {
-  const prefix = '  '.repeat(indent)
-  const lines: string[] = []
+function convertValueToToml(
+  obj: Record<string, unknown>,
+  indent: number,
+): string {
+  const lines: string[] = [];
 
-  const keys = Object.keys(obj)
+  const keys = Object.keys(obj);
 
   for (const key of keys) {
-    const value = obj[key]
-    const safeKey = /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key) ? key : `"${key}"`
+    const value = obj[key];
+    const safeKey = /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key) ? key : `"${key}"`;
 
     if (value === null) {
-      lines.push(`${safeKey} = ""`)
-      continue
+      lines.push(`${safeKey} = ""`);
+      continue;
     }
 
     if (value === undefined) {
-      continue
+      continue;
     }
 
-    if (typeof value === 'boolean') {
-      lines.push(`${safeKey} = ${value}`)
-      continue
+    if (typeof value === "boolean") {
+      lines.push(`${safeKey} = ${value}`);
+      continue;
     }
 
-    if (typeof value === 'number') {
-      lines.push(`${safeKey} = ${value}`)
-      continue
+    if (typeof value === "number") {
+      lines.push(`${safeKey} = ${value}`);
+      continue;
     }
 
-    if (typeof value === 'string') {
-      if (value.includes('\n') || value.includes('"')) {
-        lines.push(`${safeKey} = """${value}"""`)
+    if (typeof value === "string") {
+      if (value.includes("\n") || value.includes('"')) {
+        lines.push(`${safeKey} = """${value}"""`);
       } else {
-        lines.push(`${safeKey} = "${value}"`)
+        lines.push(`${safeKey} = "${value}"`);
       }
-      continue
+      continue;
     }
 
     if (Array.isArray(value)) {
       if (value.length === 0) {
-        lines.push(`${safeKey} = []`)
-        continue
+        lines.push(`${safeKey} = []`);
+        continue;
       }
 
-      const firstItem = value[0]
-      if (typeof firstItem === 'object' && firstItem !== null) {
-        lines.push(`[[${safeKey}]]`)
+      const firstItem = value[0];
+      if (typeof firstItem === "object" && firstItem !== null) {
+        lines.push(`[[${safeKey}]]`);
         for (const item of value) {
-          if (typeof item === 'object' && item !== null) {
-            const nested = convertValueToToml(item as Record<string, unknown>, indent + 1)
-            lines.push(nested)
+          if (typeof item === "object" && item !== null) {
+            const nested = convertValueToToml(
+              item as Record<string, unknown>,
+              indent + 1,
+            );
+            lines.push(nested);
           }
         }
       } else {
-        const items = value.map((v) => formatTomlValue(v)).join(', ')
-        lines.push(`${safeKey} = [${items}]`)
+        const items = value.map((v) => formatTomlValue(v)).join(", ");
+        lines.push(`${safeKey} = [${items}]`);
       }
-      continue
+      continue;
     }
 
-    if (typeof value === 'object') {
-      lines.push(`[${safeKey}]`)
-      const nested = convertValueToToml(value as Record<string, unknown>, indent + 1)
-      lines.push(nested)
-      continue
+    if (typeof value === "object") {
+      lines.push(`[${safeKey}]`);
+      const nested = convertValueToToml(
+        value as Record<string, unknown>,
+        indent + 1,
+      );
+      lines.push(nested);
+      continue;
     }
   }
 
-  return lines.join('\n')
+  return lines.join("\n");
 }
 
 /**
@@ -347,32 +383,29 @@ function convertValueToToml(obj: Record<string, unknown>, indent: number): strin
  */
 function escapeXml(str: string): string {
   return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;')
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
 }
 
 /**
  * 清理 XML 标签名称
  */
 function sanitizeXmlTagName(name: string): string {
-  const cleaned = name.replace(/[^a-zA-Z0-9_\-]/g, '_')
+  const cleaned = name.replace(/[^a-zA-Z0-9_-]/g, "_");
   if (/^[0-9]/.test(cleaned)) {
-    return `_${cleaned}`
+    return `_${cleaned}`;
   }
-  return cleaned || 'item'
+  return cleaned || "item";
 }
 
 /**
  * 转义 YAML 字符串
  */
 function escapeYamlString(str: string): string {
-  return str
-    .replace(/\\/g, '\\\\')
-    .replace(/"/g, '\\"')
-    .replace(/\n/g, '\\n')
+  return str.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n");
 }
 
 /**
@@ -380,22 +413,26 @@ function escapeYamlString(str: string): string {
  */
 function formatCsvValue(value: unknown): string {
   if (value === null || value === undefined) {
-    return ''
+    return "";
   }
-  if (typeof value === 'object') {
-    return JSON.stringify(value)
+  if (typeof value === "object") {
+    return JSON.stringify(value);
   }
-  return String(value)
+  return String(value);
 }
 
 /**
  * 转义 CSV 单元格
  */
 function escapeCsvCell(value: string, delimiter: string): string {
-  if (value.includes(delimiter) || value.includes('"') || value.includes('\n')) {
-    return `"${value.replace(/"/g, '""')}"`
+  if (
+    value.includes(delimiter) ||
+    value.includes('"') ||
+    value.includes("\n")
+  ) {
+    return `"${value.replace(/"/g, '""')}"`;
   }
-  return value
+  return value;
 }
 
 /**
@@ -403,26 +440,26 @@ function escapeCsvCell(value: string, delimiter: string): string {
  */
 function formatSqlValue(value: unknown): string {
   if (value === null || value === undefined) {
-    return 'NULL'
+    return "NULL";
   }
 
-  if (typeof value === 'boolean') {
-    return value ? 'TRUE' : 'FALSE'
+  if (typeof value === "boolean") {
+    return value ? "TRUE" : "FALSE";
   }
 
-  if (typeof value === 'number') {
-    return String(value)
+  if (typeof value === "number") {
+    return String(value);
   }
 
-  if (typeof value === 'string') {
-    return `'${value.replace(/'/g, "''")}'`
+  if (typeof value === "string") {
+    return `'${value.replace(/'/g, "''")}'`;
   }
 
-  if (typeof value === 'object') {
-    return `'${JSON.stringify(value).replace(/'/g, "''")}'`
+  if (typeof value === "object") {
+    return `'${JSON.stringify(value).replace(/'/g, "''")}'`;
   }
 
-  return 'NULL'
+  return "NULL";
 }
 
 /**
@@ -430,19 +467,19 @@ function formatSqlValue(value: unknown): string {
  */
 function formatTomlValue(value: unknown): string {
   if (value === null) {
-    return '""'
+    return '""';
   }
-  if (typeof value === 'boolean') {
-    return String(value)
+  if (typeof value === "boolean") {
+    return String(value);
   }
-  if (typeof value === 'number') {
-    return String(value)
+  if (typeof value === "number") {
+    return String(value);
   }
-  if (typeof value === 'string') {
-    if (value.includes('\n') || value.includes('"')) {
-      return `"""${value}"""`
+  if (typeof value === "string") {
+    if (value.includes("\n") || value.includes('"')) {
+      return `"""${value}"""`;
     }
-    return `"${value}"`
+    return `"${value}"`;
   }
-  return '""'
+  return '""';
 }
