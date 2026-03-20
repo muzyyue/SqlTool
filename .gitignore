@@ -36,6 +36,9 @@ test_data.csv
 .env.local
 .env.*.local
 
+# Deployment configs
+nginx.conf
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
