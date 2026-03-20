@@ -1,5 +1,14 @@
 # 版本变更历史
 
+## 1.5.52 (2026-03-20)
+
+**修复数据注入测试文件中的函数调用错误**
+
+- 修复 `data-injection.test.js` 中 `generateBatchInsertSql is not a function` 错误
+- 改用 `useSqlGeneratorEnhanced` composable 的 `generateInsertSql` 方法
+- 修复边界数据测试用例，添加 `file_size` 字段映射
+- 修复所有测试用例使用正确的 `customBindingManager` 参数传递方式
+
 ## 1.5.51 (2026-03-20)
 
 **修复拼接字段功能数据显示和SQL生成问题**
