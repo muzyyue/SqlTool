@@ -576,10 +576,10 @@ const customFieldsData = computed(() => {
       fieldName: rule.ddlFieldName,
       dataType: rule.dataType || "string",
       dataSource: "excel_combine",
-      config: {
-        sourceColumns: rule.sourceColumns,
-        separator: rule.separator,
-        format: rule.format,
+      excelCombineConfig: {
+        columns: rule.sourceColumns || [],
+        separator: rule.separator || "",
+        format: rule.format || "",
       },
       isConcatenationRule: true,
     });

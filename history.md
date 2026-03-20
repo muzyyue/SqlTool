@@ -1,5 +1,16 @@
 # 版本变更历史
 
+## 1.5.51 (2026-03-20)
+
+**修复拼接字段功能数据显示和SQL生成问题**
+
+- 修复 `generateCustomFieldValue` 函数未从 `fieldConcatenationRules` 查找拼接配置的问题
+- 修复 `customFieldsData` 计算属性属性名不一致问题（`config.sourceColumns` → `excelCombineConfig.columns`）
+- 统一 InsertPage.vue 和 UpdatePage.vue 中拼接字段的数据结构
+- 新增 `field-concatenation-rules.test.js` 单元测试文件
+- 新增 E2E 测试分支模块：拼接字段功能测试（11个测试用例）
+- 新增测试工具函数：`addConcatenationField`、`validateConcatenationField`、`validateFieldDisplayed` 等
+
 ## 1.5.50 (2026-03-20)
 
 **代码质量优化**

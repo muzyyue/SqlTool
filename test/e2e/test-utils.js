@@ -578,3 +578,188 @@ export function validateNoUuid(sqlResult) {
   return !sqlResult.fullText.includes('UUID()') && 
          !sqlResult.fullText.includes('GEN_RANDOM_UUID()');
 }
+
+/**
+ * 添加拼接字段配置
+ * @param {Page} page - Playwright页面对象
+ * @param {Object} concatConfig - 拼接配置对象
+ * @returns {Promise<boolean>} 是否成功添加
+ */
+export async function addConcatenationField(page, concatConfig) {
+  const result = await page.evaluate(async (config) => {
+    try {
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // 切换到字段拼接标签页
+      const concatTab = Array.from(document.querySelectorAll('.ant-tabs-tab'))
+        .find(tab => tab.textContent.includes('字段拼接'));
+      if (concatTab) {
+        concatTab.click();
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
+      // 点击"添加拼接规则"按钮
+      const addButton = document.querySelector('button:has-text("添加拼接规则")') ||
+                        document.querySelector('button:has-text("添加规则")');
+      if (!addButton) {
+        return { success: false, error: '添加拼接规则按钮未找到' };
+      }
+      addButton.click();
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // 填写字段名
+      const fieldNameInput = document.querySelector('input[placeholder*="自定义字段名"]') ||
+                              document.querySelector('input[placeholder*="字段名"]');
+      if (fieldNameInput && config.fieldName) {
+        fieldNameInput.value = config.fieldName;
+        fieldNameInput.dispatchEvent(new Event('input', { bubbles: true }));
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+
+      // 选择数据类型
+      if (config.dataType) {
+        const dataTypeSelect = document.querySelector('.ant-select:has-text("选择数据类型")') ||
+                               document.querySelector('.ant-select:has-text("数据类型")');
+        if (dataTypeSelect) {
+          dataTypeSelect.click();
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          const dataTypeItem = Array.from(document.querySelectorAll('.ant-select-item'))
+            .find(item => item.textContent.includes(config.dataType));
+          if (dataTypeItem) {
+            dataTypeItem.click();
+            await new Promise(resolve => setTimeout(resolve, 300));
+          }
+        }
+      }
+
+      // 选择源Excel列（多选）
+      if (config.sourceColumns && config.sourceColumns.length > 0) {
+        const sourceSelect = document.querySelector('.ant-select:has-text("选择源Excel列")') ||
+                             document.querySelector('.ant-select[mode="multiple"]');
+        if (sourceSelect) {
+          sourceSelect.click();
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          for (const colIndex of config.sourceColumns) {
+            const colItem = Array.from(document.querySelectorAll('.ant-select-item'))
+              .find(item => item.textContent.includes(`列${colIndex + 1}`) || 
+                           item.textContent.includes(`列${colIndex}`));
+            if (colItem) {
+              colItem.click();
+              await new Promise(resolve => setTimeout(resolve, 200));
+            }
+          }
+          
+          // 关闭下拉框
+          sourceSelect.click();
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
+      }
+
+      // 填写分隔符
+      const separatorInput = document.querySelector('input[placeholder*="分隔符"]');
+      if (separatorInput && config.separator !== undefined) {
+        separatorInput.value = config.separator;
+        separatorInput.dispatchEvent(new Event('input', { bubbles: true }));
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+
+      // 填写格式化模板
+      const formatInput = document.querySelector('input[placeholder*="格式化"]') ||
+                          document.querySelector('input[placeholder*="模板"]');
+      if (formatInput && config.format) {
+        formatInput.value = config.format;
+        formatInput.dispatchEvent(new Event('input', { bubbles: true }));
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }, concatConfig);
+
+  return result.success;
+}
+
+/**
+ * 验证 SQL 包含拼接字段值
+ * @param {Object} sqlResult - SQL内容对象
+ * @param {string} fieldName - 字段名
+ * @param {string} expectedValue - 期望的拼接值
+ * @returns {boolean} 是否包含该值
+ */
+export function validateConcatenationField(sqlResult, fieldName, expectedValue) {
+  return sqlResult.fullText.includes(fieldName) && 
+         sqlResult.fullText.includes(expectedValue);
+}
+
+/**
+ * 验证拼接字段配置在 CustomFieldManager 中显示
+ * @param {Page} page - Playwright页面对象
+ * @param {string} fieldName - 字段名
+ * @returns {Promise<boolean>} 是否显示
+ */
+export async function validateFieldDisplayed(page, fieldName) {
+  return await page.evaluate((name) => {
+    const fieldManager = document.querySelector('.custom-field-manager');
+    if (!fieldManager) return false;
+    
+    const fieldRows = fieldManager.querySelectorAll('.ant-table-row');
+    for (const row of fieldRows) {
+      if (row.textContent.includes(name)) {
+        return true;
+      }
+    }
+    return false;
+  }, fieldName);
+}
+
+/**
+ * 获取 CustomFieldManager 中显示的字段数量
+ * @param {Page} page - Playwright页面对象
+ * @returns {Promise<number>} 字段数量
+ */
+export async function getDisplayedFieldCount(page) {
+  return await page.evaluate(() => {
+    const fieldManager = document.querySelector('.custom-field-manager');
+    if (!fieldManager) return 0;
+    
+    const fieldRows = fieldManager.querySelectorAll('.ant-table-row');
+    return fieldRows.length;
+  });
+}
+
+/**
+ * 验证拼接字段的配置详情显示
+ * @param {Page} page - Playwright页面对象
+ * @param {string} fieldName - 字段名
+ * @param {Object} expectedConfig - 期望的配置
+ * @returns {Promise<boolean>} 是否匹配
+ */
+export async function validateFieldConfig(page, fieldName, expectedConfig) {
+  return await page.evaluate((config) => {
+    const fieldManager = document.querySelector('.custom-field-manager');
+    if (!fieldManager) return false;
+    
+    const fieldRows = fieldManager.querySelectorAll('.ant-table-row');
+    for (const row of fieldRows) {
+      if (row.textContent.includes(config.fieldName)) {
+        // 检查数据来源标签
+        if (config.dataSource && !row.textContent.includes(config.dataSource)) {
+          return false;
+        }
+        // 检查配置详情
+        if (expectedConfig.columns) {
+          const columnsText = expectedConfig.columns.map(c => `列${c + 1}`).join(', ');
+          if (!row.textContent.includes(columnsText)) {
+            return false;
+          }
+        }
+        return true;
+      }
+    }
+    return false;
+  }, { fieldName, expectedConfig });
+}
