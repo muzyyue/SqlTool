@@ -1,0 +1,13 @@
+{
+  "newline": "hello\nworld",
+  "tab": "hello\tworld",
+  "carriage": "hello\rworld",
+  "backslash": "hello\\world",
+  "quote": "hello\"world",
+  "singleQuote": "hello'world",
+  "chinese": "中文测试",
+  "emoji": "😀🎉🚀",
+  "mixed": "line1\nline2\ttab\r\nwindows",
+  "unicode": "\u4e2d\u6587",
+  "control": "null\u0000char"
+}

@@ -4,17 +4,21 @@
  * @module utils/json/jsonFormatter
  */
 
-import type { JsonFormatOptions, JsonStats, JsonValidationResult } from '@/types/json'
+import type {
+  JsonFormatOptions,
+  JsonStats,
+  JsonValidationResult,
+} from "@/types/json";
 
 /**
  * 默认格式化选项
  */
 const DEFAULT_FORMAT_OPTIONS: JsonFormatOptions = {
   indentSpaces: 2,
-  formatStyle: 'expanded',
+  formatStyle: "expanded",
   preserveKeyOrder: true,
   sortKeys: false,
-}
+};
 
 /**
  * 格式化 JSON 数据
@@ -29,24 +33,26 @@ export function formatJson(
   data: unknown,
   options: Partial<JsonFormatOptions> = {},
 ): string {
-  const mergedOptions = { ...DEFAULT_FORMAT_OPTIONS, ...options }
-  const { indentSpaces, formatStyle, sortKeys } = mergedOptions
+  const mergedOptions = { ...DEFAULT_FORMAT_OPTIONS, ...options };
+  const { indentSpaces, formatStyle, sortKeys } = mergedOptions;
 
   try {
-    const jsonObj = typeof data === 'string' ? JSON.parse(data) : data
+    const jsonObj = typeof data === "string" ? JSON.parse(data) : data;
 
-    if (formatStyle === 'compact') {
-      return JSON.stringify(jsonObj)
+    if (formatStyle === "compact") {
+      return JSON.stringify(jsonObj);
     }
 
-    if (sortKeys && typeof jsonObj === 'object' && jsonObj !== null) {
-      const sortedObj = sortObjectKeys(jsonObj)
-      return JSON.stringify(sortedObj, null, indentSpaces)
+    if (sortKeys && typeof jsonObj === "object" && jsonObj !== null) {
+      const sortedObj = sortObjectKeys(jsonObj);
+      return JSON.stringify(sortedObj, null, indentSpaces);
     }
 
-    return JSON.stringify(jsonObj, null, indentSpaces)
+    return JSON.stringify(jsonObj, null, indentSpaces);
   } catch (error) {
-    throw new Error(`JSON 格式化失败: ${error instanceof Error ? error.message : String(error)}`)
+    throw new Error(
+      `JSON 格式化失败: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
 }
 
@@ -60,10 +66,12 @@ export function formatJson(
  */
 export function minifyJson(data: unknown): string {
   try {
-    const jsonObj = typeof data === 'string' ? JSON.parse(data) : data
-    return JSON.stringify(jsonObj)
+    const jsonObj = typeof data === "string" ? JSON.parse(data) : data;
+    return JSON.stringify(jsonObj);
   } catch (error) {
-    throw new Error(`JSON 压缩失败: ${error instanceof Error ? error.message : String(error)}`)
+    throw new Error(
+      `JSON 压缩失败: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
 }
 
@@ -77,13 +85,13 @@ export function minifyJson(data: unknown): string {
  */
 export function escapeJson(str: string): string {
   return str
-    .replace(/\\/g, '\\\\')
+    .replace(/\\/g, "\\\\")
     .replace(/"/g, '\\"')
-    .replace(/\n/g, '\\n')
-    .replace(/\r/g, '\\r')
-    .replace(/\t/g, '\\t')
-    .replace(/\f/g, '\\f')
-    .replace(/\b/g, '\\b')
+    .replace(/\n/g, "\\n")
+    .replace(/\r/g, "\\r")
+    .replace(/\t/g, "\\t")
+    .replace(/\f/g, "\\f")
+    .replace(/[\b]/g, "\\b");
 }
 
 /**
@@ -96,13 +104,14 @@ export function escapeJson(str: string): string {
  */
 export function unescapeJson(str: string): string {
   return str
-    .replace(/\\b/g, '\b')
-    .replace(/\\f/g, '\f')
-    .replace(/\\n/g, '\n')
-    .replace(/\\r/g, '\r')
-    .replace(/\\t/g, '\t')
+    .replace(/\\\\/g, "\\")
+    .replace(/\\b/g, "\b")
+    .replace(/\\f/g, "\f")
+    .replace(/\\n/g, "\n")
+    .replace(/\\r/g, "\r")
+    .replace(/\\t/g, "\t")
     .replace(/\\"/g, '"')
-    .replace(/\\\\/g, '\\')
+    .replace(/\\'/g, "'");
 }
 
 /**
@@ -117,16 +126,16 @@ export function validateJson(str: string): JsonValidationResult {
   if (!str || !str.trim()) {
     return {
       isValid: false,
-      errorMessage: 'JSON 字符串为空',
-    }
+      errorMessage: "JSON 字符串为空",
+    };
   }
 
   try {
-    JSON.parse(str)
-    return { isValid: true }
+    JSON.parse(str);
+    return { isValid: true };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error)
-    const position = extractErrorPosition(errorMessage)
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const position = extractErrorPosition(errorMessage);
 
     return {
       isValid: false,
@@ -134,7 +143,7 @@ export function validateJson(str: string): JsonValidationResult {
       errorLine: position?.line,
       errorColumn: position?.column,
       errorPosition: position?.index,
-    }
+    };
   }
 }
 
@@ -157,17 +166,17 @@ export function calculateJsonStats(data: unknown): JsonStats {
     booleanCount: 0,
     nullCount: 0,
     maxDepth: 0,
-  }
+  };
 
   try {
-    const jsonObj = typeof data === 'string' ? JSON.parse(data) : data
-    stats.size = new Blob([JSON.stringify(jsonObj)]).size
-    traverseJson(jsonObj, stats, 0)
+    const jsonObj = typeof data === "string" ? JSON.parse(data) : data;
+    stats.size = new Blob([JSON.stringify(jsonObj)]).size;
+    traverseJson(jsonObj, stats, 0);
   } catch {
     // 解析失败时返回默认值
   }
 
-  return stats
+  return stats;
 }
 
 /**
@@ -176,7 +185,7 @@ export function calculateJsonStats(data: unknown): JsonStats {
  * @returns 处理后的字符串
  */
 export function handleChineseComma(str: string): string {
-  return str.replace(/，/g, ',')
+  return str.replace(/，/g, ",");
 }
 
 /**
@@ -189,7 +198,7 @@ export function handleChineseQuote(str: string): string {
     .replace(/"/g, '"')
     .replace(/"/g, '"')
     .replace(/'/g, "'")
-    .replace(/'/g, "'")
+    .replace(/'/g, "'");
 }
 
 /**
@@ -202,8 +211,8 @@ export function handleChineseQuote(str: string): string {
  */
 export function encodeUnicode(str: string): string {
   return str.replace(/[\u4e00-\u9fa5]/g, (char) => {
-    return `\\u${char.charCodeAt(0).toString(16).padStart(4, '0')}`
-  })
+    return `\\u${char.charCodeAt(0).toString(16).padStart(4, "0")}`;
+  });
 }
 
 /**
@@ -216,8 +225,8 @@ export function encodeUnicode(str: string): string {
  */
 export function decodeUnicode(str: string): string {
   return str.replace(/\\u([0-9a-fA-F]{4})/g, (_, code) => {
-    return String.fromCharCode(parseInt(code, 16))
-  })
+    return String.fromCharCode(parseInt(code, 16));
+  });
 }
 
 /**
@@ -229,11 +238,11 @@ export function decodeUnicode(str: string): string {
  * // 返回: '1 KB'
  */
 export function formatSize(bytes: number): string {
-  if (bytes === 0) return '0 B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`
+  if (bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 }
 
 /**
@@ -244,42 +253,42 @@ export function formatSize(bytes: number): string {
  */
 function traverseJson(obj: unknown, stats: JsonStats, depth: number): void {
   if (depth > stats.maxDepth) {
-    stats.maxDepth = depth
+    stats.maxDepth = depth;
   }
 
   if (obj === null) {
-    stats.nullCount++
-    return
+    stats.nullCount++;
+    return;
   }
 
-  if (typeof obj === 'boolean') {
-    stats.booleanCount++
-    return
+  if (typeof obj === "boolean") {
+    stats.booleanCount++;
+    return;
   }
 
-  if (typeof obj === 'number') {
-    stats.numberCount++
-    return
+  if (typeof obj === "number") {
+    stats.numberCount++;
+    return;
   }
 
-  if (typeof obj === 'string') {
-    stats.stringCount++
-    return
+  if (typeof obj === "string") {
+    stats.stringCount++;
+    return;
   }
 
   if (Array.isArray(obj)) {
-    stats.arrayCount++
-    obj.forEach((item) => traverseJson(item, stats, depth + 1))
-    return
+    stats.arrayCount++;
+    obj.forEach((item) => traverseJson(item, stats, depth + 1));
+    return;
   }
 
-  if (typeof obj === 'object') {
-    stats.objectCount++
-    const keys = Object.keys(obj)
-    stats.fieldCount += keys.length
+  if (typeof obj === "object") {
+    stats.objectCount++;
+    const keys = Object.keys(obj);
+    stats.fieldCount += keys.length;
     keys.forEach((key) => {
-      traverseJson((obj as Record<string, unknown>)[key], stats, depth + 1)
-    })
+      traverseJson((obj as Record<string, unknown>)[key], stats, depth + 1);
+    });
   }
 }
 
@@ -290,19 +299,19 @@ function traverseJson(obj: unknown, stats: JsonStats, depth: number): void {
  */
 function sortObjectKeys(obj: unknown): unknown {
   if (Array.isArray(obj)) {
-    return obj.map(sortObjectKeys)
+    return obj.map(sortObjectKeys);
   }
 
-  if (obj !== null && typeof obj === 'object') {
-    const sorted: Record<string, unknown> = {}
-    const keys = Object.keys(obj).sort()
+  if (obj !== null && typeof obj === "object") {
+    const sorted: Record<string, unknown> = {};
+    const keys = Object.keys(obj).sort();
     keys.forEach((key) => {
-      sorted[key] = sortObjectKeys((obj as Record<string, unknown>)[key])
-    })
-    return sorted
+      sorted[key] = sortObjectKeys((obj as Record<string, unknown>)[key]);
+    });
+    return sorted;
   }
 
-  return obj
+  return obj;
 }
 
 /**
@@ -313,16 +322,16 @@ function sortObjectKeys(obj: unknown): unknown {
 function extractErrorPosition(
   errorMessage: string,
 ): { line: number; column: number; index: number } | null {
-  const positionMatch = errorMessage.match(/position\s+(\d+)/i)
+  const positionMatch = errorMessage.match(/position\s+(\d+)/i);
   if (positionMatch) {
-    const index = parseInt(positionMatch[1], 10)
+    const index = parseInt(positionMatch[1], 10);
     return {
       line: 1,
       column: index + 1,
       index,
-    }
+    };
   }
-  return null
+  return null;
 }
 
 /**
@@ -331,21 +340,21 @@ function extractErrorPosition(
  * @returns 友好的错误描述
  */
 function extractErrorMessage(errorMessage: string): string {
-  if (errorMessage.includes('Unexpected token')) {
-    const tokenMatch = errorMessage.match(/Unexpected token\s+(.+?)\s+in/)
+  if (errorMessage.includes("Unexpected token")) {
+    const tokenMatch = errorMessage.match(/Unexpected token\s+(.+?)\s+in/);
     if (tokenMatch) {
-      return `意外的符号: ${tokenMatch[1]}`
+      return `意外的符号: ${tokenMatch[1]}`;
     }
-    return 'JSON 格式错误：存在意外的符号'
+    return "JSON 格式错误：存在意外的符号";
   }
 
-  if (errorMessage.includes('Expected')) {
-    return 'JSON 格式错误：缺少必要的符号或格式不正确'
+  if (errorMessage.includes("Expected")) {
+    return "JSON 格式错误：缺少必要的符号或格式不正确";
   }
 
-  if (errorMessage.includes('Unexpected end of JSON input')) {
-    return 'JSON 格式错误：JSON 字符串不完整'
+  if (errorMessage.includes("Unexpected end of JSON input")) {
+    return "JSON 格式错误：JSON 字符串不完整";
   }
 
-  return `JSON 格式错误: ${errorMessage}`
+  return `JSON 格式错误: ${errorMessage}`;
 }

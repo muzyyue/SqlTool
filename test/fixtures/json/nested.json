@@ -1,0 +1,36 @@
+{
+  "user": {
+    "profile": {
+      "name": "张三",
+      "age": 25,
+      "address": {
+        "province": "北京",
+        "city": "北京市",
+        "district": "朝阳区"
+      }
+    },
+    "settings": {
+      "theme": "dark",
+      "language": "zh-CN",
+      "notifications": {
+        "email": true,
+        "sms": false,
+        "push": true
+      }
+    }
+  },
+  "data": {
+    "items": [
+      {
+        "id": 1,
+        "name": "项目一",
+        "status": "active"
+      },
+      {
+        "id": 2,
+        "name": "项目二",
+        "status": "inactive"
+      }
+    ]
+  }
+}

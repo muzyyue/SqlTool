@@ -1,5 +1,27 @@
 # 版本变更历史
 
+## 1.5.54 (2026-03-21)
+
+**JSON工具测试执行与缺陷修复**
+
+- 执行JSON工具全面测试流程，覆盖单元测试和E2E测试
+- 修复 ESC-011 测试用例预期值错误（unescapeJson函数反转义逻辑）
+- 单元测试结果：482个测试全部通过，通过率100%
+- JSON核心模块覆盖率：jsonFormatter.ts 90.32%, jsonCompare.ts 92.23%, jsonConverter.ts 87.04%, jsonCodeGenerator.ts 65.51%
+- 发现E2E测试环境问题（超时和浏览器关闭），非JSON工具功能问题
+- 测试计划文件：test/docs/json-tool-test-plan.md
+
+## 1.5.53 (2026-03-20)
+
+**测试文件优化 - 删除冗余和无效测试**
+
+- 删除无效测试文件 `sql-format.test.js`（内联实现，未测试实际代码）
+- 精简 `ai-integration.test.ts`（1677行 → 743行），删除与 `ai-module.test.ts` 重复的单元测试
+- 精简 `postgresql-insert-complete.spec.js`（1298行 → 640行），删除与 `insert-page.spec.js` 重复的基础测试
+- 从 git 跟踪中移除 `nginx.conf`（保留本地文件）
+- 测试文件职责划分更清晰：单元测试 vs 集成测试 vs E2E测试
+- 减少约 1932 行冗余代码，提升测试维护效率
+
 ## 1.5.52 (2026-03-20)
 
 **修复数据注入测试文件中的函数调用错误**

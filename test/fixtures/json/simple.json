@@ -1,0 +1,8 @@
+{
+  "name": "张三",
+  "age": 25,
+  "active": true,
+  "score": 95.5,
+  "tags": ["tag1", "tag2"],
+  "metadata": null
+}
