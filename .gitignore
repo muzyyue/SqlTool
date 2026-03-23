@@ -16,7 +16,7 @@ dist-ssr
 dist.zip
 
 # Testing
-coverage
+coverage/
 test-results/
 __screenshots__/
 Test.txt
