@@ -3,6 +3,7 @@ import {
   ExcelFillPage,
   TEST_EXCEL_FILE,
   TEST_EXCEL_MULTI_SHEETS,
+  TEST_EXCEL_CROSS_SHEET,
 } from "./pages/ExcelFillPage.js";
 
 /**
@@ -141,63 +142,6 @@ test.describe("Excel 填充页面功能测试", () => {
   });
 
   test("高级数据处理 - 配置分割列", async () => {
-    // 先找到"启用高级数据处理"开关 - 使用更精确的定位器
-    const switchToggle = sharedPage
-      .locator('.ant-form-item:has-text("启用高级数据处理") .ant-switch')
-      .first();
-
-    // 检查开关是否可见
-    const isVisible = await switchToggle.isVisible().catch(() => false);
-    console.log("开关是否可见:", isVisible);
-
-    if (!isVisible) {
-      console.log("开关不可见，尝试使用通用定位器");
-      // 如果找不到，使用第一个 ant-switch
-      switchToggle = sharedPage.locator(".ant-switch").first();
-    }
-
-    // 检查开关状态 - 使用 CSS 类名而不是 isChecked()
-    let isChecked = await switchToggle
-      .evaluate((el) => el.classList.contains("ant-switch-checked"))
-      .catch(() => false);
-    console.log("开关初始状态 (通过 class 检查):", isChecked);
-
-    if (!isChecked) {
-      console.log("开关未打开，尝试点击打开...");
-
-      // 尝试多种点击方式
-      try {
-        // 方式 1: 直接点击
-        await switchToggle.click();
-        console.log("已点击开关（方式 1）");
-      } catch (e) {
-        console.log("方式 1 失败，尝试方式 2");
-        // 方式 2: 使用 force 点击
-        await switchToggle.click({ force: true });
-        console.log("已点击开关（方式 2 - force）");
-      }
-
-      await sharedPage.waitForTimeout(3000);
-
-      // 再次检查状态
-      isChecked = await switchToggle
-        .evaluate((el) => el.classList.contains("ant-switch-checked"))
-        .catch(() => false);
-      console.log("开关点击后状态:", isChecked);
-
-      if (!isChecked) {
-        console.log("开关仍未打开，尝试方式 3 - 使用 evaluate 触发点击");
-        // 方式 3: 使用 JavaScript 触发点击事件
-        await switchToggle.evaluate((el) => el.click());
-        await sharedPage.waitForTimeout(3000);
-
-        isChecked = await switchToggle
-          .evaluate((el) => el.classList.contains("ant-switch-checked"))
-          .catch(() => false);
-        console.log("开关 JavaScript 点击后状态:", isChecked);
-      }
-    }
-
     // 等待表单完全渲染 - 需要等待更长时间
     await sharedPage.waitForTimeout(5000);
 
@@ -259,32 +203,48 @@ test.describe("Excel 填充页面功能测试", () => {
       .locator('.ant-form-item:has-text("源数据列") .ant-select')
       .first();
     await selectElement.click();
+    await sharedPage.waitForTimeout(1000);
+
+    // 等待下拉选项列表完全加载 - 等待第一个选项可见
+    await sharedPage.waitForSelector(
+      ".ant-select-dropdown .ant-select-item-option",
+      {
+        state: "visible",
+        timeout: 10000,
+      },
+    );
     await sharedPage.waitForTimeout(500);
 
-    // 使用键盘导航选择包含 "items" 的选项
-    await sharedPage.keyboard.press("ArrowDown");
-    await sharedPage.waitForTimeout(200);
+    // 获取所有选项并查找包含 "items" 的选项
+    const allOptions = await sharedPage
+      .locator(".ant-select-dropdown .ant-select-item-option")
+      .all();
+    console.log(`总共找到 ${allOptions.length} 个选项`);
 
-    // 遍历选项查找包含 "items" 的选项
     let found = false;
-    for (let i = 0; i < 15; i++) {
-      const selectedOption = await sharedPage
-        .locator(".ant-select-item-option-selected")
-        .first()
-        .textContent();
-      console.log(`当前选项 ${i}: ${selectedOption}`);
-      if (selectedOption && selectedOption.includes("items")) {
+    for (let i = 0; i < allOptions.length; i++) {
+      const optionText = await allOptions[i].textContent();
+      console.log(`当前选项 ${i}: ${optionText}`);
+      if (optionText && optionText.includes("items")) {
         found = true;
         console.log(`找到 items 选项，索引：${i}`);
+        // 点击找到的选项
+        await allOptions[i].click();
         break;
       }
-      await sharedPage.keyboard.press("ArrowDown");
-      await sharedPage.waitForTimeout(100);
     }
 
-    // 按 Enter 确认选择
-    await sharedPage.keyboard.press("Enter");
+    // 如果没找到包含 "items" 的选项，选择第一个选项
+    if (!found && allOptions.length > 0) {
+      console.log("未找到包含 items 的选项，选择第一个选项");
+      await allOptions[0].click();
+    }
+
     await sharedPage.waitForTimeout(1000);
+
+    // 关闭下拉框
+    await sharedPage.keyboard.press("Escape");
+    await sharedPage.waitForTimeout(300);
 
     // 滚动到分割符选择器
     await sharedPage.evaluate(() =>
@@ -311,56 +271,90 @@ test.describe("Excel 填充页面功能测试", () => {
   test("高级数据处理 - 配置匹配列", async () => {
     // 选择查询匹配列
     await excelFillPage.locators.matchColumnSelect.click();
+    await sharedPage.waitForTimeout(1000);
+
+    // 等待下拉选项列表完全加载
+    await sharedPage.waitForSelector(
+      ".ant-select-dropdown .ant-select-item-option",
+      {
+        state: "visible",
+        timeout: 10000,
+      },
+    );
     await sharedPage.waitForTimeout(500);
 
-    // 使用键盘导航选择包含 "code" 的选项
-    await sharedPage.keyboard.press("ArrowDown");
-    await sharedPage.waitForTimeout(200);
+    // 获取所有选项并查找包含 "code" 的选项
+    const allOptions = await sharedPage
+      .locator(".ant-select-dropdown .ant-select-item-option")
+      .all();
+    console.log(`总共找到 ${allOptions.length} 个匹配列选项`);
 
-    for (let i = 0; i < 15; i++) {
-      const selectedOption = await sharedPage
-        .locator(".ant-select-item-option-selected")
-        .first()
-        .textContent();
-      console.log(`匹配列选项 ${i}: ${selectedOption}`);
-      if (selectedOption && selectedOption.includes("code")) {
+    let found = false;
+    for (let i = 0; i < allOptions.length; i++) {
+      const optionText = await allOptions[i].textContent();
+      console.log(`匹配列选项 ${i}: ${optionText}`);
+      if (optionText && optionText.includes("code")) {
+        found = true;
         console.log(`找到 code 选项，索引：${i}`);
+        // 点击找到的选项
+        await allOptions[i].click();
         break;
       }
-      await sharedPage.keyboard.press("ArrowDown");
-      await sharedPage.waitForTimeout(100);
     }
 
-    // 按 Enter 确认选择
-    await sharedPage.keyboard.press("Enter");
+    // 如果没找到包含 "code" 的选项，选择第一个选项
+    if (!found && allOptions.length > 0) {
+      console.log("未找到包含 code 的选项，选择第一个选项");
+      await allOptions[0].click();
+    }
+
     await sharedPage.waitForTimeout(500);
+
+    // 关闭下拉框
+    await sharedPage.keyboard.press("Escape");
+    await sharedPage.waitForTimeout(300);
   });
 
   test("高级数据处理 - 配置提取列", async () => {
     // 选择要提取的列（多选）
     await excelFillPage.locators.extractColumnsSelect.click();
+    await sharedPage.waitForTimeout(1000);
+
+    // 等待下拉选项列表完全加载
+    await sharedPage.waitForSelector(
+      ".ant-select-dropdown .ant-select-item-option",
+      {
+        state: "visible",
+        timeout: 10000,
+      },
+    );
     await sharedPage.waitForTimeout(500);
 
-    // 使用键盘导航选择包含 "category" 的选项
-    await sharedPage.keyboard.press("ArrowDown");
-    await sharedPage.waitForTimeout(200);
+    // 获取所有选项并查找包含 "category" 的选项
+    const allOptions = await sharedPage
+      .locator(".ant-select-dropdown .ant-select-item-option")
+      .all();
+    console.log(`总共找到 ${allOptions.length} 个提取列选项`);
 
-    for (let i = 0; i < 15; i++) {
-      const selectedOption = await sharedPage
-        .locator(".ant-select-item-option-selected")
-        .first()
-        .textContent();
-      console.log(`提取列选项 ${i}: ${selectedOption}`);
-      if (selectedOption && selectedOption.includes("category")) {
+    let found = false;
+    for (let i = 0; i < allOptions.length; i++) {
+      const optionText = await allOptions[i].textContent();
+      console.log(`提取列选项 ${i}: ${optionText}`);
+      if (optionText && optionText.includes("category")) {
+        found = true;
         console.log(`找到 category 选项，索引：${i}`);
+        // 点击找到的选项
+        await allOptions[i].click();
         break;
       }
-      await sharedPage.keyboard.press("ArrowDown");
-      await sharedPage.waitForTimeout(100);
     }
 
-    // 按 Enter 确认选择
-    await sharedPage.keyboard.press("Enter");
+    // 如果没找到包含 "category" 的选项，选择第一个选项
+    if (!found && allOptions.length > 0) {
+      console.log("未找到包含 category 的选项，选择第一个选项");
+      await allOptions[0].click();
+    }
+
     await sharedPage.waitForTimeout(500);
 
     // 关闭下拉框
@@ -371,29 +365,108 @@ test.describe("Excel 填充页面功能测试", () => {
   test("高级数据处理 - 配置结果列", async () => {
     // 选择结果填充列
     await excelFillPage.locators.resultColumnSelect.click();
+    await sharedPage.waitForTimeout(1000);
+
+    // 等待下拉选项列表完全加载
+    await sharedPage.waitForSelector(
+      ".ant-select-dropdown .ant-select-item-option",
+      {
+        state: "visible",
+        timeout: 10000,
+      },
+    );
     await sharedPage.waitForTimeout(500);
 
-    // 使用键盘导航选择包含 "item" 的选项
-    await sharedPage.keyboard.press("ArrowDown");
-    await sharedPage.waitForTimeout(200);
+    // 获取所有选项并查找包含 "item" 的选项
+    const allOptions = await sharedPage
+      .locator(".ant-select-dropdown .ant-select-item-option")
+      .all();
+    console.log(`总共找到 ${allOptions.length} 个结果列选项`);
 
-    for (let i = 0; i < 15; i++) {
-      const selectedOption = await sharedPage
-        .locator(".ant-select-item-option-selected")
-        .first()
-        .textContent();
-      console.log(`结果列选项 ${i}: ${selectedOption}`);
-      if (selectedOption && selectedOption.includes("item")) {
+    let found = false;
+    for (let i = 0; i < allOptions.length; i++) {
+      const optionText = await allOptions[i].textContent();
+      console.log(`结果列选项 ${i}: ${optionText}`);
+      if (optionText && optionText.includes("item")) {
+        found = true;
         console.log(`找到 item 选项，索引：${i}`);
+        // 点击找到的选项
+        await allOptions[i].click();
         break;
       }
-      await sharedPage.keyboard.press("ArrowDown");
-      await sharedPage.waitForTimeout(100);
     }
 
-    // 按 Enter 确认选择
-    await sharedPage.keyboard.press("Enter");
+    // 如果没找到包含 "item" 的选项，选择第一个选项
+    if (!found && allOptions.length > 0) {
+      console.log("未找到包含 item 的选项，选择第一个选项");
+      await allOptions[0].click();
+    }
+
     await sharedPage.waitForTimeout(500);
+
+    // 关闭下拉框
+    await sharedPage.keyboard.press("Escape");
+    await sharedPage.waitForTimeout(300);
+  });
+
+  test("高级数据处理 - 跨工作表查询配置", async () => {
+    // 等待页面稳定
+    await sharedPage.waitForTimeout(2000);
+
+    // 检查是否有多个工作表
+    const hasMultipleSheets = await sharedPage
+      .locator('.ant-form-item:has-text("源数据工作表")')
+      .isVisible()
+      .catch(() => false);
+
+    if (!hasMultipleSheets) {
+      console.log("测试文件只有一个工作表，跳过跨工作表查询测试");
+      return;
+    }
+
+    // 滚动到查询匹配工作表选择器
+    await sharedPage.evaluate(() =>
+      window.scrollTo(0, document.body.scrollHeight),
+    );
+    await sharedPage.waitForTimeout(500);
+
+    // 选择查询匹配工作表（选择与源数据工作表不同的工作表）
+    const matchSheetSelect = sharedPage
+      .locator('.ant-form-item:has-text("查询匹配工作表") .ant-select')
+      .first();
+
+    const isMatchSheetVisible = await matchSheetSelect
+      .isVisible()
+      .catch(() => false);
+
+    if (isMatchSheetVisible) {
+      await matchSheetSelect.click();
+      await sharedPage.waitForTimeout(500);
+
+      // 选择第二个工作表（假设有多个工作表）
+      const sheetOptions = await sharedPage
+        .locator(".ant-select-item-option")
+        .all();
+
+      if (sheetOptions.length > 1) {
+        await sheetOptions[1].click();
+        await sharedPage.waitForTimeout(2000);
+
+        // 验证查询匹配列和提取列选择器已更新
+        const matchColumnSelect = excelFillPage.locators.matchColumnSelect;
+        await expect(matchColumnSelect).toBeVisible();
+
+        const extractColumnsSelect =
+          excelFillPage.locators.extractColumnsSelect;
+        await expect(extractColumnsSelect).toBeVisible();
+
+        console.log("成功选择查询匹配工作表，列选择器已更新");
+      } else {
+        console.log("只有一个工作表选项，跳过跨工作表查询测试");
+      }
+    } else {
+      console.log("查询匹配工作表选择器不可见，可能只有一个工作表");
+    }
   });
 
   test("高级数据处理 - 开始处理", async () => {
@@ -591,5 +664,346 @@ test.describe("Excel 填充页面测试报告", () => {
     console.log("✅ 重置功能");
     console.log("✅ 数据预览");
     console.log("==============================");
+  });
+});
+
+/**
+ * 跨工作表功能测试套件
+ * 测试 Excel 填充工具的跨工作表查询和结果填充功能
+ */
+test.describe("Excel 填充页面 - 跨工作表功能测试", () => {
+  test.describe.configure({ mode: "serial" });
+
+  let excelFillPage;
+  let sharedPage;
+
+  test.beforeAll(async ({ browser }) => {
+    sharedPage = await browser.newPage();
+    excelFillPage = new ExcelFillPage(sharedPage);
+    await excelFillPage.goto();
+    await excelFillPage.waitForReady();
+  });
+
+  test.afterAll(async () => {
+    await sharedPage.close();
+  });
+
+  test("跨sheet - 上传多工作表Excel文件", async () => {
+    await excelFillPage.uploadExcel(
+      `./test/e2e/fixtures/${TEST_EXCEL_CROSS_SHEET}`,
+    );
+    await excelFillPage.waitForUploadSuccess();
+
+    const uploadStatus =
+      await excelFillPage.locators.uploadStatusText.textContent();
+    expect(uploadStatus).toContain("成功");
+  });
+
+  test("跨sheet - 切换到高级数据处理Tab", async () => {
+    await excelFillPage.switchToAdvancedTab();
+    await sharedPage.waitForTimeout(2000);
+
+    const pageContent = await sharedPage.content();
+    const hasAdvancedText =
+      pageContent.includes("高级数据处理") || pageContent.includes("启用高级");
+    expect(hasAdvancedText).toBe(true);
+  });
+
+  test("跨sheet - 选择源数据工作表", async () => {
+    await sharedPage.waitForTimeout(2000);
+
+    const sourceSheetSelect = sharedPage
+      .locator('.ant-form-item:has-text("源数据工作表") .ant-select')
+      .first();
+    const isSourceSheetVisible = await sourceSheetSelect
+      .isVisible()
+      .catch(() => false);
+
+    if (isSourceSheetVisible) {
+      await sourceSheetSelect.click();
+      await sharedPage.waitForTimeout(1000);
+
+      await sharedPage.waitForSelector(
+        ".ant-select-dropdown:visible .ant-select-item-option",
+        { timeout: 5000 },
+      );
+
+      const sheetOption = sharedPage
+        .locator(
+          ".ant-select-dropdown:visible .ant-select-item-option:has-text('订单表')",
+        )
+        .first();
+      await sheetOption.click({ force: true });
+      await sharedPage.waitForTimeout(2000);
+
+      console.log("成功选择源数据工作表: 订单表");
+    } else {
+      console.log("源数据工作表选择器不可见，可能已默认选择");
+    }
+  });
+
+  test("跨sheet - 选择查询匹配工作表", async () => {
+    await sharedPage.waitForTimeout(2000);
+
+    const matchSheetSelect = sharedPage
+      .locator('.ant-form-item:has-text("查询匹配工作表") .ant-select')
+      .first();
+    const isMatchSheetVisible = await matchSheetSelect
+      .isVisible()
+      .catch(() => false);
+
+    if (isMatchSheetVisible) {
+      await matchSheetSelect.click();
+      await sharedPage.waitForTimeout(1000);
+
+      await sharedPage.waitForSelector(
+        ".ant-select-dropdown:visible .ant-select-item-option",
+        { timeout: 5000 },
+      );
+
+      const sheetOption = sharedPage
+        .locator(
+          ".ant-select-dropdown:visible .ant-select-item-option:has-text('商品信息表')",
+        )
+        .first();
+      await sheetOption.click({ force: true });
+      await sharedPage.waitForTimeout(2000);
+
+      console.log("成功选择查询匹配工作表: 商品信息表");
+    } else {
+      console.log("查询匹配工作表选择器不可见");
+    }
+  });
+
+  test("跨sheet - 配置查询匹配列", async () => {
+    await sharedPage.waitForTimeout(2000);
+
+    const matchColumnSelect = sharedPage
+      .locator('.ant-form-item:has-text("查询匹配列") .ant-select')
+      .first();
+
+    await matchColumnSelect.scrollIntoViewIfNeeded();
+    await sharedPage.waitForTimeout(500);
+
+    await matchColumnSelect.click();
+    await sharedPage.waitForTimeout(1000);
+
+    await sharedPage.waitForSelector(
+      ".ant-select-dropdown:visible .ant-select-item-option",
+      { timeout: 10000 },
+    );
+
+    const columnOption = sharedPage
+      .locator(
+        ".ant-select-dropdown:visible .ant-select-item-option:has-text('商品编码')",
+      )
+      .first();
+    await columnOption.click({ force: true });
+    await sharedPage.waitForTimeout(1000);
+
+    console.log("成功选择查询匹配列: 商品编码");
+  });
+
+  test("跨sheet - 配置提取列", async () => {
+    await sharedPage.waitForTimeout(2000);
+
+    const extractColumnsSelect = sharedPage
+      .locator('.ant-form-item:has-text("提取列选择") .ant-select')
+      .first();
+    await extractColumnsSelect.click();
+    await sharedPage.waitForTimeout(1000);
+
+    await sharedPage.waitForSelector(
+      ".ant-select-dropdown:visible .ant-select-item-option",
+      { timeout: 5000 },
+    );
+
+    const columnsToExtract = ["商品名称", "商品分类", "价格"];
+    for (const columnName of columnsToExtract) {
+      const columnOption = sharedPage
+        .locator(
+          `.ant-select-dropdown:visible .ant-select-item-option:has-text('${columnName}')`,
+        )
+        .first();
+      await columnOption.click({ force: true });
+      await sharedPage.waitForTimeout(300);
+    }
+
+    await sharedPage.keyboard.press("Escape");
+    await sharedPage.waitForTimeout(500);
+
+    console.log("成功选择提取列: 商品名称, 商品分类, 价格");
+  });
+
+  test("跨sheet - 配置结果填充列", async () => {
+    await sharedPage.waitForTimeout(2000);
+
+    const resultColumnSelect = sharedPage
+      .locator('.ant-form-item:has-text("结果填充列") .ant-select')
+      .first();
+    await resultColumnSelect.click();
+    await sharedPage.waitForTimeout(1000);
+
+    await sharedPage.waitForSelector(
+      ".ant-select-dropdown:visible .ant-select-item-option",
+      { timeout: 5000 },
+    );
+
+    const columnOption = sharedPage
+      .locator(
+        ".ant-select-dropdown:visible .ant-select-item-option:has-text('商品名称')",
+      )
+      .first();
+    await columnOption.click({ force: true });
+    await sharedPage.waitForTimeout(1000);
+
+    console.log("成功选择结果填充列: 商品名称");
+  });
+
+  test("跨sheet - 执行跨工作表查询处理", async () => {
+    await sharedPage.waitForTimeout(2000);
+
+    await excelFillPage.process("advanced");
+    await excelFillPage.waitForProcessComplete();
+
+    const hasResult = await excelFillPage.hasResultCard();
+    expect(hasResult).toBe(true);
+
+    const resultText = await excelFillPage.getResultText();
+    expect(resultText).toContain("高级数据处理");
+
+    console.log("跨工作表查询处理完成");
+  });
+
+  test("跨sheet - 验证跨工作表查询结果", async () => {
+    await sharedPage.waitForTimeout(2000);
+
+    const resultText = await excelFillPage.getResultText();
+    console.log("处理结果:", resultText);
+
+    expect(resultText).toContain("订单表");
+    expect(resultText).toContain("商品信息表");
+    expect(resultText).toContain("成功填充数据");
+
+    console.log("跨工作表查询结果验证通过");
+  });
+
+  test("跨sheet - 配置目标工作表", async () => {
+    await sharedPage.waitForTimeout(2000);
+
+    const targetSheetSelect = sharedPage
+      .locator('.ant-form-item:has-text("目标工作表") .ant-select')
+      .first();
+    const isTargetSheetVisible = await targetSheetSelect
+      .isVisible()
+      .catch(() => false);
+
+    if (isTargetSheetVisible) {
+      await targetSheetSelect.click();
+      await sharedPage.waitForTimeout(1000);
+
+      await sharedPage.waitForSelector(
+        ".ant-select-dropdown:visible .ant-select-item-option",
+        { timeout: 5000 },
+      );
+
+      const sheetOption = sharedPage
+        .locator(
+          ".ant-select-dropdown:visible .ant-select-item-option:has-text('填充结果表')",
+        )
+        .first();
+      await sheetOption.click({ force: true });
+      await sharedPage.waitForTimeout(2000);
+
+      console.log("成功选择目标工作表: 填充结果表");
+    } else {
+      console.log("目标工作表选择器不可见");
+    }
+  });
+
+  test("跨sheet - 配置目标填充列", async () => {
+    await sharedPage.waitForTimeout(2000);
+
+    const targetColumnSelect = sharedPage
+      .locator('.ant-form-item:has-text("目标填充列") .ant-select')
+      .first();
+    const isTargetColumnVisible = await targetColumnSelect
+      .isVisible()
+      .catch(() => false);
+
+    if (isTargetColumnVisible) {
+      await targetColumnSelect.click();
+      await sharedPage.waitForTimeout(1000);
+
+      await sharedPage.waitForSelector(
+        ".ant-select-dropdown:visible .ant-select-item-option",
+        { timeout: 5000 },
+      );
+
+      const columnOption = sharedPage
+        .locator(
+          ".ant-select-dropdown:visible .ant-select-item-option:has-text('商品名称')",
+        )
+        .first();
+      await columnOption.click({ force: true });
+      await sharedPage.waitForTimeout(1000);
+
+      console.log("成功选择目标填充列: 商品名称");
+    } else {
+      console.log("目标填充列选择器不可见");
+    }
+  });
+
+  test("跨sheet - 执行跨工作表结果填充", async () => {
+    await sharedPage.waitForTimeout(2000);
+
+    await excelFillPage.process("advanced");
+    await excelFillPage.waitForProcessComplete();
+
+    const hasResult = await excelFillPage.hasResultCard();
+    expect(hasResult).toBe(true);
+
+    console.log("跨工作表结果填充完成");
+  });
+
+  test("跨sheet - 验证跨工作表结果填充", async () => {
+    await sharedPage.waitForTimeout(2000);
+
+    const resultText = await excelFillPage.getResultText();
+    console.log("填充结果:", resultText);
+
+    expect(resultText).toContain("填充结果表");
+    expect(resultText).toContain("成功填充数据");
+
+    console.log("跨工作表结果填充验证通过");
+  });
+
+  test("跨sheet - 数据预览验证", async () => {
+    await sharedPage.waitForTimeout(2000);
+
+    const previewTable = excelFillPage.locators.previewTable;
+    await expect(previewTable).toBeVisible();
+
+    const rowCount = await excelFillPage.getPreviewRowCount();
+    expect(rowCount).toBeGreaterThan(0);
+
+    console.log(`数据预览验证通过，共 ${rowCount} 行数据`);
+  });
+
+  test("跨sheet - 重置功能验证", async () => {
+    await excelFillPage.switchToBasicTab();
+    await sharedPage.waitForTimeout(1000);
+
+    const resetButton = excelFillPage.locators.resetButton;
+    await resetButton.scrollIntoViewIfNeeded();
+    await sharedPage.waitForTimeout(500);
+
+    await excelFillPage.reset();
+    await sharedPage.waitForTimeout(2000);
+
+    const hasResult = await excelFillPage.hasResultCard();
+    expect(hasResult).toBe(false);
+
+    console.log("重置功能验证通过");
   });
 });

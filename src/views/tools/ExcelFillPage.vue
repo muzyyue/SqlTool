@@ -59,6 +59,9 @@
             :target-columns="targetColumns"
             :source-columns="sourceColumns"
             :source-worksheet="sourceWorksheet"
+            :match-worksheet="matchWorksheet"
+            :match-columns="matchColumns"
+            :target-worksheet="targetWorksheet"
             :has-multiple-sheets="hasMultipleSheets"
             :can-process-advanced="canProcessAdvanced"
             :processing="processing"
@@ -72,9 +75,12 @@
             @source-sheet-change="handleSourceSheetChange"
             @source-column-for-split-change="handleSourceColumnForSplitChange"
             @split-delimiter-type-change="handleSplitDelimiterTypeChange"
+            @match-sheet-change="handleMatchSheetChange"
             @match-column-change="handleMatchColumnChange"
             @extract-columns-change="handleExtractColumnsChange"
             @result-column-change="handleResultColumnChange"
+            @target-sheet-change="handleTargetSheetChange"
+            @target-column-change="handleTargetColumnChange"
             @process="handleProcess"
           />
         </a-tab-pane>
@@ -157,6 +163,9 @@
           </a-descriptions-item>
           <a-descriptions-item label="源数据工作表" v-if="result.advancedEnabled">
             {{ result.sourceSheetNameForSplit || '无' }}
+          </a-descriptions-item>
+          <a-descriptions-item label="查询匹配工作表" v-if="result.advancedEnabled">
+            {{ result.matchSheetName || '无' }}
           </a-descriptions-item>
           <a-descriptions-item label="目标工作表">
             {{ result.targetSheetName }}
@@ -383,13 +392,19 @@ const advancedConfig = ref({
   splitDelimiter: ',',
   splitDelimiterType: 'comma',
   customSplitDelimiter: '',
+  matchSheetName: '',
   matchColumn: '',
   extractColumns: [],
   joinDelimiter: ',',
   resultColumn: '',
   noMatchAction: 'skip',
   defaultValue: '',
+  targetSheetName: '',
+  targetColumn: '',
 })
+
+const matchColumns = ref([])
+const matchWorksheet = ref(null)
 
 const canProcessAdvanced = computed(() => {
   if (!workbook.value) return false
@@ -400,6 +415,8 @@ const canProcessAdvanced = computed(() => {
     advancedConfig.value.sourceColumnForSplit &&
     advancedConfig.value.splitDelimiter &&
     advancedConfig.value.splitDelimiter !== '' &&
+    advancedConfig.value.matchSheetName &&
+    advancedConfig.value.matchSheetName !== '' &&
     advancedConfig.value.matchColumn &&
     advancedConfig.value.matchColumn !== '' &&
     advancedConfig.value.extractColumns &&
@@ -651,10 +668,12 @@ const beforeUpload = async (file) => {
             loadSheet(wb.SheetNames[0])
             loadTargetSheet(wb.SheetNames[0])
             loadSourceSheet(wb.SheetNames[0])
+            loadMatchSheet(wb.SheetNames[0])
 
             advancedConfig.value.sourceSheetName = wb.SheetNames[0]
             advancedConfig.value.sourceColumnForSplit = ''
             advancedConfig.value.splitDelimiter = ','
+            advancedConfig.value.matchSheetName = wb.SheetNames[0]
             advancedConfig.value.matchColumn = ''
             advancedConfig.value.extractColumns = []
             advancedConfig.value.joinDelimiter = ','
@@ -852,6 +871,33 @@ const loadSourceSheet = (sheetName) => {
 }
 
 /**
+ * 加载匹配工作表
+ * 读取匹配工作表并提取列信息
+ * @param {string} sheetName - 工作表名称
+ */
+const loadMatchSheet = (sheetName) => {
+  const ws = workbook.value.Sheets[sheetName]
+  matchWorksheet.value = ws
+
+  const range = XLSX.utils.decode_range(ws['!ref'])
+  const maxCol = range.e.c + 1
+
+  matchColumns.value = []
+  for (let i = 0; i < maxCol; i++) {
+    const colLetter = XLSX.utils.encode_col(i)
+    const cellAddress = colLetter + '1'
+    const cell = ws[cellAddress]
+    const colName = cell ? cell.v : `列${i + 1}`
+
+    matchColumns.value.push({
+      letter: colLetter,
+      name: colName,
+      index: i,
+    })
+  }
+}
+
+/**
  * 处理源工作表变更
  * @param {string} sheetName - 新的工作表名称
  */
@@ -983,6 +1029,32 @@ const handleSourceSheetChange = (sheetName) => {
 }
 
 /**
+ * 处理匹配工作表变更
+ * @param {string} sheetName - 新的工作表名称
+ */
+const handleMatchSheetChange = (sheetName) => {
+  loadMatchSheet(sheetName)
+
+  if (advancedConfig.value.matchColumn) {
+    const columnExists = matchColumns.value.some(
+      (c) => c.letter === advancedConfig.value.matchColumn,
+    )
+    if (!columnExists) {
+      advancedConfig.value.matchColumn = ''
+    }
+  }
+
+  if (advancedConfig.value.extractColumns && advancedConfig.value.extractColumns.length > 0) {
+    const validColumns = advancedConfig.value.extractColumns.filter((col) =>
+      matchColumns.value.some((c) => c.letter === col),
+    )
+    if (validColumns.length !== advancedConfig.value.extractColumns.length) {
+      advancedConfig.value.extractColumns = validColumns
+    }
+  }
+}
+
+/**
  * 处理查询匹配列变更
  * @param {string} value - 选中的列值
  */
@@ -1068,12 +1140,16 @@ const loadPreview = () => {
 /**
  * 过滤选项
  * 用于下拉搜索的过滤函数
+ * 支持匹配列字母和列名（包括中文列名）
  * @param {string} input - 用户输入
  * @param {Object} option - 选项对象
  * @returns {boolean} 是否匹配
  */
 const filterOption = (input, option) => {
-  return option.value.toLowerCase().includes(input.toLowerCase())
+  const inputLower = input.toLowerCase()
+  const optionValue = (option.value || '').toLowerCase()
+  const optionLabel = (option.label || '').toLowerCase()
+  return optionValue.includes(inputLower) || optionLabel.includes(inputLower)
 }
 
 /**
@@ -1116,20 +1192,22 @@ const splitData = (value, delimiter) => {
 
 /**
  * 查询匹配数据
- * 在目标列中查找匹配的行
+ * 在指定工作表的指定列中查找匹配的行
  * @param {string} value - 待匹配的值
  * @param {string} matchColumn - 匹配列
+ * @param {Object} worksheet - 工作表对象
+ * @param {Array} columns - 列信息数组
  * @returns {Object|null} 匹配的行数据或null
  */
-const findMatchedRow = (value, matchColumn) => {
-  if (!matchColumn || !targetWorksheet.value) return null
+const findMatchedRow = (value, matchColumn, worksheet, columns) => {
+  if (!matchColumn || !worksheet) return null
 
-  const ws = targetWorksheet.value
+  const ws = worksheet
   const range = XLSX.utils.decode_range(ws['!ref'])
   const maxRow = range.e.r + 1
   const maxCol = range.e.c + 1
 
-  const matchColIndex = targetColumns.value.find((c) => c.letter === matchColumn)?.index
+  const matchColIndex = columns.find((c) => c.letter === matchColumn)?.index
   if (matchColIndex === undefined) return null
 
   for (let row = 0; row < maxRow; row++) {
@@ -1365,6 +1443,9 @@ const handleAdvancedProcess = (sourceData, sourceWs, sourceColNum, progressRef, 
   let unmatchedCount = 0
   let extractedCount = 0
 
+  const matchWs = matchWorksheet.value
+  const matchCols = matchColumns.value
+
   for (let i = 0; i < sourceData.length; i++) {
     const { value, row } = sourceData[i]
 
@@ -1376,7 +1457,12 @@ const handleAdvancedProcess = (sourceData, sourceWs, sourceColNum, progressRef, 
     const extractedValues = []
 
     for (const item of splitItems) {
-      const matchedRow = findMatchedRow(item, advancedConfig.value.matchColumn)
+      const matchedRow = findMatchedRow(
+        item,
+        advancedConfig.value.matchColumn,
+        matchWs,
+        matchCols,
+      )
 
       if (matchedRow) {
         matchedCount++
@@ -1525,6 +1611,7 @@ const handleAdvancedProcessMain = async () => {
     sourceColumn: '',
     sourceColumnForSplit: advancedConfig.value.sourceColumnForSplit,
     sourceSheetNameForSplit: advancedConfig.value.sourceSheetName,
+    matchSheetName: advancedConfig.value.matchSheetName,
     sourceColumnNum: sourceColNum,
     targetColumn: '',
     targetColumnNum: 0,
@@ -1657,6 +1744,7 @@ const handleReset = () => {
     splitDelimiter: ',',
     splitDelimiterType: 'comma',
     customSplitDelimiter: '',
+    matchSheetName: '',
     matchColumn: '',
     extractColumns: [],
     joinDelimiter: ',',

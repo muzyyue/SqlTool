@@ -1,5 +1,119 @@
 # 版本变更历史
 
+## 1.5.59 (2026-03-27)
+
+**Excel 填充工具 - 跨工作表功能测试完善**
+
+- 创建跨工作表测试数据文件
+  - 新建 `generate-cross-sheet-test-data.js` 脚本
+  - 生成 `test_cross_sheet.xlsx` 测试文件
+  - 包含 3 个工作表：订单表、商品信息表、填充结果表
+  - 测试场景：跨工作表查询匹配和结果填充
+- 更新 ExcelFillPage.js 测试页面对象
+  - 添加 `targetSheetSelect` 定位器（目标工作表选择器）
+  - 添加 `targetColumnSelect` 定位器（目标填充列选择器）
+  - 导出 `TEST_EXCEL_CROSS_SHEET` 常量
+- 编写跨工作表功能测试套件（15 个测试用例）
+  - 上传多工作表 Excel 文件
+  - 切换到高级数据处理 Tab
+  - 选择源数据工作表（订单表）
+  - 选择查询匹配工作表（商品信息表）
+  - 配置查询匹配列（商品编码）
+  - 配置提取列（商品名称、商品分类、价格）
+  - 配置结果填充列（商品名称）
+  - 执行跨工作表查询处理
+  - 验证跨工作表查询结果
+  - 配置目标工作表（填充结果表）
+  - 配置目标填充列（商品名称）
+  - 执行跨工作表结果填充
+  - 验证跨工作表结果填充
+  - 数据预览验证
+  - 重置功能验证
+- 修复测试用例中的选择器问题
+  - 使用 `.ant-select-dropdown:visible` 定位可见的下拉框
+  - 添加 `scrollIntoViewIfNeeded()` 确保元素可见
+  - 使用 `{ force: true }` 强制点击选项
+  - 增加等待时间确保下拉框完全展开
+
+## 1.5.58 (2026-03-27)
+
+**修复 ExcelFillPage.vue 变量重复声明错误和 AdvancedFillTab.vue ESLint 错误**
+
+- 修复 ExcelFillPage.vue 编译错误
+  - 删除第 408 行的重复声明 `const targetColumns = ref([])`
+  - 删除第 409 行的重复声明 `const targetWorksheet = ref(null)`
+  - 保留第 336 行和第 331 行的原始声明
+  - 问题原因：在 v1.5.57 添加目标工作表功能时，不小心在文件末尾重复声明了这两个变量
+- 修复 AdvancedFillTab.vue ESLint 错误
+  - 添加 `defineEmits()` 定义组件事件（update:advancedConfig、sourceSheetChange、sourceColumnForSplitChange、splitDelimiterTypeChange、matchSheetChange、matchColumnChange、extractColumnsChange、resultColumnChange、targetSheetChange、targetColumnChange、process）
+  - 删除重复的 `isCustomSplitDelimiter` 计算属性（props 中已存在）
+  - 删除未使用的 `QuestionCircleOutlined` 导入
+  - 删除未使用的 `getWarningMessage` 计算属性
+- 验证结果
+  - 开发服务器成功启动，编译错误已解决
+  - ESLint 检查通过，无错误，仅有 1 个警告（未使用的变量）
+
+## 1.5.57 (2026-03-27)
+
+**Excel 填充工具 - 结果填充列跨工作表功能**
+
+- 实现结果填充列跨工作表功能
+  - 添加 `targetSheetName` 配置项，允许选择目标工作表
+  - 添加 `targetColumn` 配置项，允许选择目标工作表中的填充列
+  - 添加 `targetColumns` 数组存储目标工作表的列信息
+  - 添加 `targetWorksheet` 存储目标工作表对象
+  - 新增 `loadTargetSheet` 函数加载目标工作表的列信息
+  - 新增 `handleTargetSheetChange` 函数处理目标工作表变更
+  - 新增 `handleTargetColumnChange` 函数处理目标填充列变更
+  - 修改 `handleAdvancedProcess` 函数支持跨工作表填充到目标工作表
+  - 更新 `canProcessAdvanced` 计算属性，添加对目标工作表和目标列的检查
+- UI 组件优化
+  - 在 `AdvancedFillTab.vue` 中添加"目标工作表"选择器
+  - 在 `AdvancedFillTab.vue` 中添加"目标填充列"选择器
+  - 添加目标工作表信息展示（工作表名称、列数、行数）
+  - 目标填充列选择器从 `targetColumns` 获取数据
+  - 添加 `targetSheetRowCount` 计算属性显示目标工作表行数
+  - 更新警告消息，添加"选择目标工作表"和"选择目标填充列"检查项
+- 功能特性
+  - 支持选择目标工作表和目标填充列
+  - 结果数据可以填充到源工作表或目标工作表
+  - 如果选择了目标工作表和目标列，则填充到目标工作表
+  - 如果没有选择目标工作表或目标列，则填充到源工作表的结果列
+  - 提供清晰的操作流程和选择反馈
+  - 工作表变更时自动验证和更新列选择
+
+## 1.5.56 (2026-03-27)
+
+**Excel 填充工具 - 跨工作表查询功能**
+
+- 实现跨工作表查询匹配列和提取列功能
+  - 添加 `matchSheetName` 配置项，允许选择查询匹配工作表
+  - 添加 `matchColumns` 数组存储匹配工作表的列信息
+  - 添加 `matchWorksheet` 存储匹配工作表对象
+  - 新增 `loadMatchSheet` 函数加载匹配工作表的列信息
+  - 新增 `handleMatchSheetChange` 函数处理匹配工作表变更
+  - 修改 `findMatchedRow` 函数支持跨工作表查询
+  - 修改 `handleAdvancedProcess` 函数使用匹配工作表进行查询
+- UI 组件优化
+  - 在 `AdvancedFillTab.vue` 中添加"查询匹配工作表"选择器
+  - 添加匹配工作表信息展示（工作表名称、列数、行数）
+  - 查询匹配列和提取列选择器现在从 `matchColumns` 获取数据
+  - 更新警告消息，添加"选择查询匹配工作表"检查项
+- UX 体验优化
+  - 移除"启用高级数据处理"开关，点击 Tab 后直接显示表单
+  - 修复模板语法错误（删除多余的 `</template>` 标签）
+  - 简化操作流程，提升用户体验
+- 测试用例优化
+  - 修复测试用例中的选项文本获取逻辑
+  - 从使用 `.ant-select-item-option-selected` 获取选中选项改为获取所有选项
+  - 添加等待下拉选项列表完全加载的逻辑
+  - 改进选项查找和选择逻辑
+- 功能特性
+  - 查询匹配列和提取列必须在同一个工作表（matchSheetName）
+  - 源数据工作表和查询匹配工作表可以是不同的工作表
+  - 支持单工作表和多工作表场景
+  - 工作表变更时自动验证和更新列选择
+
 ## 1.5.55 (2026-03-23)
 
 **Excel 填充工具 E2E 测试完善**

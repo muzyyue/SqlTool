@@ -17,37 +17,80 @@ export class ExcelFillPage {
       uploadStatusText: page.locator(".upload-status-text"),
 
       // Tab 导航
-      basicTab: page.locator('.ant-tabs-tab').nth(0),
-      advancedTab: page.locator('.ant-tabs-tab').nth(1),
-      quoteTab: page.locator('.ant-tabs-tab').nth(2),
+      basicTab: page.locator(".ant-tabs-tab").nth(0),
+      advancedTab: page.locator(".ant-tabs-tab").nth(1),
+      quoteTab: page.locator(".ant-tabs-tab").nth(2),
 
       // 基础配置
-      sourceSheetSelect: page.locator('.ant-form-item:has-text("工作表") .ant-select').first(),
-      targetSheetSelect: page.locator('.ant-form-item:has-text("目标工作表") .ant-select').first(),
-      sourceColumnSelect: page.locator('.ant-form-item:has-text("源列") .ant-select').first(),
-      targetColumnSelect: page.locator('.ant-form-item:has-text("目标列") .ant-select').first(),
+      sourceSheetSelect: page
+        .locator('.ant-form-item:has-text("工作表") .ant-select')
+        .first(),
+      targetSheetSelect: page
+        .locator('.ant-form-item:has-text("目标工作表") .ant-select')
+        .first(),
+      sourceColumnSelect: page
+        .locator('.ant-form-item:has-text("源列") .ant-select')
+        .first(),
+      targetColumnSelect: page
+        .locator('.ant-form-item:has-text("目标列") .ant-select')
+        .first(),
 
       // 高级配置 - 使用实际的标签文本
-      sourceColumnForSplitSelect: page.locator('.ant-form-item:has-text("源数据列") .ant-select').first(),
-      splitDelimiterSelect: page.locator('.ant-form-item:has-text("数据分割符") .ant-select').first(),
-      matchColumnSelect: page.locator('.ant-form-item:has-text("查询匹配列") .ant-select').first(),
-      extractColumnsSelect: page.locator('.ant-form-item:has-text("提取列选择") .ant-select').first(),
-      resultColumnSelect: page.locator('.ant-form-item:has-text("结果填充列") .ant-select').first(),
+      sourceColumnForSplitSelect: page
+        .locator('.ant-form-item:has-text("源数据列") .ant-select')
+        .first(),
+      splitDelimiterSelect: page
+        .locator('.ant-form-item:has-text("数据分割符") .ant-select')
+        .first(),
+      matchSheetSelect: page
+        .locator('.ant-form-item:has-text("查询匹配工作表") .ant-select')
+        .first(),
+      matchColumnSelect: page
+        .locator('.ant-form-item:has-text("查询匹配列") .ant-select')
+        .first(),
+      extractColumnsSelect: page
+        .locator('.ant-form-item:has-text("提取列选择") .ant-select')
+        .first(),
+      resultColumnSelect: page
+        .locator('.ant-form-item:has-text("结果填充列") .ant-select')
+        .first(),
+      targetSheetSelect: page
+        .locator('.ant-form-item:has-text("目标工作表") .ant-select')
+        .first(),
+      targetColumnSelect: page
+        .locator('.ant-form-item:has-text("目标填充列") .ant-select')
+        .first(),
 
       // 引号转换配置 - 使用 XPath 定位引号转换 Tab 容器内的元素
-      quoteSourceColumnSelect: page.locator('xpath=//div[contains(@class, "quote-card")]//div[contains(@class, "ant-form-item") and contains(., "源列")]//div[contains(@class, "ant-select")]').first(),
-      quoteDelimiterSelect: page.locator('xpath=//div[contains(@class, "quote-card")]//div[contains(@class, "ant-form-item") and contains(., "分隔符")]//div[contains(@class, "ant-select")]').first(),
-      quoteStyleSelect: page.locator('xpath=//div[contains(@class, "quote-card")]//div[contains(@class, "ant-form-item") and contains(., "引号样式")]//div[contains(@class, "ant-radio-group")]').first(),
+      quoteSourceColumnSelect: page
+        .locator(
+          'xpath=//div[contains(@class, "quote-card")]//div[contains(@class, "ant-form-item") and contains(., "源列")]//div[contains(@class, "ant-select")]',
+        )
+        .first(),
+      quoteDelimiterSelect: page
+        .locator(
+          'xpath=//div[contains(@class, "quote-card")]//div[contains(@class, "ant-form-item") and contains(., "分隔符")]//div[contains(@class, "ant-select")]',
+        )
+        .first(),
+      quoteStyleSelect: page
+        .locator(
+          'xpath=//div[contains(@class, "quote-card")]//div[contains(@class, "ant-form-item") and contains(., "引号样式")]//div[contains(@class, "ant-radio-group")]',
+        )
+        .first(),
 
       // 操作按钮
-      processButton: page.locator('button:has-text("开始处理"), button:has-text("开始高级数据处理")').first(),
+      processButton: page
+        .locator(
+          'button:has-text("开始处理"), button:has-text("开始高级数据处理")',
+        )
+        .first(),
       resetButton: page.locator('button:has-text("重置")').first(),
       downloadButton: page.locator('button:has-text("下载结果文件")').first(),
 
       // 结果区域
       resultCard: page.locator(".result-card"),
       resultDescriptions: page.locator(".ant-descriptions"),
-      
+
       // 数据预览
       previewTable: page.locator(".preview-card .ant-table"),
     };
@@ -69,10 +112,12 @@ export class ExcelFillPage {
     await this.page.waitForLoadState("networkidle");
 
     // 等待页面标题出现（使用更精确的定位器）
-    await this.page.locator("h1:has-text('Excel'), .page-title:has-text('Excel')").waitFor({
-      state: "visible",
-      timeout: 15000,
-    });
+    await this.page
+      .locator("h1:has-text('Excel'), .page-title:has-text('Excel')")
+      .waitFor({
+        state: "visible",
+        timeout: 15000,
+      });
 
     // 额外等待，确保 Vue 组件完全渲染
     await this.page.waitForTimeout(3000);
@@ -85,7 +130,7 @@ export class ExcelFillPage {
   async uploadExcel(filePath) {
     const fileInput = this.locators.fileInput;
     await fileInput.setInputFiles(filePath);
-    
+
     // 等待上传完成
     await this.page.waitForTimeout(3000);
   }
@@ -99,7 +144,7 @@ export class ExcelFillPage {
         const statusText = document.querySelector(".upload-status-text");
         return statusText && statusText.textContent.includes("成功");
       },
-      { timeout: 15000 }
+      { timeout: 15000 },
     );
   }
 
@@ -134,7 +179,9 @@ export class ExcelFillPage {
   async selectSourceSheet(sheetName) {
     await this.locators.sourceSheetSelect.click();
     await this.page.waitForTimeout(300);
-    const option = this.page.locator(`.ant-select-item-option:has-text("${sheetName}")`).first();
+    const option = this.page
+      .locator(`.ant-select-item-option:has-text("${sheetName}")`)
+      .first();
     await option.click();
     await this.page.waitForTimeout(500);
   }
@@ -146,7 +193,9 @@ export class ExcelFillPage {
   async selectTargetSheet(sheetName) {
     await this.locators.targetSheetSelect.click();
     await this.page.waitForTimeout(300);
-    const option = this.page.locator(`.ant-select-item-option:has-text("${sheetName}")`).first();
+    const option = this.page
+      .locator(`.ant-select-item-option:has-text("${sheetName}")`)
+      .first();
     await option.click();
     await this.page.waitForTimeout(500);
   }
@@ -159,21 +208,24 @@ export class ExcelFillPage {
     await this.locators.sourceColumnSelect.click();
     await this.page.waitForTimeout(500);
     // 使用键盘导航选择选项
-    await this.page.keyboard.press('ArrowDown');
+    await this.page.keyboard.press("ArrowDown");
     await this.page.waitForTimeout(200);
     // 继续按 ArrowDown 直到找到包含列名的选项
     let found = false;
     for (let i = 0; i < 10; i++) {
-      const selectedOption = await this.page.locator('.ant-select-item-option-selected').first().textContent();
+      const selectedOption = await this.page
+        .locator(".ant-select-item-option-selected")
+        .first()
+        .textContent();
       if (selectedOption && selectedOption.includes(columnName)) {
         found = true;
         break;
       }
-      await this.page.keyboard.press('ArrowDown');
+      await this.page.keyboard.press("ArrowDown");
       await this.page.waitForTimeout(100);
     }
     // 按 Enter 确认选择
-    await this.page.keyboard.press('Enter');
+    await this.page.keyboard.press("Enter");
     await this.page.waitForTimeout(500);
   }
 
@@ -185,21 +237,24 @@ export class ExcelFillPage {
     await this.locators.targetColumnSelect.click();
     await this.page.waitForTimeout(500);
     // 使用键盘导航选择选项
-    await this.page.keyboard.press('ArrowDown');
+    await this.page.keyboard.press("ArrowDown");
     await this.page.waitForTimeout(200);
     // 继续按 ArrowDown 直到找到包含列名的选项
     let found = false;
     for (let i = 0; i < 10; i++) {
-      const selectedOption = await this.page.locator('.ant-select-item-option-selected').first().textContent();
+      const selectedOption = await this.page
+        .locator(".ant-select-item-option-selected")
+        .first()
+        .textContent();
       if (selectedOption && selectedOption.includes(columnName)) {
         found = true;
         break;
       }
-      await this.page.keyboard.press('ArrowDown');
+      await this.page.keyboard.press("ArrowDown");
       await this.page.waitForTimeout(100);
     }
     // 按 Enter 确认选择
-    await this.page.keyboard.press('Enter');
+    await this.page.keyboard.press("Enter");
     await this.page.waitForTimeout(500);
   }
 
@@ -207,32 +262,39 @@ export class ExcelFillPage {
    * 点击处理按钮
    * @param {'basic' | 'advanced' | 'quote'} [type='basic'] - 处理类型
    */
-  async process(type = 'basic') {
+  async process(type = "basic") {
     // 根据类型获取对应的按钮文本
     let targetButtonText;
-    if (type === 'basic') {
-      targetButtonText = '开始处理';
-    } else if (type === 'advanced') {
-      targetButtonText = '开始高级数据处理';
-    } else if (type === 'quote') {
-      targetButtonText = '开始引号转换';
+    if (type === "basic") {
+      targetButtonText = "开始处理";
+    } else if (type === "advanced") {
+      targetButtonText = "开始高级数据处理";
+    } else if (type === "quote") {
+      targetButtonText = "开始引号转换";
     }
-    
+
     // 等待按钮启用
-    await this.page.waitForFunction((searchText) => {
-      const buttons = document.querySelectorAll('button');
-      for (let button of buttons) {
-        const text = button.textContent;
-        if (text && text.includes(searchText)) {
-          return !button.disabled;
+    await this.page.waitForFunction(
+      (searchText) => {
+        const buttons = document.querySelectorAll("button");
+        for (let button of buttons) {
+          const text = button.textContent;
+          if (text && text.includes(searchText)) {
+            return !button.disabled;
+          }
         }
-      }
-      return false;
-    }, targetButtonText, { timeout: 30000 });
-    
+        return false;
+      },
+      targetButtonText,
+      { timeout: 30000 },
+    );
+
     // 根据类型点击对应的按钮
-    await this.page.locator(`button:has-text("${targetButtonText}")`).first().click();
-    
+    await this.page
+      .locator(`button:has-text("${targetButtonText}")`)
+      .first()
+      .click();
+
     // 等待处理完成
     await this.page.waitForTimeout(5000);
   }
@@ -293,16 +355,22 @@ export class ExcelFillPage {
    */
   async waitForProcessComplete() {
     // 等待按钮变为可用状态
-    await this.page.waitForFunction(() => {
-      const buttons = document.querySelectorAll('button');
-      for (let button of buttons) {
-        const text = button.textContent;
-        if (text && (text.includes('开始处理') || text.includes('开始高级数据处理'))) {
-          return !button.disabled;
+    await this.page.waitForFunction(
+      () => {
+        const buttons = document.querySelectorAll("button");
+        for (let button of buttons) {
+          const text = button.textContent;
+          if (
+            text &&
+            (text.includes("开始处理") || text.includes("开始高级数据处理"))
+          ) {
+            return !button.disabled;
+          }
         }
-      }
-      return false;
-    }, { timeout: 30000 });
+        return false;
+      },
+      { timeout: 30000 },
+    );
   }
 }
 
@@ -315,3 +383,8 @@ export const TEST_EXCEL_FILE = "test_excel_fill.xlsx";
  * 测试用多工作表 Excel 文件名
  */
 export const TEST_EXCEL_MULTI_SHEETS = "test_excel_multi_sheets.xlsx";
+
+/**
+ * 测试用跨工作表 Excel 文件名
+ */
+export const TEST_EXCEL_CROSS_SHEET = "test_cross_sheet.xlsx";
