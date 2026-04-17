@@ -1,5 +1,22 @@
 # 版本变更历史
 
+## 1.5.60 (2026-04-17)
+
+**Excel 填充工具 - 优化 Tab 切换逻辑与代码格式化**
+
+- 优化 handleProcess 函数中的 Tab 切换逻辑
+  - 使用 `activeTabKey.value === 'advanced'` 判断是否使用高级处理
+  - 使用 `activeTabKey.value === 'quote'` 判断是否使用引号转换
+  - 修复 shouldUseAdvanced 无法正确识别当前 Tab 的问题
+- 添加引号转换 Tab 的处理流程支持
+  - 当检测到 shouldUseQuote 时，调用 handleQuoteProcess() 处理
+  - 避免在引号转换模式下执行错误的数据处理逻辑
+- 代码格式化和一致性优化
+  - 统一字符串引号使用双引号
+  - 统一语句末尾添加分号
+  - 优化代码缩进和格式
+  - 修复 CSS 类名格式问题（`.result-actions` → `.result-actions`）
+
 ## 1.5.59 (2026-03-27)
 
 **Excel 填充工具 - 跨工作表功能测试完善**

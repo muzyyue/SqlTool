@@ -2,7 +2,9 @@
   <div class="excel-fill-page">
     <div class="page-header">
       <h1 class="page-title">Excel 数据填充工具</h1>
-      <p class="page-subtitle">将源列数据填充到目标列，支持合并单元格和高级数据处理</p>
+      <p class="page-subtitle">
+        将源列数据填充到目标列，支持合并单元格和高级数据处理
+      </p>
     </div>
 
     <div class="content-container">
@@ -18,7 +20,9 @@
             <InboxOutlined />
           </p>
           <p class="ant-upload-text">点击或拖拽文件到此区域上传</p>
-          <p class="ant-upload-hint">支持 .xlsx、.xlsm 格式，文件大小限制 50MB</p>
+          <p class="ant-upload-hint">
+            支持 .xlsx、.xlsm 格式，文件大小限制 50MB
+          </p>
         </a-upload-dragger>
         <div v-if="uploadProgress > 0" class="upload-progress-container">
           <a-progress
@@ -30,7 +34,11 @@
         </div>
       </VbenGlassCard>
 
-      <a-tabs v-model:activeKey="activeTabKey" v-if="workbook" class="config-tabs">
+      <a-tabs
+        v-model:activeKey="activeTabKey"
+        v-if="workbook"
+        class="config-tabs"
+      >
         <a-tab-pane key="basic">
           <template #tab>
             <span><FormOutlined /> 基础配置</span>
@@ -113,7 +121,11 @@
               @change="handlePreviewSheetChange"
               style="width: 200px"
             >
-              <a-select-option v-for="sheet in sheetNames" :key="sheet" :value="sheet">
+              <a-select-option
+                v-for="sheet in sheetNames"
+                :key="sheet"
+                :value="sheet"
+              >
                 {{ sheet }}
               </a-select-option>
             </a-select>
@@ -134,13 +146,15 @@
           type="primary"
           size="large"
           :loading="processing"
-          :disabled="advancedConfig.enabled ? !canProcessAdvanced : !canProcessBasic"
+          :disabled="
+            activeTabKey === 'advanced' ? !canProcessAdvanced : !canProcessBasic
+          "
           @click="handleProcess"
         >
           <template #icon>
             <PlayCircleOutlined />
           </template>
-          {{ advancedConfig.enabled ? '开始高级数据处理' : '开始处理' }}
+          {{ activeTabKey === "advanced" ? "开始高级数据处理" : "开始处理" }}
         </a-button>
         <a-button size="large" @click="handleReset">
           <template #icon>
@@ -161,11 +175,17 @@
           <a-descriptions-item label="源工作表">
             {{ result.sourceSheetName }}
           </a-descriptions-item>
-          <a-descriptions-item label="源数据工作表" v-if="result.advancedEnabled">
-            {{ result.sourceSheetNameForSplit || '无' }}
+          <a-descriptions-item
+            label="源数据工作表"
+            v-if="result.advancedEnabled"
+          >
+            {{ result.sourceSheetNameForSplit || "无" }}
           </a-descriptions-item>
-          <a-descriptions-item label="查询匹配工作表" v-if="result.advancedEnabled">
-            {{ result.matchSheetName || '无' }}
+          <a-descriptions-item
+            label="查询匹配工作表"
+            v-if="result.advancedEnabled"
+          >
+            {{ result.matchSheetName || "无" }}
           </a-descriptions-item>
           <a-descriptions-item label="目标工作表">
             {{ result.targetSheetName }}
@@ -174,7 +194,7 @@
             {{ result.sourceColumn }} (列号: {{ result.sourceColumnNum }})
           </a-descriptions-item>
           <a-descriptions-item label="源数据列（用于分割）">
-            {{ result.sourceColumnForSplit || '无' }}
+            {{ result.sourceColumnForSplit || "无" }}
           </a-descriptions-item>
           <a-descriptions-item label="目标列">
             {{ result.targetColumn }} (列号: {{ result.targetColumnNum }})
@@ -183,29 +203,33 @@
             {{ result.startRow }}
           </a-descriptions-item>
           <a-descriptions-item label="保持合并格式">
-            {{ result.keepMergedFormat ? '是' : '否' }}
+            {{ result.keepMergedFormat ? "是" : "否" }}
           </a-descriptions-item>
           <a-descriptions-item label="高级数据处理">
-            {{ result.advancedEnabled ? '是' : '否' }}
+            {{ result.advancedEnabled ? "是" : "否" }}
           </a-descriptions-item>
           <template v-if="result.advancedEnabled">
             <a-descriptions-item label="分割符">
-              {{ result.splitDelimiter || '无' }}
+              {{ result.splitDelimiter || "无" }}
             </a-descriptions-item>
             <a-descriptions-item label="查询匹配列">
-              {{ result.matchColumn || '无' }}
+              {{ result.matchColumn || "无" }}
             </a-descriptions-item>
             <a-descriptions-item label="提取列">
-              {{ result.extractColumns?.join(', ') || '无' }}
+              {{ result.extractColumns?.join(", ") || "无" }}
             </a-descriptions-item>
             <a-descriptions-item label="拼接符">
-              {{ result.joinDelimiter || '无' }}
+              {{ result.joinDelimiter || "无" }}
             </a-descriptions-item>
             <a-descriptions-item label="结果填充列">
-              {{ result.resultColumn || '覆盖源列' }}
+              {{ result.resultColumn || "覆盖源列" }}
             </a-descriptions-item>
             <a-descriptions-item label="未匹配处理">
-              {{ result.noMatchAction === 'skip' ? '跳过' : `使用默认值: ${result.defaultValue}` }}
+              {{
+                result.noMatchAction === "skip"
+                  ? "跳过"
+                  : `使用默认值: ${result.defaultValue}`
+              }}
             </a-descriptions-item>
             <a-descriptions-item label="源列数据总数">
               {{ result.sourceDataCount }}
@@ -277,7 +301,9 @@
           <BulbOutlined v-if="!isDark" />
           <BulbFilled v-else />
         </template>
-        <template #tooltip>{{ isDark ? '切换亮色模式' : '切换暗色模式' }}</template>
+        <template #tooltip>{{
+          isDark ? "切换亮色模式" : "切换暗色模式"
+        }}</template>
       </a-float-button>
     </a-float-button-group>
   </div>
@@ -290,9 +316,9 @@
  * @author SqlTool
  */
 
-import { ref, computed } from 'vue'
-import { message } from 'ant-design-vue'
-import { storeToRefs } from 'pinia'
+import { ref, computed } from "vue";
+import { message } from "ant-design-vue";
+import { storeToRefs } from "pinia";
 import {
   InboxOutlined,
   PlayCircleOutlined,
@@ -304,150 +330,155 @@ import {
   BulbFilled,
   FormOutlined,
   FormatPainterOutlined,
-} from '@ant-design/icons-vue'
-import VbenGlassCard from '@/components/common/VbenGlassCard.vue'
-import BasicFillTab from '@/components/excel/BasicFillTab.vue'
-import AdvancedFillTab from '@/components/excel/AdvancedFillTab.vue'
-import QuoteConvertTab from '@/components/excel/QuoteConvertTab.vue'
-import * as XLSX from 'xlsx'
-import { useThemeStore } from '@/stores/theme.js'
-import { useSettings } from '@/composables/core/useSettings.js'
+} from "@ant-design/icons-vue";
+import VbenGlassCard from "@/components/common/VbenGlassCard.vue";
+import BasicFillTab from "@/components/excel/BasicFillTab.vue";
+import AdvancedFillTab from "@/components/excel/AdvancedFillTab.vue";
+import QuoteConvertTab from "@/components/excel/QuoteConvertTab.vue";
+import * as XLSX from "xlsx";
+import { useThemeStore } from "@/stores/theme.js";
+import { useSettings } from "@/composables/core/useSettings.js";
 
-const themeStore = useThemeStore()
-const { isDark } = storeToRefs(themeStore)
-const { getSetting } = useSettings()
+const themeStore = useThemeStore();
+const { isDark } = storeToRefs(themeStore);
+const { getSetting } = useSettings();
 
 const scrollToTop = () => {
-  window.scrollTo({ top: 0, behavior: 'smooth' })
-}
+  window.scrollTo({ top: 0, behavior: "smooth" });
+};
 
 const handleToggleTheme = () => {
-  themeStore.toggle()
-}
+  themeStore.toggle();
+};
 
-const fileList = ref([])
-const workbook = ref(null)
-const worksheet = ref(null)
-const targetWorksheet = ref(null)
-const previewWorksheet = ref(null)
-const previewSheetName = ref('')
-const sheetNames = ref([])
-const columns = ref([])
-const targetColumns = ref([])
-const sourceColumns = ref([])
-const sourceWorksheet = ref(null)
-const previewData = ref([])
-const processing = ref(false)
-const result = ref(null)
-const outputBlob = ref(null)
-const processingProgress = ref(0)
-const processingStatusText = ref('')
-const uploadProgress = ref(0)
-const uploadStatusText = ref('')
-const activeTabKey = ref('basic')
+const fileList = ref([]);
+const workbook = ref(null);
+const worksheet = ref(null);
+const targetWorksheet = ref(null);
+const previewWorksheet = ref(null);
+const previewSheetName = ref("");
+const sheetNames = ref([]);
+const columns = ref([]);
+const targetColumns = ref([]);
+const sourceColumns = ref([]);
+const sourceWorksheet = ref(null);
+const previewData = ref([]);
+const processing = ref(false);
+const result = ref(null);
+const outputBlob = ref(null);
+const processingProgress = ref(0);
+const processingStatusText = ref("");
+const uploadProgress = ref(0);
+const uploadStatusText = ref("");
+const activeTabKey = ref("basic");
 
 const quoteConfig = ref({
-  sheetName: '',
-  sourceColumn: '',
-  delimiter: 'comma',
-  customDelimiter: '',
-  quoteStyle: 'double',
-  targetColumn: '',
-})
+  sheetName: "",
+  sourceColumn: "",
+  delimiter: "comma",
+  customDelimiter: "",
+  quoteStyle: "double",
+  targetColumn: "",
+});
 
 // 引号转换相关状态
-const quoteProcessing = ref(false)
-const quoteProgress = ref(0)
-const quoteStatusText = ref('')
+const quoteProcessing = ref(false);
+const quoteProgress = ref(0);
+const quoteStatusText = ref("");
 
 const hasMultipleSheets = computed(() => {
-  return sheetNames.value.length > 1
-})
+  return sheetNames.value.length > 1;
+});
 
 const splitDelimiterOptions = [
-  { label: '逗号 (,)', value: 'comma', delimiter: ',' },
-  { label: '分号 (;)', value: 'semicolon', delimiter: ';' },
-  { label: '空格 ( )', value: 'space', delimiter: ' ' },
-  { label: '换行 (\\n)', value: 'newline', delimiter: '\n' },
-  { label: '自定义', value: 'custom', delimiter: '' },
-]
+  { label: "逗号 (,)", value: "comma", delimiter: "," },
+  { label: "分号 (;)", value: "semicolon", delimiter: ";" },
+  { label: "空格 ( )", value: "space", delimiter: " " },
+  { label: "换行 (\\n)", value: "newline", delimiter: "\n" },
+  { label: "自定义", value: "custom", delimiter: "" },
+];
 
 const isCustomSplitDelimiter = computed(() => {
-  return advancedConfig.value.splitDelimiterType === 'custom'
-})
+  return advancedConfig.value.splitDelimiterType === "custom";
+});
 
 const config = ref({
-  sheetName: '',
-  targetSheetName: '',
-  sourceColumn: '',
-  targetColumn: '',
+  sheetName: "",
+  targetSheetName: "",
+  sourceColumn: "",
+  targetColumn: "",
   startRow: 2,
   keepMergedFormat: true,
-})
+});
 
 const advancedConfig = ref({
   enabled: false,
-  sourceSheetName: '',
-  sourceColumnForSplit: '',
-  splitDelimiter: ',',
-  splitDelimiterType: 'comma',
-  customSplitDelimiter: '',
-  matchSheetName: '',
-  matchColumn: '',
+  sourceSheetName: "",
+  sourceColumnForSplit: "",
+  splitDelimiter: ",",
+  splitDelimiterType: "comma",
+  customSplitDelimiter: "",
+  matchSheetName: "",
+  matchColumn: "",
   extractColumns: [],
-  joinDelimiter: ',',
-  resultColumn: '',
-  noMatchAction: 'skip',
-  defaultValue: '',
-  targetSheetName: '',
-  targetColumn: '',
-})
+  joinDelimiter: ",",
+  resultColumn: "",
+  noMatchAction: "skip",
+  defaultValue: "",
+  targetSheetName: "",
+  targetColumn: "",
+});
 
-const matchColumns = ref([])
-const matchWorksheet = ref(null)
+const matchColumns = ref([]);
+const matchWorksheet = ref(null);
 
 const canProcessAdvanced = computed(() => {
-  if (!workbook.value) return false
+  if (!workbook.value) return false;
 
   return (
     advancedConfig.value.sourceSheetName &&
-    advancedConfig.value.sourceSheetName !== '' &&
+    advancedConfig.value.sourceSheetName !== "" &&
     advancedConfig.value.sourceColumnForSplit &&
+    advancedConfig.value.sourceColumnForSplit !== "" &&
     advancedConfig.value.splitDelimiter &&
-    advancedConfig.value.splitDelimiter !== '' &&
+    advancedConfig.value.splitDelimiter !== "" &&
     advancedConfig.value.matchSheetName &&
-    advancedConfig.value.matchSheetName !== '' &&
+    advancedConfig.value.matchSheetName !== "" &&
     advancedConfig.value.matchColumn &&
-    advancedConfig.value.matchColumn !== '' &&
+    advancedConfig.value.matchColumn !== "" &&
     advancedConfig.value.extractColumns &&
     advancedConfig.value.extractColumns.length > 0 &&
-    (advancedConfig.value.noMatchAction === 'default'
-      ? advancedConfig.value.defaultValue !== ''
+    (advancedConfig.value.noMatchAction === "default"
+      ? advancedConfig.value.defaultValue !== ""
       : true)
-  )
-})
+  );
+});
 
 const canProcessBasic = computed(() => {
-  if (!workbook.value) return false
+  if (!workbook.value) return false;
 
   return (
     config.value.sheetName &&
     config.value.targetSheetName &&
     config.value.sourceColumn &&
     config.value.targetColumn
-  )
-})
+  );
+});
 
 /**
  * 引号转换是否可处理
  * 检查工作簿、源列和分隔符配置是否完整
  */
 const canProcessQuote = computed(() => {
-  if (!workbook.value) return false
-  if (!quoteConfig.value.sourceColumn) return false
-  if (quoteConfig.value.delimiter === 'custom' && !quoteConfig.value.customDelimiter) return false
-  return true
-})
+  if (!workbook.value) return false;
+  if (!quoteConfig.value.sourceColumn) return false;
+  if (
+    quoteConfig.value.delimiter === "custom" &&
+    !quoteConfig.value.customDelimiter
+  )
+    return false;
+  return true;
+});
 
 /**
  * 获取实际分隔符
@@ -456,14 +487,14 @@ const canProcessQuote = computed(() => {
  */
 const getQuoteDelimiter = () => {
   const delimiterMap = {
-    comma: ',',
-    semicolon: ';',
-    space: ' ',
-    newline: '\n',
+    comma: ",",
+    semicolon: ";",
+    space: " ",
+    newline: "\n",
     custom: quoteConfig.value.customDelimiter,
-  }
-  return delimiterMap[quoteConfig.value.delimiter] || ','
-}
+  };
+  return delimiterMap[quoteConfig.value.delimiter] || ",";
+};
 
 /**
  * 处理引号转换
@@ -471,141 +502,155 @@ const getQuoteDelimiter = () => {
  */
 const handleQuoteProcess = async () => {
   if (!canProcessQuote.value) {
-    message.warning('请先配置所有参数！')
-    return
+    message.warning("请先配置所有参数！");
+    return;
   }
 
-  quoteProcessing.value = true
-  quoteProgress.value = 0
-  quoteStatusText.value = '准备处理...'
+  quoteProcessing.value = true;
+  quoteProgress.value = 0;
+  quoteStatusText.value = "准备处理...";
 
   try {
-    const sheetName = quoteConfig.value.sheetName || config.value.sheetName
-    const ws = workbook.value.Sheets[sheetName]
+    const sheetName = quoteConfig.value.sheetName || config.value.sheetName;
+    const ws = workbook.value.Sheets[sheetName];
     if (!ws) {
-      throw new Error('工作表不存在')
+      throw new Error("工作表不存在");
     }
-    const sourceColIndex = columns.value.find(c => c.letter === quoteConfig.value.sourceColumn)?.index
+    const sourceColIndex = columns.value.find(
+      (c) => c.letter === quoteConfig.value.sourceColumn,
+    )?.index;
     if (sourceColIndex === undefined) {
-      throw new Error('无效的源列选择')
+      throw new Error("无效的源列选择");
     }
 
-    const range = XLSX.utils.decode_range(ws['!ref'])
-    const maxRow = range.e.r + 1
-    const delimiter = getQuoteDelimiter()
-    const quoteChar = quoteConfig.value.quoteStyle === 'double' ? '"' : "'"
+    const range = XLSX.utils.decode_range(ws["!ref"]);
+    const maxRow = range.e.r + 1;
+    const delimiter = getQuoteDelimiter();
+    const quoteChar = quoteConfig.value.quoteStyle === "double" ? '"' : "'";
 
     // 确定目标列
-    let targetColIndex
+    let targetColIndex;
     if (quoteConfig.value.targetColumn) {
-      targetColIndex = columns.value.find(c => c.letter === quoteConfig.value.targetColumn)?.index
+      targetColIndex = columns.value.find(
+        (c) => c.letter === quoteConfig.value.targetColumn,
+      )?.index;
     } else {
       // 新增列
-      targetColIndex = range.e.c + 1
-      range.e.c = targetColIndex
-      ws['!ref'] = XLSX.utils.encode_range(range)
+      targetColIndex = range.e.c + 1;
+      range.e.c = targetColIndex;
+      ws["!ref"] = XLSX.utils.encode_range(range);
     }
 
-    let processedCount = 0
-    const startRow = config.value.startRow || 2
+    let processedCount = 0;
+    const startRow = config.value.startRow || 2;
 
     for (let row = startRow - 1; row < maxRow; row++) {
-      const sourceCellAddress = XLSX.utils.encode_col(sourceColIndex) + (row + 1)
-      const cell = ws[sourceCellAddress]
+      const sourceCellAddress =
+        XLSX.utils.encode_col(sourceColIndex) + (row + 1);
+      const cell = ws[sourceCellAddress];
 
-      if (cell && cell.v !== undefined && cell.v !== '') {
-        const value = String(cell.v)
-        const items = value.split(delimiter).map(item => item.trim()).filter(item => item !== '')
-        const quotedItems = items.map(item => `${quoteChar}${item}${quoteChar}`)
-        const result = quotedItems.join(',')
+      if (cell && cell.v !== undefined && cell.v !== "") {
+        const value = String(cell.v);
+        const items = value
+          .split(delimiter)
+          .map((item) => item.trim())
+          .filter((item) => item !== "");
+        const quotedItems = items.map(
+          (item) => `${quoteChar}${item}${quoteChar}`,
+        );
+        const result = quotedItems.join(",");
 
-        const targetCellAddress = XLSX.utils.encode_col(targetColIndex) + (row + 1)
+        const targetCellAddress =
+          XLSX.utils.encode_col(targetColIndex) + (row + 1);
         if (!ws[targetCellAddress]) {
-          ws[targetCellAddress] = {}
+          ws[targetCellAddress] = {};
         }
-        ws[targetCellAddress].v = result
-        ws[targetCellAddress].t = 's'
-        processedCount++
+        ws[targetCellAddress].v = result;
+        ws[targetCellAddress].t = "s";
+        processedCount++;
       }
 
-      quoteProgress.value = Math.round(((row - startRow + 2) / (maxRow - startRow + 1)) * 100)
-      quoteStatusText.value = `处理中... ${row - startRow + 2}/${maxRow - startRow + 1}`
+      quoteProgress.value = Math.round(
+        ((row - startRow + 2) / (maxRow - startRow + 1)) * 100,
+      );
+      quoteStatusText.value = `处理中... ${row - startRow + 2}/${maxRow - startRow + 1}`;
     }
 
     // 更新列信息
     if (!quoteConfig.value.targetColumn) {
-      const newColLetter = XLSX.utils.encode_col(targetColIndex)
+      const newColLetter = XLSX.utils.encode_col(targetColIndex);
       columns.value.push({
         letter: newColLetter,
-        name: '引号转换结果',
+        name: "引号转换结果",
         index: targetColIndex,
-      })
+      });
     }
 
     // 生成输出文件
-    outputBlob.value = generateOutputFile(workbook.value, sheetNames.value)
+    outputBlob.value = generateOutputFile(workbook.value, sheetNames.value);
 
     result.value = {
-      inputFile: fileList.value[0]?.name || 'unknown',
-      outputFile: `quote_converted_${fileList.value[0]?.name || 'output.xlsx'}`,
+      inputFile: fileList.value[0]?.name || "unknown",
+      outputFile: `quote_converted_${fileList.value[0]?.name || "output.xlsx"}`,
       sourceSheetName: config.value.sheetName,
       targetSheetName: config.value.sheetName,
       sourceColumn: quoteConfig.value.sourceColumn,
-      targetColumn: quoteConfig.value.targetColumn || XLSX.utils.encode_col(targetColIndex),
+      targetColumn:
+        quoteConfig.value.targetColumn || XLSX.utils.encode_col(targetColIndex),
       processedCount,
       totalCellsProcessed: processedCount,
       quoteConverted: true,
-    }
+    };
 
-    quoteProgress.value = 100
-    quoteStatusText.value = `处理完成！共转换 ${processedCount} 个单元格`
-    message.success('引号转换完成！')
+    quoteProgress.value = 100;
+    quoteStatusText.value = `处理完成！共转换 ${processedCount} 个单元格`;
+    message.success("引号转换完成！");
 
     // 刷新预览
-    loadPreview()
+    loadPreview();
   } catch (error) {
-    console.error('引号转换失败:', error)
-    message.error(`引号转换失败: ${error.message}`)
-    quoteStatusText.value = '处理失败'
+    console.error("引号转换失败:", error);
+    message.error(`引号转换失败: ${error.message}`);
+    quoteStatusText.value = "处理失败";
   } finally {
-    quoteProcessing.value = false
+    quoteProcessing.value = false;
   }
-}
+};
 
 const processingStatus = computed(() => {
   return processingProgress.value === 100
-    ? 'success'
+    ? "success"
     : processingProgress.value > 0
-      ? 'active'
-      : 'normal'
-})
+      ? "active"
+      : "normal";
+});
 
 const progressColor = computed(() => {
   return processingProgress.value === 100
-    ? '#52c41a'
+    ? "#52c41a"
     : processingProgress.value > 0
-      ? '#1890ff'
-      : '#d9d9d9'
-})
+      ? "#1890ff"
+      : "#d9d9d9";
+});
 
 const previewColumns = computed(() => {
-  if (!previewWorksheet.value) return []
-  const ws = previewWorksheet.value
-  const range = XLSX.utils.decode_range(ws['!ref'])
-  const maxCol = range.e.c + 1
+  if (!previewWorksheet.value) return [];
+  const ws = previewWorksheet.value;
+  const range = XLSX.utils.decode_range(ws["!ref"]);
+  const maxCol = range.e.c + 1;
 
-  const cols = []
+  const cols = [];
   for (let i = 0; i < maxCol; i++) {
-    const colLetter = XLSX.utils.encode_col(i)
-    const cellAddress = colLetter + '1'
-    const cell = ws[cellAddress]
-    const colName = cell ? cell.v : `列${i + 1}`
+    const colLetter = XLSX.utils.encode_col(i);
+    const cellAddress = colLetter + "1";
+    const cell = ws[cellAddress];
+    const colName = cell ? cell.v : `列${i + 1}`;
 
     cols.push({
       letter: colLetter,
       name: colName,
       index: i,
-    })
+    });
   }
 
   return cols.map((col) => ({
@@ -613,8 +658,8 @@ const previewColumns = computed(() => {
     dataIndex: col.letter,
     key: col.letter,
     width: 150,
-  }))
-})
+  }));
+});
 
 /**
  * 处理文件上传
@@ -623,168 +668,181 @@ const previewColumns = computed(() => {
  * @returns {boolean} 是否继续上传
  */
 const beforeUpload = async (file) => {
-  const supportedFormats = getSetting('supportedFormats') || ['xlsx', 'xls', 'csv']
-  const fileExt = file.name.split('.').pop().toLowerCase()
-  const isExcel = supportedFormats.includes(fileExt) || fileExt === 'xlsm'
+  const supportedFormats = getSetting("supportedFormats") || [
+    "xlsx",
+    "xls",
+    "csv",
+  ];
+  const fileExt = file.name.split(".").pop().toLowerCase();
+  const isExcel = supportedFormats.includes(fileExt) || fileExt === "xlsm";
 
   if (!isExcel) {
-    message.error(`只能上传 ${supportedFormats.map(f => `.${f}`).join('、')} 格式的文件！`)
-    return false
+    message.error(
+      `只能上传 ${supportedFormats.map((f) => `.${f}`).join("、")} 格式的文件！`,
+    );
+    return false;
   }
 
-  const maxFileSizeMB = getSetting('maxFileSize') || 10
-  const maxSize = maxFileSizeMB * 1024 * 1024
+  const maxFileSizeMB = getSetting("maxFileSize") || 10;
+  const maxSize = maxFileSizeMB * 1024 * 1024;
   if (file.size > maxSize) {
-    message.error(`文件大小超过限制: ${(file.size / 1024 / 1024).toFixed(2)}MB > ${maxFileSizeMB}MB`)
-    return false
+    message.error(
+      `文件大小超过限制: ${(file.size / 1024 / 1024).toFixed(2)}MB > ${maxFileSizeMB}MB`,
+    );
+    return false;
   }
 
-  uploadProgress.value = 0
-  uploadStatusText.value = '正在读取文件...'
+  uploadProgress.value = 0;
+  uploadStatusText.value = "正在读取文件...";
 
   try {
-    const reader = new FileReader()
+    const reader = new FileReader();
 
     const readFilePromise = new Promise((resolve, reject) => {
       reader.onload = async (e) => {
         try {
-          uploadProgress.value = 50
-          uploadStatusText.value = '正在解析文件...'
+          uploadProgress.value = 50;
+          uploadStatusText.value = "正在解析文件...";
 
-          await new Promise((resolve) => requestAnimationFrame(resolve))
+          await new Promise((resolve) => requestAnimationFrame(resolve));
 
-          const data = new Uint8Array(e.target.result)
-          const wb = XLSX.read(data, { type: 'array' })
+          const data = new Uint8Array(e.target.result);
+          const wb = XLSX.read(data, { type: "array" });
 
-          await new Promise((resolve) => requestAnimationFrame(resolve))
+          await new Promise((resolve) => requestAnimationFrame(resolve));
 
-          workbook.value = wb
-          sheetNames.value = wb.SheetNames
+          workbook.value = wb;
+          sheetNames.value = wb.SheetNames;
 
           if (wb.SheetNames && wb.SheetNames.length > 0) {
-            config.value.sheetName = wb.SheetNames[0]
-            config.value.targetSheetName = wb.SheetNames[0]
-            previewSheetName.value = wb.SheetNames[0]
-            loadSheet(wb.SheetNames[0])
-            loadTargetSheet(wb.SheetNames[0])
-            loadSourceSheet(wb.SheetNames[0])
-            loadMatchSheet(wb.SheetNames[0])
+            config.value.sheetName = wb.SheetNames[0];
+            config.value.targetSheetName = wb.SheetNames[0];
+            previewSheetName.value = wb.SheetNames[0];
+            loadSheet(wb.SheetNames[0]);
+            loadTargetSheet(wb.SheetNames[0]);
+            loadSourceSheet(wb.SheetNames[0]);
+            loadMatchSheet(wb.SheetNames[0]);
 
-            advancedConfig.value.sourceSheetName = wb.SheetNames[0]
-            advancedConfig.value.sourceColumnForSplit = ''
-            advancedConfig.value.splitDelimiter = ','
-            advancedConfig.value.matchSheetName = wb.SheetNames[0]
-            advancedConfig.value.matchColumn = ''
-            advancedConfig.value.extractColumns = []
-            advancedConfig.value.joinDelimiter = ','
-            advancedConfig.value.resultColumn = ''
-            advancedConfig.value.noMatchAction = 'skip'
-            advancedConfig.value.defaultValue = ''
+            advancedConfig.value.sourceSheetName = wb.SheetNames[0];
+            advancedConfig.value.sourceColumnForSplit = "";
+            advancedConfig.value.splitDelimiter = ",";
+            advancedConfig.value.matchSheetName = wb.SheetNames[0];
+            advancedConfig.value.matchColumn = "";
+            advancedConfig.value.extractColumns = [];
+            advancedConfig.value.joinDelimiter = ",";
+            advancedConfig.value.resultColumn = "";
+            advancedConfig.value.noMatchAction = "skip";
+            advancedConfig.value.defaultValue = "";
           }
 
-          uploadProgress.value = 100
-          uploadStatusText.value = '文件上传成功！'
-          message.success('文件上传成功！')
-          resolve()
+          uploadProgress.value = 100;
+          uploadStatusText.value = "文件上传成功！";
+          message.success("文件上传成功！");
+          resolve();
         } catch (error) {
-          console.error('文件解析失败:', error)
-          message.error(`文件解析失败: ${error.message}`)
-          uploadStatusText.value = '解析失败'
-          reject(error)
+          console.error("文件解析失败:", error);
+          message.error(`文件解析失败: ${error.message}`);
+          uploadStatusText.value = "解析失败";
+          reject(error);
         }
-      }
+      };
 
       reader.onerror = (error) => {
-        console.error('文件读取错误:', error)
-        message.error(`文件读取失败: ${error.message || '未知错误'}`)
-        uploadStatusText.value = '读取失败'
-        reject(error)
-      }
+        console.error("文件读取错误:", error);
+        message.error(`文件读取失败: ${error.message || "未知错误"}`);
+        uploadStatusText.value = "读取失败";
+        reject(error);
+      };
 
       reader.onabort = () => {
-        message.error('文件读取被中断')
-        uploadStatusText.value = '读取被中断'
-        reject(new Error('文件读取被中断'))
-      }
+        message.error("文件读取被中断");
+        uploadStatusText.value = "读取被中断";
+        reject(new Error("文件读取被中断"));
+      };
 
-      reader.readAsArrayBuffer(file)
-    })
+      reader.readAsArrayBuffer(file);
+    });
 
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('文件上传超时，请检查文件格式或尝试重新上传')), 30000)
-    })
+      setTimeout(
+        () => reject(new Error("文件上传超时，请检查文件格式或尝试重新上传")),
+        30000,
+      );
+    });
 
-    await Promise.race([readFilePromise, timeoutPromise])
+    await Promise.race([readFilePromise, timeoutPromise]);
   } catch (error) {
-    console.error('文件上传失败:', error)
-    if (error.message.includes('超时')) {
-      message.error('文件上传超时，可能是文件过大或格式异常，请尝试重新上传或使用较小的文件')
+    console.error("文件上传失败:", error);
+    if (error.message.includes("超时")) {
+      message.error(
+        "文件上传超时，可能是文件过大或格式异常，请尝试重新上传或使用较小的文件",
+      );
     } else {
-      message.error(`文件上传失败: ${error.message}`)
+      message.error(`文件上传失败: ${error.message}`);
     }
-    uploadStatusText.value = '上传失败'
-    return false
+    uploadStatusText.value = "上传失败";
+    return false;
   }
 
-  fileList.value = [file]
+  fileList.value = [file];
 
   setTimeout(() => {
-    uploadProgress.value = 0
-    uploadStatusText.value = ''
-  }, 3000)
+    uploadProgress.value = 0;
+    uploadStatusText.value = "";
+  }, 3000);
 
-  return false
-}
+  return false;
+};
 
 /**
  * 处理文件移除
  * 重置所有状态和数据
  */
 const handleRemove = () => {
-  workbook.value = null
-  worksheet.value = null
-  targetWorksheet.value = null
-  previewWorksheet.value = null
-  sheetNames.value = []
-  columns.value = []
-  targetColumns.value = []
-  previewData.value = []
-  result.value = null
-  outputBlob.value = null
-  fileList.value = []
-  processingProgress.value = 0
-  processingStatusText.value = ''
-  uploadProgress.value = 0
-  uploadStatusText.value = ''
+  workbook.value = null;
+  worksheet.value = null;
+  targetWorksheet.value = null;
+  previewWorksheet.value = null;
+  sheetNames.value = [];
+  columns.value = [];
+  targetColumns.value = [];
+  previewData.value = [];
+  result.value = null;
+  outputBlob.value = null;
+  fileList.value = [];
+  processingProgress.value = 0;
+  processingStatusText.value = "";
+  uploadProgress.value = 0;
+  uploadStatusText.value = "";
   config.value = {
-    sheetName: '',
-    targetSheetName: '',
-    sourceColumn: '',
-    targetColumn: '',
+    sheetName: "",
+    targetSheetName: "",
+    sourceColumn: "",
+    targetColumn: "",
     startRow: 2,
     keepMergedFormat: true,
-  }
+  };
   advancedConfig.value = {
     enabled: false,
-    sourceColumnForSplit: '',
-    splitDelimiter: ',',
-    matchColumn: '',
+    sourceColumnForSplit: "",
+    splitDelimiter: ",",
+    matchColumn: "",
     extractColumns: [],
-    joinDelimiter: ',',
-    resultColumn: '',
-    noMatchAction: 'skip',
-    defaultValue: '',
-  }
-  quoteProgress.value = 0
-  quoteStatusText.value = ''
+    joinDelimiter: ",",
+    resultColumn: "",
+    noMatchAction: "skip",
+    defaultValue: "",
+  };
+  quoteProgress.value = 0;
+  quoteStatusText.value = "";
   quoteConfig.value = {
-    sourceColumn: '',
-    delimiter: 'comma',
-    customDelimiter: '',
-    quoteStyle: 'double',
-    targetColumn: '',
-  }
-}
+    sourceColumn: "",
+    delimiter: "comma",
+    customDelimiter: "",
+    quoteStyle: "double",
+    targetColumn: "",
+  };
+};
 
 /**
  * 加载源工作表
@@ -792,29 +850,29 @@ const handleRemove = () => {
  * @param {string} sheetName - 工作表名称
  */
 const loadSheet = (sheetName) => {
-  const ws = workbook.value.Sheets[sheetName]
-  worksheet.value = ws
-  previewWorksheet.value = ws
+  const ws = workbook.value.Sheets[sheetName];
+  worksheet.value = ws;
+  previewWorksheet.value = ws;
 
-  const range = XLSX.utils.decode_range(ws['!ref'])
-  const maxCol = range.e.c + 1
+  const range = XLSX.utils.decode_range(ws["!ref"]);
+  const maxCol = range.e.c + 1;
 
-  columns.value = []
+  columns.value = [];
   for (let i = 0; i < maxCol; i++) {
-    const colLetter = XLSX.utils.encode_col(i)
-    const cellAddress = colLetter + '1'
-    const cell = ws[cellAddress]
-    const colName = cell ? cell.v : `列${i + 1}`
+    const colLetter = XLSX.utils.encode_col(i);
+    const cellAddress = colLetter + "1";
+    const cell = ws[cellAddress];
+    const colName = cell ? cell.v : `列${i + 1}`;
 
     columns.value.push({
       letter: colLetter,
       name: colName,
       index: i,
-    })
+    });
   }
 
-  loadPreview()
-}
+  loadPreview();
+};
 
 /**
  * 加载目标工作表
@@ -822,26 +880,26 @@ const loadSheet = (sheetName) => {
  * @param {string} sheetName - 工作表名称
  */
 const loadTargetSheet = (sheetName) => {
-  const ws = workbook.value.Sheets[sheetName]
-  targetWorksheet.value = ws
+  const ws = workbook.value.Sheets[sheetName];
+  targetWorksheet.value = ws;
 
-  const range = XLSX.utils.decode_range(ws['!ref'])
-  const maxCol = range.e.c + 1
+  const range = XLSX.utils.decode_range(ws["!ref"]);
+  const maxCol = range.e.c + 1;
 
-  targetColumns.value = []
+  targetColumns.value = [];
   for (let i = 0; i < maxCol; i++) {
-    const colLetter = XLSX.utils.encode_col(i)
-    const cellAddress = colLetter + '1'
-    const cell = ws[cellAddress]
-    const colName = cell ? cell.v : `列${i + 1}`
+    const colLetter = XLSX.utils.encode_col(i);
+    const cellAddress = colLetter + "1";
+    const cell = ws[cellAddress];
+    const colName = cell ? cell.v : `列${i + 1}`;
 
     targetColumns.value.push({
       letter: colLetter,
       name: colName,
       index: i,
-    })
+    });
   }
-}
+};
 
 /**
  * 加载源数据工作表
@@ -849,26 +907,26 @@ const loadTargetSheet = (sheetName) => {
  * @param {string} sheetName - 工作表名称
  */
 const loadSourceSheet = (sheetName) => {
-  const ws = workbook.value.Sheets[sheetName]
-  sourceWorksheet.value = ws
+  const ws = workbook.value.Sheets[sheetName];
+  sourceWorksheet.value = ws;
 
-  const range = XLSX.utils.decode_range(ws['!ref'])
-  const maxCol = range.e.c + 1
+  const range = XLSX.utils.decode_range(ws["!ref"]);
+  const maxCol = range.e.c + 1;
 
-  sourceColumns.value = []
+  sourceColumns.value = [];
   for (let i = 0; i < maxCol; i++) {
-    const colLetter = XLSX.utils.encode_col(i)
-    const cellAddress = colLetter + '1'
-    const cell = ws[cellAddress]
-    const colName = cell ? cell.v : `列${i + 1}`
+    const colLetter = XLSX.utils.encode_col(i);
+    const cellAddress = colLetter + "1";
+    const cell = ws[cellAddress];
+    const colName = cell ? cell.v : `列${i + 1}`;
 
     sourceColumns.value.push({
       letter: colLetter,
       name: colName,
       index: i,
-    })
+    });
   }
-}
+};
 
 /**
  * 加载匹配工作表
@@ -876,39 +934,41 @@ const loadSourceSheet = (sheetName) => {
  * @param {string} sheetName - 工作表名称
  */
 const loadMatchSheet = (sheetName) => {
-  const ws = workbook.value.Sheets[sheetName]
-  matchWorksheet.value = ws
+  const ws = workbook.value.Sheets[sheetName];
+  matchWorksheet.value = ws;
 
-  const range = XLSX.utils.decode_range(ws['!ref'])
-  const maxCol = range.e.c + 1
+  const range = XLSX.utils.decode_range(ws["!ref"]);
+  const maxCol = range.e.c + 1;
 
-  matchColumns.value = []
+  matchColumns.value = [];
   for (let i = 0; i < maxCol; i++) {
-    const colLetter = XLSX.utils.encode_col(i)
-    const cellAddress = colLetter + '1'
-    const cell = ws[cellAddress]
-    const colName = cell ? cell.v : `列${i + 1}`
+    const colLetter = XLSX.utils.encode_col(i);
+    const cellAddress = colLetter + "1";
+    const cell = ws[cellAddress];
+    const colName = cell ? cell.v : `列${i + 1}`;
 
     matchColumns.value.push({
       letter: colLetter,
       name: colName,
       index: i,
-    })
+    });
   }
-}
+};
 
 /**
  * 处理源工作表变更
  * @param {string} sheetName - 新的工作表名称
  */
 const handleSheetChange = (sheetName) => {
-  loadSheet(sheetName)
+  loadSheet(sheetName);
 
   // 验证之前选择的列是否在新工作表中仍然有效
   if (config.value.sourceColumn) {
-    const columnExists = columns.value.some((c) => c.letter === config.value.sourceColumn)
+    const columnExists = columns.value.some(
+      (c) => c.letter === config.value.sourceColumn,
+    );
     if (!columnExists) {
-      config.value.sourceColumn = ''
+      config.value.sourceColumn = "";
     }
   }
 
@@ -916,33 +976,37 @@ const handleSheetChange = (sheetName) => {
   if (advancedConfig.value.sourceColumnForSplit) {
     const columnExists = columns.value.some(
       (c) => c.letter === advancedConfig.value.sourceColumnForSplit,
-    )
+    );
     if (!columnExists) {
-      advancedConfig.value.sourceColumnForSplit = ''
+      advancedConfig.value.sourceColumnForSplit = "";
     }
   }
 
   // 验证高级配置中的结果填充列是否在新工作表中仍然有效
   if (advancedConfig.value.resultColumn) {
-    const columnExists = columns.value.some((c) => c.letter === advancedConfig.value.resultColumn)
+    const columnExists = columns.value.some(
+      (c) => c.letter === advancedConfig.value.resultColumn,
+    );
     if (!columnExists) {
-      advancedConfig.value.resultColumn = ''
+      advancedConfig.value.resultColumn = "";
     }
   }
-}
+};
 
 /**
  * 处理目标工作表变更
  * @param {string} sheetName - 新的工作表名称
  */
 const handleTargetSheetChange = (sheetName) => {
-  loadTargetSheet(sheetName)
+  loadTargetSheet(sheetName);
 
   // 验证之前选择的目标列是否在新工作表中仍然有效
   if (config.value.targetColumn) {
-    const columnExists = targetColumns.value.some((c) => c.letter === config.value.targetColumn)
+    const columnExists = targetColumns.value.some(
+      (c) => c.letter === config.value.targetColumn,
+    );
     if (!columnExists) {
-      config.value.targetColumn = ''
+      config.value.targetColumn = "";
     }
   }
 
@@ -950,22 +1014,25 @@ const handleTargetSheetChange = (sheetName) => {
   if (advancedConfig.value.matchColumn) {
     const columnExists = targetColumns.value.some(
       (c) => c.letter === advancedConfig.value.matchColumn,
-    )
+    );
     if (!columnExists) {
-      advancedConfig.value.matchColumn = ''
+      advancedConfig.value.matchColumn = "";
     }
   }
 
   // 验证高级配置中的提取列是否在新工作表中仍然有效
-  if (advancedConfig.value.extractColumns && advancedConfig.value.extractColumns.length > 0) {
+  if (
+    advancedConfig.value.extractColumns &&
+    advancedConfig.value.extractColumns.length > 0
+  ) {
     const validColumns = advancedConfig.value.extractColumns.filter((col) =>
       targetColumns.value.some((c) => c.letter === col),
-    )
+    );
     if (validColumns.length !== advancedConfig.value.extractColumns.length) {
-      advancedConfig.value.extractColumns = validColumns
+      advancedConfig.value.extractColumns = validColumns;
     }
   }
-}
+};
 
 /**
  * 处理预览工作表变更
@@ -973,10 +1040,10 @@ const handleTargetSheetChange = (sheetName) => {
  */
 const handlePreviewSheetChange = (sheetName) => {
   if (sheetName) {
-    previewWorksheet.value = workbook.value.Sheets[sheetName]
-    loadPreview()
+    previewWorksheet.value = workbook.value.Sheets[sheetName];
+    loadPreview();
   }
-}
+};
 
 /**
  * 处理源列变更
@@ -984,7 +1051,7 @@ const handlePreviewSheetChange = (sheetName) => {
  */
 const handleSourceColumnChange = () => {
   // 源列变更处理
-}
+};
 
 /**
  * 处理目标列变更
@@ -992,7 +1059,7 @@ const handleSourceColumnChange = () => {
  */
 const handleTargetColumnChange = () => {
   // 目标列变更处理
-}
+};
 
 /**
  * 处理源数据列变更
@@ -1000,59 +1067,62 @@ const handleTargetColumnChange = () => {
  */
 const handleSourceColumnForSplitChange = () => {
   // 源数据列变更处理
-}
+};
 
 /**
  * 处理源数据工作表变更
  * @param {string} sheetName - 新的工作表名称
  */
 const handleSourceSheetChange = (sheetName) => {
-  loadSourceSheet(sheetName)
+  loadSourceSheet(sheetName);
 
   if (advancedConfig.value.sourceColumnForSplit) {
     const columnExists = sourceColumns.value.some(
       (c) => c.letter === advancedConfig.value.sourceColumnForSplit,
-    )
+    );
     if (!columnExists) {
-      advancedConfig.value.sourceColumnForSplit = ''
+      advancedConfig.value.sourceColumnForSplit = "";
     }
   }
 
   if (advancedConfig.value.resultColumn) {
     const columnExists = sourceColumns.value.some(
       (c) => c.letter === advancedConfig.value.resultColumn,
-    )
+    );
     if (!columnExists) {
-      advancedConfig.value.resultColumn = ''
+      advancedConfig.value.resultColumn = "";
     }
   }
-}
+};
 
 /**
  * 处理匹配工作表变更
  * @param {string} sheetName - 新的工作表名称
  */
 const handleMatchSheetChange = (sheetName) => {
-  loadMatchSheet(sheetName)
+  loadMatchSheet(sheetName);
 
   if (advancedConfig.value.matchColumn) {
     const columnExists = matchColumns.value.some(
       (c) => c.letter === advancedConfig.value.matchColumn,
-    )
+    );
     if (!columnExists) {
-      advancedConfig.value.matchColumn = ''
+      advancedConfig.value.matchColumn = "";
     }
   }
 
-  if (advancedConfig.value.extractColumns && advancedConfig.value.extractColumns.length > 0) {
+  if (
+    advancedConfig.value.extractColumns &&
+    advancedConfig.value.extractColumns.length > 0
+  ) {
     const validColumns = advancedConfig.value.extractColumns.filter((col) =>
       matchColumns.value.some((c) => c.letter === col),
-    )
+    );
     if (validColumns.length !== advancedConfig.value.extractColumns.length) {
-      advancedConfig.value.extractColumns = validColumns
+      advancedConfig.value.extractColumns = validColumns;
     }
   }
-}
+};
 
 /**
  * 处理查询匹配列变更
@@ -1060,7 +1130,7 @@ const handleMatchSheetChange = (sheetName) => {
  */
 const handleMatchColumnChange = () => {
   // 查询匹配列变更处理
-}
+};
 
 /**
  * 处理提取列变更
@@ -1068,74 +1138,75 @@ const handleMatchColumnChange = () => {
  */
 const handleExtractColumnsChange = () => {
   // 提取列变更处理
-}
+};
 
 /**
  * 处理引号转换工作表变更
  * @param {string} sheetName - 新的工作表名称
  */
 const handleQuoteSheetChange = (sheetName) => {
-  const ws = workbook.value.Sheets[sheetName]
-  const range = XLSX.utils.decode_range(ws['!ref'])
-  const maxCol = range.e.c + 1
+  const ws = workbook.value.Sheets[sheetName];
+  const range = XLSX.utils.decode_range(ws["!ref"]);
+  const maxCol = range.e.c + 1;
 
-  const newColumns = []
+  const newColumns = [];
   for (let i = 0; i < maxCol; i++) {
-    const colLetter = XLSX.utils.encode_col(i)
-    const cellAddress = colLetter + '1'
-    const cell = ws[cellAddress]
-    const colName = cell ? cell.v : `列${i + 1}`
+    const colLetter = XLSX.utils.encode_col(i);
+    const cellAddress = colLetter + "1";
+    const cell = ws[cellAddress];
+    const colName = cell ? cell.v : `列${i + 1}`;
 
     newColumns.push({
       letter: colLetter,
       name: colName,
       index: i,
-    })
+    });
   }
-  columns.value = newColumns
-  quoteConfig.value.sourceColumn = ''
-  quoteConfig.value.targetColumn = ''
-}
+  columns.value = newColumns;
+  quoteConfig.value.sourceColumn = "";
+  quoteConfig.value.targetColumn = "";
+};
 
 /**
  * 处理分割符类型变更
  * @param {string} type - 分割符类型
  */
 const handleSplitDelimiterTypeChange = (type) => {
-  const option = splitDelimiterOptions.find((opt) => opt.value === type)
+  const option = splitDelimiterOptions.find((opt) => opt.value === type);
   if (option) {
-    if (type === 'custom') {
-      advancedConfig.value.splitDelimiter = advancedConfig.value.customSplitDelimiter
+    if (type === "custom") {
+      advancedConfig.value.splitDelimiter =
+        advancedConfig.value.customSplitDelimiter;
     } else {
-      advancedConfig.value.splitDelimiter = option.delimiter
+      advancedConfig.value.splitDelimiter = option.delimiter;
     }
   }
-}
+};
 
 /**
  * 加载预览数据
  * 从工作表中提取前20行数据用于预览
  */
 const loadPreview = () => {
-  if (!previewWorksheet.value) return
+  if (!previewWorksheet.value) return;
 
-  const ws = previewWorksheet.value
-  const range = XLSX.utils.decode_range(ws['!ref'])
-  const maxRow = Math.min(range.e.r + 1, 20)
-  const maxCol = range.e.c + 1
+  const ws = previewWorksheet.value;
+  const range = XLSX.utils.decode_range(ws["!ref"]);
+  const maxRow = Math.min(range.e.r + 1, 20);
+  const maxCol = range.e.c + 1;
 
-  previewData.value = []
+  previewData.value = [];
   for (let row = 0; row < maxRow; row++) {
-    const rowData = {}
+    const rowData = {};
     for (let col = 0; col < maxCol; col++) {
-      const colLetter = XLSX.utils.encode_col(col)
-      const cellAddress = colLetter + (row + 1)
-      const cell = ws[cellAddress]
-      rowData[colLetter] = cell ? cell.v : ''
+      const colLetter = XLSX.utils.encode_col(col);
+      const cellAddress = colLetter + (row + 1);
+      const cell = ws[cellAddress];
+      rowData[colLetter] = cell ? cell.v : "";
     }
-    previewData.value.push(rowData)
+    previewData.value.push(rowData);
   }
-}
+};
 
 /**
  * 过滤选项
@@ -1146,11 +1217,11 @@ const loadPreview = () => {
  * @returns {boolean} 是否匹配
  */
 const filterOption = (input, option) => {
-  const inputLower = input.toLowerCase()
-  const optionValue = (option.value || '').toLowerCase()
-  const optionLabel = (option.label || '').toLowerCase()
-  return optionValue.includes(inputLower) || optionLabel.includes(inputLower)
-}
+  const inputLower = input.toLowerCase();
+  const optionValue = (option.value || "").toLowerCase();
+  const optionLabel = (option.label || "").toLowerCase();
+  return optionValue.includes(inputLower) || optionLabel.includes(inputLower);
+};
 
 /**
  * 获取单元格类型
@@ -1159,10 +1230,10 @@ const filterOption = (input, option) => {
  * @returns {string} 单元格类型
  */
 const getCellType = (value) => {
-  if (typeof value === 'number') return 'n'
-  if (typeof value === 'boolean') return 'b'
-  return 's'
-}
+  if (typeof value === "number") return "n";
+  if (typeof value === "boolean") return "b";
+  return "s";
+};
 
 /**
  * 分割数据
@@ -1172,23 +1243,23 @@ const getCellType = (value) => {
  * @returns {Array} 分割后的数组
  */
 const splitData = (value, delimiter) => {
-  if (!value || value === '') return []
-  if (!delimiter || delimiter === '') return [value]
+  if (!value || value === "") return [];
+  if (!delimiter || delimiter === "") return [value];
 
-  const strValue = String(value)
+  const strValue = String(value);
 
-  if (delimiter === '\n') {
+  if (delimiter === "\n") {
     return strValue
       .split(/\r?\n|\r/)
       .map((item) => item.trim())
-      .filter((item) => item !== '')
+      .filter((item) => item !== "");
   }
 
   return strValue
     .split(delimiter)
     .map((item) => item.trim())
-    .filter((item) => item !== '')
-}
+    .filter((item) => item !== "");
+};
 
 /**
  * 查询匹配数据
@@ -1200,35 +1271,35 @@ const splitData = (value, delimiter) => {
  * @returns {Object|null} 匹配的行数据或null
  */
 const findMatchedRow = (value, matchColumn, worksheet, columns) => {
-  if (!matchColumn || !worksheet) return null
+  if (!matchColumn || !worksheet) return null;
 
-  const ws = worksheet
-  const range = XLSX.utils.decode_range(ws['!ref'])
-  const maxRow = range.e.r + 1
-  const maxCol = range.e.c + 1
+  const ws = worksheet;
+  const range = XLSX.utils.decode_range(ws["!ref"]);
+  const maxRow = range.e.r + 1;
+  const maxCol = range.e.c + 1;
 
-  const matchColIndex = columns.find((c) => c.letter === matchColumn)?.index
-  if (matchColIndex === undefined) return null
+  const matchColIndex = columns.find((c) => c.letter === matchColumn)?.index;
+  if (matchColIndex === undefined) return null;
 
   for (let row = 0; row < maxRow; row++) {
-    const colLetter = XLSX.utils.encode_col(matchColIndex)
-    const cellAddress = colLetter + (row + 1)
-    const cell = ws[cellAddress]
+    const colLetter = XLSX.utils.encode_col(matchColIndex);
+    const cellAddress = colLetter + (row + 1);
+    const cell = ws[cellAddress];
 
     if (cell && String(cell.v).trim() === String(value).trim()) {
-      const rowData = {}
+      const rowData = {};
       for (let col = 0; col < maxCol; col++) {
-        const colLetter = XLSX.utils.encode_col(col)
-        const cellAddress = colLetter + (row + 1)
-        const cell = ws[cellAddress]
-        rowData[colLetter] = cell ? cell.v : ''
+        const colLetter = XLSX.utils.encode_col(col);
+        const cellAddress = colLetter + (row + 1);
+        const cell = ws[cellAddress];
+        rowData[colLetter] = cell ? cell.v : "";
       }
-      return rowData
+      return rowData;
     }
   }
 
-  return null
-}
+  return null;
+};
 
 /**
  * 提取数据
@@ -1238,9 +1309,9 @@ const findMatchedRow = (value, matchColumn, worksheet, columns) => {
  * @returns {Array} 提取的值数组
  */
 const extractData = (rowData, extractColumns) => {
-  if (!extractColumns || extractColumns.length === 0) return []
-  return extractColumns.map((col) => rowData[col] || '')
-}
+  if (!extractColumns || extractColumns.length === 0) return [];
+  return extractColumns.map((col) => rowData[col] || "");
+};
 
 /**
  * 拼接数据
@@ -1250,10 +1321,10 @@ const extractData = (rowData, extractColumns) => {
  * @returns {string} 拼接后的字符串
  */
 const joinData = (data, delimiter) => {
-  if (!data || data.length === 0) return ''
-  if (!delimiter || delimiter === '') return data.join('')
-  return data.join(delimiter)
-}
+  if (!data || data.length === 0) return "";
+  if (!delimiter || delimiter === "") return data.join("");
+  return data.join(delimiter);
+};
 
 /**
  * 读取源数据
@@ -1264,24 +1335,24 @@ const joinData = (data, delimiter) => {
  * @returns {Array} 包含 {value, type, row} 的数组
  */
 const readSourceData = (worksheet, colNum, startRow) => {
-  const range = XLSX.utils.decode_range(worksheet['!ref'])
-  const maxRow = range.e.r + 1
+  const range = XLSX.utils.decode_range(worksheet["!ref"]);
+  const maxRow = range.e.r + 1;
 
-  const sourceData = []
+  const sourceData = [];
   for (let row = startRow - 1; row < maxRow; row++) {
-    const colLetter = XLSX.utils.encode_col(colNum - 1)
-    const cellAddress = colLetter + (row + 1)
-    const cell = worksheet[cellAddress]
-    if (cell && cell.v !== undefined && cell.v !== '') {
+    const colLetter = XLSX.utils.encode_col(colNum - 1);
+    const cellAddress = colLetter + (row + 1);
+    const cell = worksheet[cellAddress];
+    if (cell && cell.v !== undefined && cell.v !== "") {
       sourceData.push({
         value: cell.v,
         type: cell.t || getCellType(cell.v),
         row: row + 1,
-      })
+      });
     }
   }
-  return sourceData
-}
+  return sourceData;
+};
 
 /**
  * 写入单元格
@@ -1293,14 +1364,14 @@ const readSourceData = (worksheet, colNum, startRow) => {
  * @param {string} type - 单元格类型
  */
 const writeCell = (worksheet, colNum, row, value, type) => {
-  const colLetter = XLSX.utils.encode_col(colNum - 1)
-  const cellAddress = colLetter + row
+  const colLetter = XLSX.utils.encode_col(colNum - 1);
+  const cellAddress = colLetter + row;
   if (!worksheet[cellAddress]) {
-    worksheet[cellAddress] = {}
+    worksheet[cellAddress] = {};
   }
-  worksheet[cellAddress].v = value
-  worksheet[cellAddress].t = type
-}
+  worksheet[cellAddress].v = value;
+  worksheet[cellAddress].t = type;
+};
 
 /**
  * 生成输出文件
@@ -1310,16 +1381,16 @@ const writeCell = (worksheet, colNum, row, value, type) => {
  * @returns {Blob} Excel 文件的 Blob 对象
  */
 const generateOutputFile = (workbook, sheetNames) => {
-  const newWb = XLSX.utils.book_new()
+  const newWb = XLSX.utils.book_new();
   for (const sheetName of sheetNames) {
-    XLSX.utils.book_append_sheet(newWb, workbook.Sheets[sheetName], sheetName)
+    XLSX.utils.book_append_sheet(newWb, workbook.Sheets[sheetName], sheetName);
   }
 
-  const excelBuffer = XLSX.write(newWb, { bookType: 'xlsx', type: 'array' })
+  const excelBuffer = XLSX.write(newWb, { bookType: "xlsx", type: "array" });
   return new Blob([excelBuffer], {
-    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  })
-}
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+};
 
 /**
  * 更新进度
@@ -1330,10 +1401,16 @@ const generateOutputFile = (workbook, sheetNames) => {
  * @param {Ref} progressRef - 进度引用
  * @param {Ref} statusTextRef - 状态文本引用
  */
-const updateProgress = (current, total, statusText, progressRef, statusTextRef) => {
-  progressRef.value = Math.round(((current + 1) / total) * 100)
-  statusTextRef.value = `${statusText} ${current + 1}/${total}...`
-}
+const updateProgress = (
+  current,
+  total,
+  statusText,
+  progressRef,
+  statusTextRef,
+) => {
+  progressRef.value = Math.round(((current + 1) / total) * 100);
+  statusTextRef.value = `${statusText} ${current + 1}/${total}...`;
+};
 
 /**
  * 处理基础数据填充
@@ -1345,13 +1422,19 @@ const updateProgress = (current, total, statusText, progressRef, statusTextRef) 
  * @param {Ref} statusTextRef - 状态文本引用
  * @returns {Object} 包含 dataFilledCount 和 skippedCount 的对象
  */
-const handleBasicProcess = (sourceData, targetWs, targetColNum, progressRef, statusTextRef) => {
-  let dataFilledCount = 0
-  let skippedCount = 0
+const handleBasicProcess = (
+  sourceData,
+  targetWs,
+  targetColNum,
+  progressRef,
+  statusTextRef,
+) => {
+  let dataFilledCount = 0;
+  let skippedCount = 0;
 
-  const merges = targetWs['!merges'] || []
-  const targetMergedCells = []
-  const targetMergedRows = new Set()
+  const merges = targetWs["!merges"] || [];
+  const targetMergedCells = [];
+  const targetMergedRows = new Set();
 
   for (const merge of merges) {
     if (merge.s.c === targetColNum - 1 && merge.e.c === targetColNum - 1) {
@@ -1360,70 +1443,76 @@ const handleBasicProcess = (sourceData, targetWs, targetColNum, progressRef, sta
           startRow: merge.s.r + 1,
           endRow: merge.e.r + 1,
           range: merge,
-        })
+        });
         for (let row = merge.s.r; row <= merge.e.r; row++) {
-          targetMergedRows.add(row)
+          targetMergedRows.add(row);
         }
       }
     }
   }
 
-  const targetRange = XLSX.utils.decode_range(targetWs['!ref'])
-  const maxTargetRow = targetRange.e.r + 1
+  const targetRange = XLSX.utils.decode_range(targetWs["!ref"]);
+  const maxTargetRow = targetRange.e.r + 1;
 
-  const allTargetCells = []
+  const allTargetCells = [];
 
-  targetMergedCells.sort((a, b) => a.startRow - b.startRow)
+  targetMergedCells.sort((a, b) => a.startRow - b.startRow);
   for (const mergedCell of targetMergedCells) {
     allTargetCells.push({
-      type: 'merged',
+      type: "merged",
       startRow: mergedCell.startRow,
       endRow: mergedCell.endRow,
       range: mergedCell.range,
-    })
+    });
   }
 
   for (let row = config.value.startRow - 1; row < maxTargetRow; row++) {
     if (!targetMergedRows.has(row)) {
       allTargetCells.push({
-        type: 'normal',
+        type: "normal",
         row: row + 1,
-      })
+      });
     }
   }
 
   allTargetCells.sort((a, b) => {
-    const rowA = a.type === 'merged' ? a.startRow : a.row
-    const rowB = b.type === 'merged' ? b.startRow : b.row
-    return rowA - rowB
-  })
+    const rowA = a.type === "merged" ? a.startRow : a.row;
+    const rowB = b.type === "merged" ? b.startRow : b.row;
+    return rowA - rowB;
+  });
 
   for (let i = 0; i < allTargetCells.length; i++) {
     if (i < sourceData.length) {
-      updateProgress(i, sourceData.length, '处理第', progressRef, statusTextRef)
-      const { value, type: cellType } = sourceData[i]
-      const cellInfo = allTargetCells[i]
+      updateProgress(
+        i,
+        sourceData.length,
+        "处理第",
+        progressRef,
+        statusTextRef,
+      );
+      const { value, type: cellType } = sourceData[i];
+      const cellInfo = allTargetCells[i];
 
-      if (cellInfo.type === 'merged') {
+      if (cellInfo.type === "merged") {
         if (config.value.keepMergedFormat) {
           for (let row = cellInfo.startRow - 1; row < cellInfo.endRow; row++) {
-            writeCell(targetWs, targetColNum, row + 1, value, cellType)
+            writeCell(targetWs, targetColNum, row + 1, value, cellType);
           }
         } else {
-          writeCell(targetWs, targetColNum, cellInfo.startRow, value, cellType)
+          writeCell(targetWs, targetColNum, cellInfo.startRow, value, cellType);
         }
       } else {
-        writeCell(targetWs, targetColNum, cellInfo.row, value, cellType)
+        writeCell(targetWs, targetColNum, cellInfo.row, value, cellType);
       }
 
-      dataFilledCount++
+      dataFilledCount++;
     } else {
-      skippedCount++
+      skippedCount++;
     }
   }
 
-  return { dataFilledCount, skippedCount }
-}
+  return { dataFilledCount, skippedCount };
+};
 
 /**
  * 处理高级数据处理
@@ -1435,26 +1524,32 @@ const handleBasicProcess = (sourceData, targetWs, targetColNum, progressRef, sta
  * @param {Ref} statusTextRef - 状态文本引用
  * @returns {Object} 包含各种统计数据的对象
  */
-const handleAdvancedProcess = (sourceData, sourceWs, sourceColNum, progressRef, statusTextRef) => {
-  let dataFilledCount = 0
-  let skippedCount = 0
-  let splitDataCount = 0
-  let matchedCount = 0
-  let unmatchedCount = 0
-  let extractedCount = 0
+const handleAdvancedProcess = (
+  sourceData,
+  sourceWs,
+  sourceColNum,
+  progressRef,
+  statusTextRef,
+) => {
+  let dataFilledCount = 0;
+  let skippedCount = 0;
+  let splitDataCount = 0;
+  let matchedCount = 0;
+  let unmatchedCount = 0;
+  let extractedCount = 0;
 
-  const matchWs = matchWorksheet.value
-  const matchCols = matchColumns.value
+  const matchWs = matchWorksheet.value;
+  const matchCols = matchColumns.value;
 
   for (let i = 0; i < sourceData.length; i++) {
-    const { value, row } = sourceData[i]
+    const { value, row } = sourceData[i];
 
-    updateProgress(i, sourceData.length, '处理第', progressRef, statusTextRef)
+    updateProgress(i, sourceData.length, "处理第", progressRef, statusTextRef);
 
-    const splitItems = splitData(value, advancedConfig.value.splitDelimiter)
-    splitDataCount += splitItems.length
+    const splitItems = splitData(value, advancedConfig.value.splitDelimiter);
+    splitDataCount += splitItems.length;
 
-    const extractedValues = []
+    const extractedValues = [];
 
     for (const item of splitItems) {
       const matchedRow = findMatchedRow(
@@ -1462,34 +1557,42 @@ const handleAdvancedProcess = (sourceData, sourceWs, sourceColNum, progressRef, 
         advancedConfig.value.matchColumn,
         matchWs,
         matchCols,
-      )
+      );
 
       if (matchedRow) {
-        matchedCount++
-        const extracted = extractData(matchedRow, advancedConfig.value.extractColumns)
-        extractedValues.push(...extracted)
-        extractedCount += extracted.length
+        matchedCount++;
+        const extracted = extractData(
+          matchedRow,
+          advancedConfig.value.extractColumns,
+        );
+        extractedValues.push(...extracted);
+        extractedCount += extracted.length;
       } else {
-        unmatchedCount++
+        unmatchedCount++;
 
-        if (advancedConfig.value.noMatchAction === 'default') {
-          extractedValues.push(advancedConfig.value.defaultValue)
+        if (advancedConfig.value.noMatchAction === "default") {
+          extractedValues.push(advancedConfig.value.defaultValue);
         } else {
-          continue
+          continue;
         }
       }
     }
 
-    const joinedValue = joinData(extractedValues, advancedConfig.value.joinDelimiter)
+    const joinedValue = joinData(
+      extractedValues,
+      advancedConfig.value.joinDelimiter,
+    );
     const resultColNum = advancedConfig.value.resultColumn
-      ? sourceColumns.value.find((c) => c.letter === advancedConfig.value.resultColumn)?.index + 1
-      : sourceColNum
+      ? sourceColumns.value.find(
+          (c) => c.letter === advancedConfig.value.resultColumn,
+        )?.index + 1
+      : sourceColNum;
 
     if (resultColNum) {
-      writeCell(sourceWs, resultColNum, row, joinedValue, 's')
-      dataFilledCount++
+      writeCell(sourceWs, resultColNum, row, joinedValue, "s");
+      dataFilledCount++;
     } else {
-      skippedCount++
+      skippedCount++;
     }
   }
 
@@ -1500,8 +1603,8 @@ const handleAdvancedProcess = (sourceData, sourceWs, sourceColNum, progressRef, 
     matchedCount,
     unmatchedCount,
     extractedCount,
-  }
-}
+  };
+};
 
 /**
  * 处理基础数据填充（主函数）
@@ -1510,31 +1613,38 @@ const handleAdvancedProcess = (sourceData, sourceWs, sourceColNum, progressRef, 
  */
 const handleBasicProcessMain = async () => {
   if (!canProcessBasic.value) {
-    message.warning('请先配置所有参数！')
-    return null
+    message.warning("请先配置所有参数！");
+    return null;
   }
 
-  const sourceWs = worksheet.value
-  const targetWs = targetWorksheet.value
+  const sourceWs = worksheet.value;
+  const targetWs = targetWorksheet.value;
 
-  const sourceColNum = columns.value.find((c) => c.letter === config.value.sourceColumn)?.index + 1
+  const sourceColNum =
+    columns.value.find((c) => c.letter === config.value.sourceColumn)?.index +
+    1;
   const targetColNum =
-    targetColumns.value.find((c) => c.letter === config.value.targetColumn)?.index + 1
+    targetColumns.value.find((c) => c.letter === config.value.targetColumn)
+      ?.index + 1;
 
   if (!sourceColNum) {
     throw new Error(
       `无效的源列选择：${config.value.sourceColumn}。请确保在工作表"${config.value.sheetName}"中选择有效的列。`,
-    )
+    );
   }
 
   if (!targetColNum) {
     throw new Error(
       `无效的目标列选择：${config.value.targetColumn}。请确保在工作表"${config.value.targetSheetName}"中选择有效的列。`,
-    )
+    );
   }
 
-  const sourceData = readSourceData(sourceWs, sourceColNum, config.value.startRow)
-  processingStatusText.value = '执行基础数据填充...'
+  const sourceData = readSourceData(
+    sourceWs,
+    sourceColNum,
+    config.value.startRow,
+  );
+  processingStatusText.value = "执行基础数据填充...";
 
   const processResult = handleBasicProcess(
     sourceData,
@@ -1542,35 +1652,35 @@ const handleBasicProcessMain = async () => {
     targetColNum,
     processingProgress,
     processingStatusText,
-  )
+  );
 
   return {
     ...processResult,
     sourceColumn: config.value.sourceColumn,
-    sourceColumnForSplit: '',
+    sourceColumnForSplit: "",
     sourceColumnNum: sourceColNum,
     targetColumn: config.value.targetColumn,
     targetColumnNum: targetColNum,
     startRow: config.value.startRow,
     keepMergedFormat: config.value.keepMergedFormat,
     advancedEnabled: false,
-    splitDelimiter: '',
-    matchColumn: '',
+    splitDelimiter: "",
+    matchColumn: "",
     extractColumns: [],
-    joinDelimiter: '',
-    resultColumn: '',
-    noMatchAction: 'skip',
-    defaultValue: '',
+    joinDelimiter: "",
+    resultColumn: "",
+    noMatchAction: "skip",
+    defaultValue: "",
     sourceDataCount: sourceData.length,
     splitDataCount: 0,
     matchedCount: 0,
     unmatchedCount: 0,
     extractedCount: 0,
     totalCellsProcessed: sourceData.length,
-    mergedCellsProcessed: (targetWs['!merges'] || []).length,
+    mergedCellsProcessed: (targetWs["!merges"] || []).length,
     normalCellsProcessed: sourceData.length,
-  }
-}
+  };
+};
 
 /**
  * 处理高级数据处理（主函数）
@@ -1579,24 +1689,29 @@ const handleBasicProcessMain = async () => {
  */
 const handleAdvancedProcessMain = async () => {
   if (!canProcessAdvanced.value) {
-    message.warning('请先配置所有参数！')
-    return null
+    message.warning("请先配置所有参数！");
+    return null;
   }
 
-  const sourceWs = sourceWorksheet.value
+  const sourceWs = sourceWorksheet.value;
 
   const sourceColNum =
-    sourceColumns.value.find((c) => c.letter === advancedConfig.value.sourceColumnForSplit)?.index +
-    1
+    sourceColumns.value.find(
+      (c) => c.letter === advancedConfig.value.sourceColumnForSplit,
+    )?.index + 1;
 
   if (!sourceColNum) {
     throw new Error(
       `无效的源列选择：${advancedConfig.value.sourceColumnForSplit}。请确保在工作表"${advancedConfig.value.sourceSheetName}"中选择有效的列。`,
-    )
+    );
   }
 
-  const sourceData = readSourceData(sourceWs, sourceColNum, config.value.startRow)
-  processingStatusText.value = '执行高级数据处理...'
+  const sourceData = readSourceData(
+    sourceWs,
+    sourceColNum,
+    config.value.startRow,
+  );
+  processingStatusText.value = "执行高级数据处理...";
 
   const processResult = handleAdvancedProcess(
     sourceData,
@@ -1604,16 +1719,16 @@ const handleAdvancedProcessMain = async () => {
     sourceColNum,
     processingProgress,
     processingStatusText,
-  )
+  );
 
   return {
     ...processResult,
-    sourceColumn: '',
+    sourceColumn: "",
     sourceColumnForSplit: advancedConfig.value.sourceColumnForSplit,
     sourceSheetNameForSplit: advancedConfig.value.sourceSheetName,
     matchSheetName: advancedConfig.value.matchSheetName,
     sourceColumnNum: sourceColNum,
-    targetColumn: '',
+    targetColumn: "",
     targetColumnNum: 0,
     startRow: config.value.startRow,
     keepMergedFormat: false,
@@ -1629,60 +1744,67 @@ const handleAdvancedProcessMain = async () => {
     totalCellsProcessed: sourceData.length,
     mergedCellsProcessed: 0,
     normalCellsProcessed: sourceData.length,
-  }
-}
+  };
+};
 
 /**
  * 处理数据
  * 主处理函数，执行基础填充或高级数据处理
  */
 const handleProcess = async () => {
-  const shouldUseAdvanced = advancedConfig.value.enabled
+  const shouldUseAdvanced = activeTabKey.value === "advanced";
+  const shouldUseQuote = activeTabKey.value === "quote";
 
-  processing.value = true
-  processingProgress.value = 0
-  processingStatusText.value = '准备处理...'
+  processing.value = true;
+  processingProgress.value = 0;
+  processingStatusText.value = "准备处理...";
 
   try {
-    let processResult
+    let processResult;
+
+    if (shouldUseQuote) {
+      await handleQuoteProcess();
+      return;
+    }
 
     if (shouldUseAdvanced) {
-      processResult = await handleAdvancedProcessMain()
+      processResult = await handleAdvancedProcessMain();
     } else {
-      processResult = await handleBasicProcessMain()
+      processResult = await handleBasicProcessMain();
     }
 
     if (!processResult) {
-      return
+      return;
     }
 
-    outputBlob.value = generateOutputFile(workbook.value, sheetNames.value)
+    outputBlob.value = generateOutputFile(workbook.value, sheetNames.value);
 
     result.value = {
-      inputFile: fileList.value[0]?.name || 'unknown',
-      outputFile: `filled_${fileList.value[0]?.name || 'output.xlsx'}`,
+      inputFile: fileList.value[0]?.name || "unknown",
+      outputFile: `filled_${fileList.value[0]?.name || "output.xlsx"}`,
       sourceSheetName: config.value.sheetName,
       targetSheetName: config.value.targetSheetName,
       ...processResult,
-    }
+    };
 
-    processingProgress.value = 100
-    processingStatusText.value = '处理完成！'
-    message.success('处理完成！')
+    processingProgress.value = 100;
+    processingStatusText.value = "处理完成！";
+    message.success("处理完成！");
   } catch (error) {
-    console.error('处理失败:', error)
-    message.error(`处理失败: ${error.message}`)
-    processingStatusText.value = '处理失败'
+    console.error("处理失败:", error);
+    message.error(`处理失败: ${error.message}`);
+    processingStatusText.value = "处理失败";
   } finally {
-    processing.value = false
+    processing.value = false;
 
     if (result.value) {
-      previewWorksheet.value = workbook.value.Sheets[result.value.sourceSheetName]
-      previewSheetName.value = result.value.sourceSheetName
-      loadPreview()
+      previewWorksheet.value =
+        workbook.value.Sheets[result.value.sourceSheetName];
+      previewSheetName.value = result.value.sourceSheetName;
+      loadPreview();
     }
   }
-}
+};
 
 /**
  * 下载结果文件
@@ -1690,82 +1812,82 @@ const handleProcess = async () => {
  */
 const handleDownload = () => {
   if (!outputBlob.value) {
-    message.warning('请先处理数据！')
-    return
+    message.warning("请先处理数据！");
+    return;
   }
 
-  const url = URL.createObjectURL(outputBlob.value)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = result.value?.outputFile || 'output.xlsx'
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(url)
+  const url = URL.createObjectURL(outputBlob.value);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = result.value?.outputFile || "output.xlsx";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 
-  message.success('文件下载成功！')
-}
+  message.success("文件下载成功！");
+};
 
 /**
  * 重置所有状态
  * 清除所有数据和配置，恢复初始状态
  */
 const handleReset = () => {
-  workbook.value = null
-  worksheet.value = null
-  targetWorksheet.value = null
-  previewWorksheet.value = null
-  previewSheetName.value = ''
-  sheetNames.value = []
-  columns.value = []
-  targetColumns.value = []
-  sourceColumns.value = []
-  sourceWorksheet.value = null
-  previewData.value = []
-  result.value = null
-  outputBlob.value = null
-  fileList.value = []
-  processingProgress.value = 0
-  processingStatusText.value = ''
-  uploadProgress.value = 0
-  uploadStatusText.value = ''
+  workbook.value = null;
+  worksheet.value = null;
+  targetWorksheet.value = null;
+  previewWorksheet.value = null;
+  previewSheetName.value = "";
+  sheetNames.value = [];
+  columns.value = [];
+  targetColumns.value = [];
+  sourceColumns.value = [];
+  sourceWorksheet.value = null;
+  previewData.value = [];
+  result.value = null;
+  outputBlob.value = null;
+  fileList.value = [];
+  processingProgress.value = 0;
+  processingStatusText.value = "";
+  uploadProgress.value = 0;
+  uploadStatusText.value = "";
   config.value = {
-    sheetName: '',
-    targetSheetName: '',
-    sourceColumn: '',
-    targetColumn: '',
+    sheetName: "",
+    targetSheetName: "",
+    sourceColumn: "",
+    targetColumn: "",
     startRow: 2,
     keepMergedFormat: true,
-  }
+  };
   advancedConfig.value = {
     enabled: false,
-    sourceSheetName: '',
-    sourceColumnForSplit: '',
-    splitDelimiter: ',',
-    splitDelimiterType: 'comma',
-    customSplitDelimiter: '',
-    matchSheetName: '',
-    matchColumn: '',
+    sourceSheetName: "",
+    sourceColumnForSplit: "",
+    splitDelimiter: ",",
+    splitDelimiterType: "comma",
+    customSplitDelimiter: "",
+    matchSheetName: "",
+    matchColumn: "",
     extractColumns: [],
-    joinDelimiter: ',',
-    resultColumn: '',
-    noMatchAction: 'skip',
-    defaultValue: '',
-  }
+    joinDelimiter: ",",
+    resultColumn: "",
+    noMatchAction: "skip",
+    defaultValue: "",
+  };
 
   // 重置引号转换状态
-  quoteProgress.value = 0
-  quoteStatusText.value = ''
+  quoteProgress.value = 0;
+  quoteStatusText.value = "";
   quoteConfig.value = {
-    sourceColumn: '',
-    delimiter: 'comma',
-    customDelimiter: '',
-    quoteStyle: 'double',
-    targetColumn: '',
-  }
+    sourceColumn: "",
+    delimiter: "comma",
+    customDelimiter: "",
+    quoteStyle: "double",
+    targetColumn: "",
+  };
 
-  message.info('已重置，可以重新处理')
-}
+  message.info("已重置，可以重新处理");
+};
 </script>
 
 <style scoped lang="scss">
@@ -1870,7 +1992,7 @@ const handleReset = () => {
   text-align: center;
 }
 
-.result-actions{
+.result-actions {
   display: flex;
   gap: 16px;
   margin-top: 24px;
