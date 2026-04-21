@@ -1657,6 +1657,24 @@ const handleCustomBindingSave = (savedConfig) => {
       }
     });
 
+    // 注册拼接规则到 customBindingManager（如果尚未注册）
+    const savedRules = customBindingManager.fieldConcatenationRules.value || [];
+    fieldConcatenationRules.forEach((rule) => {
+      const exists = savedRules.some(
+        (savedRule) => savedRule.ddlFieldName === rule.ddlFieldName,
+      );
+      if (!exists) {
+        customBindingManager.addFieldConcatenationRule(
+          rule.ddlFieldName,
+          rule.sourceColumns,
+          rule.separator,
+          rule.format,
+          rule.dataType,
+        );
+        logInfo(`注册拼接规则: ${rule.ddlFieldName}`);
+      }
+    });
+
     let customFields = [];
 
     // 优先使用 customBindingManager 中的数据，因为 CustomBindingModal 已经更新了它
