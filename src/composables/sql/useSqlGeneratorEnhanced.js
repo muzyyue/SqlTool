@@ -636,7 +636,12 @@ export function useSqlGeneratorEnhanced() {
         return;
       }
 
-      if (updateFields && updateFields.length > 0 && !isWhereField) {
+      // 优先检查是否是函数生成的字段（自定义字段、拼接规则等）
+      // 这些字段不应受 updateFields 过滤影响
+      if (mapping.generatedByFunction === true) {
+        console.log(`字段 ${mapping.ddlField.name} 标记为函数生成，直接处理`);
+      } else if (updateFields && updateFields.length > 0 && !isWhereField) {
+        // 非函数生成字段才受 updateFields 过滤
         if (!updateFields.includes(mapping.ddlField.name)) {
           console.log(`跳过未选择的字段: ${mapping.ddlField.name}`);
           return;
