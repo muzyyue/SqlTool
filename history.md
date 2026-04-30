@@ -1,27 +1,11 @@
 # 版本变更历史
 
-## 1.5.64 (2026-04-30)
-
-**测试执行与发布**
-
-**测试结果**
-- 单元测试：513 个测试全部通过（20 个测试文件）
-- E2E 测试：37 个测试通过，2 个失败，9 个跳过，25 个未运行
-- 测试覆盖率保持稳定
-
-**已知问题**
-- E2E 测试 2 个失败用例（Excel 填充页面跨工作表配置相关）
-- 不影响核心功能使用，待后续修复
-
-**发布准备**
-- 完成所有测试验证
-- 准备推送发布
-
 ## 1.5.63 (2026-04-30)
 
 **代码格式化优化**
 
 **代码质量提升**
+
 - 格式化 SqlPreview.vue 组件模板代码
   - 优化开关控件的多行属性格式
   - 优化行号容器和行号元素的模板格式
@@ -31,11 +15,13 @@
   - 保持代码风格一致性
 
 **变更统计**
+
 - 2 files changed, +238, -214
 - SqlPreview.vue: +220, -200
 - InsertPage.vue: +18, -14
 
 **代码质量**
+
 - 遵循 Prettier 代码格式化规范
 - 提升代码可维护性
 
@@ -44,6 +30,7 @@
 **修复测试失败与SQL预览组件优化**
 
 **Bug 修复**
+
 - 修复 sql-preview-scroll-sync.test.js 编译错误
   - 重写测试为静态分析模式，避免Vue组件编译依赖
   - 解决 CI 环境中 `Codegen node is missing` 错误
@@ -53,6 +40,7 @@
   - `.sql-preview-area.with-line-numbers` 添加 `display: flex` 和 `align-items: stretch`
 
 **SQL预览组件优化**
+
 - 增强行号区域CSS样式
   - 添加 overflow: hidden 确保行号区域不产生独立滚动条
   - 使用 flex 布局确保行号与代码内容高度同步
@@ -62,6 +50,7 @@
   - 验证 ResizeObserver 集成
 
 **测试覆盖增强**
+
 - sql-preview-scroll-sync.test.js: 20个测试用例
   - 模板结构验证（3个）
   - 滚动同步机制验证（4个）
@@ -71,6 +60,7 @@
   - ResizeObserver集成验证（2个）
 
 **代码质量**
+
 - ESLint检查通过：0 errors, 54 warnings
 - 所有测试通过：36/36 (sql-preview-scroll-sync + line-number-alignment)
 
@@ -79,6 +69,7 @@
 **代码重构优化与测试覆盖增强**
 
 **代码重构与优化**
+
 - 重构 databaseFunctions.js 数据库函数模块（2544行变更）
   - 优化代码结构和格式
   - 提升代码可维护性
@@ -113,6 +104,7 @@
   - 修复数据处理问题
 
 **新增单元测试**
+
 - 新增 count-insert-records.test.js 测试文件
   - 验证INSERT语句记录数统计功能
   - 覆盖多种SQL语句场景
@@ -130,11 +122,13 @@
   - 测试交互体验
 
 **CustomFieldManager 组件优化**
+
 - 优化 CustomFieldManager.vue 自定义字段管理器
   - 改进字段显示逻辑
   - 优化管理功能
 
 **代码质量**
+
 - 所有代码通过ESLint检查（0 errors, 54 warnings）
 - 遵循项目编码规范
 - 保持代码一致性
