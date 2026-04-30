@@ -683,7 +683,7 @@ const beforeUpload = async (file) => {
     return false;
   }
 
-  const maxFileSizeMB = getSetting("maxFileSize") || 10;
+  const maxFileSizeMB = getSetting("maxFileSize") || 50;
   const maxSize = maxFileSizeMB * 1024 * 1024;
   if (file.size > maxSize) {
     message.error(

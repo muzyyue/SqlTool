@@ -16,7 +16,9 @@ switch
           un-checked-children="禁用自定义绑定"
           @change="handleToggleChange"
         />
-        <span class="toggle-description"> 启用后，自定义绑定将优先于自动匹配结果 </span>
+        <span class="toggle-description">
+          启用后，自定义绑定将优先于自动匹配结果
+        </span>
       </div>
 
       <!-- 自定义绑定配置 -->
@@ -28,11 +30,19 @@ switch
               <div class="section-header">
                 <h4>单列绑定配置</h4>
                 <a-space>
-                  <a-button type="primary" size="small" @click="addSingleBinding">
+                  <a-button
+                    type="primary"
+                    size="small"
+                    @click="addSingleBinding"
+                  >
                     <template #icon><PlusOutlined /></template>
                     添加绑定
                   </a-button>
-                  <a-button type="dashed" size="small" @click="batchAddSingleBindings">
+                  <a-button
+                    type="dashed"
+                    size="small"
+                    @click="batchAddSingleBindings"
+                  >
                     <template #icon><PlusOutlined /></template>
                     批量添加
                   </a-button>
@@ -83,7 +93,10 @@ switch
                         @change="handleCustomFieldNameChange(record)"
                       >
                         <template #suffix>
-                          <a-tooltip v-if="record.customFieldName" title="清空自定义字段名">
+                          <a-tooltip
+                            v-if="record.customFieldName"
+                            title="清空自定义字段名"
+                          >
                             <CloseCircleOutlined
                               style="cursor: pointer; color: #999"
                               @click="clearCustomFieldName(record)"
@@ -152,7 +165,11 @@ switch
             <div class="tab-content">
               <div class="section-header">
                 <h4>字段拼接配置</h4>
-                <a-button type="primary" size="small" @click="addConcatenationRule">
+                <a-button
+                  type="primary"
+                  size="small"
+                  @click="addConcatenationRule"
+                >
                   <template #icon><PlusOutlined /></template>
                   添加拼接规则
                 </a-button>
@@ -202,7 +219,10 @@ switch
                         @change="handleConcatenationChange(record)"
                       >
                         <template #suffix>
-                          <a-tooltip v-if="record.customFieldName" title="清空自定义字段名">
+                          <a-tooltip
+                            v-if="record.customFieldName"
+                            title="清空自定义字段名"
+                          >
                             <CloseCircleOutlined
                               style="cursor: pointer; color: #999"
                               @click="clearConcatenationFieldName(record)"
@@ -236,7 +256,9 @@ switch
                       <a-select-option value="string">字符串</a-select-option>
                       <a-select-option value="int">整数</a-select-option>
                       <a-select-option value="decimal">小数</a-select-option>
-                      <a-select-option value="datetime">日期时间</a-select-option>
+                      <a-select-option value="datetime"
+                        >日期时间</a-select-option
+                      >
                       <a-select-option value="boolean">布尔值</a-select-option>
                     </a-select>
                   </div>
@@ -259,7 +281,12 @@ switch
                     </a-select>
                     <div
                       v-if="record.sourceColumns.length > 0"
-                      style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px"
+                      style="
+                        margin-top: 8px;
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 4px;
+                      "
                     >
                       <a-tag
                         v-for="(colIndex, index) in record.sourceColumns"
@@ -267,7 +294,10 @@ switch
                         color="blue"
                       >
                         {{ excelHeaders[colIndex] }} (列{{ colIndex + 1 }}) =
-                        {{ record.columnVariables[colIndex] || `value${index + 1}` }}
+                        {{
+                          record.columnVariables[colIndex] ||
+                          `value${index + 1}`
+                        }}
                       </a-tag>
                     </div>
                   </div>
@@ -378,7 +408,10 @@ switch
                         @change="handleCustomFieldChange(record)"
                       >
                         <template #suffix>
-                          <a-tooltip v-if="record.fieldName" title="清空自定义字段名">
+                          <a-tooltip
+                            v-if="record.fieldName"
+                            title="清空自定义字段名"
+                          >
                             <CloseCircleOutlined
                               style="cursor: pointer; color: #999"
                               @click="clearCustomFieldName(record)"
@@ -411,7 +444,9 @@ switch
                       <a-select-option value="string">字符串</a-select-option>
                       <a-select-option value="int">整数</a-select-option>
                       <a-select-option value="decimal">小数</a-select-option>
-                      <a-select-option value="datetime">日期时间</a-select-option>
+                      <a-select-option value="datetime"
+                        >日期时间</a-select-option
+                      >
                       <a-select-option value="boolean">布尔值</a-select-option>
                     </a-select>
                   </div>
@@ -423,14 +458,23 @@ switch
                       placeholder="选择数据来源"
                       @change="handleCustomFieldChange(record)"
                     >
-                      <a-select-option value="system_function">系统预设函数</a-select-option>
-                      <a-select-option value="excel_combine">Excel列组合</a-select-option>
-                      <a-select-option value="auto_increment">自增数字</a-select-option>
+                      <a-select-option value="system_function"
+                        >系统预设函数</a-select-option
+                      >
+                      <a-select-option value="excel_combine"
+                        >Excel列组合</a-select-option
+                      >
+                      <a-select-option value="auto_increment"
+                        >自增数字</a-select-option
+                      >
                     </a-select>
                   </div>
 
                   <div v-else-if="column.key === 'config'">
-                    <div v-if="record.dataSource === 'system_function'" class="config-section">
+                    <div
+                      v-if="record.dataSource === 'system_function'"
+                      class="config-section"
+                    >
                       <a-cascader
                         :value="getCascaderValue(record)"
                         :options="cascaderOptions"
@@ -440,7 +484,10 @@ switch
                       />
                     </div>
 
-                    <div v-else-if="record.dataSource === 'excel_combine'" class="config-section">
+                    <div
+                      v-else-if="record.dataSource === 'excel_combine'"
+                      class="config-section"
+                    >
                       <a-select
                         v-model:value="record.excelCombineConfig.columns"
                         mode="multiple"
@@ -480,7 +527,10 @@ switch
                       </div>
                     </div>
 
-                    <div v-else-if="record.dataSource === 'auto_increment'" class="config-section">
+                    <div
+                      v-else-if="record.dataSource === 'auto_increment'"
+                      class="config-section"
+                    >
                       <div style="display: flex; gap: 8px; margin-bottom: 8px">
                         <a-input-number
                           v-model:value="record.autoIncrementConfig.start"
@@ -510,7 +560,9 @@ switch
                           {{ field.name }} ({{ field.type }})
                         </a-select-option>
                       </a-select>
-                      <div style="color: #999; font-size: 12px; margin-top: 4px">
+                      <div
+                        style="color: #999; font-size: 12px; margin-top: 4px"
+                      >
                         相同分组值的行会连续递增，不同则重置
                       </div>
                     </div>
@@ -570,10 +622,13 @@ switch
 </template>
 
 <script setup>
-import { ref, computed, watch, h } from 'vue'
-import { PlusOutlined, CloseCircleOutlined } from '@ant-design/icons-vue'
-import { message, Modal } from 'ant-design-vue'
-import { getDatabaseFunctions, getSupportedDatabaseTypes } from '@/utils/database/databaseFunctions'
+import { ref, computed, watch, h } from "vue";
+import { PlusOutlined, CloseCircleOutlined } from "@ant-design/icons-vue";
+import { message, Modal } from "ant-design-vue";
+import {
+  getDatabaseFunctions,
+  getSupportedDatabaseTypes,
+} from "@/utils/database/databaseFunctions";
 
 // Props
 const props = defineProps({
@@ -601,99 +656,99 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
-})
+});
 
 // Emits
-const emit = defineEmits(['update:open', 'save'])
+const emit = defineEmits(["update:open", "save"]);
 
 // 响应式数据
-const visible = ref(props.open)
-const activeTab = ref('single')
-const enableCustomBinding = ref(false)
+const visible = ref(props.open);
+const activeTab = ref("single");
+const enableCustomBinding = ref(false);
 
 // 初始化enableCustomBinding
 watch(
   () => props.customBindingManager?.enableCustomBinding?.value,
   (newVal) => {
     if (newVal !== undefined) {
-      enableCustomBinding.value = newVal
+      enableCustomBinding.value = newVal;
     }
   },
   { immediate: true },
-)
+);
 
 // 单列绑定数据
-const singleBindings = ref([])
+const singleBindings = ref([]);
 const singleBindingColumns = [
   {
-    title: 'DDL字段',
-    key: 'ddlField',
+    title: "DDL字段",
+    key: "ddlField",
     width: 200,
     minWidth: 200,
   },
   {
-    title: 'Excel列',
-    key: 'excelColumn',
+    title: "Excel列",
+    key: "excelColumn",
     width: 200,
     minWidth: 200,
   },
   {
-    title: '操作',
-    key: 'actions',
+    title: "操作",
+    key: "actions",
     width: 100,
-    fixed: 'right',
+    fixed: "right",
   },
-]
+];
 
 // 字段拼接数据
-const concatenationRules = ref([])
+const concatenationRules = ref([]);
 const concatenationColumns = [
   {
-    title: '自定义字段名称',
-    key: 'customFieldName',
+    title: "自定义字段名称",
+    key: "customFieldName",
     width: 200,
     minWidth: 200,
   },
   {
-    title: '数据类型',
-    key: 'dataType',
+    title: "数据类型",
+    key: "dataType",
     width: 150,
     minWidth: 150,
   },
   {
-    title: '源Excel列',
-    key: 'sourceColumns',
+    title: "源Excel列",
+    key: "sourceColumns",
     width: 200,
     minWidth: 200,
   },
   {
-    title: '分隔符',
-    key: 'separator',
+    title: "分隔符",
+    key: "separator",
     width: 120,
     minWidth: 120,
   },
   {
-    title: '格式化模板',
-    key: 'format',
+    title: "格式化模板",
+    key: "format",
     width: 300,
     minWidth: 300,
   },
   {
-    title: '预览',
-    key: 'preview',
+    title: "预览",
+    key: "preview",
     width: 120,
     minWidth: 120,
   },
   {
-    title: '操作',
-    key: 'actions',
+    title: "操作",
+    key: "actions",
     width: 100,
-    fixed: 'right',
+    fixed: "right",
   },
-]
+];
 
 // 自定义字段数据
-const customFields = ref([])
+const customFields = ref([]);
 
 // 根据函数名和数据库类型查找函数对象
 /**
@@ -704,85 +759,89 @@ const customFields = ref([])
  */
 const findFunctionByFunctionName = (dbType, functionName) => {
   // 验证参数类型
-  if (typeof dbType !== 'string' || dbType.trim() === '') {
-    dbType = 'mysql'
+  if (typeof dbType !== "string" || dbType.trim() === "") {
+    dbType = "mysql";
   }
 
   // 确保functionName是字符串且不为空
-  if (typeof functionName !== 'string' || functionName.trim() === '') {
-    return null
+  if (typeof functionName !== "string" || functionName.trim() === "") {
+    return null;
   }
 
   // 获取对应数据库的函数列表
-  const functions = getDatabaseFunctions(dbType)
+  const functions = getDatabaseFunctions(dbType);
 
   if (!Array.isArray(functions)) {
-    return null
+    return null;
   }
 
   // 查找函数名匹配的函数
   return functions.find(
-    (func) => func && typeof func.name === 'string' && func.name === functionName,
-  )
-}
+    (func) =>
+      func && typeof func.name === "string" && func.name === functionName,
+  );
+};
 
 const customFieldColumns = [
   {
-    title: '字段名',
-    key: 'fieldName',
+    title: "字段名",
+    key: "fieldName",
     width: 120,
     minWidth: 120,
   },
   {
-    title: '数据类型',
-    key: 'dataType',
+    title: "数据类型",
+    key: "dataType",
     width: 150,
     minWidth: 150,
   },
   {
-    title: '数据来源',
-    key: 'dataSource',
+    title: "数据来源",
+    key: "dataSource",
     width: 150,
     minWidth: 150,
     customRender: ({ record }) => {
-      if (!record) return '未知'
-      if (record.dataSource === 'system_function' && record.systemFunctionConfig?.functionName) {
+      if (!record) return "未知";
+      if (
+        record.dataSource === "system_function" &&
+        record.systemFunctionConfig?.functionName
+      ) {
         const func = findFunctionByFunctionName(
           record.systemFunctionConfig.databaseType,
           record.systemFunctionConfig.functionName,
-        )
+        );
         if (func) {
-          return `${func.name} - ${func.description}`
+          return `${func.name} - ${func.description}`;
         }
-        return `${record.systemFunctionConfig.functionName} - 未知函数`
+        return `${record.systemFunctionConfig.functionName} - 未知函数`;
       }
       const sourceLabels = {
-        system_function: '系统预设函数',
-        excel_combine: 'Excel列组合',
-        auto_increment: '自增数字',
-      }
-      return sourceLabels[record.dataSource] || record.dataSource
+        system_function: "系统预设函数",
+        excel_combine: "Excel列组合",
+        auto_increment: "自增数字",
+      };
+      return sourceLabels[record.dataSource] || record.dataSource;
     },
   },
   {
-    title: '配置',
-    key: 'config',
+    title: "配置",
+    key: "config",
     width: 400,
     minWidth: 400,
   },
   {
-    title: '预览',
-    key: 'preview',
+    title: "预览",
+    key: "preview",
     width: 120,
     minWidth: 120,
   },
   {
-    title: '操作',
-    key: 'actions',
+    title: "操作",
+    key: "actions",
     width: 100,
-    fixed: 'right',
+    fixed: "right",
   },
-]
+];
 
 // 计算属性
 /**
@@ -790,43 +849,46 @@ const customFieldColumns = [
  * 从DDL原始字段列表中获取，避免因映射配置字段变更导致的问题
  */
 const availableDdlFields = computed(() => {
-  return props.ddlFields || []
-})
+  return props.ddlFields || [];
+});
 const totalCustomBindings = computed(
-  () => singleBindings.value.length + concatenationRules.value.length + customFields.value.length,
-)
+  () =>
+    singleBindings.value.length +
+    concatenationRules.value.length +
+    customFields.value.length,
+);
 /**
  * 获取级联选择器的选项数据
  * @returns {Array} 级联选择器的选项数组
  */
 const cascaderOptions = computed(() => {
-  const dbTypes = getSupportedDatabaseTypes()
-  const usedValues = new Set()
+  const dbTypes = getSupportedDatabaseTypes();
+  const usedValues = new Set();
 
   return dbTypes.map((dbType) => {
-    const functions = getDatabaseFunctions(dbType.value)
-    const functionOptions = []
+    const functions = getDatabaseFunctions(dbType.value);
+    const functionOptions = [];
 
     if (Array.isArray(functions)) {
       for (const func of functions) {
-        if (func && func.name && typeof func.name === 'string') {
+        if (func && func.name && typeof func.name === "string") {
           // 使用数据库类型前缀和类别确保 key 唯一
-          const value = `${dbType.value}_${func.name}_${func.category || 'default'}`
+          const value = `${dbType.value}_${func.name}_${func.category || "default"}`;
 
           // 跳过重复的 value
           if (usedValues.has(value)) {
-            continue
+            continue;
           }
-          usedValues.add(value)
+          usedValues.add(value);
 
           functionOptions.push({
             value: value,
             label: func.name,
-            description: func.description || '',
+            description: func.description || "",
             databaseType: dbType.value,
             functionName: func.name,
-            functionCategory: func.category || 'default',
-          })
+            functionCategory: func.category || "default",
+          });
         }
       }
     }
@@ -835,9 +897,9 @@ const cascaderOptions = computed(() => {
       value: dbType.value,
       label: dbType.label,
       children: functionOptions,
-    }
-  })
-})
+    };
+  });
+});
 
 /**
  * 获取级联选择器的当前值
@@ -846,13 +908,13 @@ const cascaderOptions = computed(() => {
  */
 const getCascaderValue = (record) => {
   if (!record || !record.systemFunctionConfig) {
-    return []
+    return [];
   }
 
-  const { databaseType, functionName } = record.systemFunctionConfig
+  const { databaseType, functionName } = record.systemFunctionConfig;
 
   if (!databaseType || !functionName) {
-    return []
+    return [];
   }
 
   // 遍历 cascaderOptions 查找匹配的函数
@@ -860,15 +922,15 @@ const getCascaderValue = (record) => {
     if (dbType.value === databaseType) {
       for (const func of dbType.children || []) {
         if (func.functionName === functionName) {
-          return [databaseType, func.value]
+          return [databaseType, func.value];
         }
       }
     }
   }
 
   // 如果找不到精确匹配，使用旧格式作为后备（兼容旧数据）
-  return [databaseType, `${databaseType}_${functionName}`]
-}
+  return [databaseType, `${databaseType}_${functionName}`];
+};
 
 /**
  * 处理级联选择器的变更事件
@@ -877,138 +939,148 @@ const getCascaderValue = (record) => {
  */
 const handleCascaderChange = (value, record) => {
   if (!Array.isArray(value) || value.length !== 2) {
-    return
+    return;
   }
 
-  const [databaseType, functionKey] = value
+  const [databaseType, functionKey] = value;
 
   // 从 functionKey 中提取 functionName（格式: dbType_functionName_category）
-  // 分割字符串并取中间的部分作为函数名
-  const parts = functionKey.split('_')
-  const functionName = parts.length >= 2 ? parts[1] : functionKey
+  // 分割字符串后，跳过第一个元素（数据库类型），将剩余部分重新连接作为函数名
+  // 这样可以正确处理函数名中包含下划线的情况（如 SYS_GUID、TO_CHAR 等）
+  const parts = functionKey.split("_");
+  const functionName =
+    parts.length >= 3
+      ? parts.slice(1, -1).join("_")
+      : parts.length >= 2
+        ? parts.slice(1).join("_")
+        : functionKey;
 
   if (!record.systemFunctionConfig) {
     record.systemFunctionConfig = {
-      databaseType: 'mysql',
-      functionName: 'NOW',
-    }
+      databaseType: "mysql",
+      functionName: "NOW",
+    };
   }
 
-  record.systemFunctionConfig.databaseType = databaseType
-  record.systemFunctionConfig.functionName = functionName
+  record.systemFunctionConfig.databaseType = databaseType;
+  record.systemFunctionConfig.functionName = functionName;
 
-  handleCustomFieldChange(record)
-}
+  handleCustomFieldChange(record);
+};
 
 // 监听器
 watch(
   () => props.open,
   (newVal) => {
-    visible.value = newVal
+    visible.value = newVal;
     if (newVal) {
       // 模态框打开时加载数据
-      loadBindings()
+      loadBindings();
       // 如果有编辑字段，根据数据来源切换到对应标签页
       if (props.editingField) {
-        const dataSource = props.editingField.dataSource
-        if (dataSource === 'single_binding') {
-          activeTab.value = 'single'
-        } else if (dataSource === 'excel_combine') {
-          activeTab.value = 'concatenation'
+        const dataSource = props.editingField.dataSource;
+        if (dataSource === "single_binding") {
+          activeTab.value = "single";
+        } else if (dataSource === "excel_combine") {
+          activeTab.value = "concatenation";
         } else {
-          activeTab.value = 'customFields'
+          activeTab.value = "customFields";
         }
       }
     }
   },
-)
+);
 
 // 方法
 const loadBindings = () => {
   // 根据是否为编辑模式决定是否加载已保存的数据
   if (props.editingField) {
     // 编辑模式：根据数据来源只加载对应的数据
-    const dataSource = props.editingField.dataSource
+    const dataSource = props.editingField.dataSource;
 
-    if (dataSource === 'single_binding') {
+    if (dataSource === "single_binding") {
       // 编辑单列绑定：只加载这一条数据
-      singleBindings.value = []
-      const isInDdl = props.ddlFields.some((field) => field.name === props.editingField.fieldName)
+      singleBindings.value = [];
+      const isInDdl = props.ddlFields.some(
+        (field) => field.name === props.editingField.fieldName,
+      );
       singleBindings.value.push({
         id: props.editingField.id || generateId(),
-        ddlFieldName: isInDdl ? props.editingField.fieldName : '',
-        inputMode: isInDdl ? 'select' : 'custom',
-        customFieldName: isInDdl ? '' : props.editingField.fieldName,
+        ddlFieldName: isInDdl ? props.editingField.fieldName : "",
+        inputMode: isInDdl ? "select" : "custom",
+        customFieldName: isInDdl ? "" : props.editingField.fieldName,
         excelIndex: props.editingField.config?.excelIndex || -1,
-      })
-      concatenationRules.value = []
-      customFields.value = []
-    } else if (dataSource === 'excel_combine') {
+      });
+      concatenationRules.value = [];
+      customFields.value = [];
+    } else if (dataSource === "excel_combine") {
       // 编辑拼接规则：只加载这一条数据
-      singleBindings.value = []
+      singleBindings.value = [];
       concatenationRules.value = [
         {
           id: props.editingField.id || generateId(),
-          inputMode: 'select',
+          inputMode: "select",
           customFieldName: props.editingField.fieldName,
-          dataType: props.editingField.dataType || 'string',
+          dataType: props.editingField.dataType || "string",
           sourceColumns: props.editingField.config?.sourceColumns || [],
           columnVariables: {},
-          separator: props.editingField.config?.separator || '',
-          format: props.editingField.config?.format || '',
+          separator: props.editingField.config?.separator || "",
+          format: props.editingField.config?.format || "",
         },
-      ]
-      customFields.value = []
+      ];
+      customFields.value = [];
     } else {
       // 编辑自定义字段：只加载这一条数据
-      console.log('编辑模式：加载字段数据', props.editingField)
-      singleBindings.value = []
-      concatenationRules.value = []
+      console.log("编辑模式：加载字段数据", props.editingField);
+      singleBindings.value = [];
+      concatenationRules.value = [];
       customFields.value = [
         {
           id: props.editingField.id || generateId(),
-          inputMode: 'select',
+          inputMode: "select",
           fieldName: props.editingField.fieldName,
-          dataType: props.editingField.dataType || 'string',
-          dataSource: props.editingField.dataSource || 'system_function',
+          dataType: props.editingField.dataType || "string",
+          dataSource: props.editingField.dataSource || "system_function",
           systemFunctionConfig: {
-            databaseType: props.editingField.systemFunctionConfig?.databaseType || 'mysql',
-            functionName: props.editingField.systemFunctionConfig?.functionName || 'NOW',
+            databaseType:
+              props.editingField.systemFunctionConfig?.databaseType || "mysql",
+            functionName:
+              props.editingField.systemFunctionConfig?.functionName || "NOW",
           },
           excelCombineConfig: {
             columns: props.editingField.excelCombineConfig?.columns || [],
-            separator: props.editingField.excelCombineConfig?.separator || '',
-            format: props.editingField.excelCombineConfig?.format || '',
+            separator: props.editingField.excelCombineConfig?.separator || "",
+            format: props.editingField.excelCombineConfig?.format || "",
           },
           autoIncrementConfig: {
             start: props.editingField.autoIncrementConfig?.start || 1,
             step: props.editingField.autoIncrementConfig?.step || 1,
           },
         },
-      ]
+      ];
     }
   } else {
     // 添加模式：所有数据都应该是空的
-    singleBindings.value = []
-    concatenationRules.value = []
-    customFields.value = []
+    singleBindings.value = [];
+    concatenationRules.value = [];
+    customFields.value = [];
   }
-}
+};
 
 const handleToggleChange = (checked) => {
-  enableCustomBinding.value = checked
-  props.customBindingManager.setEnableCustomBinding(checked)
-}
+  enableCustomBinding.value = checked;
+  props.customBindingManager.setEnableCustomBinding(checked);
+};
 
 const addSingleBinding = () => {
   singleBindings.value.push({
     id: generateId(),
-    ddlFieldName: '',
-    inputMode: 'select',
-    customFieldName: '',
+    ddlFieldName: "",
+    inputMode: "select",
+    customFieldName: "",
     excelIndex: -1,
-  })
-}
+  });
+};
 
 /**
  * 批量添加单列绑定
@@ -1020,7 +1092,7 @@ const batchAddSingleBindings = () => {
     singleBindings.value
       .filter((binding) => binding.ddlFieldName)
       .map((binding) => binding.ddlFieldName),
-  )
+  );
 
   // 为所有未绑定的DDL字段创建绑定记录
   props.ddlFields.forEach((ddlField) => {
@@ -1029,155 +1101,168 @@ const batchAddSingleBindings = () => {
         id: generateId(),
         ddlFieldName: ddlField.name,
         excelIndex: -1,
-      })
+      });
     }
-  })
+  });
 
-  message.success(`已批量添加 ${props.ddlFields.length - boundFieldNames.size} 个绑定记录`)
-}
+  message.success(
+    `已批量添加 ${props.ddlFields.length - boundFieldNames.size} 个绑定记录`,
+  );
+};
 
 const removeSingleBinding = (id) => {
-  const index = singleBindings.value.findIndex((binding) => binding.id === id)
+  const index = singleBindings.value.findIndex((binding) => binding.id === id);
   if (index >= 0) {
-    singleBindings.value.splice(index, 1)
+    singleBindings.value.splice(index, 1);
   }
-}
+};
 
 const handleSingleBindingChange = (record) => {
   // 只更新本地状态，不立即添加到管理器中
   // 最终保存时由saveBindings统一处理
-  console.log('单列绑定已更新:', record)
-}
+  console.log("单列绑定已更新:", record);
+};
 
 const addConcatenationRule = () => {
   concatenationRules.value.push({
     id: generateId(),
-    inputMode: 'select',
-    customFieldName: '',
-    dataType: 'string',
+    inputMode: "select",
+    customFieldName: "",
+    dataType: "string",
     sourceColumns: [],
     columnVariables: {},
-    separator: '',
-    format: '',
-  })
-}
+    separator: "",
+    format: "",
+  });
+};
 
 const clearConcatenationFieldName = (record) => {
-  record.customFieldName = ''
-  console.log('自定义字段名已清空:', record)
-}
+  record.customFieldName = "";
+  console.log("自定义字段名已清空:", record);
+};
 
 const removeConcatenationRule = (id) => {
-  const index = concatenationRules.value.findIndex((rule) => rule.id === id)
+  const index = concatenationRules.value.findIndex((rule) => rule.id === id);
   if (index >= 0) {
-    const rule = concatenationRules.value[index]
-    const customFieldName = rule.customFieldName
+    const rule = concatenationRules.value[index];
+    const customFieldName = rule.customFieldName;
 
-    concatenationRules.value.splice(index, 1)
+    concatenationRules.value.splice(index, 1);
 
     if (customFieldName) {
-      props.customBindingManager.removeConcatenationRule(customFieldName)
-      props.customBindingManager.removeCustomField(customFieldName)
+      props.customBindingManager.removeConcatenationRule(customFieldName);
+      props.customBindingManager.removeCustomField(customFieldName);
     }
   }
-}
+};
 
 const handleConcatenationChange = (record) => {
   if (record.customFieldName && record.sourceColumns.length > 0) {
     // 自动分配变量名：value1, value2, value3...
-    const newColumnVariables = {}
+    const newColumnVariables = {};
     record.sourceColumns.forEach((colIndex, index) => {
-      newColumnVariables[colIndex] = `value${index + 1}`
-    })
-    record.columnVariables = newColumnVariables
+      newColumnVariables[colIndex] = `value${index + 1}`;
+    });
+    record.columnVariables = newColumnVariables;
   }
-}
+};
 
 const isFieldBound = (fieldName, currentBindingId) => {
   // 字段拼接规则可以重复选择同一字段（可能是编辑已有规则）
   // 只检查单列绑定中的字段
   return singleBindings.value.some(
-    (binding) => binding.id !== currentBindingId && binding.ddlFieldName === fieldName,
-  )
-}
+    (binding) =>
+      binding.id !== currentBindingId && binding.ddlFieldName === fieldName,
+  );
+};
 
 const isFieldInDdl = (fieldName) => {
-  return props.ddlFields.some((field) => field.name === fieldName)
-}
+  return props.ddlFields.some((field) => field.name === fieldName);
+};
 
 const handleCustomFieldNameChange = (record) => {
   // 只更新本地状态，不立即添加到管理器中
   // 最终保存时由saveBindings统一处理
   if (record.customFieldName) {
-    record.ddlFieldName = record.customFieldName
+    record.ddlFieldName = record.customFieldName;
   }
-  console.log('自定义字段名已更新:', record)
-}
+  console.log("自定义字段名已更新:", record);
+};
 
 const clearCustomFieldName = (record) => {
-  record.customFieldName = ''
-  record.ddlFieldName = ''
-  console.log('自定义字段名已清空:', record)
-}
+  record.customFieldName = "";
+  record.ddlFieldName = "";
+  console.log("自定义字段名已清空:", record);
+};
 
 const isColumnUsed = (columnIndex, currentBindingId) => {
   return singleBindings.value.some(
-    (binding) => binding.id !== currentBindingId && binding.excelIndex === columnIndex,
-  )
-}
+    (binding) =>
+      binding.id !== currentBindingId && binding.excelIndex === columnIndex,
+  );
+};
 
 const getConcatenationPreview = (rule) => {
   if (!rule.customFieldName || rule.sourceColumns.length === 0) {
-    return '请配置规则'
+    return "请配置规则";
   }
 
-  let result
-  const sampleValues = rule.sourceColumns.map((colIndex, idx) => `值${idx + 1}`)
+  let result;
+  const sampleValues = rule.sourceColumns.map(
+    (colIndex, idx) => `值${idx + 1}`,
+  );
 
-  result = sampleValues.join(rule.separator || '')
+  result = sampleValues.join(rule.separator || "");
 
   if (rule.format) {
     // 替换{value1}, {value2}, {value3}等变量
     result = rule.format.replace(/\{value(\d+)\}/g, (match, num) => {
-      const index = parseInt(num, 10) - 1
-      return sampleValues[index] !== undefined ? sampleValues[index] : ''
-    })
+      const index = parseInt(num, 10) - 1;
+      return sampleValues[index] !== undefined ? sampleValues[index] : "";
+    });
 
     // 保持向后兼容：将{value}替换为所有列的拼接结果
-    result = result.replace(/{value}/g, sampleValues.join(rule.separator || ''))
+    result = result.replace(
+      /{value}/g,
+      sampleValues.join(rule.separator || ""),
+    );
   }
 
-  return result.length > 20 ? result.substring(0, 20) + '...' : result
-}
+  return result.length > 20 ? result.substring(0, 20) + "..." : result;
+};
 
 const validateBindings = () => {
-  const validation = props.customBindingManager.validateBindings()
+  const validation = props.customBindingManager.validateBindings();
 
   if (validation.isValid) {
-    message.success('自定义绑定配置验证通过')
+    message.success("自定义绑定配置验证通过");
   } else {
     Modal.error({
-      title: '自定义绑定配置验证失败',
-      content: h('div', [
-        h('p', '以下配置存在问题，请修复后再保存：'),
-        h('ul', { style: { paddingLeft: '20px', marginTop: '10px' } }, [
+      title: "自定义绑定配置验证失败",
+      content: h("div", [
+        h("p", "以下配置存在问题，请修复后再保存："),
+        h("ul", { style: { paddingLeft: "20px", marginTop: "10px" } }, [
           ...validation.errors.map((error) =>
-            h('li', { style: { marginBottom: '5px', color: '#ff4d4f' } }, error),
+            h(
+              "li",
+              { style: { marginBottom: "5px", color: "#ff4d4f" } },
+              error,
+            ),
           ),
         ]),
       ]),
-      okText: '我知道了',
-    })
+      okText: "我知道了",
+    });
   }
-}
+};
 
 const resetBindings = () => {
-  props.customBindingManager.resetBindings()
-  singleBindings.value = []
-  concatenationRules.value = []
-  customFields.value = []
-  message.info('已重置所有自定义绑定配置')
-}
+  props.customBindingManager.resetBindings();
+  singleBindings.value = [];
+  concatenationRules.value = [];
+  customFields.value = [];
+  message.info("已重置所有自定义绑定配置");
+};
 
 /**
  * 检查字段名是否与现有配置冲突
@@ -1185,97 +1270,107 @@ const resetBindings = () => {
  * @returns {Object} 冲突检测结果 { isConflict: boolean, conflictSource: string }
  */
 const checkFieldConflict = (fieldName) => {
-  if (!fieldName || typeof fieldName !== 'string') {
-    return { isConflict: false, conflictSource: '' }
+  if (!fieldName || typeof fieldName !== "string") {
+    return { isConflict: false, conflictSource: "" };
   }
 
-  const trimmedName = fieldName.trim()
+  const trimmedName = fieldName.trim();
   if (!trimmedName) {
-    return { isConflict: false, conflictSource: '' }
+    return { isConflict: false, conflictSource: "" };
   }
 
   // 检查字段映射中显示的DDL字段名（映射配置中显示的字段）
   if (
     props.fieldMappings &&
-    props.fieldMappings.some((mapping) => mapping.ddlField?.name === trimmedName)
+    props.fieldMappings.some(
+      (mapping) => mapping.ddlField?.name === trimmedName,
+    )
   ) {
-    return { isConflict: true, conflictSource: '字段映射' }
+    return { isConflict: true, conflictSource: "字段映射" };
   }
 
   // 检查单列绑定中的自定义字段名
-  if (singleBindings.value.some((binding) => binding.customFieldName === trimmedName)) {
-    return { isConflict: true, conflictSource: '单列绑定' }
+  if (
+    singleBindings.value.some(
+      (binding) => binding.customFieldName === trimmedName,
+    )
+  ) {
+    return { isConflict: true, conflictSource: "单列绑定" };
   }
 
   // 检查字段拼接规则中的自定义字段名
-  if (concatenationRules.value.some((rule) => rule.customFieldName === trimmedName)) {
-    return { isConflict: true, conflictSource: '字段拼接规则' }
+  if (
+    concatenationRules.value.some(
+      (rule) => rule.customFieldName === trimmedName,
+    )
+  ) {
+    return { isConflict: true, conflictSource: "字段拼接规则" };
   }
 
   // 检查现有自定义字段
   if (customFields.value.some((field) => field.fieldName === trimmedName)) {
-    return { isConflict: true, conflictSource: '自定义字段' }
+    return { isConflict: true, conflictSource: "自定义字段" };
   }
 
-  return { isConflict: false, conflictSource: '' }
-}
+  return { isConflict: false, conflictSource: "" };
+};
 
 const addCustomField = () => {
   const typeLabels = {
-    system_function: '系统函数',
-    excel_combine: 'Excel组合',
-    auto_increment: '自增',
-  }
+    system_function: "系统函数",
+    excel_combine: "Excel组合",
+    auto_increment: "自增",
+  };
 
   // 使用 generateId() 生成唯一字段名，确保不会重复
-  const defaultFieldName = `${typeLabels['system_function'] || '自定义'}_${generateId()}`
+  const defaultFieldName = `${typeLabels["system_function"] || "自定义"}_${generateId()}`;
 
   // 检查生成的默认字段名是否冲突
-  const conflictResult = checkFieldConflict(defaultFieldName)
+  const conflictResult = checkFieldConflict(defaultFieldName);
   if (conflictResult.isConflict) {
     Modal.warning({
-      title: '字段名冲突',
+      title: "字段名冲突",
       content: `字段 "${defaultFieldName}" 与现有的${conflictResult.conflictSource}存在冲突，无法添加重复字段。请刷新页面后重试。`,
-      okText: '我知道了',
-    })
-    return
+      okText: "我知道了",
+    });
+    return;
   }
 
   const newField = {
     id: generateId(),
-    inputMode: 'custom',
+    inputMode: "custom",
     fieldName: defaultFieldName,
-    dataType: 'string',
-    dataSource: 'system_function',
+    dataType: "string",
+    dataSource: "system_function",
     systemFunctionConfig: {
-      databaseType: 'mysql',
-      functionName: 'NOW',
+      databaseType: "mysql",
+      functionName: "NOW",
     },
     excelCombineConfig: {
       columns: [],
-      separator: '',
-      format: '',
+      separator: "",
+      format: "",
     },
     autoIncrementConfig: {
       start: 1,
       step: 1,
     },
-  }
+  };
 
-  customFields.value.push(newField)
-}
+  customFields.value.push(newField);
+};
 
 const removeCustomField = (id) => {
-  const index = customFields.value.findIndex((field) => field.id === id)
+  const index = customFields.value.findIndex((field) => field.id === id);
   if (index >= 0) {
-    const fieldToRemove = customFields.value[index]
-    customFields.value.splice(index, 1)
+    const fieldToRemove = customFields.value[index];
+    customFields.value.splice(index, 1);
     // 从管理器中移除
     if (fieldToRemove.fieldName) {
-      props.customBindingManager.removeCustomField(fieldToRemove.fieldName)
+      props.customBindingManager.removeCustomField(fieldToRemove.fieldName);
     }
   }
-}
+};
 
 // 注意：不直接调用addCustomField，只更新本地状态
 // 最终保存时由saveBindings统一处理
@@ -1284,46 +1379,46 @@ const removeCustomField = (id) => {
  * @param {Object} record - 自定义字段记录
  */
 const handleCustomFieldChange = (record) => {
-  if (!record || typeof record !== 'object') {
-    return
+  if (!record || typeof record !== "object") {
+    return;
   }
 
   if (!record.fieldName) {
-    return
+    return;
   }
 
   // 检查字段名是否与其他配置冲突
   // 只在字段名变更且不为空时检查
   // 编辑模式下，如果字段名没有改变，不视为冲突
-  const originalFieldName = props.editingField?.fieldName || ''
+  const originalFieldName = props.editingField?.fieldName || "";
   const conflictResult = checkFieldConflictExcludingCurrent(
     record.fieldName,
     record.id,
     originalFieldName,
-  )
+  );
   if (conflictResult.isConflict) {
     Modal.warning({
-      title: '字段名冲突',
+      title: "字段名冲突",
       content: `字段 "${record.fieldName}" 与现有的${conflictResult.conflictSource}存在冲突，请使用其他字段名。`,
-      okText: '我知道了',
+      okText: "我知道了",
       onOk: () => {
-        record.fieldName = ''
+        record.fieldName = "";
       },
-    })
-    return
+    });
+    return;
   }
 
-  if (record.dataSource === 'system_function') {
+  if (record.dataSource === "system_function") {
     if (!record.systemFunctionConfig) {
       record.systemFunctionConfig = {
-        databaseType: 'mysql',
-        functionName: 'NOW',
-      }
+        databaseType: "mysql",
+        functionName: "NOW",
+      };
     }
   }
 
-  console.log('自定义字段已更新:', record)
-}
+  console.log("自定义字段已更新:", record);
+};
 
 /**
  * 检查字段名是否与现有配置冲突（排除当前记录）
@@ -1332,49 +1427,65 @@ const handleCustomFieldChange = (record) => {
  * @param {string} currentFieldName - 当前字段的原始名称（用于编辑模式判断）
  * @returns {Object} 冲突检测结果 { isConflict: boolean, conflictSource: string }
  */
-const checkFieldConflictExcludingCurrent = (fieldName, currentId, currentFieldName = '') => {
-  if (!fieldName || typeof fieldName !== 'string') {
-    return { isConflict: false, conflictSource: '' }
+const checkFieldConflictExcludingCurrent = (
+  fieldName,
+  currentId,
+  currentFieldName = "",
+) => {
+  if (!fieldName || typeof fieldName !== "string") {
+    return { isConflict: false, conflictSource: "" };
   }
 
-  const trimmedName = fieldName.trim()
+  const trimmedName = fieldName.trim();
   if (!trimmedName) {
-    return { isConflict: false, conflictSource: '' }
+    return { isConflict: false, conflictSource: "" };
   }
 
   // 检查字段映射中显示的DDL字段名（映射配置中显示的字段）
   // 编辑模式：如果字段名没有改变，不视为冲突
   if (
     props.fieldMappings &&
-    props.fieldMappings.some((mapping) => mapping.ddlField?.name === trimmedName)
+    props.fieldMappings.some(
+      (mapping) => mapping.ddlField?.name === trimmedName,
+    )
   ) {
     // 编辑模式且字段名未改变，不视为冲突
     if (currentFieldName && currentFieldName === trimmedName) {
       // 继续检查其他冲突
     } else {
-      return { isConflict: true, conflictSource: '字段映射' }
+      return { isConflict: true, conflictSource: "字段映射" };
     }
   }
 
   // 检查单列绑定中的自定义字段名
-  if (singleBindings.value.some((binding) => binding.customFieldName === trimmedName)) {
-    return { isConflict: true, conflictSource: '单列绑定' }
+  if (
+    singleBindings.value.some(
+      (binding) => binding.customFieldName === trimmedName,
+    )
+  ) {
+    return { isConflict: true, conflictSource: "单列绑定" };
   }
 
   // 检查字段拼接规则中的自定义字段名
-  if (concatenationRules.value.some((rule) => rule.customFieldName === trimmedName)) {
-    return { isConflict: true, conflictSource: '字段拼接规则' }
+  if (
+    concatenationRules.value.some(
+      (rule) => rule.customFieldName === trimmedName,
+    )
+  ) {
+    return { isConflict: true, conflictSource: "字段拼接规则" };
   }
 
   // 检查现有自定义字段（排除当前记录）
   if (
-    customFields.value.some((field) => field.id !== currentId && field.fieldName === trimmedName)
+    customFields.value.some(
+      (field) => field.id !== currentId && field.fieldName === trimmedName,
+    )
   ) {
-    return { isConflict: true, conflictSource: '自定义字段' }
+    return { isConflict: true, conflictSource: "自定义字段" };
   }
 
-  return { isConflict: false, conflictSource: '' }
-}
+  return { isConflict: false, conflictSource: "" };
+};
 
 /**
  * 获取自定义字段的预览值
@@ -1383,127 +1494,152 @@ const checkFieldConflictExcludingCurrent = (fieldName, currentId, currentFieldNa
  */
 const getCustomFieldPreview = (field) => {
   // 参数验证
-  if (!field || typeof field !== 'object') {
-    return '字段配置无效'
+  if (!field || typeof field !== "object") {
+    return "字段配置无效";
   }
 
-  if (!field.fieldName || field.fieldName.trim() === '') {
-    return '请配置字段名'
+  if (!field.fieldName || field.fieldName.trim() === "") {
+    return "请配置字段名";
   }
 
   // 根据数据来源类型生成预览
   switch (field.dataSource) {
-    case 'system_function': {
+    case "system_function": {
       // 验证系统函数配置
-      if (!field.systemFunctionConfig || typeof field.systemFunctionConfig !== 'object') {
-        return '系统函数配置无效'
+      if (
+        !field.systemFunctionConfig ||
+        typeof field.systemFunctionConfig !== "object"
+      ) {
+        return "系统函数配置无效";
       }
 
-      const { databaseType, functionName } = field.systemFunctionConfig
+      const { databaseType, functionName } = field.systemFunctionConfig;
 
       // 如果没有选择函数，提示用户选择
-      if (!functionName || functionName.trim() === '') {
-        return '请选择系统函数'
+      if (!functionName || functionName.trim() === "") {
+        return "请选择系统函数";
       }
 
       // 查找函数信息
-      const func = findFunctionByFunctionName(databaseType, functionName)
+      const func = findFunctionByFunctionName(databaseType, functionName);
 
       if (func) {
-        return `${func.name}() - ${func.description}`
+        return `${func.name}() - ${func.description}`;
       }
 
       // 如果找不到函数，显示用户选择的函数名
-      return `${functionName}() - 未知函数`
+      return `${functionName}() - 未知函数`;
     }
 
-    case 'excel_combine': {
+    case "excel_combine": {
       // 验证Excel组合配置
-      if (!field.excelCombineConfig || typeof field.excelCombineConfig !== 'object') {
-        return 'Excel组合配置无效'
+      if (
+        !field.excelCombineConfig ||
+        typeof field.excelCombineConfig !== "object"
+      ) {
+        return "Excel组合配置无效";
       }
 
-      const { columns, separator = '', format = '' } = field.excelCombineConfig
+      const { columns, separator = "", format = "" } = field.excelCombineConfig;
 
       if (!Array.isArray(columns) || columns.length === 0) {
-        return '请选择Excel列'
+        return "请选择Excel列";
       }
 
-      const sampleValues = columns.map((_, idx) => `值${idx + 1}`)
-      let result = sampleValues.join(separator)
+      const sampleValues = columns.map((_, idx) => `值${idx + 1}`);
+      let result = sampleValues.join(separator);
 
       if (format.trim()) {
-        result = format.replace(/{value}/g, result)
+        result = format.replace(/{value}/g, result);
       }
 
-      return result.length > 20 ? result.substring(0, 20) + '...' : result
+      return result.length > 20 ? result.substring(0, 20) + "..." : result;
     }
 
-    case 'auto_increment': {
+    case "auto_increment": {
       // 验证自增配置
-      if (!field.autoIncrementConfig || typeof field.autoIncrementConfig !== 'object') {
-        return '自增配置无效'
+      if (
+        !field.autoIncrementConfig ||
+        typeof field.autoIncrementConfig !== "object"
+      ) {
+        return "自增配置无效";
       }
 
-      const { start = 1, step = 1 } = field.autoIncrementConfig
+      const { start = 1, step = 1 } = field.autoIncrementConfig;
 
       // 确保数值类型正确
-      const startValue = Number(start) || 1
-      const stepValue = Number(step) || 1
+      const startValue = Number(start) || 1;
+      const stepValue = Number(step) || 1;
 
-      return `${startValue} (步长: ${stepValue})`
+      return `${startValue} (步长: ${stepValue})`;
     }
 
     default:
-      return '请选择数据来源'
+      return "请选择数据来源";
   }
-}
+};
 
 const saveBindings = () => {
   console.log(
-    '========================customFields===================================',
+    "========================customFields===================================",
     customFields.value,
-  )
+  );
 
   // 判断是编辑模式还是添加模式
-  const isEditMode = !!props.editingField
+  const isEditMode = !!props.editingField;
 
   if (isEditMode) {
     // 编辑模式：只更新被编辑的数据
-    const dataSource = props.editingField.dataSource
+    const dataSource = props.editingField.dataSource;
 
-    if (dataSource === 'single_binding') {
+    if (dataSource === "single_binding") {
       // 编辑单列绑定：先删除旧的，再添加新的
-      props.customBindingManager.removeCustomBinding(props.editingField.fieldName)
+      props.customBindingManager.removeCustomBinding(
+        props.editingField.fieldName,
+      );
       singleBindings.value.forEach((binding) => {
         const finalFieldName =
-          binding.inputMode === 'custom' ? binding.customFieldName : binding.ddlFieldName
+          binding.inputMode === "custom"
+            ? binding.customFieldName
+            : binding.ddlFieldName;
         if (finalFieldName && binding.excelIndex >= 0) {
-          props.customBindingManager.addCustomBinding(finalFieldName, binding.excelIndex, 'single')
+          props.customBindingManager.addCustomBinding(
+            finalFieldName,
+            binding.excelIndex,
+            "single",
+          );
         }
-      })
-    } else if (dataSource === 'excel_combine') {
+      });
+    } else if (dataSource === "excel_combine") {
       // 编辑拼接规则：先删除旧的，再添加新的
-      props.customBindingManager.removeConcatenationRule(props.editingField.fieldName)
+      props.customBindingManager.removeConcatenationRule(
+        props.editingField.fieldName,
+      );
       concatenationRules.value.forEach((rule) => {
-        if (rule.customFieldName && rule.sourceColumns && rule.sourceColumns.length > 0) {
+        if (
+          rule.customFieldName &&
+          rule.sourceColumns &&
+          rule.sourceColumns.length > 0
+        ) {
           props.customBindingManager.addConcatenationRule(
             rule.customFieldName,
             rule.sourceColumns,
-            rule.separator || '',
-            rule.format || '',
-            rule.dataType || 'string',
-          )
+            rule.separator || "",
+            rule.format || "",
+            rule.dataType || "string",
+          );
         }
-      })
+      });
     } else {
       // 编辑自定义字段：先删除旧的，再添加新的
-      props.customBindingManager.removeCustomField(props.editingField.fieldName)
+      props.customBindingManager.removeCustomField(
+        props.editingField.fieldName,
+      );
       customFields.value.forEach((field) => {
         if (field.fieldName) {
-          props.customBindingManager.addCustomField(field)
+          props.customBindingManager.addCustomField(field);
         }
-      })
+      });
     }
   } else {
     // 添加模式：只添加新数据，不清空已有数据
@@ -1511,71 +1647,91 @@ const saveBindings = () => {
     // 1. 添加本地单列绑定
     singleBindings.value.forEach((binding) => {
       const finalFieldName =
-        binding.inputMode === 'custom' ? binding.customFieldName : binding.ddlFieldName
+        binding.inputMode === "custom"
+          ? binding.customFieldName
+          : binding.ddlFieldName;
       if (finalFieldName && binding.excelIndex >= 0) {
         // 先删除同名的旧绑定（如果存在）
-        props.customBindingManager.removeCustomBinding(finalFieldName)
-        props.customBindingManager.addCustomBinding(finalFieldName, binding.excelIndex, 'single')
+        props.customBindingManager.removeCustomBinding(finalFieldName);
+        props.customBindingManager.addCustomBinding(
+          finalFieldName,
+          binding.excelIndex,
+          "single",
+        );
       }
-    })
+    });
 
     // 2. 添加本地字段拼接规则
     concatenationRules.value.forEach((rule) => {
-      if (rule.customFieldName && rule.sourceColumns && rule.sourceColumns.length > 0) {
+      if (
+        rule.customFieldName &&
+        rule.sourceColumns &&
+        rule.sourceColumns.length > 0
+      ) {
         // 先删除同名的旧规则（如果存在）
-        props.customBindingManager.removeConcatenationRule(rule.customFieldName)
+        props.customBindingManager.removeConcatenationRule(
+          rule.customFieldName,
+        );
         props.customBindingManager.addConcatenationRule(
           rule.customFieldName,
           rule.sourceColumns,
-          rule.separator || '',
-          rule.format || '',
-          rule.dataType || 'string',
-        )
+          rule.separator || "",
+          rule.format || "",
+          rule.dataType || "string",
+        );
       }
-    })
+    });
 
     // 3. 添加本地自定义字段
     customFields.value.forEach((field) => {
       if (field.fieldName) {
         // 先删除同名的旧字段（如果存在）
-        props.customBindingManager.removeCustomField(field.fieldName)
-        props.customBindingManager.addCustomField(field)
+        props.customBindingManager.removeCustomField(field.fieldName);
+        props.customBindingManager.addCustomField(field);
       }
-    })
+    });
   }
 
   // 统计保存的数据
   const singleCount = isEditMode
-    ? (props.editingField.dataSource === 'single_binding' ? singleBindings.value.length : 0)
-    : singleBindings.value.length
+    ? props.editingField.dataSource === "single_binding"
+      ? singleBindings.value.length
+      : 0
+    : singleBindings.value.length;
   const concatCount = isEditMode
-    ? (props.editingField.dataSource === 'excel_combine' ? concatenationRules.value.length : 0)
-    : concatenationRules.value.length
+    ? props.editingField.dataSource === "excel_combine"
+      ? concatenationRules.value.length
+      : 0
+    : concatenationRules.value.length;
   const customCount = isEditMode
-    ? (!['single_binding', 'excel_combine'].includes(props.editingField.dataSource) ? customFields.value.length : 0)
-    : customFields.value.length
+    ? !["single_binding", "excel_combine"].includes(
+        props.editingField.dataSource,
+      )
+      ? customFields.value.length
+      : 0
+    : customFields.value.length;
 
-  emit('save', {
+  emit("save", {
     singleBindings: singleBindings.value,
     concatenationRules: concatenationRules.value,
     customFields: customFields.value,
-  })
+  });
 
   message.success(
     `自定义绑定配置已保存：${singleCount} 个单列绑定、${concatCount} 个拼接规则、${customCount} 个自定义字段`,
-  )
+  );
 
-  closeModal()
-}
+  closeModal();
+};
 
 const closeModal = () => {
-  visible.value = false
-  emit('update:open', false)
-}
+  visible.value = false;
+  emit("update:open", false);
+};
 
 const generateId = () => {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2)
-}
+  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+};
 </script>
 
 <style scoped>

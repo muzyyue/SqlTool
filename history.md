@@ -1,5 +1,70 @@
 # 版本变更历史
 
+## 1.5.61 (2026-04-30)
+
+**代码重构优化与测试覆盖增强**
+
+**代码重构与优化**
+- 重构 databaseFunctions.js 数据库函数模块（2544行变更）
+  - 优化代码结构和格式
+  - 提升代码可维护性
+  - 统一代码风格
+- 优化 CustomBindingModal.vue 自定义绑定模态框组件（954行变更）
+  - 改进UI交互逻辑
+  - 优化组件性能
+  - 增强用户体验
+- 重构 UpdatePage.vue 更新页面（1356行变更）
+  - 优化代码结构
+  - 改进数据处理逻辑
+  - 提升代码可读性
+- 优化 ExcelUploadCard.vue Excel上传卡片组件（273行变更）
+  - 改进文件上传流程
+  - 优化用户反馈机制
+  - 增强错误处理
+- 优化 SqlPreview.vue SQL预览组件（166行变更）
+  - 改进预览功能
+  - 优化显示效果
+  - 提升用户体验
+- 优化 InsertPage.vue 插入页面（69行变更）
+  - 改进字段映射逻辑
+  - 优化SQL生成流程
+- 增强 useSqlGeneratorEnhanced.js SQL生成器（36行变更）
+  - 优化自定义字段处理
+  - 改进函数生成逻辑
+- 优化 useSettings.js 设置模块
+  - 改进配置管理
+- 优化 fileUploader.ts 文件上传工具
+  - 增强文件验证
+- 修复 ExcelFillPage.vue Excel填充页面
+  - 修复数据处理问题
+
+**新增单元测试**
+- 新增 count-insert-records.test.js 测试文件
+  - 验证INSERT语句记录数统计功能
+  - 覆盖多种SQL语句场景
+- 新增 dynamic-line-numbers.test.js 测试文件
+  - 验证动态行号功能
+  - 测试行号显示准确性
+- 新增 file-size-limit.test.js 测试文件
+  - 验证文件大小限制功能
+  - 测试边界条件处理
+- 新增 line-number-alignment.test.js 测试文件
+  - 验证行号对齐功能
+  - 确保显示一致性
+- 新增 sql-preview-scroll-sync.test.js 测试文件
+  - 验证SQL预览滚动同步功能
+  - 测试交互体验
+
+**CustomFieldManager 组件优化**
+- 优化 CustomFieldManager.vue 自定义字段管理器
+  - 改进字段显示逻辑
+  - 优化管理功能
+
+**代码质量**
+- 所有代码通过ESLint检查（0 errors, 54 warnings）
+- 遵循项目编码规范
+- 保持代码一致性
+
 ## 1.5.60 (2026-04-17)
 
 **Excel 填充工具 - 优化 Tab 切换逻辑与代码格式化**

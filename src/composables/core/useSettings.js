@@ -16,7 +16,7 @@ const defaultSettings = {
   defaultMatchingAlgorithm: 'similarity',
   similarityThreshold: 0.3,
   autoMapping: true,
-  maxFileSize: 10,
+  maxFileSize: 50,
   supportedFormats: ['xlsx', 'xls', 'csv'],
   chunkProcessing: true,
   chunkSize: 1000,

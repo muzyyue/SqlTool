@@ -633,14 +633,77 @@ const sqlStats = computed(() => {
   }
 
   const statements = sqlToCheck.split(";").filter((s) => s.trim());
-  const affectedRows = excelData.value.length;
+
+  const affectedRows = countInsertRecords(sqlToCheck);
 
   return {
     statementCount: statements.length,
     affectedRows,
-    generationTime: 0, // 实际应该从生成过程中获取
+    generationTime: 0,
   };
 });
+
+/**
+ * 从SQL INSERT语句中提取实际插入的记录数
+ * 通过解析VALUES子句统计元组数量，确保与实际生成的SQL内容一致
+ * @param {string} sql - SQL语句
+ * @returns {number} 实际插入的记录数
+ */
+const countInsertRecords = (sql) => {
+  if (!sql || typeof sql !== "string") {
+    return 0;
+  }
+
+  try {
+    const insertMatch = sql.match(
+      /INSERT\s+INTO\s+\w+\s*\([^)]*\)\s*VALUES\s*/i,
+    );
+    if (!insertMatch) {
+      return 0;
+    }
+
+    const valuesStartIndex = insertMatch[0].length;
+    const valuesPart = sql.substring(valuesStartIndex);
+
+    const cleanValuesPart = valuesPart.replace(/;\s*$/, "").trim();
+
+    let recordCount = 0;
+    let parenDepth = 0;
+    let inString = false;
+    let stringChar = "";
+
+    for (let i = 0; i < cleanValuesPart.length; i++) {
+      const char = cleanValuesPart[i];
+
+      if (inString) {
+        if (char === stringChar && cleanValuesPart[i - 1] !== "\\") {
+          inString = false;
+        }
+        continue;
+      }
+
+      if (char === "'" || char === '"') {
+        inString = true;
+        stringChar = char;
+        continue;
+      }
+
+      if (char === "(") {
+        if (parenDepth === 0) {
+          recordCount++;
+        }
+        parenDepth++;
+      } else if (char === ")") {
+        parenDepth--;
+      }
+    }
+
+    return recordCount;
+  } catch (error) {
+    console.warn("解析INSERT记录数失败，回退到Excel数据长度:", error);
+    return excelData.value.length;
+  }
+};
 
 // 计算属性：显示的SQL（根据预览模式）
 const displaySql = computed(() => {
@@ -740,7 +803,7 @@ const handleUpload = async (options) => {
   resetMappings();
   logInfo("上传新文件，已清空之前的自定义字段数据");
 
-  const maxFileSizeMB = getSetting("maxFileSize") || 10;
+  const maxFileSizeMB = getSetting("maxFileSize") || 50;
   const maxFileSizeBytes = maxFileSizeMB * 1024 * 1024;
   if (file.size > maxFileSizeBytes) {
     const errorMsg = `文件大小超出限制：${(file.size / 1024 / 1024).toFixed(2)}MB > ${maxFileSizeMB}MB`;

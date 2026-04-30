@@ -22,13 +22,14 @@
     </div>
 
     <!-- SQL预览区域 -->
-    <div class="sql-preview-area" :class="{ 'with-line-numbers': showLineNumbers }">
-      <div v-if="showLineNumbers" class="line-numbers">
-        <span v-for="n in lineCount" :key="n" class="line-number">{{ n }}</span>
-      </div>
-
+    <div
+      ref="sqlPreviewArea"
+      class="sql-preview-area"
+      :class="{ 'with-line-numbers': showLineNumbers }"
+      @scroll.passive="handleScrollSync"
+    >
       <pre
-        ref="sqlPre"
+        ref="sqlCodeContainer"
         class="sql-code"
         :class="{
           'syntax-highlight': syntaxHighlight,
@@ -37,6 +38,14 @@
       >
         <code v-html="highlightedSql"></code>
       </pre>
+
+      <div v-if="showLineNumbers" ref="lineNumbersContainer" class="line-numbers">
+        <span
+          v-for="n in visibleLineNumbers"
+          :key="n"
+          class="line-number"
+        >{{ n }}</span>
+      </div>
     </div>
 
     <!-- 统计信息 -->
@@ -101,7 +110,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { CopyOutlined, DownloadOutlined, EyeOutlined, MoreOutlined } from '@ant-design/icons-vue'
 import { useErrorHandler } from '@/composables/core/useErrorHandler'
@@ -172,6 +181,9 @@ watch(
   () => props.sql,
   () => {
     clearCache()
+    nextTick(() => {
+      updateVisibleLineNumbers(0)
+    })
   },
 )
 
@@ -187,6 +199,13 @@ watch(
 // 监听语法高亮开关变化，清除缓存
 watch(syntaxHighlight, () => {
   clearCache()
+})
+
+// 监听行号显示开关，重新计算可见行号
+watch(showLineNumbers, (newValue) => {
+  if (newValue && sqlPreviewArea.value) {
+    updateVisibleLineNumbers(sqlPreviewArea.value.scrollTop)
+  }
 })
 
 // 监听行号显示开关变化，清除缓存
@@ -281,6 +300,52 @@ const highlightedSql = computed(() => {
 const lineCount = computed(() => {
   return formattedSql.value.split('\n').length
 })
+
+const sqlPreviewArea = ref(null)
+const lineNumbersContainer = ref(null)
+const sqlCodeContainer = ref(null)
+
+const visibleLineNumbers = ref([])
+const LINE_HEIGHT = 19.5
+
+const updateVisibleLineNumbers = (scrollTop = 0) => {
+  if (!sqlPreviewArea.value) return
+
+  const containerHeight = sqlPreviewArea.value.clientHeight || 400
+  const totalLines = lineCount.value
+  const visibleLinesCount = Math.ceil(containerHeight / LINE_HEIGHT)
+  
+  const startLine = Math.max(1, Math.floor(scrollTop / LINE_HEIGHT) + 1)
+  const endLine = Math.min(totalLines, startLine + visibleLinesCount - 1)
+  
+  if (startLine <= endLine) {
+    visibleLineNumbers.value = Array.from(
+      { length: endLine - startLine + 1 },
+      (_, i) => startLine + i
+    )
+  } else {
+    visibleLineNumbers.value = []
+  }
+}
+
+let scrollRafId = null
+const handleScrollSync = (event) => {
+  const scrollTop = event.target.scrollTop
+
+  if (scrollRafId) {
+    cancelAnimationFrame(scrollRafId)
+  }
+
+  scrollRafId = requestAnimationFrame(() => {
+    if (lineNumbersContainer.value) {
+      lineNumbersContainer.value.style.transform = `translateY(${scrollTop}px)`
+    }
+
+    updateVisibleLineNumbers(scrollTop)
+
+    scrollRafId = null
+  })
+}
 
 const sqlStats = computed(() => {
   return {
@@ -420,6 +485,29 @@ const handleExportMenuClick = ({ key }) => {
   }
 }
 
+// 组件挂载后初始化可见行号
+onMounted(() => {
+  nextTick(() => {
+    updateVisibleLineNumbers(0)
+  })
+  
+  // 监听容器大小变化，重新计算可见行号
+  if (typeof ResizeObserver !== 'undefined' && sqlPreviewArea.value) {
+    const resizeObserver = new ResizeObserver(() => {
+      if (sqlPreviewArea.value) {
+        updateVisibleLineNumbers(sqlPreviewArea.value.scrollTop)
+      }
+    })
+    
+    resizeObserver.observe(sqlPreviewArea.value)
+    
+    // 组件卸载时清理观察器
+    onUnmounted(() => {
+      resizeObserver.disconnect()
+    })
+  }
+})
+
 // 暴露方法给父组件
 defineExpose({
   copySql,
@@ -465,21 +553,24 @@ defineExpose({
 }
 
 .sql-preview-area.with-line-numbers {
-  display: flex;
+  padding-left: 48px;
 }
 
 .line-numbers {
+  position: absolute;
+  left: 0;
+  top: 0;
   background: var(--code-gutter-bg);
   padding: 12px 8px;
   border-right: 1px solid var(--border-default);
   text-align: right;
   user-select: none;
-  min-width: 40px;
+  width: 40px;
 }
 
 .line-number {
   display: block;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--code-gutter-text);
   line-height: 1.5;
 }
@@ -491,9 +582,9 @@ defineExpose({
   font-size: 13px;
   line-height: 1.5;
   white-space: pre-wrap;
-  word-break: break-all;
+  overflow-wrap: break-word;
   flex: 1;
-  min-height: 200px;
+  min-width: 0;
 }
 
 .sql-code.compressed {
@@ -584,6 +675,11 @@ defineExpose({
 }
 
 /* 滚动条样式优化 */
+.sql-preview-area {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
 .sql-preview-area::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -601,6 +697,12 @@ defineExpose({
 
 .sql-preview-area::-webkit-scrollbar-thumb:hover {
   background: var(--code-scrollbar-thumb-hover);
+}
+
+/* Firefox 滚动条支持 */
+.sql-preview-area * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--code-scrollbar-thumb) var(--code-scrollbar-track);
 }
 
 .sql-stats {
@@ -685,6 +787,24 @@ defineExpose({
   .action-buttons :deep(.ant-space) {
     flex-wrap: wrap;
   }
+
+  .sql-preview-area {
+    max-height: 350px;
+  }
+
+  .line-numbers {
+    min-width: 35px;
+    padding: 10px 6px;
+  }
+
+  .line-number {
+    font-size: 12px;
+  }
+
+  .sql-code {
+    padding: 10px 12px;
+    font-size: 12px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -693,7 +813,27 @@ defineExpose({
   }
 
   .sql-preview-area {
-    max-height: 300px;
+    max-height: 280px;
+  }
+
+  .line-numbers {
+    min-width: 30px;
+    padding: 8px 4px;
+  }
+
+  .line-number {
+    font-size: 11px;
+  }
+
+  .sql-code {
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+}
+
+@media (min-width: 1440px) {
+  .sql-preview-area {
+    max-height: 500px;
   }
 }
 </style>

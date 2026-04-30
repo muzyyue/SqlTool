@@ -10,7 +10,13 @@
           <a-tag color="green" v-if="uploadedFile">已上传</a-tag>
         </div>
         <div class="header-actions">
-          <a-button v-if="uploadedFile" type="text" danger size="small" @click="handleClearFile">
+          <a-button
+            v-if="uploadedFile"
+            type="text"
+            danger
+            size="small"
+            @click="handleClearFile"
+          >
             <template #icon><DeleteOutlined /></template>
             更换文件
           </a-button>
@@ -33,8 +39,9 @@
             <p class="upload-text">
               <span class="primary-text">点击或拖拽文件到此处上传</span>
             </p>
-            <p class="upload-hint">支持 .xlsx、.xls、.csv 格式，单个文件最大 10MB</p>
+            <p class="upload-hint">支持 .xlsx、.xls、.csv 格式</p>
             <div class="upload-tips">
+              <a-tag color="red">最大 {{ maxFileSize }}MB</a-tag>
               <a-tag color="blue">智能解析</a-tag>
               <a-tag color="green">UTF-8编码</a-tag>
               <a-tag color="orange">自动识别表头</a-tag>
@@ -51,11 +58,22 @@
           <div class="file-info">
             <div class="file-name">{{ uploadedFile.name }}</div>
             <div class="file-meta">
-              <span><FileOutlined /> {{ formatFileSize(uploadedFile.size || 0) }}</span>
+              <span
+                ><FileOutlined />
+                {{ formatFileSize(uploadedFile.size || 0) }}</span
+              >
               <span><LineOutlined /> {{ excelData?.length || 0 }} 行</span>
-              <span><ColumnWidthOutlined /> {{ excelHeaders?.length || 0 }} 列</span>
+              <span
+                ><ColumnWidthOutlined />
+                {{ excelHeaders?.length || 0 }} 列</span
+              >
             </div>
-            <a-progress :percent="100" status="success" size="small" :show-info="false" />
+            <a-progress
+              :percent="100"
+              status="success"
+              size="small"
+              :show-info="false"
+            />
           </div>
           <div class="file-actions">
             <a-button-group>
@@ -83,7 +101,9 @@
                 <div class="collapse-header">
                   <span>
                     <FilterOutlined /> 数据去重
-                    <a-tag v-if="deduplicationEnabled" color="blue" size="small">已启用</a-tag>
+                    <a-tag v-if="deduplicationEnabled" color="blue" size="small"
+                      >已启用</a-tag
+                    >
                   </span>
                   <a-switch
                     :checked="deduplicationEnabled"
@@ -105,21 +125,33 @@
                     @change="handleDeduplicationChange"
                     :disabled="!deduplicationEnabled"
                   >
-                    <a-select-option v-for="(header, idx) in excelHeaders" :key="idx" :value="idx">
+                    <a-select-option
+                      v-for="(header, idx) in excelHeaders"
+                      :key="idx"
+                      :value="idx"
+                    >
                       {{ header }} (列 {{ idx + 1 }})
                     </a-select-option>
                   </a-select>
                 </a-form-item>
-                <div class="deduplication-stats" v-if="deduplicationStats.originalRows > 0">
+                <div
+                  class="deduplication-stats"
+                  v-if="deduplicationStats.originalRows > 0"
+                >
                   <a-descriptions :column="3" size="small" bordered>
                     <a-descriptions-item label="原始数据">
                       <a-statistic :value="deduplicationStats.originalRows" />
                     </a-descriptions-item>
                     <a-descriptions-item label="去重后">
-                      <a-statistic :value="deduplicationStats.deduplicatedRows" />
+                      <a-statistic
+                        :value="deduplicationStats.deduplicatedRows"
+                      />
                     </a-descriptions-item>
                     <a-descriptions-item label="已移除">
-                      <a-statistic :value="deduplicationStats.removedRows" type="danger" />
+                      <a-statistic
+                        :value="deduplicationStats.removedRows"
+                        type="danger"
+                      />
                     </a-descriptions-item>
                   </a-descriptions>
                 </div>
@@ -135,7 +167,9 @@
                 <div class="collapse-header">
                   <span>
                     <ColumnWidthOutlined /> 单元格拆分
-                    <a-tag v-if="cellSplitEnabled" color="purple" size="small">已启用</a-tag>
+                    <a-tag v-if="cellSplitEnabled" color="purple" size="small"
+                      >已启用</a-tag
+                    >
                   </span>
                   <a-switch
                     :checked="cellSplitEnabled"
@@ -166,14 +200,20 @@
                     <a-radio value="custom">自定义</a-radio>
                   </a-radio-group>
                 </a-form-item>
-                <a-form-item label="自定义分隔符" v-if="cellSplitSeparatorLocal === 'custom'">
+                <a-form-item
+                  label="自定义分隔符"
+                  v-if="cellSplitSeparatorLocal === 'custom'"
+                >
                   <a-input
                     v-model:value="customSeparatorLocal"
                     placeholder="请输入分隔符"
                     @change="handleCellSplitSeparatorChange"
                   />
                 </a-form-item>
-                <div class="cell-split-stats" v-if="cellSplitStats.originalRows > 0">
+                <div
+                  class="cell-split-stats"
+                  v-if="cellSplitStats.originalRows > 0"
+                >
                   <a-descriptions :column="3" size="small" bordered>
                     <a-descriptions-item label="原始行数">
                       <a-statistic :value="cellSplitStats.originalRows" />
@@ -182,7 +222,10 @@
                       <a-statistic :value="cellSplitStats.splitRows" />
                     </a-descriptions-item>
                     <a-descriptions-item label="新增行数">
-                      <a-statistic :value="cellSplitStats.expandedRows" type="success" />
+                      <a-statistic
+                        :value="cellSplitStats.expandedRows"
+                        type="success"
+                      />
                     </a-descriptions-item>
                   </a-descriptions>
                 </div>
@@ -205,7 +248,9 @@
                 <div class="collapse-header">
                   <span>
                     <OrderedListOutlined /> 行范围筛选
-                    <a-tag v-if="rowRangeEnabled" color="cyan" size="small">已启用</a-tag>
+                    <a-tag v-if="rowRangeEnabled" color="cyan" size="small"
+                      >已启用</a-tag
+                    >
                   </span>
                   <a-switch
                     :checked="rowRangeEnabled"
@@ -243,17 +288,30 @@
                     </div>
                   </div>
                   <div class="row-range-options">
-                    <a-checkbox v-model:checked="includeHeaderLocal" @change="handleIncludeHeaderChange" :disabled="!rowRangeEnabled">
+                    <a-checkbox
+                      v-model:checked="includeHeaderLocal"
+                      @change="handleIncludeHeaderChange"
+                      :disabled="!rowRangeEnabled"
+                    >
                       包含表头
                     </a-checkbox>
                     <a-tag color="blue">文件总行数: {{ totalExcelRows }}</a-tag>
                   </div>
                   <div class="row-range-actions">
-                    <a-button type="primary" size="small" @click="applyRowRange" :disabled="!rowRangeEnabled">
+                    <a-button
+                      type="primary"
+                      size="small"
+                      @click="applyRowRange"
+                      :disabled="!rowRangeEnabled"
+                    >
                       <template #icon><CheckOutlined /></template>
                       应用行范围
                     </a-button>
-                    <a-button size="small" @click="resetRowRange" :disabled="!rowRangeEnabled">
+                    <a-button
+                      size="small"
+                      @click="resetRowRange"
+                      :disabled="!rowRangeEnabled"
+                    >
                       <template #icon><ReloadOutlined /></template>
                       重置范围
                     </a-button>
@@ -308,7 +366,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from "vue";
 import {
   FileExcelOutlined,
   FileOutlined,
@@ -322,7 +380,8 @@ import {
   CheckOutlined,
   CloudUploadOutlined,
   ReloadOutlined,
-} from '@ant-design/icons-vue'
+} from "@ant-design/icons-vue";
+import { useSettings } from "@/composables/core/useSettings";
 
 const props = defineProps({
   fileList: { type: Array, default: () => [] },
@@ -337,8 +396,8 @@ const props = defineProps({
     default: () => ({ originalRows: 0, deduplicatedRows: 0, removedRows: 0 }),
   },
   cellSplitEnabled: { type: Boolean, default: false },
-  cellSplitSeparator: { type: String, default: ',' },
-  customSeparator: { type: String, default: '' },
+  cellSplitSeparator: { type: String, default: "," },
+  customSeparator: { type: String, default: "" },
   cellSplitStats: {
     type: Object,
     default: () => ({ originalRows: 0, splitRows: 0, expandedRows: 0 }),
@@ -349,147 +408,161 @@ const props = defineProps({
   includeHeader: { type: Boolean, default: true },
   totalExcelRows: { type: Number, default: 0 },
   showCellSplit: { type: Boolean, default: true },
-})
+});
 
 const emit = defineEmits([
-  'upload',
-  'clear-file',
-  'reparse',
-  'deduplication-toggle',
-  'deduplication-change',
-  'cell-split-toggle',
-  'cell-split-separator-change',
-  'cell-split-apply',
-  'row-range-toggle',
-  'row-range-apply',
-  'row-range-reset',
-  'update:startRow',
-  'update:endRow',
-  'update:includeHeader',
-])
+  "upload",
+  "clear-file",
+  "reparse",
+  "deduplication-toggle",
+  "deduplication-change",
+  "cell-split-toggle",
+  "cell-split-separator-change",
+  "cell-split-apply",
+  "row-range-toggle",
+  "row-range-apply",
+  "row-range-reset",
+  "update:startRow",
+  "update:endRow",
+  "update:includeHeader",
+]);
 
-const activeCollapseKeys = ref([])
-const deduplicationColumnLocal = ref(props.deduplicationColumn)
-const cellSplitSeparatorLocal = ref(props.cellSplitSeparator)
-const customSeparatorLocal = ref(props.customSeparator)
-const startRowLocal = ref(props.startRow)
-const endRowLocal = ref(props.endRow)
-const includeHeaderLocal = ref(props.includeHeader)
+const activeCollapseKeys = ref([]);
+const deduplicationColumnLocal = ref(props.deduplicationColumn);
+const cellSplitSeparatorLocal = ref(props.cellSplitSeparator);
+const customSeparatorLocal = ref(props.customSeparator);
+const startRowLocal = ref(props.startRow);
+const endRowLocal = ref(props.endRow);
+const includeHeaderLocal = ref(props.includeHeader);
+
+/**
+ * 从系统设置 composable 中获取 getSetting 方法
+ * 用于动态读取配置参数
+ */
+const { getSetting } = useSettings();
+
+/**
+ * 动态读取系统设置中的文件大小限制（单位：MB）
+ * 支持实时响应设置变更
+ */
+const maxFileSize = computed(() => {
+  return getSetting("maxFileSize") || 50;
+});
 
 watch(
   () => props.deduplicationColumn,
   (val) => {
-    deduplicationColumnLocal.value = val
+    deduplicationColumnLocal.value = val;
   },
-)
+);
 
 watch(
   () => props.cellSplitSeparator,
   (val) => {
-    cellSplitSeparatorLocal.value = val
+    cellSplitSeparatorLocal.value = val;
   },
-)
+);
 
 watch(
   () => props.customSeparator,
   (val) => {
-    customSeparatorLocal.value = val
+    customSeparatorLocal.value = val;
   },
-)
+);
 
 watch(
   () => props.startRow,
   (val) => {
-    startRowLocal.value = val
+    startRowLocal.value = val;
   },
-)
+);
 
 watch(
   () => props.endRow,
   (val) => {
-    endRowLocal.value = val
+    endRowLocal.value = val;
   },
-)
+);
 
 watch(
   () => props.includeHeader,
   (val) => {
-    includeHeaderLocal.value = val
+    includeHeaderLocal.value = val;
   },
-)
+);
 
 const formatFileSize = (bytes) => {
-  if (bytes === 0) return '0 B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-}
+  if (bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+};
 
 const handleUpload = (options) => {
-  emit('upload', options)
-}
+  emit("upload", options);
+};
 
-const handleFileListChange = () => {}
+const handleFileListChange = () => {};
 
 const handleClearFile = () => {
-  emit('clear-file')
-}
+  emit("clear-file");
+};
 
 const handleReupload = () => {
-  emit('reparse')
-}
+  emit("reparse");
+};
 
 const handleDeduplicationToggle = (value) => {
-  emit('deduplication-toggle', value)
-}
+  emit("deduplication-toggle", value);
+};
 
 const handleDeduplicationChange = (value) => {
-  deduplicationColumnLocal.value = value
-  emit('deduplication-change', value)
-}
+  deduplicationColumnLocal.value = value;
+  emit("deduplication-change", value);
+};
 
 const handleCellSplitToggle = (value) => {
-  emit('cell-split-toggle', value)
-}
+  emit("cell-split-toggle", value);
+};
 
 const handleCellSplitSeparatorChange = () => {
   const separator =
-    cellSplitSeparatorLocal.value === 'custom'
+    cellSplitSeparatorLocal.value === "custom"
       ? customSeparatorLocal.value
-      : cellSplitSeparatorLocal.value
-  emit('cell-split-separator-change', separator)
-}
+      : cellSplitSeparatorLocal.value;
+  emit("cell-split-separator-change", separator);
+};
 
 const handleCellSplitApply = () => {
-  emit('cell-split-apply')
-}
+  emit("cell-split-apply");
+};
 
 const handleRowRangeToggle = (value) => {
-  emit('row-range-toggle', value)
-}
+  emit("row-range-toggle", value);
+};
 
 const handleRowRangeChange = () => {
-  emit('update:startRow', startRowLocal.value)
-  emit('update:endRow', endRowLocal.value)
-}
+  emit("update:startRow", startRowLocal.value);
+  emit("update:endRow", endRowLocal.value);
+};
 
 const handleIncludeHeaderChange = () => {
-  emit('update:includeHeader', includeHeaderLocal.value)
-}
+  emit("update:includeHeader", includeHeaderLocal.value);
+};
 
 const applyRowRange = () => {
-  emit('update:startRow', startRowLocal.value)
-  emit('update:endRow', endRowLocal.value)
-  emit('row-range-apply')
-}
+  emit("update:startRow", startRowLocal.value);
+  emit("update:endRow", endRowLocal.value);
+  emit("row-range-apply");
+};
 
 const resetRowRange = () => {
-  startRowLocal.value = null
-  endRowLocal.value = null
-  includeHeaderLocal.value = true
-  emit('row-range-reset')
-}
+  startRowLocal.value = null;
+  endRowLocal.value = null;
+  includeHeaderLocal.value = true;
+  emit("row-range-reset");
+};
 </script>
 
 <style scoped lang="scss">

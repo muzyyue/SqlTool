@@ -256,13 +256,12 @@ const handleDelete = (record) => {
         const dataSource = record.dataSource
 
         if (dataSource === 'single_binding') {
-          // 删除单列绑定
           props.customBindingManager.removeCustomBinding(record.fieldName)
-        } else if (dataSource === 'excel_combine') {
-          // 删除拼接规则
+        } else if (dataSource === 'excel_combine' && record.isConcatenationRule) {
+          // 拼接规则（有 isConcatenationRule 标识）
           props.customBindingManager.removeConcatenationRule(record.fieldName)
         } else {
-          // 删除自定义字段
+          // 自定义字段（包括 excel_combine 类型的自定义字段）
           props.customBindingManager.removeCustomField(record.fieldName)
         }
 

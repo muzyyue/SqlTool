@@ -238,7 +238,7 @@ export function useSqlGeneratorEnhanced() {
     const combineConfig = customField.excelCombineConfig || {};
     const columnIndices = combineConfig.columns || [];
     const separator = combineConfig.separator || "";
-    const formatTemplate = combineConfig.format || "";
+    const formatTemplate = (combineConfig.format || "").trim();
 
     const columnValues = columnIndices
       .map((colIndex) => {
@@ -269,7 +269,17 @@ export function useSqlGeneratorEnhanced() {
       );
     }
 
-    console.log(`Excel组合字段 ${ddlField.name} 的值: ${combinedValue}`);
+    console.log(
+      `Excel组合字段 ${ddlField.name} 的值: "${combinedValue}", formatTemplate: "${formatTemplate}", columnCount: ${columnValues.length}`,
+    );
+
+    if (!combinedValue && formatTemplate) {
+      console.log(
+        `Excel组合字段 ${ddlField.name}: 列值为空但格式模板有值，直接使用格式模板`,
+      );
+      return formatValue(formatTemplate, ddlField.type, dbType);
+    }
+
     return formatValue(combinedValue, ddlField.type, dbType);
   };
 
@@ -683,18 +693,22 @@ export function useSqlGeneratorEnhanced() {
       }
 
       if (!mapping.excelHeader || !hasValidExcelIndex) {
-        const shouldInclude =
-          updateFields && updateFields.includes(mapping.ddlField.name);
-        if (!shouldInclude) {
+        // 如果已经有值（通过自定义字段生成），不再覆盖
+        if (value === undefined) {
+          const shouldInclude =
+            updateFields && updateFields.includes(mapping.ddlField.name);
+          // WHERE字段即使不在updateFields中也应该包含
+          if (!shouldInclude && !isWhereField) {
+            console.log(
+              `跳过未映射字段: ${mapping.ddlField.name}（不在updateFields中）`,
+            );
+            return;
+          }
           console.log(
-            `跳过未映射字段: ${mapping.ddlField.name}（不在updateFields中）`,
+            `字段 ${mapping.ddlField.name} 未映射到Excel列，使用NULL值`,
           );
-          return;
+          value = "NULL";
         }
-        console.log(
-          `字段 ${mapping.ddlField.name} 未映射到Excel列，使用NULL值`,
-        );
-        value = "NULL";
       } else {
         value = row[currentExcelIndex];
         value = formatValue(value, mapping.ddlField.type, dbType);
