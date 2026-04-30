@@ -553,6 +553,8 @@ defineExpose({
 }
 
 .sql-preview-area.with-line-numbers {
+  display: flex;
+  align-items: stretch;
   padding-left: 48px;
 }
 
@@ -566,6 +568,7 @@ defineExpose({
   text-align: right;
   user-select: none;
   width: 40px;
+  overflow: hidden;
 }
 
 .line-number {
