@@ -656,10 +656,11 @@ const countInsertRecords = (sql) => {
 
   try {
     const insertMatch = sql.match(
-      /INSERT\s+INTO\s+\w+\s*\([^)]*\)\s*VALUES\s*/i,
+      /INSERT\s+INTO\s+["`]?[\w]+["`]?\s*\([^)]*\)\s*VALUES\s*/i,
     );
     if (!insertMatch) {
-      return 0;
+      console.warn("无法匹配INSERT语句格式，回退到Excel数据长度");
+      return excelData.value.length;
     }
 
     const valuesStartIndex = insertMatch[0].length;

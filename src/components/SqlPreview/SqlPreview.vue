@@ -12,12 +12,20 @@
 
       <div class="control-group">
         <span class="control-label">语法高亮：</span>
-        <a-switch v-model:checked="syntaxHighlight" size="small" :disabled="isCompressedMode" />
+        <a-switch
+          v-model:checked="syntaxHighlight"
+          size="small"
+          :disabled="isCompressedMode"
+        />
       </div>
 
       <div class="control-group">
         <span class="control-label">显示行号：</span>
-        <a-switch v-model:checked="showLineNumbers" size="small" :disabled="isCompressedMode" />
+        <a-switch
+          v-model:checked="showLineNumbers"
+          size="small"
+          :disabled="isCompressedMode"
+        />
       </div>
     </div>
 
@@ -39,12 +47,14 @@
         <code v-html="highlightedSql"></code>
       </pre>
 
-      <div v-if="showLineNumbers" ref="lineNumbersContainer" class="line-numbers">
-        <span
-          v-for="n in visibleLineNumbers"
-          :key="n"
-          class="line-number"
-        >{{ n }}</span>
+      <div
+        v-if="showLineNumbers"
+        ref="lineNumbersContainer"
+        class="line-numbers"
+      >
+        <span v-for="n in visibleLineNumbers" :key="n" class="line-number">{{
+          n
+        }}</span>
       </div>
     </div>
 
@@ -71,7 +81,12 @@
     <!-- 操作按钮 -->
     <div class="action-buttons">
       <a-space>
-        <a-button type="primary" @click="copySql" :disabled="!sql" :loading="copying">
+        <a-button
+          type="primary"
+          @click="copySql"
+          :disabled="!sql"
+          :loading="copying"
+        >
           <template #icon><CopyOutlined /></template>
           复制SQL
         </a-button>
@@ -94,9 +109,15 @@
         <a-dropdown :disabled="!sql">
           <template #overlay>
             <a-menu @click="handleExportMenuClick">
-              <a-menu-item key="copy"> <CopyOutlined /> 复制到剪贴板 </a-menu-item>
-              <a-menu-item key="download"> <DownloadOutlined /> 下载SQL文件 </a-menu-item>
-              <a-menu-item key="preview"> <EyeOutlined /> 新窗口预览 </a-menu-item>
+              <a-menu-item key="copy">
+                <CopyOutlined /> 复制到剪贴板
+              </a-menu-item>
+              <a-menu-item key="download">
+                <DownloadOutlined /> 下载SQL文件
+              </a-menu-item>
+              <a-menu-item key="preview">
+                <EyeOutlined /> 新窗口预览
+              </a-menu-item>
             </a-menu>
           </template>
           <a-button>
@@ -110,17 +131,22 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
-import { message } from 'ant-design-vue'
-import { CopyOutlined, DownloadOutlined, EyeOutlined, MoreOutlined } from '@ant-design/icons-vue'
-import { useErrorHandler } from '@/composables/core/useErrorHandler'
-import { useSqlGeneratorEnhanced } from '@/composables/sql/useSqlGeneratorEnhanced'
-import { sqlHighlighter } from '@/utils/sql/sqlSyntaxHighlighter'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from "vue";
+import { message } from "ant-design-vue";
+import {
+  CopyOutlined,
+  DownloadOutlined,
+  EyeOutlined,
+  MoreOutlined,
+} from "@ant-design/icons-vue";
+import { useErrorHandler } from "@/composables/core/useErrorHandler";
+import { useSqlGeneratorEnhanced } from "@/composables/sql/useSqlGeneratorEnhanced";
+import { sqlHighlighter } from "@/utils/sql/sqlSyntaxHighlighter";
 
 const props = defineProps({
   sql: {
     type: String,
-    default: '',
+    default: "",
   },
   stats: {
     type: Object,
@@ -135,217 +161,217 @@ const props = defineProps({
     type: Object,
     default: () => ({
       indentSpaces: 4,
-      formatStyle: 'expanded',
-      keywordCase: 'upper',
+      formatStyle: "expanded",
+      keywordCase: "upper",
       maxLineLength: 80,
       alignValues: true,
     }),
   },
-})
+});
 
-const emit = defineEmits(['copy', 'download'])
+const emit = defineEmits(["copy", "download"]);
 
-const { logError, logInfo } = useErrorHandler()
-const sqlGenerator = useSqlGeneratorEnhanced()
+const { logError, logInfo } = useErrorHandler();
+const sqlGenerator = useSqlGeneratorEnhanced();
 
 // 响应式数据
-const previewMode = ref('formatted')
-const syntaxHighlight = ref(true)
-const showLineNumbers = ref(true)
-const copying = ref(false)
-const copyingRaw = ref(false)
+const previewMode = ref("formatted");
+const syntaxHighlight = ref(true);
+const showLineNumbers = ref(true);
+const copying = ref(false);
+const copyingRaw = ref(false);
 
 // 保存格式化模式下的原始状态
-const originalSyntaxHighlight = ref(true)
-const originalShowLineNumbers = ref(true)
+const originalSyntaxHighlight = ref(true);
+const originalShowLineNumbers = ref(true);
 
 // 监听预览模式变化，控制语法高亮和行号显示
 watch(previewMode, (newMode, oldMode) => {
-  if (newMode === 'compressed' && oldMode === 'formatted') {
+  if (newMode === "compressed" && oldMode === "formatted") {
     // 切换到压缩模式时，保存当前状态并禁用
-    originalSyntaxHighlight.value = syntaxHighlight.value
-    originalShowLineNumbers.value = showLineNumbers.value
-    syntaxHighlight.value = false
-    showLineNumbers.value = false
-  } else if (newMode === 'formatted' && oldMode === 'compressed') {
+    originalSyntaxHighlight.value = syntaxHighlight.value;
+    originalShowLineNumbers.value = showLineNumbers.value;
+    syntaxHighlight.value = false;
+    showLineNumbers.value = false;
+  } else if (newMode === "formatted" && oldMode === "compressed") {
     // 切换回格式化模式时，恢复原始状态
-    syntaxHighlight.value = originalSyntaxHighlight.value
-    showLineNumbers.value = originalShowLineNumbers.value
+    syntaxHighlight.value = originalSyntaxHighlight.value;
+    showLineNumbers.value = originalShowLineNumbers.value;
   }
   // 清除缓存，确保显示更新
-  clearCache()
-})
+  clearCache();
+});
 
 // 监听SQL内容变化，清除缓存
 watch(
   () => props.sql,
   () => {
-    clearCache()
+    clearCache();
     nextTick(() => {
-      updateVisibleLineNumbers(0)
-    })
+      updateVisibleLineNumbers(0);
+    });
   },
-)
+);
 
 // 监听美化选项变化，清除缓存
 watch(
   () => props.beautifyOptions,
   () => {
-    clearCache()
+    clearCache();
   },
   { deep: true },
-)
+);
 
 // 监听语法高亮开关变化，清除缓存
 watch(syntaxHighlight, () => {
-  clearCache()
-})
+  clearCache();
+});
 
 // 监听行号显示开关，重新计算可见行号
 watch(showLineNumbers, (newValue) => {
   if (newValue && sqlPreviewArea.value) {
-    updateVisibleLineNumbers(sqlPreviewArea.value.scrollTop)
+    updateVisibleLineNumbers(sqlPreviewArea.value.scrollTop);
   }
-})
+});
 
 // 监听行号显示开关变化，清除缓存
 watch(showLineNumbers, () => {
-  clearCache()
-})
+  clearCache();
+});
 
 // SQL美化设置（使用父组件传递的选项）
 const beautifySettings = computed(() => ({
   indentSpaces: props.beautifyOptions.indentSpaces || 4,
   formatStyle:
-    props.beautifyOptions.formatStyle === 'standard'
-      ? 'expanded'
+    props.beautifyOptions.formatStyle === "standard"
+      ? "expanded"
       : props.beautifyOptions.formatStyle,
-  keywordCase: props.beautifyOptions.keywordCase || 'upper',
+  keywordCase: props.beautifyOptions.keywordCase || "upper",
   maxLineLength: props.beautifyOptions.maxLineLength || 80,
   alignValues: props.beautifyOptions.alignValues !== false,
-}))
+}));
 
 // 计算属性：是否为压缩模式
-const isCompressedMode = computed(() => previewMode.value === 'compressed')
+const isCompressedMode = computed(() => previewMode.value === "compressed");
 
 // 缓存机制
 const cacheKey = computed(() => {
-  return `${props.sql}-${previewMode.value}-${JSON.stringify(beautifySettings.value)}-${syntaxHighlight.value}`
-})
+  return `${props.sql}-${previewMode.value}-${JSON.stringify(beautifySettings.value)}-${syntaxHighlight.value}`;
+});
 
-const sqlCache = ref(new Map())
+const sqlCache = ref(new Map());
 
 // 计算属性
 const formattedSql = computed(() => {
-  if (!props.sql) return ''
+  if (!props.sql) return "";
 
   // 检查缓存
-  const cacheData = sqlCache.value.get(cacheKey.value)
+  const cacheData = sqlCache.value.get(cacheKey.value);
   if (cacheData && cacheData.formattedSql !== undefined) {
-    return cacheData.formattedSql
+    return cacheData.formattedSql;
   }
 
-  let formatted = ''
+  let formatted = "";
 
-  if (previewMode.value === 'compressed') {
+  if (previewMode.value === "compressed") {
     // 压缩模式：使用SQL生成器的美化功能
-    formatted = sqlGenerator.formatSql(props.sql, 'minified')
-  } else if (previewMode.value === 'formatted') {
+    formatted = sqlGenerator.formatSql(props.sql, "minified");
+  } else if (previewMode.value === "formatted") {
     // 格式化模式：使用完整的美化功能
-    formatted = sqlGenerator.beautifySql(props.sql, beautifySettings.value)
+    formatted = sqlGenerator.beautifySql(props.sql, beautifySettings.value);
   } else {
     // 原始模式
-    formatted = props.sql
+    formatted = props.sql;
   }
 
   // 更新缓存
-  const cacheEntry = sqlCache.value.get(cacheKey.value) || {}
-  cacheEntry.formattedSql = formatted
-  sqlCache.value.set(cacheKey.value, cacheEntry)
+  const cacheEntry = sqlCache.value.get(cacheKey.value) || {};
+  cacheEntry.formattedSql = formatted;
+  sqlCache.value.set(cacheKey.value, cacheEntry);
 
-  return formatted
-})
+  return formatted;
+});
 
 const highlightedSql = computed(() => {
-  if (!props.sql) return ''
+  if (!props.sql) return "";
 
   // 检查缓存
-  const cacheData = sqlCache.value.get(cacheKey.value)
+  const cacheData = sqlCache.value.get(cacheKey.value);
   if (cacheData && cacheData.highlightedSql !== undefined) {
-    return cacheData.highlightedSql
+    return cacheData.highlightedSql;
   }
 
-  let highlighted = ''
+  let highlighted = "";
 
   if (syntaxHighlight.value) {
     try {
       // 对美化后的SQL进行语法高亮
-      highlighted = sqlHighlighter.highlight(formattedSql.value)
+      highlighted = sqlHighlighter.highlight(formattedSql.value);
     } catch (error) {
-      console.error('语法高亮处理失败:', error)
-      highlighted = formattedSql.value
+      console.error("语法高亮处理失败:", error);
+      highlighted = formattedSql.value;
     }
   } else {
-    highlighted = formattedSql.value
+    highlighted = formattedSql.value;
   }
 
   // 更新缓存
-  const cacheEntry = sqlCache.value.get(cacheKey.value) || {}
-  cacheEntry.highlightedSql = highlighted
-  sqlCache.value.set(cacheKey.value, cacheEntry)
+  const cacheEntry = sqlCache.value.get(cacheKey.value) || {};
+  cacheEntry.highlightedSql = highlighted;
+  sqlCache.value.set(cacheKey.value, cacheEntry);
 
-  return highlighted
-})
+  return highlighted;
+});
 
 const lineCount = computed(() => {
-  return formattedSql.value.split('\n').length
-})
+  return formattedSql.value.split("\n").length;
+});
 
-const sqlPreviewArea = ref(null)
-const lineNumbersContainer = ref(null)
-const sqlCodeContainer = ref(null)
+const sqlPreviewArea = ref(null);
+const lineNumbersContainer = ref(null);
+const sqlCodeContainer = ref(null);
 
-const visibleLineNumbers = ref([])
-const LINE_HEIGHT = 19.5
+const visibleLineNumbers = ref([]);
+const LINE_HEIGHT = 19.5;
 
 const updateVisibleLineNumbers = (scrollTop = 0) => {
-  if (!sqlPreviewArea.value) return
+  if (!sqlPreviewArea.value) return;
 
-  const containerHeight = sqlPreviewArea.value.clientHeight || 400
-  const totalLines = lineCount.value
-  const visibleLinesCount = Math.ceil(containerHeight / LINE_HEIGHT)
-  
-  const startLine = Math.max(1, Math.floor(scrollTop / LINE_HEIGHT) + 1)
-  const endLine = Math.min(totalLines, startLine + visibleLinesCount - 1)
-  
+  const containerHeight = sqlPreviewArea.value.clientHeight || 400;
+  const totalLines = lineCount.value;
+  const visibleLinesCount = Math.ceil(containerHeight / LINE_HEIGHT);
+
+  const startLine = Math.max(1, Math.floor(scrollTop / LINE_HEIGHT) + 1);
+  const endLine = Math.min(totalLines, startLine + visibleLinesCount - 1);
+
   if (startLine <= endLine) {
     visibleLineNumbers.value = Array.from(
       { length: endLine - startLine + 1 },
-      (_, i) => startLine + i
-    )
+      (_, i) => startLine + i,
+    );
   } else {
-    visibleLineNumbers.value = []
+    visibleLineNumbers.value = [];
   }
-}
+};
 
-let scrollRafId = null
+let scrollRafId = null;
 const handleScrollSync = (event) => {
-  const scrollTop = event.target.scrollTop
+  const scrollTop = event.target.scrollTop;
 
   if (scrollRafId) {
-    cancelAnimationFrame(scrollRafId)
+    cancelAnimationFrame(scrollRafId);
   }
 
   scrollRafId = requestAnimationFrame(() => {
     if (lineNumbersContainer.value) {
-      lineNumbersContainer.value.style.transform = `translateY(${scrollTop}px)`
+      lineNumbersContainer.value.style.transform = `translateY(${scrollTop}px)`;
     }
 
-    updateVisibleLineNumbers(scrollTop)
+    updateVisibleLineNumbers(scrollTop);
 
-    scrollRafId = null
-  })
-}
+    scrollRafId = null;
+  });
+};
 
 const sqlStats = computed(() => {
   return {
@@ -353,99 +379,99 @@ const sqlStats = computed(() => {
     affectedRows: props.stats.affectedRows || 0,
     generationTime: props.stats.generationTime || 0,
     fileSize: props.stats.fileSize || new Blob([props.sql]).size,
-  }
-})
+  };
+});
 
 // 方法
 const clearCache = () => {
-  sqlCache.value.clear()
-}
+  sqlCache.value.clear();
+};
 
 const formatFileSize = (bytes) => {
-  if (bytes === 0) return '0 B'
+  if (bytes === 0) return "0 B";
 
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
 
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-}
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+};
 
 const copySql = async () => {
   if (!props.sql) {
-    message.warning('没有SQL语句可复制')
-    return
+    message.warning("没有SQL语句可复制");
+    return;
   }
 
-  copying.value = true
+  copying.value = true;
 
   try {
-    await navigator.clipboard.writeText(props.sql)
-    message.success('SQL已复制到剪贴板')
-    logInfo('SQL语句已复制到剪贴板')
-    emit('copy', props.sql)
+    await navigator.clipboard.writeText(props.sql);
+    message.success("SQL已复制到剪贴板");
+    logInfo("SQL语句已复制到剪贴板");
+    emit("copy", props.sql);
   } catch (error) {
-    message.error('复制失败，请检查浏览器权限')
-    logError(error, 'system', { operation: 'copySql' })
+    message.error("复制失败，请检查浏览器权限");
+    logError(error, "system", { operation: "copySql" });
   } finally {
-    copying.value = false
+    copying.value = false;
   }
-}
+};
 
 const copyRawSql = async () => {
   if (!props.sql) {
-    message.warning('没有SQL语句可复制')
-    return
+    message.warning("没有SQL语句可复制");
+    return;
   }
 
-  copyingRaw.value = true
+  copyingRaw.value = true;
 
   try {
-    const rawSql = sqlGenerator.formatSql(props.sql, 'minified')
-    await navigator.clipboard.writeText(rawSql)
-    message.success('原始SQL（不换行）已复制到剪贴板')
-    logInfo('原始SQL语句已复制到剪贴板')
-    emit('copy', rawSql)
+    const rawSql = sqlGenerator.formatSql(props.sql, "minified");
+    await navigator.clipboard.writeText(rawSql);
+    message.success("原始SQL（不换行）已复制到剪贴板");
+    logInfo("原始SQL语句已复制到剪贴板");
+    emit("copy", rawSql);
   } catch (error) {
-    message.error('复制失败，请检查浏览器权限')
-    logError(error, 'system', { operation: 'copyRawSql' })
+    message.error("复制失败，请检查浏览器权限");
+    logError(error, "system", { operation: "copyRawSql" });
   } finally {
-    copyingRaw.value = false
+    copyingRaw.value = false;
   }
-}
+};
 
 const downloadSql = () => {
   if (!props.sql) {
-    message.warning('没有SQL语句可下载')
-    return
+    message.warning("没有SQL语句可下载");
+    return;
   }
 
   try {
-    const blob = new Blob([props.sql], { type: 'text/plain;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'generated_sql.sql'
-    a.click()
-    URL.revokeObjectURL(url)
+    const blob = new Blob([props.sql], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "generated_sql.sql";
+    a.click();
+    URL.revokeObjectURL(url);
 
-    message.success('SQL文件下载成功')
-    logInfo('SQL语句已下载')
-    emit('download', props.sql)
+    message.success("SQL文件下载成功");
+    logInfo("SQL语句已下载");
+    emit("download", props.sql);
   } catch (error) {
-    message.error('下载失败')
-    logError(error, 'system', { operation: 'downloadSql' })
+    message.error("下载失败");
+    logError(error, "system", { operation: "downloadSql" });
   }
-}
+};
 
 const previewInNewWindow = () => {
   if (!props.sql) {
-    message.warning('没有SQL语句可预览')
-    return
+    message.warning("没有SQL语句可预览");
+    return;
   }
 
   try {
-    const newWindow = window.open('', '_blank')
+    const newWindow = window.open("", "_blank");
     newWindow.document.write(`
       <!DOCTYPE html>
       <html>
@@ -458,55 +484,55 @@ const previewInNewWindow = () => {
       </head>
       <body>
         <h3>生成的SQL语句预览</h3>
-        <pre><code>${props.sql.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>
+        <pre><code>${props.sql.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</code></pre>
       </body>
       </html>
-    `)
-    newWindow.document.close()
+    `);
+    newWindow.document.close();
 
-    logInfo('在新窗口预览SQL语句')
+    logInfo("在新窗口预览SQL语句");
   } catch (error) {
-    message.error('新窗口预览失败，请检查浏览器弹出窗口设置')
-    logError(error, 'system', { operation: 'previewInNewWindow' })
+    message.error("新窗口预览失败，请检查浏览器弹出窗口设置");
+    logError(error, "system", { operation: "previewInNewWindow" });
   }
-}
+};
 
 const handleExportMenuClick = ({ key }) => {
   switch (key) {
-    case 'copy':
-      copySql()
-      break
-    case 'download':
-      downloadSql()
-      break
-    case 'preview':
-      previewInNewWindow()
-      break
+    case "copy":
+      copySql();
+      break;
+    case "download":
+      downloadSql();
+      break;
+    case "preview":
+      previewInNewWindow();
+      break;
   }
-}
+};
 
 // 组件挂载后初始化可见行号
 onMounted(() => {
   nextTick(() => {
-    updateVisibleLineNumbers(0)
-  })
-  
+    updateVisibleLineNumbers(0);
+  });
+
   // 监听容器大小变化，重新计算可见行号
-  if (typeof ResizeObserver !== 'undefined' && sqlPreviewArea.value) {
+  if (typeof ResizeObserver !== "undefined" && sqlPreviewArea.value) {
     const resizeObserver = new ResizeObserver(() => {
       if (sqlPreviewArea.value) {
-        updateVisibleLineNumbers(sqlPreviewArea.value.scrollTop)
+        updateVisibleLineNumbers(sqlPreviewArea.value.scrollTop);
       }
-    })
-    
-    resizeObserver.observe(sqlPreviewArea.value)
-    
+    });
+
+    resizeObserver.observe(sqlPreviewArea.value);
+
     // 组件卸载时清理观察器
     onUnmounted(() => {
-      resizeObserver.disconnect()
-    })
+      resizeObserver.disconnect();
+    });
   }
-})
+});
 
 // 暴露方法给父组件
 defineExpose({
@@ -514,7 +540,7 @@ defineExpose({
   downloadSql,
   previewInNewWindow,
   clearCache,
-})
+});
 </script>
 
 <style scoped>
@@ -553,8 +579,6 @@ defineExpose({
 }
 
 .sql-preview-area.with-line-numbers {
-  display: flex;
-  align-items: stretch;
   padding-left: 48px;
 }
 
@@ -568,6 +592,7 @@ defineExpose({
   text-align: right;
   user-select: none;
   width: 40px;
+  height: 100%;
   overflow: hidden;
 }
 
@@ -581,13 +606,11 @@ defineExpose({
 .sql-code {
   margin: 0;
   padding: 12px 16px;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
   font-size: 13px;
   line-height: 1.5;
   white-space: pre-wrap;
   overflow-wrap: break-word;
-  flex: 1;
-  min-width: 0;
 }
 
 .sql-code.compressed {
@@ -643,36 +666,36 @@ defineExpose({
   border-radius: 2px;
 }
 
-[data-theme='dark'] .sql-code.syntax-highlight {
+[data-theme="dark"] .sql-code.syntax-highlight {
   color: var(--text-primary);
 }
 
-[data-theme='dark'] .sql-code.syntax-highlight code :deep(.sql-keyword) {
+[data-theme="dark"] .sql-code.syntax-highlight code :deep(.sql-keyword) {
   color: #f97583;
   background: rgba(249, 117, 131, 0.15);
 }
 
-[data-theme='dark'] .sql-code.syntax-highlight code :deep(.sql-string) {
+[data-theme="dark"] .sql-code.syntax-highlight code :deep(.sql-string) {
   color: #79b8ff;
   background: rgba(121, 184, 255, 0.15);
 }
 
-[data-theme='dark'] .sql-code.syntax-highlight code :deep(.sql-number) {
+[data-theme="dark"] .sql-code.syntax-highlight code :deep(.sql-number) {
   color: #79b8ff;
   background: rgba(121, 184, 255, 0.15);
 }
 
-[data-theme='dark'] .sql-code.syntax-highlight code :deep(.sql-comment) {
+[data-theme="dark"] .sql-code.syntax-highlight code :deep(.sql-comment) {
   color: #8b949e;
   background: rgba(139, 148, 158, 0.15);
 }
 
-[data-theme='dark'] .sql-code.syntax-highlight code :deep(.sql-table) {
+[data-theme="dark"] .sql-code.syntax-highlight code :deep(.sql-table) {
   color: #7ee787;
   background: rgba(126, 231, 135, 0.15);
 }
 
-[data-theme='dark'] .sql-code.syntax-highlight code :deep(.sql-column) {
+[data-theme="dark"] .sql-code.syntax-highlight code :deep(.sql-column) {
   color: #d2a8ff;
   background: rgba(210, 168, 255, 0.15);
 }
