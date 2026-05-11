@@ -61,6 +61,7 @@ export function useExcelDataProcessor() {
       const initialResult = await parseExcel(file, {
         sheetIndex: 0,
         maxRows: 10000,
+        includeHeader: includeHeader.value,
       })
 
       totalExcelRows.value = initialResult.totalRows
@@ -69,13 +70,13 @@ export function useExcelDataProcessor() {
       const parseOptions = {
         sheetIndex: 0,
         maxRows: 10000,
+        includeHeader: includeHeader.value,
       }
 
       // 如果启用了行范围选择，添加行范围参数
       if (rowRangeEnabled.value && startRow.value && endRow.value) {
         parseOptions.startRow = startRow.value
         parseOptions.endRow = endRow.value
-        parseOptions.includeHeader = includeHeader.value
       }
 
       const result = await parseExcel(file, parseOptions)
@@ -407,6 +408,7 @@ export function useExcelDataProcessor() {
       const result = await parseExcel(uploadedFile.value, {
         sheetIndex: 0,
         maxRows: 10000,
+        includeHeader: includeHeader.value,
       })
 
       excelData.value = result.rows

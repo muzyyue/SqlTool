@@ -838,6 +838,7 @@ const handleUpload = async (options) => {
       sheetIndex: 0,
       maxRows: 10000,
       chunkSize: chunkProcessing ? chunkSize : 10000,
+      includeHeader: includeHeader.value,
     });
 
     totalExcelRows.value = initialResult.totalRows;
@@ -846,12 +847,12 @@ const handleUpload = async (options) => {
       sheetIndex: 0,
       maxRows: 10000,
       chunkSize: chunkProcessing ? chunkSize : 10000,
+      includeHeader: includeHeader.value,
     };
 
     if (rowRangeEnabled.value && startRow.value && endRow.value) {
       parseOptions.startRow = startRow.value;
       parseOptions.endRow = endRow.value;
-      parseOptions.includeHeader = includeHeader.value;
     }
 
     const result = await parseExcelEnhanced(file, parseOptions);
@@ -1211,6 +1212,7 @@ const resetRowRange = async () => {
     const result = await parseExcelEnhanced(uploadedFile.value, {
       sheetIndex: 0,
       maxRows: 10000,
+      includeHeader: includeHeader.value,
     });
 
     excelData.value = result.rows;
