@@ -28,11 +28,12 @@
 
 21.
 
-22.
+22.提取参数的工具（例如：提取某段入参中的参数）     获取sql的工具，例如从某段文本中提取所有sql ，然后批量执行，并且对每条查询结果 进行检索，或展示出目标结果的sql
 
 23.
 
-24. 25.去掉项目仓库中的不需要上传的文件 例如：.trae .github . [.editorconfig](https://github.com/muzyyue/SqlTool/blob/master/.editorconfig) 之类的配置文件 添加一个nginx的配置文件 确认nginx兼不兼容其他系统 如:麒麟等 如果不兼容，添加其他方法启动一个web服务器来运行这个项目（或者将所有代码都集中在一个index.html 文件中 ？？？）
+24. 
+24. 去掉项目仓库中的不需要上传的文件 例如：.trae .github . [.editorconfig](https://github.com/muzyyue/SqlTool/blob/master/.editorconfig) 之类的配置文件 添加一个nginx的配置文件 确认nginx兼不兼容其他系统 如:麒麟等 如果不兼容，添加其他方法启动一个web服务器来运行这个项目（或者将所有代码都集中在一个index.html 文件中 ？？？）
 
 25.
 
