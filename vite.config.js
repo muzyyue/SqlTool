@@ -34,6 +34,8 @@ export default defineConfig({
     },
   },
   server: {
+    port: 8024,
+    strictPort: true,
     historyApiFallback: true,
   },
   build: {

@@ -24,6 +24,73 @@ const DEFAULT_CONFIG = {
   includeLineage: true,
 };
 
+const MAX_EXTRACT_DEPTH = 5;
+
+/**
+ * 从提取结果项中智能提取可读值
+ * 支持字符串化JSON、嵌套对象、数组等复杂结构
+ * @param {Object} item - 提取结果项（含 extracted/value/finalValue）
+ * @param {number} depth - 当前递归深度
+ * @returns {string} - 可读的文本内容
+ */
+function extractReadableValue(item, depth = 0) {
+  if (depth > MAX_EXTRACT_DEPTH) {
+    try {
+      return typeof item === "string" ? item : JSON.stringify(item);
+    } catch {
+      return "[...]";
+    }
+  }
+
+  if (item === null || item === undefined) return "";
+
+  if (typeof item === "string") {
+    const trimmed = item.trim();
+    if (
+      (trimmed.startsWith("{") || trimmed.startsWith("[")) &&
+      trimmed.length < 10000
+    ) {
+      try {
+        return extractReadableValue(JSON.parse(trimmed), depth + 1);
+      } catch {
+        return item;
+      }
+    }
+    return item;
+  }
+
+  if (typeof item === "number" || typeof item === "boolean")
+    return String(item);
+
+  if (Array.isArray(item)) {
+    if (item.length === 0) return "";
+    if (item.length === 1) return extractReadableValue(item[0], depth + 1);
+    return item.map((v) => extractReadableValue(v, depth + 1)).join("\n");
+  }
+
+  if (typeof item === "object") {
+    if (item.extracted && Array.isArray(item.extracted)) {
+      return item.extracted
+        .map((e) => extractReadableValue(e.value || e, depth + 1))
+        .join("\n");
+    }
+
+    if (item.value !== undefined)
+      return extractReadableValue(item.value, depth + 1);
+
+    if (item.finalValue !== undefined)
+      return extractReadableValue(item.finalValue, depth + 1);
+
+    try {
+      return JSON.stringify(item, null, 2);
+    } catch {
+      return "[Object]";
+    }
+  }
+
+  return String(item);
+}
+
 export function useParamExtractor(config = {}) {
   // 合并配置
   const options = { ...DEFAULT_CONFIG, ...config };
@@ -60,6 +127,12 @@ export function useParamExtractor(config = {}) {
     flattenNested: options.flattenNested, // JSON嵌套展开选项
     lastExtractTime: null, // 上次提取时间
     lastError: null, // 最后的错误信息
+
+    // 交互式选择模式相关
+    interactiveMode: false, // 是否启用交互式选择
+    selectedField: "", // 当前选中的字段路径
+    selectedValues: [], // 当前选中的值列表（支持多选）
+    parsedDataForSelector: null, // 解析后的原始数据，供选择器使用
   });
 
   // 防抖定时器
@@ -248,10 +321,7 @@ export function useParamExtractor(config = {}) {
    */
   async function copyItem(item) {
     try {
-      const text =
-        typeof item === "string"
-          ? item
-          : JSON.stringify(item.value || item.finalValue || item, null, 2);
+      const text = extractReadableValue(item);
       await navigator.clipboard.writeText(text);
       return true;
     } catch (error) {
@@ -270,12 +340,16 @@ export function useParamExtractor(config = {}) {
       if (format === "json") {
         text = JSON.stringify(state.extractedItems, null, 2);
       } else {
-        // 文本格式：每行一个结果
         const lines = [];
         state.extractedItems.forEach((item) => {
-          item.extracted.forEach((extracted) => {
-            lines.push(`${extracted.key}: ${extracted.value}`);
-          });
+          if (item.extracted && Array.isArray(item.extracted)) {
+            item.extracted.forEach((extracted) => {
+              const value = extractReadableValue(extracted.value || extracted);
+              lines.push(value);
+            });
+          } else {
+            lines.push(extractReadableValue(item));
+          }
         });
         text = lines.join("\n");
       }
@@ -417,10 +491,40 @@ export function useParamExtractor(config = {}) {
       Object.assign(state.stats, result.stats);
     }
 
+    // 自动解析输入数据供交互式选择器使用
+    if (state.inputText) {
+      state.parsedDataForSelector = tryParseInputData(state.inputText);
+    }
+
     // 自动选择第一个结果
     if (state.extractedItems.length > 0 && !state.selectedItem) {
       selectItem(state.extractedItems[0]);
     }
+  }
+
+  /**
+   * 尝试解析输入的原始数据
+   * 支持字符串化的 JSON 数组/对象
+   * @param {string} inputText - 原始输入文本
+   * @returns {*} 解析后的数据，失败返回 null
+   */
+  function tryParseInputData(inputText) {
+    if (!inputText || typeof inputText !== "string") return null;
+
+    const trimmed = inputText.trim();
+
+    if (
+      (trimmed.startsWith("[") || trimmed.startsWith("{")) &&
+      trimmed.length < 100000
+    ) {
+      try {
+        return JSON.parse(trimmed);
+      } catch {
+        return null;
+      }
+    }
+
+    return null;
   }
 
   /**
@@ -469,6 +573,204 @@ export function useParamExtractor(config = {}) {
     return rows.join("\n");
   }
 
+  // ==================== 交互式选择模式方法 ====================
+
+  /**
+   * 切换交互式选择模式
+   * @param {boolean} enabled - 是否启用
+   */
+  function setInteractiveMode(enabled) {
+    state.interactiveMode = enabled;
+
+    if (!enabled) {
+      state.selectedField = "";
+      state.selectedValues = [];
+      state.parsedDataForSelector = null;
+    }
+  }
+
+  /**
+   * 构建字段选项列表
+   * 从解析后的数据中递归收集所有可用字段路径
+   * @param {Array|Object} data - 解析后的 JSON 数据
+   * @returns {Array<{label: string, value: string}>}
+   */
+  function buildFieldOptions(data) {
+    if (!data) return [];
+
+    const fields = new Set();
+
+    function collectKeys(obj, prefix = "") {
+      if (Array.isArray(obj)) {
+        obj.forEach((item, idx) => collectKeys(item, prefix));
+        return;
+      }
+
+      if (typeof obj === "object" && obj !== null) {
+        Object.keys(obj).forEach((key) => {
+          const fullPath = prefix ? `${prefix}.${key}` : key;
+          fields.add(fullPath);
+
+          if (!prefix) {
+            collectKeys(obj[key], key);
+          }
+        });
+      }
+    }
+
+    collectKeys(data);
+
+    return Array.from(fields)
+      .sort()
+      .map((f) => ({ label: f, value: f }));
+  }
+
+  /**
+   * 支持点号路径的嵌套值访问
+   * @param {Object} obj - 目标对象
+   * @param {string} path - 点号分隔的路径（如 "value_data.file"）
+   * @returns {*} - 获取到的值
+   */
+  function getNestedValue(obj, path) {
+    if (!obj || !path) return undefined;
+
+    const keys = path.split(".");
+    let current = obj;
+
+    for (const key of keys) {
+      if (
+        current !== null &&
+        current !== undefined &&
+        typeof current === "object" &&
+        key in current
+      ) {
+        current = current[key];
+      } else {
+        return undefined;
+      }
+    }
+
+    return current;
+  }
+
+  /**
+   * 规范化值为可读字符串
+   * 处理字符串化JSON、对象、数组等复杂类型
+   * @param {*} value - 待规范化的值
+   * @returns {*}
+   */
+  function normalizeValueForSelector(value) {
+    if (value === null || value === undefined) return "";
+
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (
+        (trimmed.startsWith("{") || trimmed.startsWith("[")) &&
+        trimmed.length < 10000
+      ) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          return normalizeValueForSelector(parsed);
+        } catch {
+          return value;
+        }
+      }
+      return value;
+    }
+
+    if (Array.isArray(value)) {
+      return value.map((v) => normalizeValueForSelector(v)).flat();
+    }
+
+    if (typeof value === "object") {
+      try {
+        return JSON.stringify(value);
+      } catch {
+        return "[Object]";
+      }
+    }
+
+    return String(value);
+  }
+
+  /**
+   * 构建值选项列表
+   * 根据选定字段从数据中提取所有唯一值
+   * @param {Array|Object} data - 解析后的 JSON 数据
+   * @param {string} field - 选定的字段名
+   * @returns {Array<{label: string, value: string, count: number}>}
+   */
+  function buildValueOptions(data, field) {
+    if (!data || !field) return [];
+
+    const values = new Map();
+
+    function extractValues(obj) {
+      if (Array.isArray(obj)) {
+        obj.forEach((item) => extractValues(item));
+        return;
+      }
+
+      if (typeof obj === "object" && obj !== null) {
+        const fieldValue = getNestedValue(obj, field);
+
+        if (fieldValue !== undefined) {
+          const normalized = normalizeValueForSelector(fieldValue);
+          if (Array.isArray(normalized)) {
+            normalized.forEach((v) => {
+              values.set(v, (values.get(v) || 0) + 1);
+            });
+          } else {
+            values.set(normalized, (values.get(normalized) || 0) + 1);
+          }
+        }
+      }
+    }
+
+    extractValues(data);
+
+    return Array.from(values.entries())
+      .map(([value, count]) => ({
+        label:
+          typeof value === "string" && value.length > 50
+            ? value.slice(0, 50) + "..."
+            : String(value),
+        value,
+        count,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }
+
+  /**
+   * 根据字段和值的组合进行精准提取
+   * @param {string} field - 目标字段路径
+   * @param {Array<string>} values - 目标值列表（支持多选）
+   */
+  async function extractByFieldAndValue(field, values) {
+    if (!state.inputText) {
+      clearResults();
+      return;
+    }
+
+    state.loading = true;
+
+    try {
+      const result = await currentExtractor.extract(state.inputText, {
+        ...buildExtractOptions(),
+        filterField: field,
+        filterValues: values,
+      });
+
+      updateExtractionResult(result);
+    } catch (error) {
+      console.error("精准提取失败:", error);
+      state.lastError = error.message;
+      state.stats.error++;
+    } finally {
+      state.loading = false;
+    }
+  }
+
   // ==================== 监听器 ====================
 
   // 监听输入变化，触发自动提取
@@ -515,6 +817,14 @@ export function useParamExtractor(config = {}) {
     setFilter,
     setInputText,
     setJsonMode,
+
+    // 交互式选择模式方法
+    setInteractiveMode,
+    buildFieldOptions,
+    buildValueOptions,
+    extractByFieldAndValue,
+
+    // 清理方法
     cleanup,
   };
 }

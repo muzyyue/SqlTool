@@ -24,14 +24,16 @@
             支持 .xlsx、.xlsm 格式，文件大小限制 50MB
           </p>
         </a-upload-dragger>
-        <div v-if="uploadProgress > 0" class="upload-progress-container">
-          <a-progress
-            :percent="uploadProgress"
-            :status="uploadProgress === 100 ? 'success' : 'active'"
-            :stroke-color="uploadProgress === 100 ? '#52c41a' : '#1890ff'"
-          />
-          <p class="upload-status-text">{{ uploadStatusText }}</p>
-        </div>
+        <Transition name="progress-fade">
+          <div v-if="uploadProgress > 0" class="upload-progress-container">
+            <a-progress
+              :percent="uploadProgress"
+              :status="uploadProgress === 100 ? 'success' : 'active'"
+              :stroke-color="uploadProgress === 100 ? '#52c41a' : '#1890ff'"
+            />
+            <p class="upload-status-text">{{ uploadStatusText }}</p>
+          </div>
+        </Transition>
       </VbenGlassCard>
 
       <a-tabs
@@ -110,6 +112,17 @@
             @process="handleQuoteProcess"
           />
         </a-tab-pane>
+
+        <a-tab-pane key="extract">
+          <template #tab>
+            <span><SearchOutlined /> 参数提取</span>
+          </template>
+          <ParamExtractTab
+            :workbook="workbook"
+            :sheets="sheetNames"
+            :columns="columns"
+          />
+        </a-tab-pane>
       </a-tabs>
 
       <VbenGlassCard title="数据预览" class="preview-card" v-if="workbook">
@@ -141,7 +154,12 @@
         />
       </VbenGlassCard>
 
-      <div class="action-buttons" v-if="workbook && activeTabKey !== 'quote'">
+      <div
+        class="action-buttons"
+        v-if="
+          workbook && activeTabKey !== 'quote' && activeTabKey !== 'extract'
+        "
+      >
         <a-button
           type="primary"
           size="large"
@@ -330,11 +348,13 @@ import {
   BulbFilled,
   FormOutlined,
   FormatPainterOutlined,
+  SearchOutlined,
 } from "@ant-design/icons-vue";
 import VbenGlassCard from "@/components/common/VbenGlassCard.vue";
 import BasicFillTab from "@/components/excel/BasicFillTab.vue";
 import AdvancedFillTab from "@/components/excel/AdvancedFillTab.vue";
 import QuoteConvertTab from "@/components/excel/QuoteConvertTab.vue";
+import ParamExtractTab from "@/components/excel-fill/ParamExtractTab.vue";
 import * as XLSX from "xlsx";
 import { useThemeStore } from "@/stores/theme.js";
 import { useSettings } from "@/composables/core/useSettings.js";
@@ -1990,6 +2010,28 @@ const handleReset = () => {
   font-size: 14px;
   color: $text-secondary;
   text-align: center;
+}
+
+// 进度条过渡动画
+.progress-fade-enter-active,
+.progress-fade-leave-active {
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.progress-fade-enter-from,
+.progress-fade-leave-to {
+  opacity: 0;
+  max-height: 0;
+  margin-top: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.progress-fade-enter-to,
+.progress-fade-leave-from {
+  opacity: 1;
+  max-height: 120px;
 }
 
 .result-actions {

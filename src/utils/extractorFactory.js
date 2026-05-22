@@ -130,8 +130,9 @@ export function createExtractor(type) {
     case ContentType.MIXED:
       return createMixedExtractor();
 
+    case ContentType.UNKNOWN:
     default:
-      throw new Error(`不支持的内容类型: ${type}`);
+      return createUnknownExtractor();
   }
 }
 
@@ -387,6 +388,50 @@ function createMixedExtractor() {
      */
     getJsonExtractor() {
       return jsonExtractor;
+    },
+  };
+}
+
+/**
+ * 未知类型提取器（降级处理）
+ * 当无法识别内容类型时，尝试用混合模式提取
+ */
+function createUnknownExtractor() {
+  const mixedExtractor = createMixedExtractor();
+
+  return {
+    type: ContentType.UNKNOWN,
+
+    async extract(text, options = {}) {
+      try {
+        return await mixedExtractor.extract(text, options);
+      } catch (error) {
+        return {
+          items: [],
+          stats: {
+            total: 0,
+            sqlCount: 0,
+            jsonCount: 0,
+            success: 0,
+            warning: 0,
+            error: 1,
+          },
+          error: `无法识别的内容格式，请手动选择"仅SQL"或"仅JSON"模式`,
+          rawText: text,
+        };
+      }
+    },
+
+    validate(text) {
+      return { valid: false, reason: "无法识别内容类型" };
+    },
+
+    parse(text) {
+      return { parsed: null, error: "无法解析未知类型内容" };
+    },
+
+    getType() {
+      return ContentType.UNKNOWN;
     },
   };
 }
