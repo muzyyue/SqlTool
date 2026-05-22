@@ -110,24 +110,25 @@
                 {{ sampleSchema.fields.length }} 个字段
               </span>
             </div>
-            <div class="schema-fields">
-              <a-tag
-                v-for="field in sampleSchema.fields"
-                :key="field.path"
-                :color="getFieldTypeColor(field.type)"
-                class="schema-field-tag"
-              >
-                <span class="field-name">{{ field.label }}</span>
-                <span class="field-type-badge">{{ field.type }}</span>
-              </a-tag>
+
+            <!-- JSON 树形结构预览（使用 CodeMirror） -->
+            <div class="schema-preview">
+              <CodeEditor
+                :model-value="formattedSampleJson"
+                language="json"
+                :readonly="true"
+                :min-lines="8"
+                :max-lines="15"
+                placeholder="暂无数据预览..."
+              />
             </div>
           </div>
 
           <div class="form-item">
             <label class="field-label">字段 (Field)</label>
-            <a-select
+            <a-tree-select
               v-model:value="selectedField"
-              :options="fieldOptions"
+              :tree-data="fieldOptions"
               :placeholder="
                 dataSource === 'column' && selectedColumn
                   ? '正在加载字段...'
@@ -137,19 +138,97 @@
               :disabled="!canUseInteractiveSelector"
               @change="handleFieldChange"
               show-search
-              :filter-option="filterOption"
+              tree-node-filter-prop="title"
+              :dropdown-style="{ maxHeight: '400px', overflow: 'auto' }"
+              :tree-default-expand-all="false"
             />
           </div>
 
+          <!-- 🆕 JSON 字符串化解包提示条 -->
+          <a-alert
+            v-if="isFieldStringifiedJson"
+            :type="isJsonUnwrapMode ? 'success' : 'info'"
+            show-icon
+            closable
+            class="json-unwrap-hint"
+            @close="toggleJsonUnwrapMode(false)"
+          >
+            <template #message>
+              <div class="unwrap-hint-content">
+                <span class="hint-icon">📦</span>
+                <div class="hint-info">
+                  <span class="hint-text">{{ unwrapHintMessage }}</span>
+                  <span
+                    v-if="parsedJsonCache?.samplePreview"
+                    class="hint-preview"
+                  >
+                    {{ parsedJsonCache.samplePreview }}
+                  </span>
+                </div>
+                <div class="hint-actions">
+                  <a-switch
+                    :checked="isJsonUnwrapMode"
+                    size="small"
+                    @change="toggleJsonUnwrapMode"
+                  />
+                  <span
+                    class="switch-label"
+                    :class="{ active: isJsonUnwrapMode }"
+                  >
+                    {{ isJsonUnwrapMode ? "已开启" : "开启解析" }}
+                  </span>
+                </div>
+              </div>
+            </template>
+          </a-alert>
+
+          <!-- 🆕 模式A：JSON解包模式 - 选择内层字段 -->
+          <div v-if="isJsonUnwrapMode" class="form-item">
+            <label class="inner-field-label">
+              内层字段
+              <span v-if="jsonUnwrapDepth > 0" class="depth-badge">
+                L{{ jsonUnwrapDepth + 1 }}
+              </span>
+            </label>
+            <a-tree-select
+              v-model:value="selectedInnerField"
+              :tree-data="innerFieldOptions"
+              placeholder="请选择要提取的内层字段..."
+              allow-clear
+              show-search
+              tree-node-filter-prop="title"
+              :dropdown-style="{ maxHeight: '300px', overflow: 'auto' }"
+              :tree-default-expand-all="false"
+              @change="handleInnerFieldChange"
+            />
+          </div>
+
+          <!-- 取值区域（两种模式共用） -->
           <div class="form-item">
-            <label class="value-label">取值 (Value)</label>
+            <label class="value-label">
+              取值 (Value)
+              <span
+                v-if="isJsonUnwrapMode && selectedInnerField"
+                class="field-path-hint"
+              >
+                → {{ selectedInnerField }}
+              </span>
+            </label>
             <a-select
               v-model:value="selectedValues"
               :options="valueOptions"
               mode="multiple"
-              placeholder="请先选择字段"
+              :placeholder="
+                isJsonUnwrapMode && !selectedInnerField
+                  ? '请先选择内层字段'
+                  : !selectedField
+                    ? '请先选择字段'
+                    : '请选择要提取的取值'
+              "
               allow-clear
-              :disabled="!selectedField"
+              :disabled="
+                !selectedField || (isJsonUnwrapMode && !selectedInnerField)
+              "
               @change="handleValueChange"
               show-search
               :filter-option="filterOption"
@@ -166,6 +245,12 @@
             </a-select>
             <div v-if="!selectedField && hasResults" class="hint-text">
               请先选择字段以查看可用取值
+            </div>
+            <div
+              v-if="isJsonUnwrapMode && !selectedInnerField && selectedField"
+              class="hint-text"
+            >
+              请从上方树形结构中选择内层字段
             </div>
           </div>
         </div>
@@ -284,7 +369,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, nextTick } from "vue";
 import {
   SearchOutlined,
   CopyOutlined,
@@ -294,6 +379,7 @@ import {
 } from "@ant-design/icons-vue";
 import { message } from "ant-design-vue";
 import VbenGlassCard from "@/components/common/VbenGlassCard.vue";
+import CodeEditor from "@/components/common/CodeEditor.vue";
 import { useParamExtractor } from "@/composables/useParamExtractor.js";
 import * as XLSX from "xlsx";
 
@@ -347,6 +433,106 @@ const autoExtract = ref(false);
 const selectedField = ref(undefined);
 const selectedValues = ref([]);
 
+// 🆕 JSON 字符串化解包模式（支持多层嵌套）
+const isJsonUnwrapMode = ref(false); // 是否启用JSON解包模式
+const selectedInnerField = ref(undefined); // 选中的内层字段路径
+const jsonUnwrapDepth = ref(0); // 当前解包深度（支持多层嵌套）
+const parsedJsonCache = ref(null); // 解析结果缓存
+const innerFieldTree = ref([]); // 内层字段树形结构
+
+/**
+ * 检测当前选中字段的值是否为字符串化JSON
+ * 仅当字段类型为 string 时才检测
+ */
+const isFieldStringifiedJson = computed(() => {
+  // 条件A：基本检查
+  if (!selectedField.value) {
+    console.log("⚠️ [JSON检测] 失败: selectedField 为空");
+    return false;
+  }
+  if (!sourceDataCache.value || !sourceDataCache.value.length) {
+    console.log("⚠️ [JSON检测] 失败: sourceDataCache 为空");
+    return false;
+  }
+
+  // 条件B：从 sampleSchema 获取字段类型，仅 string 类型才检测
+  const fieldInfo = sampleSchema.value?.fields?.find(
+    (f) => f.path === selectedField.value,
+  );
+  console.log(
+    `🔍 [JSON检测] 查找字段: "${selectedField.value}", 找到:`,
+    fieldInfo,
+  );
+
+  if (!fieldInfo) {
+    console.log(
+      "⚠️ [JSON检测] 失败: 在 sampleSchema.fields 中未找到字段",
+      "可用字段列表:",
+      sampleSchema.value?.fields?.map((f) => f.path),
+    );
+    return false;
+  }
+  if (fieldInfo.type !== "string") {
+    console.log(`⚠️ [JSON检测] 跳过: 字段类型为 ${fieldInfo.type}（非string）`);
+    return false;
+  }
+
+  // 条件C：尝试解析样本数据
+  try {
+    const firstSample = sourceDataCache.value[0].value;
+    console.log(
+      `🔍 [JSON检测] 样本数据前50字符:`,
+      firstSample?.substring(0, 50),
+    );
+
+    if (
+      !firstSample ||
+      !(firstSample.startsWith("{") || firstSample.startsWith("["))
+    ) {
+      console.log("⚠️ [JSON检测] 失败: 样本数据不是 JSON 格式");
+      return false;
+    }
+
+    const parsedRoot = JSON.parse(firstSample);
+    const fieldValue = getNestedValue(parsedRoot, selectedField.value);
+
+    console.log(
+      `🔍 [JSON检测] 字段 "${selectedField.value}" 的值:`,
+      fieldValue,
+      typeof fieldValue,
+    );
+
+    const result = isStringifiedJsonSimple(fieldValue);
+    console.log(`✅ [JSON检测结果]: ${result}`);
+
+    return result;
+  } catch (e) {
+    console.error("❌ [JSON检测] 异常:", e.message);
+    return false;
+  }
+});
+
+/**
+ * JSON 解包提示信息
+ */
+const unwrapHintMessage = computed(() => {
+  if (!parsedJsonCache.value) return "";
+
+  const { itemCount, fieldCount } = parsedJsonCache.value;
+  const depthLabel =
+    jsonUnwrapDepth.value > 0 ? ` · 第${jsonUnwrapDepth.value + 1}层` : "";
+  return `已检测到JSON数据${depthLabel}：${itemCount} 个元素 · ${fieldCount} 个字段`;
+});
+
+/**
+ * 内层字段树形选项（用于 a-tree-select）
+ * 支持多层嵌套：如果内层字段值仍然是字符串化JSON，可继续解包
+ */
+const innerFieldOptions = computed(() => {
+  if (!isJsonUnwrapMode.value || !parsedJsonCache.value) return [];
+  return innerFieldTree.value;
+});
+
 // 🆕 新架构：采样分析结果（通用数据结构）
 const sampleSchema = ref(null); // 存储采样的通用结构
 const isSampleAnalyzed = computed(() => !!sampleSchema.value);
@@ -362,6 +548,35 @@ const dataTypeLabel = computed(() => {
   return map[sampleSchema.value?.dataType] || "未知";
 });
 
+/**
+ * 格式化的样本 JSON 数据（用于 CodeMirror 预览）
+ * 从缓存的第一条数据解析并格式化显示
+ */
+const formattedSampleJson = computed(() => {
+  if (!sourceDataCache.value || sourceDataCache.value.length === 0) {
+    return "";
+  }
+
+  const firstSample = sourceDataCache.value[0].value;
+
+  // 尝试解析并格式化 JSON
+  if (
+    (firstSample.startsWith("{") || firstSample.startsWith("[")) &&
+    firstSample.length < 100000
+  ) {
+    try {
+      const parsed = JSON.parse(firstSample);
+      return JSON.stringify(parsed, null, 2);
+    } catch (e) {
+      // 解析失败，返回原始数据（可能被截断）
+      return firstSample.substring(0, 2000);
+    }
+  }
+
+  // 非 JSON 数据，直接返回
+  return firstSample;
+});
+
 function getFieldTypeColor(type) {
   const colorMap = {
     string: "blue",
@@ -372,6 +587,82 @@ function getFieldTypeColor(type) {
     object: "magenta",
   };
   return colorMap[type] || "default";
+}
+
+/**
+ * 将扁平字段路径列表构建为树形结构（用于 a-tree-select）
+ * @param {Array<{path: string, label: string, type: string}>} flatFields - 扁平字段列表
+ * @returns {Array<{value: string, title: string, children?: Array, type: string}>} 树形结构
+ */
+function buildFieldTree(flatFields) {
+  const root = { children: {} };
+
+  for (const field of flatFields) {
+    const parts = field.path.split(/\.|\[|\]/).filter((p) => p !== "");
+    let current = root;
+
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
+      const isLast = i === parts.length - 1;
+      const nodeKey = part;
+
+      if (!current.children[nodeKey]) {
+        current.children[nodeKey] = {
+          value: isLast ? field.path : null,
+          title: part,
+          type: isLast ? field.type : inferTypeFromPath(part, i, parts),
+          children: {},
+          isLeaf: false,
+        };
+      }
+
+      // 叶子节点：设置最终值和类型
+      if (isLast) {
+        current.children[nodeKey].value = field.path;
+        current.children[nodeKey].type = field.type;
+        current.children[nodeKey].isLeaf = true;
+      }
+
+      current = current.children[nodeKey];
+    }
+  }
+
+  // 将对象树转为数组格式，并清理空 children
+  function toArray(node) {
+    const result = [];
+    for (const key of Object.keys(node.children || {}).sort()) {
+      const child = node.children[key];
+      const item = {
+        value: child.value || key,
+        title: `${key}${child.type ? ` (${child.type})` : ""}`,
+        type: child.type,
+      };
+
+      const hasChildren =
+        child.children && Object.keys(child.children).length > 0;
+      if (hasChildren) {
+        item.children = toArray(child);
+      }
+
+      result.push(item);
+    }
+    return result;
+  }
+
+  return toArray(root);
+}
+
+/**
+ * 从路径片段推断类型（非叶子节点）
+ * @param {string} part - 路径片段
+ * @param {number} index - 当前索引
+ * @param {string[]} parts - 所有路径片段
+ * @returns {string} 推断的类型
+ */
+function inferTypeFromPath(part, index, parts) {
+  if (/^\d+$/.test(part)) return "item";
+  if (index < parts.length - 1) return "object";
+  return "unknown";
 }
 
 // 使用 composable
@@ -432,40 +723,43 @@ const targetColumnOptions = computed(() => {
   return existingColumns;
 });
 
-// 🆕 新架构：基于sampleSchema的即时字段选项
+// 🆕 新架构：基于sampleSchema的即时字段选项（树形结构）
 const fieldOptions = computed(() => {
-  console.log("🔍 [fieldOptions] 计算...");
+  console.log("🔍 [fieldOptions] 计算树形结构...");
 
   // ✅ 策略1：基于 sampleSchema（采样模式，<100ms响应）
   if (isSampleAnalyzed.value && sampleSchema.value?.fields?.length > 0) {
     console.log(
-      `✅ [fieldOptions] 使用 sampleSchema (${sampleSchema.value.fields.length} 个字段)`,
+      `✅ [fieldOptions] 使用 sampleSchema (${sampleSchema.value.fields.length} 个字段) 构建树`,
     );
-    return sampleSchema.value.fields.map((f) => ({
-      label: f.label,
-      value: f.path,
-      type: f.type,
-    }));
+    return buildFieldTree(sampleSchema.value.fields);
   }
 
   // ⚠️ 回退：手动输入模式 + 已有提取结果
   if (dataSource.value === "manual" && hasResults.value) {
     console.log("⚠️ [fieldOptions] 回退到手动模式逻辑");
-    // 保留原有的从 filteredItems 构建逻辑...
     if (filteredItems.value?.length > 0) {
-      const fields = new Set();
+      const fields = [];
+      const fieldSet = new Set();
+
       filteredItems.value.forEach((item) => {
         if (item.extracted?.length > 0) {
           item.extracted.forEach((ext) => {
-            fields.add(ext.path || ext.key);
+            const path = ext.path || ext.key;
+            if (path && !fieldSet.has(path)) {
+              fieldSet.add(path);
+              fields.push({
+                path,
+                label: path.split(".").pop(),
+                type: ext.dataType || "string",
+              });
+            }
           });
         }
       });
 
-      if (fields.size > 0) {
-        return Array.from(fields)
-          .sort()
-          .map((f) => ({ label: f, value: f }));
+      if (fields.length > 0) {
+        return buildFieldTree(fields);
       }
     }
   }
@@ -514,21 +808,283 @@ function filterOption(input, option) {
 }
 
 /**
- * 处理字段选择变化
- * 当用户选择字段时，清空之前选择的取值
+ * 🆕 解析当前选中字段的值为JSON（支持多层嵌套）
+ * 从样本数据中提取字段值，尝试解析为JSON，构建内层字段树
  */
-function handleFieldChange(value) {
+function parseSelectedFieldAsJson(depth = 0) {
+  console.log(
+    `\n🔧 [parseSelectedFieldAsJson] 开始, depth=${depth}, selectedField=${selectedField.value}`,
+  );
+
+  if (!selectedField.value || !sourceDataCache.value.length) {
+    console.log("❌ [parseSelectedFieldAsJson] 失败: 基本条件不满足");
+    return false;
+  }
+
+  const MAX_DEPTH = 3; // 最大嵌套深度
+  if (depth > MAX_DEPTH) {
+    message.warning(`已达到最大解析深度 (${MAX_DEPTH} 层)`);
+    return false;
+  }
+
+  try {
+    const firstSample = sourceDataCache.value[0].value;
+    console.log(
+      `🔍 [parseSelectedFieldAsJson] 样本数据:`,
+      firstSample?.substring(0, 100),
+    );
+
+    if (
+      !firstSample ||
+      !(firstSample.startsWith("{") || firstSample.startsWith("["))
+    ) {
+      console.log("❌ [parseSelectedFieldAsJson] 失败: 样本不是JSON");
+      return false;
+    }
+
+    const parsedRoot = JSON.parse(firstSample);
+
+    // 根据当前深度获取目标值
+    let targetData = parsedRoot;
+    if (depth === 0 && selectedField.value) {
+      targetData = getNestedValue(parsedRoot, selectedField.value);
+      console.log(
+        `🔍 [parseSelectedFieldAsJson] depth=0, 提取字段 "${selectedField.value}" 的值:`,
+        targetData,
+        typeof targetData,
+      );
+    } else if (depth > 0 && selectedInnerField.value) {
+      // 多层嵌套：从已解析的缓存中继续解包
+      targetData = getNestedValue(
+        parsedJsonCache.value?.raw,
+        selectedInnerField.value,
+      );
+      console.log(
+        `🔍 [parseSelectedFieldAsJson] depth=${depth}, 提取内层字段 "${selectedInnerField.value}":`,
+        targetData,
+        typeof targetData,
+      );
+    }
+
+    if (!targetData) {
+      console.log("❌ [parseSelectedFieldAsJson] 失败: targetData 为空");
+      return false;
+    }
+
+    // 检查是否为字符串化JSON
+    console.log(
+      `🔍 [parseSelectedFieldAsJson] 检查是否字符串化JSON...`,
+      isStringifiedJsonSimple(targetData),
+    );
+
+    if (isStringifiedJsonSimple(targetData)) {
+      const innerParsed = JSON.parse(targetData);
+      console.log(`✅ [parseSelectedFieldAsJson] JSON解析成功:`, innerParsed);
+
+      // 构建扁平字段列表
+      const flatFields = flattenObject(innerParsed);
+      console.log(
+        `🔍 [parseSelectedFieldAsJson] 扁平化字段数: ${flatFields.length}`,
+      );
+
+      // 缓存解析结果
+      parsedJsonCache.value = {
+        raw: innerParsed,
+        fields: flatFields.map((f) => ({
+          path: f.path,
+          label: f.path.split(".").pop() || f.path,
+          type: f.dataType,
+          value: f.value,
+        })),
+        itemCount: Array.isArray(innerParsed) ? innerParsed.length : 1,
+        fieldCount: flatFields.length,
+        samplePreview:
+          typeof targetData === "string"
+            ? targetData.substring(0, 80) + "..."
+            : JSON.stringify(targetData).substring(0, 80) + "...",
+      };
+
+      // 构建内层字段树
+      innerFieldTree.value = buildFieldTree(parsedJsonCache.value.fields);
+
+      jsonUnwrapDepth.value = depth;
+      isJsonUnwrapMode.value = true;
+
+      console.log(
+        `✅ [JSON解包] 第${depth + 1}层解析成功:`,
+        parsedJsonCache.value,
+      );
+
+      return true;
+    }
+
+    return false;
+  } catch (e) {
+    console.error("❌ [JSON解包] 解析失败:", e);
+    return false;
+  }
+}
+
+/**
+ * 🆕 切换 JSON 解包模式（支持多层嵌套）
+ * @param {boolean} enabled - 是否启用
+ */
+function toggleJsonUnwrapMode(enabled) {
+  isJsonUnwrapMode.value = enabled;
+  selectedInnerField.value = undefined;
+
+  if (enabled) {
+    const success = parseSelectedFieldAsJson(jsonUnwrapDepth.value);
+    if (success) {
+      message.success("✅ JSON 解析成功！已发现内层字段");
+    } else {
+      isJsonUnwrapMode.value = false;
+      message.error("❌ 该字段的值不是有效的JSON格式");
+    }
+  } else {
+    // 关闭时重置状态
+    parsedJsonCache.value = null;
+    innerFieldTree.value = [];
+    jsonUnwrapDepth.value = 0;
+  }
+}
+
+/**
+ * 🆕 处理内层字段选择变化
+ * 当用户选择内层字段时，检测是否需要继续解包
+ */
+function handleInnerFieldChange(value) {
   selectedValues.value = [];
 
   if (!value) {
-    // 清空字段时，退出交互模式
-    extractor.setInteractiveMode(false);
+    selectedInnerField.value = undefined;
+    return;
+  }
+
+  selectedInnerField.value = value;
+
+  // 获取选中字段的值，检查是否仍然是字符串化JSON
+  const fieldInfo = parsedJsonCache.value?.fields?.find(
+    (f) => f.path === value,
+  );
+  if (fieldInfo && isStringifiedJsonSimple(fieldInfo.value)) {
+    message.info(
+      `📦 内层字段 "${fieldInfo.label}" 的值仍是JSON数据，已自动继续解析...`,
+    );
+
+    // 递归解析下一层
+    setTimeout(() => {
+      parseSelectedFieldAsJson(jsonUnwrapDepth.value + 1);
+    }, 100);
   } else {
-    // 选择字段时，启用交互模式
+    // 普通字段，加载可选值
+    loadInnerFieldValues(value);
+  }
+}
+
+/**
+ * 🆕 加载内层字段的可选值列表
+ * @param {string} innerPath - 内层字段路径
+ */
+function loadInnerFieldValues(innerPath) {
+  if (!parsedJsonCache.value || !sourceDataCache.value.length) return;
+
+  try {
+    const valuesSet = new Set();
+
+    for (const sourceItem of sourceDataCache.value) {
+      let currentValue = sourceItem.value;
+
+      // 第一层：提取外层字段
+      if (jsonUnwrapDepth.value === 0 && selectedField.value) {
+        const parsedRoot = JSON.parse(currentValue);
+        currentValue = getNestedValue(parsedRoot, selectedField.value);
+
+        // 如果是字符串化JSON，先解析
+        if (isStringifiedJsonSimple(currentValue)) {
+          currentValue = JSON.parse(currentValue);
+        }
+      }
+
+      // 后续层：从缓存中提取
+      if (typeof currentValue === "string") {
+        try {
+          currentValue = JSON.parse(currentValue);
+        } catch (e) {}
+      }
+
+      // 提取内层字段的值
+      const finalValue = getNestedValue(currentValue, innerPath);
+      if (finalValue !== undefined && finalValue !== null) {
+        const strValue = String(finalValue);
+        if (strValue.length <= 100) {
+          valuesSet.add(strValue);
+        }
+      }
+    }
+
+    // 更新 valueOptions（通过响应式方式）
+    if (valuesSet.size > 0) {
+      const valuesArray = Array.from(valuesSet);
+      console.log(
+        `✅ [内层取值] "${innerPath}" 有 ${valuesArray.length} 个可选值`,
+      );
+
+      // 触发UI更新提示
+      message.info(`已加载 ${valuesArray.length} 个可选值，请选择要提取的内容`);
+    }
+  } catch (e) {
+    console.error("❌ [内层取值] 加载失败:", e);
+  }
+}
+
+/**
+ * 处理字段选择变化
+ * 当用户选择字段时，自动检测是否为字符串化JSON并触发解包
+ */
+function handleFieldChange(value) {
+  console.log("\n📌 [handleFieldChange] 开始, value:", value);
+
+  selectedValues.value = [];
+  selectedInnerField.value = undefined;
+
+  // 重置 JSON 解包状态
+  isJsonUnwrapMode.value = false;
+  parsedJsonCache.value = null;
+  innerFieldTree.value = [];
+  jsonUnwrapDepth.value = 0;
+
+  if (!value) {
+    extractor.setInteractiveMode(false);
+    console.log("📌 [handleFieldChange] 清空选择，退出");
+  } else {
     extractor.setInteractiveMode(true);
     extractor.state.selectedField = value;
 
     message.info(`已选择字段: ${value}，请选择要提取的取值`);
+
+    // 🆕 自动检测字符串化JSON（仅 string 类型字段）
+    // 使用 nextTick 确保 Vue 响应式更新完成后再检查
+    nextTick(() => {
+      const shouldDetect = isFieldStringifiedJson.value;
+      console.log(
+        `🔍 [handleFieldChange] nextTick 后 isFieldStringifiedJson:`,
+        shouldDetect,
+      );
+
+      if (shouldDetect) {
+        console.log("🔍 [字段变化] 检测到字符串化JSON，自动开启解包模式...");
+
+        const success = parseSelectedFieldAsJson(0);
+        if (success) {
+          message.success(`✅ 自动检测到JSON数据！${unwrapHintMessage.value}`);
+        } else {
+          console.warn("⚠️ [字段变化] parseSelectedFieldAsJson 返回 false");
+        }
+      } else {
+        console.log("ℹ️ [字段变化] 该字段不是字符串化JSON，跳过自动解包");
+      }
+    });
   }
 }
 
@@ -600,6 +1156,27 @@ function handleDataSourceChange(value) {
 }
 
 /**
+ * 简化版字符串化JSON检测（用于 flattenObject）
+ * @param {string} value - 要检测的字符串
+ * @returns {boolean} 是否为字符串化JSON
+ */
+function isStringifiedJsonSimple(value) {
+  if (typeof value !== "string") return false;
+
+  const trimmed = value.trim();
+
+  // 快速检查：必须以 { 或 [ 开头
+  if (!/^\s*[{[]/.test(trimmed)) return false;
+
+  try {
+    const parsed = JSON.parse(trimmed);
+    return typeof parsed === "object" && parsed !== null;
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
  * 递归展平嵌套对象为键值对数组（用于手动解析JSON）
  * @param {Object} obj - 要展平的对象
  * @param {string} prefix - 前缀路径
@@ -613,7 +1190,16 @@ function flattenObject(obj, prefix = "") {
   }
 
   if (typeof obj !== "object") {
-    // 基本类型
+    // 基本类型：检查是否为字符串化JSON
+    if (typeof obj === "string" && isStringifiedJsonSimple(obj)) {
+      try {
+        const parsed = JSON.parse(obj);
+        return flattenObject(parsed, prefix);
+      } catch (e) {
+        // 解析失败，当作普通字符串处理
+      }
+    }
+
     result.push({
       key: prefix || "value",
       value: obj,
@@ -1060,8 +1646,9 @@ function clearError() {
 
 /**
  * 🆕 从单个数据项中按字段路径提取值
+ * 支持多层嵌套和字符串化JSON解包
  * @param {string} data - 原始数据字符串（通常是JSON）
- * @param {string} fieldPath - 字段路径（如 "value_data.file"）
+ * @param {string} fieldPath - 字段路径（如 "value_data.file" 或 "value[0].value"）
  * @returns {string} 提取的值
  */
 function extractFieldValue(data, fieldPath) {
@@ -1075,9 +1662,20 @@ function extractFieldValue(data, fieldPath) {
       const items = Array.isArray(parsed) ? parsed : [parsed];
 
       for (const item of items) {
-        // 按路径访问嵌套属性
+        // 按路径访问嵌套属性（支持数组索引）
         const value = getNestedValue(item, fieldPath);
         if (value !== undefined) {
+          // 如果值仍然是字符串化JSON，尝试进一步解析
+          if (typeof value === "string" && isStringifiedJsonSimple(value)) {
+            try {
+              const innerParsed = JSON.parse(value);
+              return typeof innerParsed === "object"
+                ? JSON.stringify(innerParsed)
+                : String(innerParsed);
+            } catch (e) {
+              return value;
+            }
+          }
           return typeof value === "object"
             ? JSON.stringify(value)
             : String(value);
@@ -1088,19 +1686,32 @@ function extractFieldValue(data, fieldPath) {
     // 如果不是JSON或路径不存在，返回原始数据
     return data;
   } catch (e) {
-    return data; // 解析失败时返回原始数据
+    return data;
   }
 }
 
 /**
  * 🆕 按路径获取嵌套对象的值
+ * 支持点号分隔和数组索引：如 "a.b.c" 或 "value[0].value"
  * @param {Object} obj - 对象
- * @param {string} path - 路径（如 "a.b.c"）
+ * @param {string} path - 路径（如 "a.b.c" 或 "value[0].value"）
  * @returns {*} 值
  */
 function getNestedValue(obj, path) {
-  return path.split(".").reduce((current, key) => {
-    return current?.[key];
+  // 支持数组索引的路径解析：value[0].value -> ['value', '0', 'value']
+  const parts = path.split(/\.|\[|\]/).filter((p) => p !== "");
+
+  return parts.reduce((current, key) => {
+    if (current === undefined || current === null) return undefined;
+
+    // 尝试作为数字索引（数组访问）
+    if (/^\d+$/.test(key)) {
+      const index = parseInt(key, 10);
+      return Array.isArray(current) ? current[index] : undefined;
+    }
+
+    // 对象属性访问
+    return current[key];
   }, obj);
 }
 
@@ -1365,51 +1976,31 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
         }
       }
 
-      .schema-fields {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
+      // JSON 树形结构预览
+      .schema-preview {
+        margin-top: 12px;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid rgba(8, 145, 178, 0.15);
+        background: #ffffff;
+        box-shadow:
+          0 1px 3px rgba(0, 0, 0, 0.04),
+          inset 0 1px 0 rgba(255, 255, 255, 0.8);
 
-        .schema-field-tag {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          border-radius: 6px;
-          padding: 3px 10px;
-          font-size: 12px;
-          cursor: default;
-          border: 1px solid transparent;
-          transition:
-            background-color 0.2s ease,
-            border-color 0.2s ease,
-            transform 0.15s ease;
+        // 覆盖 CodeEditor 默认样式以适配容器
+        :deep(.code-editor-container) {
+          border: none;
+          border-radius: 8px;
+          background: transparent;
+        }
 
-          &:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-          }
+        :deep(.cm-editor) {
+          font-size: 13px;
+          line-height: 1.6;
+        }
 
-          &:focus-visible {
-            outline: 2px solid #0891b2;
-            outline-offset: 2px;
-          }
-
-          .field-name {
-            font-weight: 600;
-            max-width: 120px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-          }
-
-          .field-type-badge {
-            font-size: 10px;
-            font-weight: 500;
-            opacity: 0.7;
-            padding: 1px 5px;
-            background: rgba(255, 255, 255, 0.6);
-            border-radius: 3px;
-          }
+        :deep(.cm-content) {
+          padding: 16px;
         }
       }
     }
@@ -1447,6 +2038,60 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
         background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
         border-radius: 4px;
         transition: all 0.2s ease;
+      }
+    }
+
+    // 树形选择器样式适配
+    :deep(.ant-tree-select) {
+      .ant-select-selector {
+        border-radius: 8px !important;
+        min-height: 44px;
+        border: 1.5px solid #e5e7eb;
+
+        &:hover {
+          border-color: #93c5fd;
+          box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.15);
+        }
+
+        &.ant-select-focused {
+          border-color: #1677ff !important;
+          box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.12) !important;
+        }
+      }
+
+      // 下拉菜单中的树节点
+      .ant-select-tree-treenode {
+        padding: 4px 8px;
+
+        .ant-select-tree-node-content-wrapper {
+          border-radius: 4px;
+          transition: all 0.15s ease;
+
+          &:hover {
+            background: rgba(99, 102, 241, 0.08);
+          }
+        }
+
+        // 叶子节点（可选中）样式增强
+        &.ant-select-tree-treenode-selected {
+          .ant-select-tree-node-content-wrapper {
+            background: linear-gradient(
+              135deg,
+              rgba(99, 102, 241, 0.12) 0%,
+              rgba(139, 92, 246, 0.08) 100%
+            );
+            color: #4338ca;
+            font-weight: 600;
+          }
+        }
+
+        // 类型标签颜色
+        .ant-tree-title {
+          font-size: 13px;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+        }
       }
     }
 
@@ -1554,6 +2199,155 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
       color: #6b7280;
       font-size: 12px;
       opacity: 0.85;
+    }
+
+    // 🆕 JSON 字符串化解包提示条样式
+    .json-unwrap-hint {
+      margin: 16px 0;
+      border-radius: 10px;
+      overflow: hidden;
+
+      &.ant-alert-info {
+        background: linear-gradient(
+          135deg,
+          rgba(99, 102, 241, 0.06) 0%,
+          rgba(139, 92, 246, 0.04) 100%
+        );
+        border: 1px solid rgba(99, 102, 241, 0.18);
+      }
+
+      &.ant-alert-success {
+        background: linear-gradient(
+          135deg,
+          rgba(16, 185, 129, 0.06) 0%,
+          rgba(5, 150, 105, 0.04) 100%
+        );
+        border: 1px solid rgba(16, 185, 129, 0.2);
+      }
+
+      :deep(.ant-alert-icon) {
+        display: none; // 隐藏默认图标
+      }
+
+      :deep(.ant-alert-message) {
+        padding: 0;
+      }
+
+      .unwrap-hint-content {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 4px 0;
+
+        .hint-icon {
+          font-size: 22px;
+          flex-shrink: 0;
+        }
+
+        .hint-info {
+          flex: 1;
+          min-width: 0;
+
+          .hint-text {
+            display: block;
+            font-size: 13px;
+            color: #4338ca;
+            font-weight: 600;
+            margin: 0 0 4px 0;
+            font-style: normal;
+            opacity: 1;
+          }
+
+          .hint-preview {
+            display: block;
+            font-size: 11px;
+            color: #7c3aed;
+            font-family: "Consolas", "Monaco", "Courier New", monospace;
+            background: rgba(139, 92, 246, 0.08);
+            padding: 2px 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+        }
+
+        .hint-actions {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-shrink: 0;
+
+          .switch-label {
+            font-size: 12px;
+            color: #9ca3af;
+            font-weight: 500;
+            transition: all 0.2s ease;
+
+            &.active {
+              color: #059669;
+              font-weight: 600;
+            }
+          }
+        }
+      }
+    }
+
+    // 🆕 内层字段标签样式（紫色，区别于外层）
+    .inner-field-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #8b5cf6;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      padding-left: 10px;
+      border-left: 3px solid #8b5cf6;
+      transition: all 0.2s ease;
+
+      &:hover {
+        color: #7c3aed;
+        border-left-color: #7c3aed;
+      }
+
+      &::before {
+        content: "";
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+        border-radius: 4px;
+        transition: all 0.2s ease;
+      }
+
+      .depth-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1px 6px;
+        font-size: 10px;
+        font-weight: 700;
+        color: #fff;
+        background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
+        border-radius: 10px;
+        letter-spacing: 0.5px;
+      }
+    }
+
+    // 🆕 字段路径提示（在取值标签后显示）
+    .field-path-hint {
+      font-size: 11px;
+      color: #8b5cf6;
+      font-family: "Consolas", "Monaco", "Courier New", monospace;
+      font-weight: 500;
+      background: rgba(139, 92, 246, 0.1);
+      padding: 2px 8px;
+      border-radius: 4px;
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
   }
 }
