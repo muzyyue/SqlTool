@@ -5,14 +5,24 @@
 
 /**
  * SQL关键字正则模式（不区分大小写）
+ * 覆盖：DML、DDL、DCL、TCL、CTE、MERGE、存储过程等
  */
-const SQL_KEYWORD_PATTERN = /\b(SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|TRUNCATE|BEGIN|COMMIT|ROLLBACK|GRANT|REVOKE)\b/i
+const SQL_KEYWORD_PATTERN = /\b(SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|TRUNCATE|BEGIN|COMMIT|ROLLBACK|GRANT|REVOKE|WITH|MERGE|CALL|DECLARE|EXEC|EXECUTE)\b/i
 
 /**
- * SQL边界识别正则
- * 匹配完整的SQL语句（支持多行、分号分隔、GO语句）
+ * SQL语句起始正则（用于快速定位SQL片段）
  */
-const SQL_STATEMENT_PATTERN = /(?:(?:SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|TRUNCATE)\b[^;]*?(?:;|$))|(?:--\s*GO\s*$)/gims
+const SQL_START_PATTERN = /\b(?:SELECT|INSERT\s+INTO|UPDATE|DELETE\s+FROM|CREATE\s+(?:TABLE|INDEX|VIEW|PROCEDURE|FUNCTION|TRIGGER|DATABASE|SCHEMA)|ALTER\s+(?:TABLE|INDEX|VIEW|PROCEDURE|FUNCTION|TRIGGER|DATABASE)|DROP\s+(?:TABLE|INDEX|VIEW|PROCEDURE|FUNCTION|TRIGGER|DATABASE)|TRUNCATE\s+TABLE|BEGIN|(?:DECLARE\s*.*?\s*)?BEGIN|WITH\s+\w+\s+AS\s*\(|MERGE\s+INTO|CALL\s+|EXEC(?:UTE)?\s+)\b/i
+
+/**
+ * 日志/时间戳前缀正则（用于清理非SQL内容）
+ */
+const LOG_PREFIX_PATTERN = /^\s*(?:\[\d{4}-\d{2}-\d{2}[^\]]*\]|\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?|\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s*[-:]\s*/gm
+
+/**
+ * 代码块标记正则
+ */
+const CODE_BLOCK_PATTERN = /```(?:sql|SQL|mysql|postgresql|plsql|tsql)\s*\n([\s\S]*?)```/g
 
 /**
  * 注释移除正则
@@ -26,28 +36,47 @@ const MULTI_LINE_COMMENT = /\/\*[\s\S]*?\*\//g
 const STRING_PATTERN = /'(?:[^'\\]*(?:\\.[^'\\]*)*)'/g
 
 /**
- * 从混合文本中提取SQL语句
- * @param {string} text - 输入文本
+ * 从混合文本中智能提取SQL语句
+ * 支持多种场景：日志文件、代码块、Markdown、纯文本等
+ * 
+ * @param {string} text - 输入文本（可能包含非SQL内容）
  * @param {Object} options - 提取选项
  * @param {boolean} options.ignoreComments - 是否忽略注释（默认true）
  * @param {boolean} options.preserveStrings - 是否保护字符串内容（默认true）
  * @param {boolean} options.trimWhitespace - 是否修剪空白字符（默认true）
+ * @param {boolean} options.removeLogPrefix - 是否移除日志前缀（默认true）
+ * @param {boolean} options.extractCodeBlocks - 是否从代码块中提取（默认true）
  * @returns {Array<{sql: string, type: string, lineStart: number, lineEnd: number, raw: string}>}
  */
 export function extractSqlStatements(text, options = {}) {
   const {
     ignoreComments = true,
     preserveStrings = true,
-    trimWhitespace = true
+    trimWhitespace = true,
+    removeLogPrefix = true,
+    extractCodeBlocks = true,
   } = options
 
   if (!text || typeof text !== 'string') {
     return []
   }
 
-  const results = []
   let workingText = text
 
+  // 1. 智能预处理：移除日志前缀
+  if (removeLogPrefix) {
+    workingText = workingText.replace(LOG_PREFIX_PATTERN, '')
+  }
+
+  // 2. 从代码块中提取SQL（优先级高，因为格式最清晰）
+  if (extractCodeBlocks) {
+    const codeBlockResults = extractFromCodeBlocks(workingText)
+    if (codeBlockResults.length > 0) {
+      return codeBlockResults
+    }
+  }
+
+  // 3. 标准SQL提取流程
   if (ignoreComments) {
     workingText = workingText
       .replace(MULTI_LINE_COMMENT, ' ')
@@ -63,19 +92,17 @@ export function extractSqlStatements(text, options = {}) {
     })
   }
 
-  // 改进的SQL提取算法：使用分号/GO作为分隔符，同时追踪括号平衡
+  // 使用改进的分割算法
   const statements = splitByDelimiter(workingText)
+  const results = []
 
   for (const rawStatement of statements) {
     const sqlText = trimWhitespace ? rawStatement.replace(/\s+/g, ' ').trim() : rawStatement
 
     if (sqlText.length === 0) continue
 
-    // 验证是否是有效的SQL语句（以关键字开头）
-    if (!SQL_KEYWORD_PATTERN.test(sqlText.trim())) continue
-
-    // 重置正则状态
-    SQL_KEYWORD_PATTERN.lastIndex = 0
+    // 验证是否是有效的SQL语句
+    if (!isValidSqlStatement(sqlText)) continue
 
     const sqlType = detectSqlType(sqlText)
     results.push({
@@ -88,6 +115,64 @@ export function extractSqlStatements(text, options = {}) {
   }
 
   return results
+}
+
+/**
+ * 从Markdown代码块中提取SQL语句
+ * @param {string} text - 包含代码块的文本
+ * @returns {Array} - 提取的SQL语句数组
+ */
+function extractFromCodeBlocks(text) {
+  const results = []
+  const regex = /```(?:sql|SQL|mysql|postgresql|plsql|tsql|oracle|mariadb)\s*\n([\s\S]*?)```/g
+  let match
+
+  while ((match = regex.exec(text)) !== null) {
+    const sqlContent = match[1].trim()
+    if (sqlContent.length > 0) {
+      // 分割代码块内的多条语句
+      const statements = splitByDelimiter(sqlContent)
+      for (const stmt of statements) {
+        const cleaned = stmt.replace(/\s+/g, ' ').trim()
+        if (cleaned.length > 0 && isValidSqlStatement(cleaned)) {
+          results.push({
+            sql: cleanSqlStatement(cleaned),
+            type: detectSqlType(cleaned),
+            lineStart: 0,
+            lineEnd: 0,
+            raw: stmt
+          })
+        }
+      }
+    }
+  }
+
+  return results
+}
+
+/**
+ * 验证是否为有效的SQL语句
+ * 增强版：支持更多SQL语法模式
+ * @param {string} sql - 待验证的SQL文本
+ * @returns {boolean}
+ */
+function isValidSqlStatement(sql) {
+  const trimmed = sql.trim()
+  
+  // 必须以SQL关键字开头
+  if (!SQL_START_PATTERN.test(trimmed)) {
+    return false
+  }
+  
+  // 重置正则状态
+  SQL_START_PATTERN.lastIndex = 0
+  
+  // 最小长度检查（避免误匹配短字符串）
+  if (trimmed.length < 6) {
+    return false
+  }
+  
+  return true
 }
 
 /**
@@ -239,11 +324,18 @@ export function parseSqlStructure(sql) {
 
 /**
  * 检测SQL类型
+ * 增强版：支持 CTE、MERGE、存储过程等
  * @param {string} sql - SQL语句
- * @returns {string} - SQL类型（select/insert/update/delete/ddl/tcl/dcl）
+ * @returns {string} - SQL类型（select/insert/update/delete/ddl/tcl/dcl/merge/cte/procedure）
  */
 function detectSqlType(sql) {
   const upperSql = sql.trim().toUpperCase()
+
+  // CTE (WITH ... AS) - 必须在 SELECT 之前检测
+  if (/^WITH\s+(?:RECURSIVE\s+)?\w+\s+AS\s*\(/i.test(sql)) return 'cte'
+  
+  // MERGE语句
+  if (/^MERGE\s+INTO/i.test(sql)) return 'merge'
 
   if (upperSql.startsWith('SELECT')) return 'select'
   if (upperSql.startsWith('INSERT')) return 'insert'
@@ -264,6 +356,12 @@ function detectSqlType(sql) {
   for (const keyword of dclKeywords) {
     if (upperSql.startsWith(keyword)) return 'dcl'
   }
+
+  // 存储过程/函数调用
+  if (/^(?:CALL|EXEC|EXECUTE)\s+/i.test(sql)) return 'procedure'
+
+  // DECLARE块（PL/SQL）
+  if (/^DECLARE\b/i.test(sql)) return 'procedure'
 
   return 'unknown'
 }

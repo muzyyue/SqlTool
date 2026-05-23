@@ -37,20 +37,18 @@ import { computed } from "vue";
 import {
   DatabaseOutlined,
   CodeOutlined,
-  ApartmentOutlined,
   CheckCircleOutlined,
   WarningOutlined,
   CloseCircleOutlined,
 } from "@ant-design/icons-vue";
 
 /** 筛选类型 */
-type FilterKey = "total" | "sql" | "json" | "success" | "warning" | "error";
+type FilterKey = "total" | "sql" | "success" | "warning" | "error";
 
 /** 统计数据接口 */
 interface Stats {
   total: number;
   sqlCount: number;
-  jsonCount: number;
   success: number;
   warning: number;
   error: number;
@@ -80,12 +78,6 @@ interface PillItem {
 const pillItems: PillItem[] = [
   { key: "total", label: "总数", icon: DatabaseOutlined, valueKey: "total" },
   { key: "sql", label: "SQL", icon: CodeOutlined, valueKey: "sqlCount" },
-  {
-    key: "json",
-    label: "JSON",
-    icon: ApartmentOutlined,
-    valueKey: "jsonCount",
-  },
   {
     key: "success",
     label: "成功",
@@ -222,17 +214,6 @@ const handleFilter = (key: FilterKey) => emit("filter", key);
   &:hover {
     box-shadow: 0 4px 12px rgba(22, 119, 255, 0.25);
     background: rgba(22, 119, 255, 0.15);
-  }
-}
-
-/* JSON - 紫色 */
-.stat-pill--json {
-  background: rgba(139, 92, 246, 0.1);
-  color: #8b5cf6;
-
-  &:hover {
-    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.25);
-    background: rgba(139, 92, 246, 0.15);
   }
 }
 
@@ -412,17 +393,6 @@ const handleFilter = (key: FilterKey) => emit("filter", key);
     &:hover {
       box-shadow: 0 4px 12px rgba(96, 165, 250, 0.3);
       background: rgba(96, 165, 250, 0.28);
-    }
-  }
-
-  /* JSON - 紫色调亮 */
-  .stat-pill--json {
-    background: rgba(167, 139, 250, 0.2);
-    color: #a78bfa;
-
-    &:hover {
-      box-shadow: 0 4px 12px rgba(167, 139, 250, 0.3);
-      background: rgba(167, 139, 250, 0.28);
     }
   }
 

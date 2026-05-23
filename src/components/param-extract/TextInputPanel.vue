@@ -4,34 +4,16 @@
     <div class="panel-outer-shell">
       <!-- 内层核心 -->
       <div class="panel-inner-core">
-        <!-- 工具栏：类型选择 + 操作按钮 -->
+        <!-- 工具栏：操作按钮 -->
         <div class="panel-toolbar">
           <div class="toolbar-left">
-            <div class="type-selector">
-              <button
-                v-for="type in extractTypes"
-                :key="type.value"
-                class="type-btn"
-                :class="{ 'is-active': localExtractType === type.value }"
-                @click="handleTypeChange(type.value)"
-              >
-                <component :is="type.icon" class="btn-icon" />
-                <span class="btn-label">{{ type.label }}</span>
-              </button>
+            <div class="mode-indicator">
+              <CodeOutlined class="mode-icon" />
+              <span class="mode-text">SQL 提取模式</span>
             </div>
           </div>
 
           <div class="toolbar-right">
-            <button
-              class="action-btn precision-btn"
-              :class="{ 'is-active': localInteractiveMode }"
-              @click="toggleInteractiveMode"
-              :title="localInteractiveMode ? '关闭精准提取' : '开启精准提取'"
-            >
-              <AimOutlined class="btn-icon" />
-              <span>精准提取</span>
-            </button>
-
             <button
               class="action-btn primary-btn"
               :disabled="loading"
@@ -43,7 +25,7 @@
               <template v-else>
                 <SearchOutlined class="btn-icon" />
               </template>
-              <span>提取参数</span>
+              <span>提取 SQL</span>
               <span v-if="loading" class="btn-loading-text">处理中...</span>
             </button>
 
@@ -72,19 +54,6 @@
           </div>
         </div>
 
-        <!-- 交互式字段-值选择器 -->
-        <FieldValueSelector
-          v-if="localInteractiveMode"
-          :parsed-data="props.parsedData"
-          :selected-field="props.selectedField"
-          :selected-value="props.selectedValue"
-          :disabled="!props.modelValue || loading"
-          :confirm-loading="loading"
-          @update:selected-field="(val) => emit('update:selectedField', val)"
-          @update:selected-value="(val) => emit('update:selectedValue', val)"
-          @confirm="(config) => emit('fieldValueConfirm', config)"
-        />
-
         <!-- 状态栏：字数 + 快捷键提示 -->
         <div class="panel-statusbar">
           <div class="status-left">
@@ -100,83 +69,6 @@
             <span class="shortcut-hint">提取</span>
           </div>
         </div>
-
-        <!-- 高级选项折叠面板 -->
-        <div class="advanced-options">
-          <button
-            class="options-toggle"
-            @click="toggleAdvancedOptions"
-            :aria-expanded="showAdvancedOptions"
-          >
-            <span class="toggle-label">高级选项</span>
-            <DownOutlined
-              class="toggle-icon"
-              :class="{ 'is-expanded': showAdvancedOptions }"
-            />
-          </button>
-
-          <Transition name="expand">
-            <div v-show="showAdvancedOptions" class="options-content">
-              <div class="options-grid">
-                <label class="option-item">
-                  <span class="option-label">自动提取</span>
-                  <div class="switch-wrapper">
-                    <input
-                      type="checkbox"
-                      class="switch-input"
-                      :checked="localAutoExtract"
-                      @change="
-                        handleAutoExtractChange(
-                          $event.target.checked,
-                        )
-                      "
-                    />
-                    <span class="switch-track"></span>
-                    <span class="switch-thumb"></span>
-                  </div>
-                </label>
-
-                <template v-if="showJsonOptions">
-                  <label class="option-item">
-                    <span class="option-label">展开嵌套对象</span>
-                    <div class="switch-wrapper">
-                      <input
-                        type="checkbox"
-                        class="switch-input"
-                        :checked="localFlattenNested"
-                        @change="
-                          handleFlattenNestedChange(
-                            $event.target.checked,
-                          )
-                        "
-                      />
-                      <span class="switch-track"></span>
-                      <span class="switch-thumb"></span>
-                    </div>
-                  </label>
-
-                  <label class="option-item">
-                    <span class="option-label">包含数组索引</span>
-                    <div class="switch-wrapper">
-                      <input
-                        type="checkbox"
-                        class="switch-input"
-                        :checked="localIncludeArrayIndex"
-                        @change="
-                          handleIncludeArrayIndexChange(
-                            $event.target.checked,
-                          )
-                        "
-                      />
-                      <span class="switch-track"></span>
-                      <span class="switch-thumb"></span>
-                    </div>
-                  </label>
-                </template>
-              </div>
-            </div>
-          </Transition>
-        </div>
       </div>
     </div>
   </div>
@@ -185,86 +77,37 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import {
-  ThunderboltOutlined,
   CodeOutlined,
-  ApartmentOutlined,
   SearchOutlined,
   ClearOutlined,
   FileTextOutlined,
-  AimOutlined,
-  DownOutlined,
   LoadingOutlined,
 } from "@ant-design/icons-vue";
-import FieldValueSelector from "./FieldValueSelector.vue";
-
-type ExtractType = "auto" | "sql" | "json";
 
 interface Props {
   modelValue: string;
-  extractType: ExtractType;
   loading?: boolean;
-  autoExtract?: boolean;
-  flattenNested?: boolean;
-  includeArrayIndex?: boolean;
   placeholder?: string;
   rows?: number;
-  interactiveMode?: boolean;
-  parsedData?: any;
-  selectedField?: string;
-  selectedValue?: string | string[];
 }
 
 const props = withDefaults(defineProps<Props>(), {
   loading: false,
-  autoExtract: false,
-  flattenNested: false,
-  includeArrayIndex: false,
-  placeholder: "请粘贴 SQL 语句或 JSON 数据...",
+  placeholder: "请粘贴包含 SQL 语句的混合文本...",
   rows: 10,
-  interactiveMode: false,
-  parsedData: null,
-  selectedField: "",
-  selectedValue: () => [],
 });
 
 const emit = defineEmits<{
   "update:modelValue": [value: string];
   extract: [];
   clear: [];
-  "update:extractType": [value: ExtractType];
-  "update:autoExtract": [value: boolean];
-  "update:flattenNested": [value: boolean];
-  "update:includeArrayIndex": [value: boolean];
-  "update:interactiveMode": [value: boolean];
-  "update:selectedField": [value: string];
-  "update:selectedValue": [value: string[]];
-  fieldValueConfirm: [config: { field: string; values: string[] }];
 }>();
 
 const internalValue = ref(props.modelValue);
-const localExtractType = ref<ExtractType>(props.extractType);
-const localAutoExtract = ref(props.autoExtract);
-const localFlattenNested = ref(props.flattenNested);
-const localIncludeArrayIndex = ref(props.includeArrayIndex);
-const localInteractiveMode = ref(props.interactiveMode);
-const showAdvancedOptions = ref(false);
 const isFocused = ref(false);
 const textareaRef = ref<HTMLTextAreaElement>();
 
-const extractTypes = [
-  {
-    value: "auto" as ExtractType,
-    label: "自动检测",
-    icon: ThunderboltOutlined,
-  },
-  { value: "sql" as ExtractType, label: "仅 SQL", icon: CodeOutlined },
-  { value: "json" as ExtractType, label: "仅 JSON", icon: ApartmentOutlined },
-];
-
 const charCount = computed(() => internalValue.value.length);
-const showJsonOptions = computed(
-  () => localExtractType.value === "auto" || localExtractType.value === "json",
-);
 
 watch(
   () => props.modelValue,
@@ -273,50 +116,10 @@ watch(
   },
 );
 
-watch(
-  () => props.extractType,
-  (val) => {
-    localExtractType.value = val;
-  },
-);
-
-watch(
-  () => props.autoExtract,
-  (val) => {
-    localAutoExtract.value = val;
-  },
-);
-
-watch(
-  () => props.flattenNested,
-  (val) => {
-    localFlattenNested.value = val;
-  },
-);
-
-watch(
-  () => props.includeArrayIndex,
-  (val) => {
-    localIncludeArrayIndex.value = val;
-  },
-);
-
-watch(
-  () => props.interactiveMode,
-  (val) => {
-    localInteractiveMode.value = val;
-  },
-);
-
 const handleChange = (e: Event) => {
   const target = e.target as HTMLTextAreaElement;
   internalValue.value = target.value;
   emit("update:modelValue", target.value);
-};
-
-const handleTypeChange = (value: ExtractType) => {
-  localExtractType.value = value;
-  emit("update:extractType", value);
 };
 
 const handleExtract = () => emit("extract");
@@ -330,36 +133,6 @@ const handleClear = () => {
 const handleShortcutExtract = (e: KeyboardEvent) => {
   e.preventDefault();
   handleExtract();
-};
-
-const handleAutoExtractChange = (v: boolean) => {
-  localAutoExtract.value = v;
-  emit("update:autoExtract", v);
-};
-
-const handleFlattenNestedChange = (v: boolean) => {
-  localFlattenNested.value = v;
-  emit("update:flattenNested", v);
-};
-
-const handleIncludeArrayIndexChange = (v: boolean) => {
-  localIncludeArrayIndex.value = v;
-  emit("update:includeArrayIndex", v);
-};
-
-const toggleInteractiveMode = () => {
-  const newValue = !localInteractiveMode.value;
-  localInteractiveMode.value = newValue;
-  emit("update:interactiveMode", newValue);
-
-  if (!newValue) {
-    emit("update:selectedField", "");
-    emit("update:selectedValue", []);
-  }
-};
-
-const toggleAdvancedOptions = () => {
-  showAdvancedOptions.value = !showAdvancedOptions.value;
 };
 
 defineExpose({
@@ -435,58 +208,25 @@ defineExpose({
       gap: 8px;
       flex-shrink: 0;
     }
-  }
 
-  .type-selector {
-    display: flex;
-    gap: 4px;
-    padding: 4px;
-    background: var(--bg-base);
-    border-radius: 10px;
-
-    .type-btn {
-      display: flex;
+    .mode-indicator {
+      display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 8px 14px;
+      gap: 8px;
+      padding: 8px 16px;
       font-size: 13px;
-      font-weight: 500;
-      color: var(--text-secondary);
-      background: transparent;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background,color,border-color,box-shadow,transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
-      white-space: nowrap;
+      font-weight: 600;
+      color: var(--color-primary);
+      background: rgba(22, 119, 255, 0.08);
+      border-radius: 10px;
+      border: 1px solid rgba(22, 119, 255, 0.15);
 
-      .btn-icon {
-        font-size: 14px;
-        transition: transform 0.2s ease;
+      .mode-icon {
+        font-size: 15px;
       }
 
-      .btn-label {
+      .mode-text {
         letter-spacing: -0.01em;
-      }
-
-      &:hover:not(.is-active) {
-        color: var(--text-primary);
-        background: var(--interactive-hover-inverse);
-
-        .btn-icon {
-          transform: scale(1.1);
-        }
-      }
-
-      &.is-active {
-        color: var(--color-primary);
-        background: var(--bg-elevated);
-        box-shadow:
-          var(--shadow-sm),
-          0 1px 2px rgba(22, 119, 255, 0.12);
-
-        .btn-icon {
-          transform: scale(1.05);
-        }
       }
     }
   }
@@ -501,7 +241,7 @@ defineExpose({
     border: none;
     border-radius: 10px;
     cursor: pointer;
-    transition: background,color,border-color,box-shadow,transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+    transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, transform 0.15s ease;
     white-space: nowrap;
     flex-shrink: 0;
 
@@ -512,28 +252,6 @@ defineExpose({
 
     &:active {
       transform: scale(0.97);
-    }
-  }
-
-  .precision-btn {
-    color: var(--text-secondary);
-    background: var(--bg-sunken);
-    border: 1px solid var(--border-default);
-
-    &:hover {
-      background: var(--bg-base);
-      border-color: var(--border-strong);
-    }
-
-    &.is-active {
-      color: var(--text-inverse);
-      background: linear-gradient(
-        135deg,
-        var(--color-primary) 0%,
-        var(--color-primary-hover) 100%
-      );
-      border-color: transparent;
-      box-shadow: 0 2px 8px rgba(22, 119, 255, 0.3);
     }
   }
 
@@ -716,117 +434,6 @@ defineExpose({
       margin-left: 4px;
     }
   }
-
-  .advanced-options {
-    border-top: 1px solid var(--border-default);
-
-    .options-toggle {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      width: 100%;
-      padding: 14px 20px;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text-secondary);
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      transition: color,background 0.2s ease;
-
-      &:hover {
-        color: var(--text-primary);
-        background: var(--interactive-hover);
-      }
-
-      .toggle-label {
-        letter-spacing: -0.01em;
-      }
-
-      .toggle-icon {
-        font-size: 12px;
-        color: var(--text-tertiary);
-        transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
-
-        &.is-expanded {
-          transform: rotate(180deg);
-        }
-      }
-    }
-
-    .options-content {
-      padding: 0 20px 18px;
-    }
-
-    .options-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 20px;
-    }
-
-    .option-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      cursor: pointer;
-
-      .option-label {
-        font-size: 13px;
-        font-weight: 500;
-        color: var(--text-secondary);
-        user-select: none;
-      }
-
-      .switch-wrapper {
-        position: relative;
-        width: 40px;
-        height: 22px;
-
-        .switch-input {
-          position: absolute;
-          opacity: 0;
-          width: 0;
-          height: 0;
-
-          &:checked + .switch-track {
-            background: linear-gradient(
-              135deg,
-              var(--color-primary) 0%,
-              var(--color-primary-hover) 100%
-            );
-
-            & + .switch-thumb {
-              transform: translateX(18px);
-            }
-          }
-
-          &:focus-visible + .switch-track {
-            box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.15);
-          }
-        }
-
-        .switch-track {
-          position: absolute;
-          inset: 0;
-          background: var(--border-default);
-          border-radius: 9999px;
-          transition: background 0.3s cubic-bezier(0.32, 0.72, 0, 1);
-        }
-
-        .switch-thumb {
-          position: absolute;
-          top: 2px;
-          left: 2px;
-          width: 18px;
-          height: 18px;
-          background: var(--bg-elevated);
-          border-radius: 50%;
-          box-shadow: var(--shadow-xs);
-          transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
-        }
-      }
-    }
-  }
 }
 
 @keyframes spin {
@@ -836,26 +443,6 @@ defineExpose({
   to {
     transform: rotate(360deg);
   }
-}
-
-.expand-enter-active,
-.expand-leave-active {
-  transition: opacity,max-height,padding 0.35s cubic-bezier(0.32, 0.72, 0, 1);
-  overflow: hidden;
-}
-
-.expand-enter-from,
-.expand-leave-to {
-  opacity: 0;
-  max-height: 0;
-  padding-top: 0;
-  padding-bottom: 0;
-}
-
-.expand-enter-to,
-.expand-leave-from {
-  opacity: 1;
-  max-height: 200px;
 }
 
 @media (max-width: 1024px) {

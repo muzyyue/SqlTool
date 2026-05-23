@@ -12,16 +12,13 @@ import {
 
 /**
  * 默认配置
+ * 专注于 SQL 语句提取
  */
 const DEFAULT_CONFIG = {
   autoExtract: true,
-  extractType: "auto",
+  extractType: "sql", // 默认只提取SQL
   debounceDelay: 300,
   maxResults: 1000,
-  jsonMode: "pairs", // 'pairs' | 'atomic'
-  flattenNested: true,
-  maxDepth: 3,
-  includeLineage: true,
 };
 
 const MAX_EXTRACT_DEPTH = 5;
@@ -100,18 +97,16 @@ export function useParamExtractor(config = {}) {
   const state = reactive({
     // 输入相关
     inputText: "",
-    extractType: options.extractType, // 'auto' | 'sql' | 'json'
-    detectedType: ContentType.UNKNOWN, // 自动检测结果
+    extractType: options.extractType, // 'sql' (专注于SQL提取)
 
     // 提取结果
     extractedItems: [], // 结果项列表
     selectedItem: null, // 当前选中的结果项
 
-    // 统计信息
+    // 统计信息（仅SQL）
     stats: {
       total: 0, // 总数
       sqlCount: 0, // SQL数量
-      jsonCount: 0, // JSON数量
       success: 0, // 成功数
       warning: 0, // 警告数
       error: 0, // 错误数
@@ -119,20 +114,12 @@ export function useParamExtractor(config = {}) {
 
     // UI状态
     loading: false, // 处理中
-    filterType: "all", // 类型筛选 ('all' | 'sql' | 'json')
     filterStatus: "all", // 状态筛选 ('all' | 'success' | 'warning' | 'error')
 
     // 选项
     autoExtract: options.autoExtract, // 自动提取开关
-    flattenNested: options.flattenNested, // JSON嵌套展开选项
     lastExtractTime: null, // 上次提取时间
     lastError: null, // 最后的错误信息
-
-    // 交互式选择模式相关
-    interactiveMode: false, // 是否启用交互式选择
-    selectedField: "", // 当前选中的字段路径
-    selectedValues: [], // 当前选中的值列表（支持多选）
-    parsedDataForSelector: null, // 解析后的原始数据，供选择器使用
   });
 
   // 防抖定时器
@@ -142,15 +129,10 @@ export function useParamExtractor(config = {}) {
   // ==================== 计算属性 ====================
 
   /**
-   * 过滤后的结果列表
+   * 过滤后的结果列表（仅状态筛选）
    */
   const filteredItems = computed(() => {
     let items = state.extractedItems;
-
-    // 类型筛选
-    if (state.filterType !== "all") {
-      items = items.filter((item) => item.type === state.filterType);
-    }
 
     // 状态筛选
     if (state.filterStatus !== "all") {
@@ -195,7 +177,7 @@ export function useParamExtractor(config = {}) {
   // ==================== 核心方法 ====================
 
   /**
-   * 触发提取操作
+   * 触发提取操作（专注于SQL提取）
    */
   async function extract() {
     if (!state.inputText || !state.inputText.trim()) {
@@ -221,19 +203,19 @@ export function useParamExtractor(config = {}) {
         }, 10000);
       });
 
-      // 确定提取类型
-      const effectiveType = getEffectiveExtractType();
-
-      // 创建或复用提取器
-      if (
-        !currentExtractor ||
-        getTypeFromExtractor(currentExtractor) !== effectiveType
-      ) {
-        currentExtractor = createExtractor(effectiveType);
+      // 创建 SQL 提取器
+      if (!currentExtractor) {
+        currentExtractor = createExtractor(ContentType.SQL);
       }
 
       // 执行提取（带超时）
-      const extractOptions = buildExtractOptions();
+      const extractOptions = {
+        ignoreComments: true,
+        preserveStrings: true,
+        trimWhitespace: true,
+        removeLogPrefix: true,
+        extractCodeBlocks: true,
+      };
       const extractPromise = currentExtractor.extract(
         state.inputText,
         extractOptions,
@@ -278,17 +260,27 @@ export function useParamExtractor(config = {}) {
   }
 
   /**
-   * 手动触发类型检测
+   * 切换提取类型（仅支持sql）
    */
-  function detectType() {
-    if (!state.inputText) {
-      state.detectedType = ContentType.UNKNOWN;
-      return;
-    }
+  function switchType(type) {
+    if (type === "sql") {
+      state.extractType = type;
+      currentExtractor = null; // 清除缓存，下次重新创建
 
-    const detection = detectContentType(state.inputText);
-    state.detectedType = detection.type;
-    return detection;
+      // 如果有输入内容，立即重新提取
+      if (state.inputText) {
+        extract();
+      }
+    }
+  }
+
+  /**
+   * 设置筛选条件（仅状态筛选）
+   */
+  function setFilter(filterType, filterStatus) {
+    if (filterStatus !== undefined) {
+      state.filterStatus = filterStatus;
+    }
   }
 
   /**
@@ -381,42 +373,10 @@ export function useParamExtractor(config = {}) {
   }
 
   /**
-   * 切换提取类型
-   */
-  function switchType(type) {
-    if (["auto", "sql", "json"].includes(type)) {
-      state.extractType = type;
-      currentExtractor = null; // 清除缓存，下次重新创建
-
-      // 如果有输入内容，立即重新提取
-      if (state.inputText) {
-        extract();
-      }
-    }
-  }
-
-  /**
-   * 设置筛选条件
-   */
-  function setFilter(filterType, filterStatus) {
-    if (filterType !== undefined) {
-      state.filterType = filterType;
-    }
-    if (filterStatus !== undefined) {
-      state.filterStatus = filterStatus;
-    }
-  }
-
-  /**
    * 更新输入文本
    */
   function setInputText(text) {
     state.inputText = text;
-
-    // 自动检测类型
-    if (state.extractType === "auto") {
-      detectType();
-    }
 
     // 触发自动提取
     if (state.autoExtract) {
@@ -424,61 +384,7 @@ export function useParamExtractor(config = {}) {
     }
   }
 
-  /**
-   * 更新JSON模式
-   */
-  function setJsonMode(mode) {
-    if (["pairs", "atomic"].includes(mode)) {
-      options.jsonMode = mode;
-    }
-  }
-
   // ==================== 内部辅助方法 ====================
-
-  /**
-   * 获取有效的提取类型
-   */
-  function getEffectiveExtractType() {
-    if (state.extractType !== "auto") {
-      return state.extractType;
-    }
-
-    // 自动检测
-    if (state.detectedType !== ContentType.UNKNOWN) {
-      return state.detectedType;
-    }
-
-    // 实时检测
-    const detection = detectContentType(state.inputText);
-    state.detectedType = detection.type;
-    return detection.type;
-  }
-
-  /**
-   * 构建提取选项
-   */
-  function buildExtractOptions() {
-    const baseOptions = {
-      ignoreComments: true,
-      preserveStrings: true,
-      trimWhitespace: true,
-    };
-
-    if (
-      getEffectiveExtractType() === ContentType.JSON ||
-      getEffectiveExtractType() === ContentType.MIXED
-    ) {
-      return {
-        ...baseOptions,
-        mode: options.jsonMode,
-        maxDepth: options.maxDepth,
-        includeLineage: options.includeLineage,
-        flattenNested: state.flattenNested,
-      };
-    }
-
-    return baseOptions;
-  }
 
   /**
    * 更新提取结果
@@ -491,40 +397,10 @@ export function useParamExtractor(config = {}) {
       Object.assign(state.stats, result.stats);
     }
 
-    // 自动解析输入数据供交互式选择器使用
-    if (state.inputText) {
-      state.parsedDataForSelector = tryParseInputData(state.inputText);
-    }
-
     // 自动选择第一个结果
     if (state.extractedItems.length > 0 && !state.selectedItem) {
       selectItem(state.extractedItems[0]);
     }
-  }
-
-  /**
-   * 尝试解析输入的原始数据
-   * 支持字符串化的 JSON 数组/对象
-   * @param {string} inputText - 原始输入文本
-   * @returns {*} 解析后的数据，失败返回 null
-   */
-  function tryParseInputData(inputText) {
-    if (!inputText || typeof inputText !== "string") return null;
-
-    const trimmed = inputText.trim();
-
-    if (
-      (trimmed.startsWith("[") || trimmed.startsWith("{")) &&
-      trimmed.length < 100000
-    ) {
-      try {
-        return JSON.parse(trimmed);
-      } catch {
-        return null;
-      }
-    }
-
-    return null;
   }
 
   /**
@@ -573,204 +449,6 @@ export function useParamExtractor(config = {}) {
     return rows.join("\n");
   }
 
-  // ==================== 交互式选择模式方法 ====================
-
-  /**
-   * 切换交互式选择模式
-   * @param {boolean} enabled - 是否启用
-   */
-  function setInteractiveMode(enabled) {
-    state.interactiveMode = enabled;
-
-    if (!enabled) {
-      state.selectedField = "";
-      state.selectedValues = [];
-      state.parsedDataForSelector = null;
-    }
-  }
-
-  /**
-   * 构建字段选项列表
-   * 从解析后的数据中递归收集所有可用字段路径
-   * @param {Array|Object} data - 解析后的 JSON 数据
-   * @returns {Array<{label: string, value: string}>}
-   */
-  function buildFieldOptions(data) {
-    if (!data) return [];
-
-    const fields = new Set();
-
-    function collectKeys(obj, prefix = "") {
-      if (Array.isArray(obj)) {
-        obj.forEach((item, idx) => collectKeys(item, prefix));
-        return;
-      }
-
-      if (typeof obj === "object" && obj !== null) {
-        Object.keys(obj).forEach((key) => {
-          const fullPath = prefix ? `${prefix}.${key}` : key;
-          fields.add(fullPath);
-
-          if (!prefix) {
-            collectKeys(obj[key], key);
-          }
-        });
-      }
-    }
-
-    collectKeys(data);
-
-    return Array.from(fields)
-      .sort()
-      .map((f) => ({ label: f, value: f }));
-  }
-
-  /**
-   * 支持点号路径的嵌套值访问
-   * @param {Object} obj - 目标对象
-   * @param {string} path - 点号分隔的路径（如 "value_data.file"）
-   * @returns {*} - 获取到的值
-   */
-  function getNestedValue(obj, path) {
-    if (!obj || !path) return undefined;
-
-    const keys = path.split(".");
-    let current = obj;
-
-    for (const key of keys) {
-      if (
-        current !== null &&
-        current !== undefined &&
-        typeof current === "object" &&
-        key in current
-      ) {
-        current = current[key];
-      } else {
-        return undefined;
-      }
-    }
-
-    return current;
-  }
-
-  /**
-   * 规范化值为可读字符串
-   * 处理字符串化JSON、对象、数组等复杂类型
-   * @param {*} value - 待规范化的值
-   * @returns {*}
-   */
-  function normalizeValueForSelector(value) {
-    if (value === null || value === undefined) return "";
-
-    if (typeof value === "string") {
-      const trimmed = value.trim();
-      if (
-        (trimmed.startsWith("{") || trimmed.startsWith("[")) &&
-        trimmed.length < 10000
-      ) {
-        try {
-          const parsed = JSON.parse(trimmed);
-          return normalizeValueForSelector(parsed);
-        } catch {
-          return value;
-        }
-      }
-      return value;
-    }
-
-    if (Array.isArray(value)) {
-      return value.map((v) => normalizeValueForSelector(v)).flat();
-    }
-
-    if (typeof value === "object") {
-      try {
-        return JSON.stringify(value);
-      } catch {
-        return "[Object]";
-      }
-    }
-
-    return String(value);
-  }
-
-  /**
-   * 构建值选项列表
-   * 根据选定字段从数据中提取所有唯一值
-   * @param {Array|Object} data - 解析后的 JSON 数据
-   * @param {string} field - 选定的字段名
-   * @returns {Array<{label: string, value: string, count: number}>}
-   */
-  function buildValueOptions(data, field) {
-    if (!data || !field) return [];
-
-    const values = new Map();
-
-    function extractValues(obj) {
-      if (Array.isArray(obj)) {
-        obj.forEach((item) => extractValues(item));
-        return;
-      }
-
-      if (typeof obj === "object" && obj !== null) {
-        const fieldValue = getNestedValue(obj, field);
-
-        if (fieldValue !== undefined) {
-          const normalized = normalizeValueForSelector(fieldValue);
-          if (Array.isArray(normalized)) {
-            normalized.forEach((v) => {
-              values.set(v, (values.get(v) || 0) + 1);
-            });
-          } else {
-            values.set(normalized, (values.get(normalized) || 0) + 1);
-          }
-        }
-      }
-    }
-
-    extractValues(data);
-
-    return Array.from(values.entries())
-      .map(([value, count]) => ({
-        label:
-          typeof value === "string" && value.length > 50
-            ? value.slice(0, 50) + "..."
-            : String(value),
-        value,
-        count,
-      }))
-      .sort((a, b) => a.label.localeCompare(b.label));
-  }
-
-  /**
-   * 根据字段和值的组合进行精准提取
-   * @param {string} field - 目标字段路径
-   * @param {Array<string>} values - 目标值列表（支持多选）
-   */
-  async function extractByFieldAndValue(field, values) {
-    if (!state.inputText) {
-      clearResults();
-      return;
-    }
-
-    state.loading = true;
-
-    try {
-      const result = await currentExtractor.extract(state.inputText, {
-        ...buildExtractOptions(),
-        filterField: field,
-        filterValues: values,
-      });
-
-      updateExtractionResult(result);
-    } catch (error) {
-      console.error("精准提取失败:", error);
-      state.lastError = error.message;
-      state.stats.error++;
-    } finally {
-      state.loading = false;
-    }
-  }
-
   // ==================== 监听器 ====================
 
   // 监听输入变化，触发自动提取
@@ -806,7 +484,6 @@ export function useParamExtractor(config = {}) {
     // 方法
     extract,
     debouncedExtract,
-    detectType,
     clearResults,
     selectItem,
     deselectItem,
@@ -816,13 +493,6 @@ export function useParamExtractor(config = {}) {
     switchType,
     setFilter,
     setInputText,
-    setJsonMode,
-
-    // 交互式选择模式方法
-    setInteractiveMode,
-    buildFieldOptions,
-    buildValueOptions,
-    extractByFieldAndValue,
 
     // 清理方法
     cleanup,

@@ -7,16 +7,15 @@
     <div class="page-container">
       <!-- 页面标题区域 -->
       <header class="page-header">
-        <div class="eyebrow-tag">Intelligent Extraction</div>
+        <div class="eyebrow-tag">SQL Extraction</div>
         <h1 class="page-title">
           <span class="title-icon-wrapper">
             <SearchOutlined class="title-icon" />
           </span>
-          通用参数提取工具
+          SQL 语句提取工具
         </h1>
         <p class="page-subtitle">
-          从混合文本中智能识别并提取 SQL 语句和 JSON
-          参数，支持自动检测、精准筛选和深度解析
+          从混合文本中智能识别并提取 SQL 语句，支持多种数据库语法
         </p>
       </header>
 
@@ -29,31 +28,9 @@
         >
           <TextInputPanel
             v-model="extractor.state.inputText"
-            :extract-type="extractor.state.extractType"
             :loading="isLoading"
-            :auto-extract="extractor.state.autoExtract"
-            :flatten-nested="extractor.state.flattenNested"
-            :interactive-mode="extractor.state.interactiveMode"
-            :parsed-data="extractor.state.parsedDataForSelector"
-            :selected-field="extractor.state.selectedField"
-            :selected-value="extractor.state.selectedValues"
             @extract="handleExtract"
             @clear="handleClear"
-            @update:extract-type="extractor.switchType"
-            @update:auto-extract="(val) => (extractor.state.autoExtract = val)"
-            @update:flatten-nested="
-              (val) => (extractor.state.flattenNested = val)
-            "
-            @update:interactive-mode="
-              (val) => extractor.setInteractiveMode(val)
-            "
-            @update:selected-field="
-              (val) => (extractor.state.selectedField = val)
-            "
-            @update:selected-value="
-              (val) => (extractor.state.selectedValues = val)
-            "
-            @field-value-confirm="handleFieldValueConfirm"
           />
         </section>
 
@@ -117,16 +94,20 @@
         </div>
         <h3 class="empty-title">等待输入</h3>
         <p class="empty-description">
-          请在上方输入包含 SQL 或 JSON 的文本内容，点击提取按钮开始分析
+          请在上方输入包含 SQL 语句的文本内容，点击提取按钮开始分析
         </p>
         <div class="empty-hints">
           <div class="hint-item">
             <CodeOutlined class="hint-icon" />
-            <span>支持 SQL INSERT/UPDATE/SELECT</span>
+            <span>支持 SELECT/INSERT/UPDATE/DELETE</span>
           </div>
           <div class="hint-item">
             <ApartmentOutlined class="hint-icon" />
-            <span>支持 JSON 对象/数组/嵌套结构</span>
+            <span>支持 DDL/DCL/TCL 语句</span>
+          </div>
+          <div class="hint-item">
+            <FileTextOutlined class="hint-icon" />
+            <span>支持 CTE/MERGE/存储过程</span>
           </div>
         </div>
       </div>
@@ -149,7 +130,7 @@
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, ref } from "vue";
+import { onMounted, onUnmounted, ref, computed } from "vue";
 import {
   SearchOutlined,
   FileTextOutlined,
@@ -160,8 +141,6 @@ import { message } from "ant-design-vue";
 import TextInputPanel from "@/components/param-extract/TextInputPanel.vue";
 import ExtractResultList from "@/components/param-extract/ExtractResultList.vue";
 import ExtractStatsBar from "@/components/param-extract/ExtractStatsBar.vue";
-import SqlDetailViewer from "@/components/param-extract/SqlDetailViewer.vue";
-import JsonDetailViewer from "@/components/param-extract/JsonDetailViewer.vue";
 import { useParamExtractor } from "@/composables/useParamExtractor";
 
 const extractor = useParamExtractor();
@@ -172,8 +151,15 @@ const {
   filteredItems,
   hasResults,
   hasSelectedItem,
-  detailComponentType,
 } = extractor;
+
+/**
+ * 选中的详情查看器组件类型（仅SQL）
+ */
+const detailComponentType = computed(() => {
+  if (!extractor.state.selectedItem) return null;
+  return "SqlDetailViewer";
+});
 
 const showErrorModal = ref(false);
 
@@ -245,25 +231,12 @@ async function handleCopyAll() {
 }
 
 function handleFilter(filterKey) {
-  if (filterKey === "sql" || filterKey === "json") {
-    extractor.setFilter(filterKey, undefined);
-  } else if (
+  if (
     filterKey === "success" ||
     filterKey === "warning" ||
     filterKey === "error"
   ) {
     extractor.setFilter(undefined, filterKey);
-  }
-}
-
-async function handleFieldValueConfirm({ field, values }) {
-  await extractor.extractByFieldAndValue(field, values);
-
-  if (extractor.state.lastError) {
-    showErrorModal.value = true;
-    message.error(`精准提取失败`);
-  } else {
-    message.success(`已按 ${field} 筛选提取 (${values.length} 个条件)`);
   }
 }
 </script>
@@ -272,17 +245,21 @@ async function handleFieldValueConfirm({ field, values }) {
 .param-extract-page {
   position: relative;
   min-height: 100dvh;
-  background: var(--page-bg-gradient);
+  background: var(--bg-base);
   overflow-x: hidden;
-  contain: layout style;
+  contain: layout style paint;
+  overscroll-behavior-y: contain;
 
   .background-texture {
     position: fixed;
     inset: 0;
     z-index: 0;
-    opacity: 0.3;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    opacity: 0.15;
+    background-image: radial-gradient(circle at 20% 50%, rgba(22, 119, 255, 0.08) 0%, transparent 50%),
+                      radial-gradient(circle at 80% 80%, rgba(168, 85, 247, 0.06) 0%, transparent 50%);
     pointer-events: none;
+    transform: translateZ(0);
+    will-change: transform;
   }
 
   .page-container {
@@ -291,12 +268,14 @@ async function handleFieldValueConfirm({ field, values }) {
     max-width: 1400px;
     margin: 0 auto;
     padding: 48px 32px 64px;
+    content-visibility: auto;
+    contain-intrinsic-size: auto 100vh;
   }
 
   .page-header {
     text-align: center;
     margin-bottom: 56px;
-    animation: fadeSlideUp 0.8s cubic-bezier(0.32, 0.72, 0, 1) both;
+    animation: fadeInUp 0.6s cubic-bezier(0.32, 0.72, 0, 1) both;
 
     .eyebrow-tag {
       display: inline-flex;
@@ -363,9 +342,10 @@ async function handleFieldValueConfirm({ field, values }) {
     grid-template-columns: repeat(12, 1fr);
     gap: 24px;
     margin-bottom: 24px;
+    contain: content;
 
     .bento-item {
-      animation: fadeSlideUp 0.8s cubic-bezier(0.32, 0.72, 0, 1) both;
+      animation: fadeInUp 0.6s cubic-bezier(0.32, 0.72, 0, 1) both;
 
       &:nth-child(1) {
         animation-delay: 0.1s;
@@ -399,10 +379,10 @@ async function handleFieldValueConfirm({ field, values }) {
     border-radius: 20px;
     border: 1px solid var(--border-default);
     box-shadow: var(--shadow-sm);
-    overflow: visible;
-    transition: opacity 0.3s cubic-bezier(0.32, 0.72, 0, 1), transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
-    will-change: transform;
+    overflow: hidden;
+    transition: opacity 0.25s ease, transform 0.25s ease;
     min-height: 380px;
+    contain: layout style;
 
     .detail-header {
       display: flex;
@@ -428,7 +408,7 @@ async function handleFieldValueConfirm({ field, values }) {
     .detail-content {
       border-top: 1px solid var(--border-default);
       min-height: 300px;
-      overflow: visible;
+      overflow: auto;
 
       .detail-viewer {
         width: 100%;
@@ -450,7 +430,7 @@ async function handleFieldValueConfirm({ field, values }) {
     border: 1px solid var(--border-default);
     box-shadow: var(--shadow-sm);
     text-align: center;
-    animation: fadeSlideUp 0.8s cubic-bezier(0.32, 0.72, 0, 1) 0.4s both;
+    animation: fadeInUp 0.6s cubic-bezier(0.32, 0.72, 0, 1) 0.3s both;
 
     .empty-illustration {
       margin-bottom: 28px;
@@ -511,8 +491,7 @@ async function handleFieldValueConfirm({ field, values }) {
         background: var(--bg-sunken);
         border: 1px solid var(--border-default);
         border-radius: 10px;
-        transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
-        will-change: transform;
+        transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
 
         &:hover {
           background: var(--interactive-hover);
@@ -529,14 +508,30 @@ async function handleFieldValueConfirm({ field, values }) {
   }
 }
 
-@keyframes fadeSlideUp {
+@keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(24px) blur(8px);
+    transform: translateY(16px);
   }
   to {
     opacity: 1;
-    transform: translateY(0) blur(0);
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .param-extract-page {
+    .page-header,
+    .bento-item,
+    .empty-state,
+    .detail-panel {
+      animation: none;
+      transition: none;
+    }
+
+    .hint-item {
+      transition: background-color 0.1s ease, border-color 0.1s ease;
+    }
   }
 }
 

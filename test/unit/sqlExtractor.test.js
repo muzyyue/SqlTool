@@ -112,6 +112,139 @@ describe("sqlExtractor", () => {
       expect(extractSqlStatements({})).toEqual([]);
       expect(extractSqlStatements([])).toEqual([]);
     });
+
+    // ========== 增强功能测试 ==========
+
+    it("应提取CTE（WITH...AS）语句", () => {
+      const sql = `WITH active_users AS (
+        SELECT id, name FROM users WHERE status = 'active'
+      )
+      SELECT * FROM active_users ORDER BY name`;
+      const results = extractSqlStatements(sql);
+
+      expect(results).toHaveLength(1);
+      expect(results[0].type).toBe("cte");
+      expect(results[0].sql).toContain("WITH");
+    });
+
+    it("应提取MERGE语句", () => {
+      const sql = `MERGE INTO target_table t
+      USING source_table s ON t.id = s.id
+      WHEN MATCHED THEN UPDATE SET t.value = s.value
+      WHEN NOT MATCHED THEN INSERT (id, value) VALUES (s.id, s.value);`;
+      const results = extractSqlStatements(sql);
+
+      expect(results).toHaveLength(1);
+      expect(results[0].type).toBe("merge");
+      expect(results[0].sql).toContain("MERGE");
+    });
+
+    it("应提取存储过程调用（CALL）", () => {
+      const sql = "CALL sp_get_users('active', 100)";
+      const results = extractSqlStatements(sql);
+
+      expect(results).toHaveLength(1);
+      expect(results[0].type).toBe("procedure");
+    });
+
+    it("应提取EXEC/EXECUTE调用", () => {
+      const execStatements = [
+        "EXEC sp_who",
+        "EXECUTE usp_GetOrders @CustomerId = 1",
+      ];
+
+      execStatements.forEach((sql) => {
+        const results = extractSqlStatements(sql);
+        expect(results).toHaveLength(1);
+        expect(results[0].type).toBe("procedure");
+      });
+    });
+
+    it("应提取DECLARE块（PL/SQL）", () => {
+      const sql = `DECLARE
+        v_count NUMBER;
+      BEGIN
+        SELECT COUNT(*) INTO v_count FROM users;
+      END;`;
+      const results = extractSqlStatements(sql);
+
+      expect(results.length).toBeGreaterThanOrEqual(1);
+      expect(results[0].type).toBe("procedure");
+    });
+
+    it("应移除日志前缀并提取SQL", () => {
+      const text = `[2024-01-15 10:30:00] INFO - SELECT * FROM users;
+[2024-01-15 10:30:01] ERROR - INSERT INTO logs VALUES ('error');`;
+      const results = extractSqlStatements(text, { removeLogPrefix: true });
+
+      expect(results).toHaveLength(2);
+      expect(results[0].sql).not.toContain("[2024");
+      expect(results[1].sql).not.toContain("[2024");
+    });
+
+    it("应从Markdown代码块中提取SQL", () => {
+      const text = `这是一些文本说明
+
+\`\`\`sql
+SELECT * FROM users WHERE status = 'active';
+INSERT INTO audit_log (action) VALUES ('query');
+\`\`\`
+
+更多文本内容`;
+      const results = extractSqlStatements(text, { extractCodeBlocks: true });
+
+      expect(results).toHaveLength(2);
+      expect(results[0].type).toBe("select");
+      expect(results[1].type).toBe("insert");
+    });
+
+    it("应处理混合文本中的SQL片段", () => {
+      const text = `用户请求日志：
+时间：2024-01-15 10:30:00
+执行的SQL：SELECT * FROM products WHERE price > 100
+
+错误信息：
+执行失败：UPDATE inventory SET quantity = 0 WHERE product_id = 999`;
+      const results = extractSqlStatements(text);
+
+      expect(results.length).toBeGreaterThanOrEqual(1);
+      // 应该能找到至少一条SQL
+      const hasSelect = results.some((r) => r.type === "select");
+      const hasUpdate = results.some((r) => r.type === "update");
+      expect(hasSelect || hasUpdate).toBe(true);
+    });
+
+    it("应支持RECURSIVE CTE", () => {
+      const sql = `WITH RECURSIVE org_chart AS (
+        SELECT id, manager_id, name FROM employees WHERE manager_id IS NULL
+        UNION ALL
+        SELECT e.id, e.manager_id, e.name FROM employees e
+        JOIN org_chart o ON e.manager_id = o.id
+      )
+      SELECT * FROM org_chart`;
+      const results = extractSqlStatements(sql);
+
+      expect(results).toHaveLength(1);
+      expect(results[0].type).toBe("cte");
+    });
+
+    it("应正确处理带注释的复杂SQL块", () => {
+      const text = `-- 用户查询
+/* 多行注释开始
+   这是查询逻辑
+   多行注释结束 */
+SELECT 
+  u.id,
+  u.name,
+  (SELECT COUNT(*) FROM orders o WHERE o.user_id = u.id) as order_count
+FROM users u
+WHERE u.status = 'active' -- 只查活跃用户`;
+      const results = extractSqlStatements(text, { ignoreComments: true });
+
+      expect(results).toHaveLength(1);
+      expect(results[0].sql).not.toContain("--");
+      expect(results[0].sql).not.toContain("/*");
+    });
   });
 
   describe("validateSql", () => {
