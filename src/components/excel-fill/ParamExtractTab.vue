@@ -1039,7 +1039,9 @@ function loadInnerFieldValues(innerPath) {
       if (typeof currentValue === "string") {
         try {
           currentValue = JSON.parse(currentValue);
-        } catch (e) {}
+        } catch (e) {
+          // JSON解析失败，保持原值
+        }
       }
 
       // 提取内层字段的值
@@ -1055,9 +1057,6 @@ function loadInnerFieldValues(innerPath) {
     // 更新 valueOptions（通过响应式方式）
     if (valuesSet.size > 0) {
       const valuesArray = Array.from(valuesSet);
-      console.log(
-        `✅ [内层取值] "${innerPath}" 有 ${valuesArray.length} 个可选值`,
-      );
 
       // 触发UI更新提示
       message.info(`已加载 ${valuesArray.length} 个可选值，请选择要提取的内容`);
@@ -1373,8 +1372,6 @@ function analyzeSampleData(sampleLines) {
 
 // 🆕 新架构：采样分析模式 - 只分析前3行，不处理全部数据
 watch(selectedColumn, async (newColumn) => {
-  console.log("\n� [采样分析] selectedColumn 变化:", newColumn);
-
   // 清空状态
   selectedField.value = undefined;
   selectedValues.value = [];
@@ -1382,7 +1379,6 @@ watch(selectedColumn, async (newColumn) => {
   sourceDataCache.value = [];
 
   if (!newColumn || dataSource.value !== "column") {
-    console.log("⏭️ [采样分析] 跳过");
     return;
   }
 
@@ -2089,7 +2085,9 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
 
         .ant-select-tree-node-content-wrapper {
           border-radius: 4px;
-          transition: all 0.15s ease;
+
+          /* 性能优化：只过渡 background-color */
+          transition: background-color 0.15s ease;
 
           &:hover {
             background: rgba(99, 102, 241, 0.08);

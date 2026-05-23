@@ -101,14 +101,18 @@ const handleApply = () => {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
+  padding: 16px 20px;
   background: var(--card-bg);
   backdrop-filter: blur(var(--backdrop-blur, 20px));
   -webkit-backdrop-filter: blur(var(--backdrop-blur, 20px));
   border: 1px solid var(--border-default);
   border-radius: var(--border-radius-md);
   box-shadow: var(--shadow-sm);
-  transition: all var(--transition-normal, 200ms) ease;
+
+  /* 性能优化：只过渡 box-shadow */
+  transition:
+    box-shadow var(--transition-normal, 200ms) ease,
+    background-color var(--transition-normal, 200ms) ease;
 }
 
 .cell-split-header:hover {
@@ -124,7 +128,11 @@ const handleApply = () => {
   border: 1px solid var(--border-default);
   border-radius: var(--border-radius-md);
   box-shadow: var(--shadow-sm);
-  transition: all var(--transition-normal, 200ms) ease;
+
+  /* 性能优化：只过渡 box-shadow */
+  transition:
+    box-shadow var(--transition-normal, 200ms) ease,
+    background-color var(--transition-normal, 200ms) ease;
 }
 
 .cell-split-controls:hover {
@@ -145,7 +153,11 @@ const handleApply = () => {
 }
 
 .cell-split-separator .ant-select {
-  transition: all var(--transition-fast, 120ms) ease;
+
+  /* 性能优化：只过渡 border-color, box-shadow */
+  transition:
+    border-color var(--transition-fast, 120ms) ease,
+    box-shadow var(--transition-fast, 120ms) ease;
 }
 
 .cell-split-separator .ant-select:hover {
@@ -171,7 +183,11 @@ const handleApply = () => {
 }
 
 .cell-split-custom-separator .ant-input {
-  transition: all var(--transition-fast, 120ms) ease;
+
+  /* 性能优化：只过渡 border-color, box-shadow */
+  transition:
+    border-color var(--transition-fast, 120ms) ease,
+    box-shadow var(--transition-fast, 120ms) ease;
 }
 
 .cell-split-custom-separator .ant-input:hover {
@@ -187,11 +203,15 @@ const handleApply = () => {
   padding: 16px;
   background: var(--color-primary-bg);
   border: 1px solid var(--border-default);
-  border-radius: var(--border-radius-sm);
+  border-radius: var(--border-radius-sm, 4px);
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
-  transition: all var(--transition-normal, 200ms) ease;
+
+  /* 性能优化：只过渡 background, box-shadow */
+  transition:
+    background-color var(--transition-normal, 200ms) ease,
+    box-shadow var(--transition-normal, 200ms) ease;
 }
 
 .cell-split-stats:hover {
@@ -206,7 +226,12 @@ const handleApply = () => {
   font-weight: 500;
   padding: 6px 14px;
   border-radius: var(--border-radius-xs, 4px);
-  transition: all var(--transition-fast, 120ms) ease;
+
+  /* 性能优化：只过渡 transform, box-shadow, background */
+  transition:
+    transform var(--transition-fast, 120ms) ease,
+    box-shadow var(--transition-fast, 120ms) ease,
+    background-color var(--transition-fast, 120ms) ease;
 }
 
 .cell-split-stats .ant-tag:hover {

@@ -127,7 +127,7 @@
                       :checked="localAutoExtract"
                       @change="
                         handleAutoExtractChange(
-                          ($event.target as HTMLInputElement).checked,
+                          $event.target.checked,
                         )
                       "
                     />
@@ -146,7 +146,7 @@
                         :checked="localFlattenNested"
                         @change="
                           handleFlattenNestedChange(
-                            ($event.target as HTMLInputElement).checked,
+                            $event.target.checked,
                           )
                         "
                       />
@@ -164,7 +164,7 @@
                         :checked="localIncludeArrayIndex"
                         @change="
                           handleIncludeArrayIndexChange(
-                            ($event.target as HTMLInputElement).checked,
+                            $event.target.checked,
                           )
                         "
                       />

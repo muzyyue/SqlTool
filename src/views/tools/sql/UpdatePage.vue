@@ -1372,7 +1372,7 @@ const handleCustomBindingSave = (customFieldsData) => {
       customBindingManager.customBindings.value,
     )
       ? customBindingManager.customBindings.value
-     ) : [];
+      : [];
 
     const singleBindings = customBindings.filter(
       (binding) => binding.bindingType === "single",
@@ -1520,7 +1520,7 @@ const handleCustomBindingSave = (customFieldsData) => {
           };
           fieldMappings.value.push(mapping);
         }
-      } else {
+      }
     });
 
     let customFields = [];

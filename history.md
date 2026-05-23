@@ -1,5 +1,14 @@
 # 版本变更历史
 
+## 1.5.69 (2026-05-23) 移除 JSON 格式化与 JSON 工具
+
+- 删除首页「JSON 格式化」和「JSON 工具」两个工具入口
+- 移除相关视图组件（JsonPage.vue、JsonFormat.vue）
+- 移除 components/json/ 下全部 6 个子组件
+- 移除 utils/json/ 下 5 个工具文件（保留 jsonExtractor.js 供参数提取工具复用）
+- 移除 composables/json/ 目录和 types/json.ts
+- 涉及文件: tools.js, JsonPage.vue, JsonFormat.vue, components/json/*, utils/json/* (部分), composables/json/*, types/json.ts
+
 ## 1.5.64 (2026-05-11) 修复 Excel 解析器 Dense 模式兼容性问题
 
 - 修复 parseWorksheet 调用参数缺失导致的 TypeError

@@ -149,7 +149,7 @@
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, ref, toRefs } from "vue";
+import { onMounted, onUnmounted, ref } from "vue";
 import {
   SearchOutlined,
   FileTextOutlined,
@@ -166,13 +166,14 @@ import { useParamExtractor } from "@/composables/useParamExtractor";
 
 const extractor = useParamExtractor();
 
+// 直接解构 computed 属性和 reactive 状态（无需 toRefs）
 const {
   isLoading,
   filteredItems,
   hasResults,
   hasSelectedItem,
   detailComponentType,
-} = toRefs(extractor);
+} = extractor;
 
 const showErrorModal = ref(false);
 

@@ -2092,13 +2092,13 @@ onMounted(() => {
 
   // --- 内容区域 ---
   .content-grid {
-  @include flex-column;
-  gap: 24px;
-  min-height: 600px;
-  width: 100%;
-  max-width: 100%;
-  contain: content;
-}
+    @include flex-column;
+    gap: 24px;
+    min-height: 600px;
+    width: 100%;
+    max-width: 100%;
+    contain: content;
+  }
 
   .input-section,
   .output-section {
@@ -2107,7 +2107,7 @@ onMounted(() => {
     min-width: 0;
     overflow: hidden;
   }
-}
+
 
 // ========================================
 // 卡片组件

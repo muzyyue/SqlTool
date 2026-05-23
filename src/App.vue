@@ -111,13 +111,21 @@ body {
   }
 }
 
-/* 全局过渡类 */
+/* 全局过渡类（性能优化：只过渡常用属性） */
 .transition-smooth {
-  transition: all 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  transition:
+    opacity 0.3s cubic-bezier(0.32, 0.72, 0, 1),
+    transform 0.3s cubic-bezier(0.32, 0.72, 0, 1),
+    background-color 0.3s cubic-bezier(0.32, 0.72, 0, 1),
+    box-shadow 0.3s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .transition-fast {
-  transition: all 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+  transition:
+    opacity 0.2s cubic-bezier(0.32, 0.72, 0, 1),
+    transform 0.2s cubic-bezier(0.32, 0.72, 0, 1),
+    background-color 0.2s cubic-bezier(0.32, 0.72, 0, 1),
+    box-shadow 0.2s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 /* GPU 加速优化 */

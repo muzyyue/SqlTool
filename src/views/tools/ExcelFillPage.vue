@@ -152,7 +152,7 @@
           :scroll="{ x: 'max-content', y: 400 }"
           bordered
           size="small"
-          :row-key="(record, index) => index"
+          row-key="_rowKey"
           class="preview-table"
         />
       </VbenGlassCard>
@@ -356,7 +356,7 @@
  * @author SqlTool
  */
 
-import { ref, computed } from "vue";
+import { ref, computed, defineAsyncComponent } from "vue";
 import { message } from "ant-design-vue";
 import { storeToRefs } from "pinia";
 import {
@@ -373,10 +373,21 @@ import {
   SearchOutlined,
 } from "@ant-design/icons-vue";
 import VbenGlassCard from "@/components/common/VbenGlassCard.vue";
-import BasicFillTab from "@/components/excel/BasicFillTab.vue";
-import AdvancedFillTab from "@/components/excel/AdvancedFillTab.vue";
-import QuoteConvertTab from "@/components/excel/QuoteConvertTab.vue";
-import ParamExtractTab from "@/components/excel-fill/ParamExtractTab.vue";
+
+// 异步加载 Tab 组件（优化首屏性能，减少不必要的 JS 解析）
+const BasicFillTab = defineAsyncComponent(() =>
+  import("@/components/excel/BasicFillTab.vue")
+);
+const AdvancedFillTab = defineAsyncComponent(() =>
+  import("@/components/excel/AdvancedFillTab.vue")
+);
+const QuoteConvertTab = defineAsyncComponent(() =>
+  import("@/components/excel/QuoteConvertTab.vue")
+);
+const ParamExtractTab = defineAsyncComponent(() =>
+  import("@/components/excel-fill/ParamExtractTab.vue")
+);
+
 import * as XLSX from "xlsx";
 import { useThemeStore } from "@/stores/theme.js";
 import { useSettings } from "@/composables/core/useSettings.js";
@@ -1241,7 +1252,9 @@ const loadPreview = () => {
 
   previewData.value = [];
   for (let row = 0; row < maxRow; row++) {
-    const rowData = {};
+    const rowData = {
+      _rowKey: `preview-row-${row}`, // 唯一行标识符
+    };
     for (let col = 0; col < maxCol; col++) {
       const colLetter = XLSX.utils.encode_col(col);
       const cellAddress = colLetter + (row + 1);

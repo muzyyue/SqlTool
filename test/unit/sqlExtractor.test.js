@@ -116,16 +116,17 @@ describe("sqlExtractor", () => {
 
   describe("validateSql", () => {
     it("应通过合法的SELECT语句", async () => {
-      const result = await validateSql("SELECT id, name FROM users");
-      expect(result.valid).toBe(true);
-      expect(result.ast).toBeDefined();
-    });
+      const result = await validateSql("SELECT id, name FROM users", "mysql")
+      expect(result.valid).toBe(true)
+      expect(result.ast).toBeDefined()
+    })
 
     it("应通过合法的INSERT语句", async () => {
       const result = await validateSql(
         "INSERT INTO users (name) VALUES ('test')",
-      );
-      expect(result.valid).toBe(true);
+        "mysql"
+      )
+      expect(result.valid).toBe(true)
     });
 
     it("应捕获缺少FROM子句的错误", async () => {

@@ -63,88 +63,139 @@ export function extractSqlStatements(text, options = {}) {
     })
   }
 
-  const lines = workingText.split('\n')
-  let currentStatement = []
-  let statementStartLine = 0
-  let inStatement = false
-  let parenDepth = 0
+  // 改进的SQL提取算法：使用分号/GO作为分隔符，同时追踪括号平衡
+  const statements = splitByDelimiter(workingText)
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]
-    const trimmedLine = trimWhitespace ? line.trim() : line
+  for (const rawStatement of statements) {
+    const sqlText = trimWhitespace ? rawStatement.replace(/\s+/g, ' ').trim() : rawStatement
 
-    if (!inStatement) {
-      if (SQL_KEYWORD_PATTERN.test(trimmedLine) && trimmedLine.length > 0) {
-        inStatement = true
-        statementStartLine = i + 1
-        currentStatement = [line]
-        parenDepth = countParentheses(line)
-      }
-    } else {
-      currentStatement.push(line)
-      parenDepth += countParentheses(line)
+    if (sqlText.length === 0) continue
 
-      const isTerminated = trimmedLine.endsWith(';') ||
-                           /^\s*GO\s*$/i.test(trimmedLine) ||
-                           (parenDepth === 0 && trimmedLine === '')
+    // 验证是否是有效的SQL语句（以关键字开头）
+    if (!SQL_KEYWORD_PATTERN.test(sqlText.trim())) continue
 
-      if (isTerminated && parenDepth === 0) {
-        let sqlText = currentStatement.join('\n')
+    // 重置正则状态
+    SQL_KEYWORD_PATTERN.lastIndex = 0
 
-        if (trimWhitespace) {
-          sqlText = sqlText.replace(/\s+/g, ' ').trim()
-        }
-
-        if (sqlText.length > 0) {
-          const sqlType = detectSqlType(sqlText)
-          results.push({
-            sql: cleanSqlStatement(sqlText),
-            type: sqlType,
-            lineStart: statementStartLine,
-            lineEnd: i + 1,
-            raw: currentStatement.join('\n')
-          })
-        }
-
-        inStatement = false
-        currentStatement = []
-        parenDepth = 0
-      }
-    }
-  }
-
-  if (inStatement && currentStatement.length > 0) {
-    let sqlText = currentStatement.join('\n')
-    if (trimWhitespace) {
-      sqlText = sqlText.replace(/\s+/g, ' ').trim()
-    }
-
-    if (sqlText.length > 0) {
-      const sqlType = detectSqlType(sqlText)
-      results.push({
-        sql: cleanSqlStatement(sqlText),
-        type: sqlType,
-        lineStart: statementStartLine,
-        lineEnd: lines.length,
-        raw: currentStatement.join('\n')
-      })
-    }
+    const sqlType = detectSqlType(sqlText)
+    results.push({
+      sql: cleanSqlStatement(sqlText),
+      type: sqlType,
+      lineStart: 0,
+      lineEnd: 0,
+      raw: rawStatement
+    })
   }
 
   return results
 }
 
 /**
+ * 智能分割SQL语句（考虑括号平衡和字符串）
+ * @param {string} text - 输入文本
+ * @returns {string[]} - 分割后的语句数组
+ */
+function splitByDelimiter(text) {
+  const statements = []
+  let current = []
+  let parenDepth = 0
+  let inString = false
+  let escapeNext = false
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i]
+    const prevChar = i > 0 ? text[i - 1] : ''
+
+    if (escapeNext) {
+      current.push(char)
+      escapeNext = false
+      continue
+    }
+
+    if (char === '\\') {
+      current.push(char)
+      escapeNext = true
+      continue
+    }
+
+    if (char === "'") {
+      inString = !inString
+      current.push(char)
+      continue
+    }
+
+    if (inString) {
+      current.push(char)
+      continue
+    }
+
+    if (char === '(') {
+      parenDepth++
+      current.push(char)
+      continue
+    }
+
+    if (char === ')') {
+      parenDepth--
+      current.push(char)
+      continue
+    }
+
+    // 检测分号分隔符（仅在括号平衡时）
+    if (char === ';' && parenDepth === 0) {
+      const statement = current.join('').trim()
+      if (statement.length > 0) {
+        statements.push(statement)
+      }
+      current = []
+      continue
+    }
+
+    // 检测GO语句（T-SQL风格）
+    if (char === '\n' || char === '\r') {
+      const lineSoFar = current.join('').trim()
+      if (/^\s*GO\s*$/i.test(lineSoFar)) {
+        if (lineSoFar.length > 0) {
+          statements.push(lineSoFar)
+        }
+        current = []
+        continue
+      }
+    }
+
+    current.push(char)
+  }
+
+  // 处理末尾剩余内容
+  const remaining = current.join('').trim()
+  if (remaining.length > 0) {
+    statements.push(remaining)
+  }
+
+  return statements
+}
+
+/**
  * 验证SQL语法
  * @param {string} sql - SQL语句
+ * @param {string} [database='mysql'] - 数据库类型（mysql/postgresql/mssql/oracle）
  * @returns {{valid: boolean, error?: string, ast?: Object}}
  */
-export async function validateSql(sql) {
+export async function validateSql(sql, database = 'mysql') {
+  // 输入验证
+  if (!sql || typeof sql !== 'string' || sql.trim().length === 0) {
+    return {
+      valid: false,
+      error: 'SQL语句不能为空'
+    }
+  }
+
   try {
-    const { default: Parser } = await import('node-sql-parser')
+    const { Parser } = await import('node-sql-parser')
     const parser = new Parser()
 
-    const ast = parser.astify(sql)
+    // node-sql-parser v5.x 需要指定数据库类型
+    const ast = parser.astify(sql, { database })
 
     return {
       valid: true,
@@ -168,7 +219,14 @@ export function parseSqlStructure(sql) {
   const tables = extractTableNames(sql)
   const columns = extractColumnNames(sql)
   const conditions = extractWhereConditions(sql)
-  const hasSubquery = /\bSELECT\b.*\bFROM\b.*\bWHERE\b/si.test(sql)
+
+  // 增强的子查询检测：支持 FROM/WHERE/SELECT 子句中的子查询
+  const hasSubquery =
+    /\bFROM\s*\(/i.test(sql) ||           // FROM (SELECT ...)
+    /\bWHERE\s+.*\bIN\s*\(/i.test(sql) || // WHERE ... IN (SELECT ...)
+    /\bEXISTS\s*\(/i.test(sql) ||         // EXISTS (SELECT ...)
+    /(?:\bSELECT\b.*\bFROM\b).*\(.*\bSELECT\b/i.test(sql) || // SELECT...FROM...(SELECT...)
+    /\(\s*SELECT\b/i.test(sql)            // (SELECT ...) 任意位置
 
   return {
     type,
@@ -218,10 +276,14 @@ function detectSqlType(sql) {
 function extractTableNames(sql) {
   const tables = []
 
-  const fromPattern = /\bFROM\s+([^\s,;]+)(?:\s+[^\s,;]+)*/gi
-  const joinPattern = /\bJOIN\s+([^\s,;]+)(?:\s+[^\s,;]+)*/gi
-  const intoPattern = /\bINTO\s+([^\s,;]+)/gi
-  const updatePattern = /\bUPDATE\s+([^\s,;]+)/gi
+  // FROM 子句（支持别名：FROM table_name alias 或 FROM table_name AS alias）
+  const fromPattern = /\bFROM\s+([a-zA-Z_][a-zA-Z0-9_]*)/gi
+  // JOIN 子句（支持所有JOIN类型和别名）
+  const joinPattern = /\b(?:INNER\s+|LEFT\s+(?:OUTER\s+)?|RIGHT\s+(?:OUTER\s+)?|FULL\s+(?:OUTER\s+)?|CROSS\s+|NATURAL\s+)?JOIN\s+([a-zA-Z_][a-zA-Z0-9_]*)/gi
+  // INTO 子句
+  const intoPattern = /\bINTO\s+([a-zA-Z_][a-zA-Z0-9_]*)/gi
+  // UPDATE 子句
+  const updatePattern = /\bUPDATE\s+([a-zA-Z_][a-zA-Z0-9_]*)/gi
 
   let match
 
