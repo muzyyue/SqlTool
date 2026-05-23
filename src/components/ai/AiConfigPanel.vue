@@ -558,6 +558,7 @@ onMounted(() => {
   padding: 20px;
   max-height: 70vh;
   overflow-y: auto;
+  contain: content;
 }
 
 /**
@@ -570,7 +571,7 @@ onMounted(() => {
   border: 1px solid var(--border-glass-strong);
   border-radius: var(--border-radius-md);
   padding: 20px;
-  transition: all var(--transition-normal) ease;
+  transition: background var(--transition-normal) ease, box-shadow var(--transition-normal) ease;
 }
 
 .config-section:hover {

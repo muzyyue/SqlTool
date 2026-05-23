@@ -123,11 +123,15 @@ const goToUpdate = () => {
   gap: 12px;
 
   a {
-    color: $color-primary;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: $border-radius-sm;
+    color: $text-secondary;
     text-decoration: none;
-    padding: 12px;
-    border-radius: 8px;
-    transition: all 0.3s ease;
+    transition: color 0.3s ease, background-color 0.3s ease, transform 0.3s ease;
+    will-change: transform;
     cursor: pointer;
 
     &:hover {

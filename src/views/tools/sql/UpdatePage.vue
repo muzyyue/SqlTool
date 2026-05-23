@@ -738,7 +738,6 @@ watch(
         JSON.stringify(oldUpdateFields.sort());
 
     if (conditionChanged || updateChanged) {
-      console.log("字段选择已变化，重新同步映射状态");
       // 重新同步所有字段的映射状态
       fieldMappings.value.forEach((mapping) => {
         const field = parsedFields.value.find(
@@ -962,8 +961,6 @@ const handleGeneratedByFunctionChange = (record) => {
 };
 
 const clearMapping = (ddlFieldName) => {
-  console.log("执行clearMapping:", ddlFieldName);
-
   const fieldInfo = parsedFields.value.find(
     (field) => field.name === ddlFieldName,
   );
@@ -976,7 +973,6 @@ const clearMapping = (ddlFieldName) => {
     // 自定义字段：删除整个映射记录和字段定义
     if (mappingIndex >= 0) {
       fieldMappings.value.splice(mappingIndex, 1);
-      console.log("已从fieldMappings移除自定义字段映射记录:", ddlFieldName);
     }
     const fieldIndex = parsedFields.value.findIndex(
       (field) => field.name === ddlFieldName,
@@ -991,7 +987,6 @@ const clearMapping = (ddlFieldName) => {
     // 普通DDL字段：删除映射记录
     if (mappingIndex >= 0) {
       fieldMappings.value.splice(mappingIndex, 1);
-      console.log("已清除字段映射记录:", ddlFieldName);
     }
 
     // 从 updateFields 中移除被清除的字段（如果它不在条件字段中）
@@ -1012,7 +1007,6 @@ const clearAllMappings = () => {
   // 移除所有fieldMappings中的映射记录
   const originalCount = fieldMappings.value.length;
   fieldMappings.value = [];
-  console.log(`已清除所有字段映射，共${originalCount}条记录`);
 
   // 清除所有 updateFields（除了条件字段）
   updateFields.value = updateFields.value.filter((field) =>
@@ -1284,8 +1278,6 @@ const applyRowRange = async () => {
     );
     message.success(`行范围应用成功，共 ${rows.length} 行数据`);
   } catch (error) {
-    console.error("应用行范围失败:", error);
-
     let errorMessage = error.message || "未知错误";
     let userFriendlyMessage = errorMessage;
 
@@ -1347,7 +1339,6 @@ const resetRowRange = async () => {
       autoMatchFields();
     }
   } catch (error) {
-    console.error("重置行范围失败:", error);
     const friendlyError = logError(error, "row-range", {
       operation: "resetRowRange",
       errorMessage: error.message,
@@ -1371,21 +1362,17 @@ const handleCustomBindingToggle = (checked) => {
 
 const handleCustomBindingSave = (customFieldsData) => {
   logInfo("自定义绑定配置已保存");
-  console.log("保存的自定义绑定配置:", customFieldsData);
 
   try {
     if (customFieldsData && typeof customFieldsData === "object") {
       customBindingManager.importBindings(customFieldsData);
-      console.log("已导入完整绑定配置到customBindingManager");
     }
 
     const customBindings = Array.isArray(
       customBindingManager.customBindings.value,
     )
       ? customBindingManager.customBindings.value
-      : [];
-
-    console.log("单列绑定数据:", customBindings);
+     ) : [];
 
     const singleBindings = customBindings.filter(
       (binding) => binding.bindingType === "single",
@@ -1399,7 +1386,6 @@ const handleCustomBindingSave = (customFieldsData) => {
       );
 
       if (!ddlField) {
-        console.warn(`DDL字段 ${ddlFieldName} 不存在，创建临时字段对象`);
         ddlField = {
           name: ddlFieldName,
           type: "string",
@@ -1415,7 +1401,6 @@ const handleCustomBindingSave = (customFieldsData) => {
           updatedAt: new Date().toISOString(),
         };
         parsedFields.value.push(ddlField);
-        console.log(`已添加临时字段到parsedFields: ${ddlFieldName}`);
       }
 
       const existingIndex = fieldMappings.value.findIndex(
@@ -1428,10 +1413,8 @@ const handleCustomBindingSave = (customFieldsData) => {
           excelIndex: excelIndex,
           excelHeader: excelIndex >= 0 ? excelHeaders.value[excelIndex] : null,
           status: excelIndex >= 0 ? "bound" : "unmatched",
+          confidence: "manual",
         };
-        console.log(
-          `已更新单列绑定映射: ${ddlFieldName} -> 列${excelIndex + 1}`,
-        );
       } else {
         const mapping = {
           ddlField: ddlField,
@@ -1442,26 +1425,18 @@ const handleCustomBindingSave = (customFieldsData) => {
           status: excelIndex >= 0 ? "bound" : "unmatched",
         };
         fieldMappings.value.push(mapping);
-        console.log(
-          `已添加单列绑定映射: ${ddlFieldName} -> 列${excelIndex + 1}`,
-        );
       }
     });
 
-    // 2.5. 处理字段拼接规则中的自定义字段名称
+    // 处理字段拼接规则中的自定义字段名称
     const fieldConcatenationRules = Array.isArray(
       customBindingManager.fieldConcatenationRules.value,
     )
       ? customBindingManager.fieldConcatenationRules.value
       : [];
 
-    console.log("字段拼接规则数据:", fieldConcatenationRules);
-
     // 从字段拼接规则中提取自定义字段
     fieldConcatenationRules.forEach((rule) => {
-      console.log("处理字段拼接规则:", rule);
-      console.log("  ddlFieldName:", rule.ddlFieldName);
-      console.log("  sourceColumns:", rule.sourceColumns);
 
       // 使用 ddlFieldName 作为自定义字段名称
       if (rule.ddlFieldName && rule.ddlFieldName.trim() !== "") {
@@ -1498,7 +1473,6 @@ const handleCustomBindingSave = (customFieldsData) => {
             updatedAt: new Date().toISOString(),
           };
           parsedFields.value.push(ddlField);
-          console.log(`已添加拼接字段到parsedFields: ${rule.ddlFieldName}`);
         } else {
           const existingFieldIndex = parsedFields.value.findIndex(
             (field) => field.name === rule.ddlFieldName,
@@ -1512,7 +1486,6 @@ const handleCustomBindingSave = (customFieldsData) => {
                 rule.dataType || parsedFields.value[existingFieldIndex].type,
               updatedAt: new Date().toISOString(),
             };
-            console.log(`已更新拼接字段配置: ${rule.ddlFieldName}`);
           }
         }
 
@@ -1535,7 +1508,6 @@ const handleCustomBindingSave = (customFieldsData) => {
             confidence: "manual",
             generatedByFunction: true,
           };
-          console.log(`已更新拼接字段映射: ${rule.ddlFieldName}`);
         } else {
           const mapping = {
             ddlField: ddlField,
@@ -1547,11 +1519,8 @@ const handleCustomBindingSave = (customFieldsData) => {
             generatedByFunction: true,
           };
           fieldMappings.value.push(mapping);
-          console.log(`已添加拼接字段映射: ${rule.ddlFieldName}`);
         }
       } else {
-        console.log("跳过规则，ddlFieldName为空");
-      }
     });
 
     let customFields = [];
@@ -1597,9 +1566,6 @@ const handleCustomBindingSave = (customFieldsData) => {
     // 将Map转换为数组（展平）
     const validCustomFields = Array.from(validCustomFieldsMap.values()).flat();
 
-    console.log("有效自定义字段（去重后）:", validCustomFields);
-    console.log("有效自定义字段数量:", validCustomFields.length);
-
     // 获取拼接规则字段名集合，保留这些字段
     const concatenationRuleNames = new Set(
       fieldConcatenationRules.map((r) => r.ddlFieldName).filter(Boolean),
@@ -1618,8 +1584,6 @@ const handleCustomBindingSave = (customFieldsData) => {
     let addedCount = 0;
     validCustomFields.forEach((customField, index) => {
       try {
-        console.log(`添加自定义字段${index}:`, customField);
-
         const ddlField = {
           name: customField.fieldName,
           type: customField.dataType || "string",
@@ -1633,8 +1597,6 @@ const handleCustomBindingSave = (customFieldsData) => {
         };
 
         parsedFields.value.push(ddlField);
-        console.log(`已添加到parsedFields:`, ddlField.name);
-
         addedCount++;
         logInfo(`添加自定义字段: ${customField.fieldName}`);
       } catch (error) {
@@ -1650,8 +1612,6 @@ const handleCustomBindingSave = (customFieldsData) => {
     });
 
     logInfo(`成功添加 ${addedCount} 个自定义字段`);
-    console.log("最终parsedFields:", parsedFields.value);
-    console.log("最终parsedFields数量:", parsedFields.value.length);
 
     validCustomFields.forEach((customField) => {
       const ddlFieldRef = parsedFields.value.find(
@@ -1667,7 +1627,6 @@ const handleCustomBindingSave = (customFieldsData) => {
           ...fieldMappings.value[existingIndex],
           ddlField: ddlFieldRef,
         };
-        console.log("已更新映射记录:", customField.fieldName);
       } else {
         const mapping = {
           ddlField: ddlFieldRef,
@@ -1679,12 +1638,8 @@ const handleCustomBindingSave = (customFieldsData) => {
           generatedByFunction: true,
         };
         fieldMappings.value.push(mapping);
-        console.log("已添加映射记录:", customField.fieldName);
       }
     });
-
-    console.log("最终fieldMappings:", fieldMappings.value);
-    console.log("最终fieldMappings数量:", fieldMappings.value.length);
   } catch (error) {
     logError(error, "custom-binding", {
       operation: "saveCustomBinding",
@@ -1716,7 +1671,6 @@ const handleDeleteCustomField = (record) => {
   );
   if (mappingIndex >= 0) {
     fieldMappings.value.splice(mappingIndex, 1);
-    console.log("已从fieldMappings移除映射记录:", record.fieldName);
   }
 
   // 根据数据来源从parsedFields中移除对应的字段定义
@@ -1850,6 +1804,7 @@ onMounted(() => {
   padding: 0;
   min-height: 100%;
   background: $page-bg-gradient;
+  contain: layout style;
 }
 
 .page-header {
@@ -1881,6 +1836,7 @@ onMounted(() => {
   min-height: 600px;
   width: 100%;
   max-width: 100%;
+  contain: content;
 }
 
 .input-section,
@@ -2156,7 +2112,7 @@ onMounted(() => {
   border: 1px solid $card-border;
   border-radius: $border-radius-md;
   box-shadow: $shadow-sm;
-  transition: all $transition-normal ease;
+  transition: box-shadow $transition-normal ease, background-color $transition-normal ease;
 
   &:hover {
     box-shadow: $shadow-md;
@@ -2172,14 +2128,14 @@ onMounted(() => {
   border: 1px solid $card-border;
   border-radius: $border-radius-md;
   box-shadow: $shadow-sm;
-  transition: all $transition-normal ease;
+  transition: box-shadow $transition-normal ease, background-color $transition-normal ease;
 
   &:hover {
     box-shadow: $shadow-md;
   }
 
   .ant-select {
-    transition: all $transition-fast ease;
+    transition: box-shadow $transition-fast ease, border-color $transition-fast ease;
 
     &:hover {
       box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
@@ -2194,24 +2150,16 @@ onMounted(() => {
 .deduplication-stats {
   margin-top: 16px;
   padding: 16px;
-  background: linear-gradient(
-    135deg,
-    rgba(22, 119, 255, 0.05) 0%,
-    rgba(20, 201, 201, 0.05) 100%
-  );
-  border: 1px solid rgba(22, 119, 255, 0.1);
+  background: $color-primary-bg;
+  border: 1px solid $color-primary-border;
   border-radius: $border-radius-sm;
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
-  transition: all $transition-normal ease;
+  transition: box-shadow $transition-normal ease, background-color $transition-normal ease;
 
   &:hover {
-    background: linear-gradient(
-      135deg,
-      rgba(22, 119, 255, 0.08) 0%,
-      rgba(20, 201, 201, 0.08) 100%
-    );
+    background: color-mix(in srgb, $color-primary 12%, transparent);
     box-shadow: $shadow-sm;
   }
 
@@ -2222,7 +2170,7 @@ onMounted(() => {
     font-weight: 500;
     padding: 6px 14px;
     border-radius: $border-radius-xs;
-    transition: all $transition-fast ease;
+    transition: transform $transition-fast ease, box-shadow $transition-fast ease, border-color $transition-fast ease;
 
     &:hover {
       transform: translateY(-2px);

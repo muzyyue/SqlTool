@@ -526,6 +526,7 @@ const handleApply = (): void => {
   animation: spin 1s linear infinite;
   font-size: 24px;
   color: var(--color-primary);
+  will-change: transform;
 }
 
 @keyframes spin {
@@ -621,7 +622,7 @@ const handleApply = (): void => {
   border-color: var(--input-border);
   background: var(--input-bg);
   color: var(--text-primary);
-  transition: all var(--transition-fast) ease;
+  transition: border-color var(--transition-fast) ease, background-color var(--transition-fast) ease, box-shadow var(--transition-fast) ease;
 }
 
 .input-textarea:focus,
@@ -646,7 +647,7 @@ const handleApply = (): void => {
 .generate-btn {
   min-width: 100px;
   border-radius: var(--border-radius-sm);
-  transition: all var(--transition-fast) ease;
+  transition: transform var(--transition-fast) ease, box-shadow var(--transition-fast) ease, background-color var(--transition-fast) ease, border-color var(--transition-fast) ease;
 }
 
 .generate-btn:not(:disabled):hover {

@@ -230,6 +230,7 @@ onUnmounted(() => {
   padding: 40px 20px;
   max-width: 1400px;
   margin: 0 auto;
+  contain: layout style;
 }
 
 // 页面头部：标题与操作按钮

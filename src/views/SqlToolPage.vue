@@ -191,7 +191,8 @@ const navigateTo = (path) => {
   padding: 24px;
   background: $bg-elevated;
   border-radius: $border-radius-md;
-  transition: all $transition-normal ease;
+  transition: transform $transition-normal ease, box-shadow $transition-normal ease, background-color $transition-normal ease, border-color $transition-normal ease;
+  will-change: transform;
 
   &:hover {
     transform: translateY(-4px);

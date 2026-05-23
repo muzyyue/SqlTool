@@ -659,7 +659,6 @@ const countInsertRecords = (sql) => {
       /INSERT\s+INTO\s+["`]?[\w]+["`]?\s*\([^)]*\)\s*VALUES\s*/i,
     );
     if (!insertMatch) {
-      console.warn("无法匹配INSERT语句格式，回退到Excel数据长度");
       return excelData.value.length;
     }
 
@@ -701,7 +700,6 @@ const countInsertRecords = (sql) => {
 
     return recordCount;
   } catch (error) {
-    console.warn("解析INSERT记录数失败，回退到Excel数据长度:", error);
     return excelData.value.length;
   }
 };
@@ -1260,7 +1258,6 @@ const autoMatchFields = () => {
     logInfo("自动字段匹配完成");
     message.success("字段自动匹配完成");
   } catch (error) {
-    console.error("自动字段匹配失败:", error);
     const friendlyError = logError(error, "matching", {
       operation: "autoMatchFields",
       ddlFieldsCount: parsedFields.value.length,
@@ -1919,7 +1916,6 @@ const handleDeleteCustomField = (record) => {
   );
   if (mappingIndex >= 0) {
     fieldMappings.value.splice(mappingIndex, 1);
-    console.log("已从fieldMappings移除映射记录:", record.fieldName);
   }
 
   // 根据数据来源从parsedFields中移除对应的字段定义
@@ -2068,6 +2064,8 @@ onMounted(() => {
   padding: 0;
   min-height: 100%;
   background: $page-bg-gradient;
+  contain: layout style;
+}
 
   // --- 页面头部 ---
   .page-header {
@@ -2094,12 +2092,13 @@ onMounted(() => {
 
   // --- 内容区域 ---
   .content-grid {
-    @include flex-column;
-    gap: 24px;
-    min-height: 600px;
-    width: 100%;
-    max-width: 100%;
-  }
+  @include flex-column;
+  gap: 24px;
+  min-height: 600px;
+  width: 100%;
+  max-width: 100%;
+  contain: content;
+}
 
   .input-section,
   .output-section {
@@ -2373,7 +2372,7 @@ onMounted(() => {
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  transition: all $transition-normal ease;
+  transition: box-shadow $transition-normal ease, background-color $transition-normal ease;
 
   @include glass-card-hover;
 }
@@ -2382,12 +2381,12 @@ onMounted(() => {
   @include glass-card;
   margin-top: 16px;
   padding: 20px;
-  transition: all $transition-normal ease;
+  transition: box-shadow $transition-normal ease, background-color $transition-normal ease;
 
   @include glass-card-hover;
 
   .ant-select {
-    transition: all $transition-fast ease;
+    transition: box-shadow $transition-fast ease, border-color $transition-fast ease;
 
     &:hover {
       box-shadow: 0 0 0 2px $color-primary-bg;
@@ -2402,16 +2401,16 @@ onMounted(() => {
 .deduplication-stats {
   margin-top: 16px;
   padding: 16px;
-  background: $gradient-primary-light;
+  background: $color-primary-bg;
   border: 1px solid $color-primary-border;
   border-radius: $border-radius-sm;
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
-  transition: all $transition-normal ease;
+  transition: box-shadow $transition-normal ease, background-color $transition-normal ease;
 
   &:hover {
-    background: $color-primary-bg;
+    background: color-mix(in srgb, $color-primary 12%, transparent);
     box-shadow: $shadow-sm;
   }
 
@@ -2422,7 +2421,7 @@ onMounted(() => {
     font-weight: 500;
     padding: 6px 14px;
     border-radius: $border-radius-xs;
-    transition: all $transition-fast ease;
+    transition: transform $transition-fast ease, box-shadow $transition-fast ease, border-color $transition-fast ease;
 
     &:hover {
       transform: translateY(-2px);
@@ -2459,7 +2458,7 @@ onMounted(() => {
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  transition: all $transition-normal ease;
+  transition: box-shadow $transition-normal ease, background-color $transition-normal ease;
 
   @include glass-card-hover;
 }
@@ -2468,7 +2467,7 @@ onMounted(() => {
   @include glass-card;
   margin-top: 16px;
   padding: 20px;
-  transition: all $transition-normal ease;
+  transition: box-shadow $transition-normal ease, background-color $transition-normal ease;
 
   @include glass-card-hover;
 }
@@ -2492,7 +2491,7 @@ onMounted(() => {
   }
 
   .ant-input-number {
-    transition: all $transition-fast ease;
+    transition: box-shadow $transition-fast ease, border-color $transition-fast ease;
 
     &:hover {
       box-shadow: 0 0 0 2px $color-primary-bg;
@@ -2511,10 +2510,10 @@ onMounted(() => {
   margin-bottom: 16px;
   padding-bottom: 16px;
   border-bottom: 1px solid $card-border;
-  transition: all $transition-fast ease;
+  transition: color $transition-fast ease;
 
   .ant-checkbox-wrapper {
-    transition: all $transition-fast ease;
+    transition: color $transition-fast ease;
 
     &:hover {
       color: $color-primary;
@@ -2528,7 +2527,7 @@ onMounted(() => {
     font-weight: 500;
     padding: 4px 12px;
     border-radius: $border-radius-xs;
-    transition: all $transition-fast ease;
+    transition: transform $transition-fast ease, background-color $transition-fast ease;
 
     &:hover {
       background: color-mix(in srgb, $color-primary 15%, transparent);
@@ -2543,7 +2542,7 @@ onMounted(() => {
   margin-bottom: 16px;
 
   .ant-btn {
-    transition: all $transition-fast ease;
+    transition: transform $transition-fast ease, box-shadow $transition-fast ease;
 
     &:hover {
       transform: translateY(-1px);
@@ -2559,16 +2558,16 @@ onMounted(() => {
 .row-range-stats {
   margin-top: 16px;
   padding: 16px;
-  background: $gradient-primary-light;
+  background: $color-primary-bg;
   border: 1px solid $color-primary-border;
   border-radius: $border-radius-sm;
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
-  transition: all $transition-normal ease;
+  transition: box-shadow $transition-normal ease, background-color $transition-normal ease;
 
   &:hover {
-    background: $color-primary-bg;
+    background: color-mix(in srgb, $color-primary 12%, transparent);
     box-shadow: $shadow-sm;
   }
 
@@ -2579,7 +2578,7 @@ onMounted(() => {
     font-weight: 500;
     padding: 6px 14px;
     border-radius: $border-radius-xs;
-    transition: all $transition-fast ease;
+    transition: transform $transition-fast ease, box-shadow $transition-fast ease, border-color $transition-fast ease;
 
     &:hover {
       transform: translateY(-2px);

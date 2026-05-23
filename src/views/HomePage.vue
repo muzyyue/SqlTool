@@ -116,6 +116,7 @@ const navigateToTool = (tool) => {
 .home-page {
   min-height: 100vh;
   background: $bg-base;
+  contain: layout style;
 }
 
 // 英雄区域

@@ -221,11 +221,14 @@ const handleClick = () => {
   /* 文字颜色 */
   color: var(--text-primary) !important;
 
-  /* 过渡动画 */
-  transition: all var(--transition-fast) ease !important;
+  /* 过渡动画 - 仅针对实际变化的属性 */
+  transition: transform var(--transition-fast) ease, box-shadow var(--transition-fast) ease, background-color var(--transition-fast) ease, border-color var(--transition-fast) ease, opacity var(--transition-fast) ease !important;
 
   /* 圆角 */
   border-radius: var(--border-radius-sm) !important;
+
+  /* 性能优化：预声明变换属性 */
+  will-change: transform, box-shadow;
 }
 
 /**

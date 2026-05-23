@@ -273,6 +273,7 @@ async function handleFieldValueConfirm({ field, values }) {
   min-height: 100dvh;
   background: var(--page-bg-gradient);
   overflow-x: hidden;
+  contain: layout style;
 
   .background-texture {
     position: fixed;
@@ -398,7 +399,8 @@ async function handleFieldValueConfirm({ field, values }) {
     border: 1px solid var(--border-default);
     box-shadow: var(--shadow-sm);
     overflow: visible;
-    transition: all 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    transition: opacity 0.3s cubic-bezier(0.32, 0.72, 0, 1), transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    will-change: transform;
     min-height: 380px;
 
     .detail-header {
@@ -508,7 +510,8 @@ async function handleFieldValueConfirm({ field, values }) {
         background: var(--bg-sunken);
         border: 1px solid var(--border-default);
         border-radius: 10px;
-        transition: all 0.2s ease;
+        transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+        will-change: transform;
 
         &:hover {
           background: var(--interactive-hover);

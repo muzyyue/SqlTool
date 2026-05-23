@@ -112,6 +112,7 @@ const downloadOutput = () => {
   padding: 40px 20px;
   max-width: 1400px;
   margin: 0 auto;
+  contain: layout style;
 }
 
 .page-header {

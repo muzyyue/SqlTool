@@ -659,6 +659,7 @@ onMounted(() => {
 .ddl-page {
   padding: 0;
   min-height: 100%;
+  contain: layout style;
 }
 
 // 页面头部

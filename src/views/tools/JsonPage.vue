@@ -668,7 +668,7 @@ onMounted(() => {
   min-height: 300px;
   border-radius: $border-radius-md;
   overflow: hidden;
-  transition: $transition-normal;
+  transition: box-shadow $transition-normal ease;
 
   &:hover {
     box-shadow: $shadow-md;

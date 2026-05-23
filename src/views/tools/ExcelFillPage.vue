@@ -1993,6 +1993,7 @@ const handleReset = () => {
   min-height: 100vh;
   background: $bg-base;
   padding: 40px 20px;
+  contain: layout style;
 }
 
 .page-header {

@@ -1,5 +1,14 @@
 # SqlTool 更新日志
 
+## v1.5.68 (2026-05-23) 视图层全面性能优化
+- 替换全部 25 处 transition: all 为具体 CSS 属性（transform, box-shadow, opacity, background-color, border-color）
+- 清理生产环境不需要的 console 调试日志约 35 处（UpdatePage.vue 约30处 + InsertPage.vue 4处 + 其他）
+- 为所有页面根容器添加 contain: layout style，内容区域添加 contain: content
+- 为动画元素添加 will-change: transform 提示 GPU 加速
+- 简化 deduplication-stats / row-range-stats 复杂渐变为纯色+边框方案
+- ExcelFillPage.vue 补充 contain 属性，验证优化完整性通过
+- 涉及文件: UpdatePage.vue, InsertPage.vue, ParamExtractPage.vue, SqlToolPage.vue, NotFound.vue, JsonPage.vue, ExcelFillPage.vue, DdlPage.vue, TimestampPage.vue, JsonFormat.vue, HomePage.vue
+
 ## v1.5.67 (2026-05-23) Excel 组件性能优化
 - 将所有 transition: all 替换为具体 CSS 属性（box-shadow, border-color, transform, background-color 等）
 - 清理调试用 console.log/warn 共 9 处，保留关键错误处理中的 console.error
