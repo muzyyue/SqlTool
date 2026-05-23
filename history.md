@@ -1,5 +1,11 @@
 # 版本变更历史
 
+## 1.5.70 (2026-05-23) 删除无效的 JSON 工具测试文件
+
+- 删除 4 个引用不存在模块的测试文件（jsonCodeGenerator、jsonCompare、jsonConverter、jsonFormatter）
+- 修复 CI 测试失败问题：这些测试在 v1.5.69 移除 JSON 工具源代码后未同步删除
+- 涉及文件: test/unit/json/jsonCodeGenerator.test.ts, test/unit/json/jsonCompare.test.ts, test/unit/json/jsonConverter.test.ts, test/unit/json/jsonFormatter.test.ts
+
 ## 1.5.69 (2026-05-23) 移除 JSON 格式化与 JSON 工具
 
 - 删除首页「JSON 格式化」和「JSON 工具」两个工具入口
