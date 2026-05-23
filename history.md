@@ -1,5 +1,12 @@
 # 版本变更历史
 
+## 1.5.71 (2026-05-23) 修复 GitHub Actions Release 命名与认证问题
+
+- 修复 Release 名称使用 package.json 版本号（v1.5.x）而非分支名（master）
+- 新增从 package.json 提取版本号的步骤
+- 显式传递 GITHUB_TOKEN 解决 Bad credentials 错误
+- 涉及文件: .github/workflows/build-and-release.yml
+
 ## 1.5.70 (2026-05-23) 删除无效的 JSON 工具测试文件
 
 - 删除 4 个引用不存在模块的测试文件（jsonCodeGenerator、jsonCompare、jsonConverter、jsonFormatter）
