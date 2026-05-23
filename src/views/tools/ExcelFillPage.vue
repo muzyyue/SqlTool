@@ -121,6 +121,7 @@
             :workbook="workbook"
             :sheets="sheetNames"
             :columns="columns"
+            @extract-complete="handleExtractComplete"
           />
         </a-tab-pane>
       </a-tabs>
@@ -148,38 +149,59 @@
           :columns="previewColumns"
           :data-source="previewData"
           :pagination="false"
-          :scroll="{ x: 'max-content' }"
+          :scroll="{ x: 'max-content', y: 400 }"
           bordered
           size="small"
+          :row-key="(record, index) => index"
+          class="preview-table"
         />
       </VbenGlassCard>
 
       <div
         class="action-buttons"
-        v-if="
-          workbook && activeTabKey !== 'quote' && activeTabKey !== 'extract'
-        "
+        v-if="workbook"
       >
-        <a-button
-          type="primary"
-          size="large"
-          :loading="processing"
-          :disabled="
-            activeTabKey === 'advanced' ? !canProcessAdvanced : !canProcessBasic
-          "
-          @click="handleProcess"
-        >
-          <template #icon>
-            <PlayCircleOutlined />
-          </template>
-          {{ activeTabKey === "advanced" ? "开始高级数据处理" : "开始处理" }}
-        </a-button>
-        <a-button size="large" @click="handleReset">
-          <template #icon>
-            <ReloadOutlined />
-          </template>
-          重置
-        </a-button>
+        <template v-if="activeTabKey === 'extract'">
+          <a-button
+            type="primary"
+            size="large"
+            :disabled="!extractOutputBlob"
+            @click="handleDownloadExtract"
+          >
+            <template #icon>
+              <DownloadOutlined />
+            </template>
+            下载提取结果
+          </a-button>
+          <a-button size="large" @click="handleResetExtract">
+            <template #icon>
+              <ReloadOutlined />
+            </template>
+            重置
+          </a-button>
+        </template>
+        <template v-else>
+          <a-button
+            type="primary"
+            size="large"
+            :loading="processing"
+            :disabled="
+              activeTabKey === 'advanced' ? !canProcessAdvanced : !canProcessBasic
+            "
+            @click="handleProcess"
+          >
+            <template #icon>
+              <PlayCircleOutlined />
+            </template>
+            {{ activeTabKey === "advanced" ? "开始高级数据处理" : "开始处理" }}
+          </a-button>
+          <a-button size="large" @click="handleReset">
+            <template #icon>
+              <ReloadOutlined />
+            </template>
+            重置
+          </a-button>
+        </template>
       </div>
 
       <VbenGlassCard title="处理结果" class="result-card" v-if="result">
@@ -386,6 +408,7 @@ const previewData = ref([]);
 const processing = ref(false);
 const result = ref(null);
 const outputBlob = ref(null);
+const extractOutputBlob = ref(null);
 const processingProgress = ref(0);
 const processingStatusText = ref("");
 const uploadProgress = ref(0);
@@ -829,6 +852,7 @@ const handleRemove = () => {
   previewData.value = [];
   result.value = null;
   outputBlob.value = null;
+  extractOutputBlob.value = null;
   fileList.value = [];
   processingProgress.value = 0;
   processingStatusText.value = "";
@@ -1205,14 +1229,14 @@ const handleSplitDelimiterTypeChange = (type) => {
 
 /**
  * 加载预览数据
- * 从工作表中提取前20行数据用于预览
+ * 从工作表中提取前10行数据用于预览（优化性能：限制行数）
  */
 const loadPreview = () => {
   if (!previewWorksheet.value) return;
 
   const ws = previewWorksheet.value;
   const range = XLSX.utils.decode_range(ws["!ref"]);
-  const maxRow = Math.min(range.e.r + 1, 20);
+  const maxRow = Math.min(range.e.r + 1, 10);
   const maxCol = range.e.c + 1;
 
   previewData.value = [];
@@ -1849,6 +1873,55 @@ const handleDownload = () => {
 };
 
 /**
+ * 处理参数提取完成事件
+ * 刷新预览并保存 outputBlob 用于下载
+ */
+const handleExtractComplete = (detail) => {
+  if (detail?.outputBlob) {
+    extractOutputBlob.value = detail.outputBlob;
+  }
+
+  previewWorksheet.value = workbook.value.Sheets[sheetNames.value[0]];
+  previewSheetName.value = sheetNames.value[0];
+  loadPreview();
+
+  message.success(
+    `提取完成！已处理 ${detail?.processedCount || 0} 行数据，可点击下方按钮下载`,
+  );
+};
+
+/**
+ * 下载参数提取结果文件
+ */
+const handleDownloadExtract = () => {
+  if (!extractOutputBlob.value) {
+    message.warning("请先执行提取操作！");
+    return;
+  }
+
+  const url = URL.createObjectURL(extractOutputBlob.value);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `extracted_${fileList.value[0]?.name || "output.xlsx"}`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+
+  message.success("提取结果下载成功！");
+};
+
+/**
+ * 重置参数提取状态
+ * 清除提取结果和缓存，保留上传的文件
+ */
+const handleResetExtract = () => {
+  extractOutputBlob.value = null;
+  loadPreview();
+  message.info("已重置提取结果，可重新选择字段进行提取");
+};
+
+/**
  * 重置所有状态
  * 清除所有数据和配置，恢复初始状态
  */
@@ -1866,6 +1939,7 @@ const handleReset = () => {
   previewData.value = [];
   result.value = null;
   outputBlob.value = null;
+  extractOutputBlob.value = null;
   fileList.value = [];
   processingProgress.value = 0;
   processingStatusText.value = "";
@@ -1947,6 +2021,8 @@ const handleReset = () => {
   max-width: 1200px;
   margin: 0 auto;
   gap: 32px;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 1000px;
 }
 
 // 卡片统一样式
@@ -1954,6 +2030,22 @@ const handleReset = () => {
 .preview-card,
 .result-card {
   padding: 32px;
+  will-change: transform;
+}
+
+// 预览表格性能优化
+.preview-table {
+  :deep(.ant-table) {
+    font-size: 13px;
+  }
+
+  :deep(.ant-table-cell) {
+    padding: 8px 12px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    max-width: 200px;
+  }
 }
 
 .config-tabs {
@@ -1967,7 +2059,7 @@ const handleReset = () => {
     padding: 12px 24px;
     font-size: 15px;
     font-weight: 500;
-    transition: all 0.2s ease;
+    transition: color 0.2s ease, background-color 0.2s ease;
 
     &:hover {
       color: $color-primary;
@@ -2012,26 +2104,23 @@ const handleReset = () => {
   text-align: center;
 }
 
-// 进度条过渡动画
+// 进度条过渡动画（使用 opacity 和 transform 避免布局抖动）
 .progress-fade-enter-active,
 .progress-fade-leave-active {
-  transition: all 0.3s ease;
+  transition: opacity 0.3s ease, transform 0.3s ease;
   overflow: hidden;
 }
 
 .progress-fade-enter-from,
 .progress-fade-leave-to {
   opacity: 0;
-  max-height: 0;
-  margin-top: 0;
-  padding-top: 0;
-  padding-bottom: 0;
+  transform: translateY(-10px);
 }
 
 .progress-fade-enter-to,
 .progress-fade-leave-from {
   opacity: 1;
-  max-height: 120px;
+  transform: translateY(0);
 }
 
 .result-actions {

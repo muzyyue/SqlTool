@@ -200,7 +200,7 @@ const handleClick = (event) => {
   border-radius: var(--border-radius-xs);
   font-size: 13px;
   font-weight: 500;
-  transition: all var(--transition-fast) ease;
+  transition: background var(--transition-fast) ease, border-color var(--transition-fast) ease, color var(--transition-fast) ease, opacity var(--transition-fast) ease, transform var(--transition-fast) ease;
   cursor: default;
   user-select: none;
 }
@@ -277,6 +277,7 @@ const handleClick = (event) => {
  */
 .spin-icon {
   animation: spin 1s linear infinite;
+  will-change: transform;
 }
 
 @keyframes spin {

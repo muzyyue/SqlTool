@@ -176,6 +176,8 @@ const handleTargetColumnChange = (value) => {
 <style scoped lang="scss">
 .config-card {
   padding: 32px;
+  contain: layout style;
+  will-change: auto;
 }
 
 .hint-text {

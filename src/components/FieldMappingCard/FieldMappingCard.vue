@@ -565,8 +565,7 @@ const getStatusTooltip = (record) => {
  * @param {Object} record - 字段映射记录
  */
 const showMatchDetail = (record) => {
-  // 可以扩展为打开详情弹窗或侧边面板
-  console.log("匹配详情:", record);
+  // 可扩展为打开详情弹窗或侧边面板
 };
 
 const getSimilarityColor = (similarity) => {
@@ -680,7 +679,8 @@ const handleDatabaseTypeChange = (e) => {
   border: 1px solid var(--border-glass-strong);
   border-radius: var(--border-radius-md);
   padding: 20px;
-  transition: all var(--transition-slow) ease;
+  transition: box-shadow var(--transition-slow) ease, background-color var(--transition-slow) ease;
+  contain: layout style;
 }
 
 .field-mapping-card:hover {
@@ -719,7 +719,7 @@ const handleDatabaseTypeChange = (e) => {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-inverse);
-  transition: all var(--transition-slow) ease;
+  transition: background-color var(--transition-slow) ease, opacity var(--transition-slow) ease;
 }
 
 .match-rate-badge.excellent {
@@ -837,7 +837,7 @@ const handleDatabaseTypeChange = (e) => {
   background: var(--card-bg);
   border-radius: var(--border-radius-sm);
   border: 1px solid var(--border-default);
-  transition: all var(--transition-normal) ease;
+  transition: border-color var(--transition-normal) ease, box-shadow var(--transition-normal) ease, background-color var(--transition-normal) ease;
 }
 
 .mapping-item:hover {

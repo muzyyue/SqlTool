@@ -119,6 +119,7 @@ const handleReset = () => {
 <style scoped>
 .row-range-config {
   margin-top: 16px;
+  contain: layout;
 }
 
 .row-range-header {
@@ -132,7 +133,7 @@ const handleReset = () => {
   border: 1px solid var(--border-default);
   border-radius: var(--border-radius-md, 12px);
   box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
-  transition: all var(--transition-normal, 200ms) ease;
+  transition: box-shadow var(--transition-normal, 200ms) ease;
 }
 
 .row-range-header:hover {
@@ -148,7 +149,7 @@ const handleReset = () => {
   border: 1px solid var(--border-default);
   border-radius: var(--border-radius-md, 12px);
   box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
-  transition: all var(--transition-normal, 200ms) ease;
+  transition: box-shadow var(--transition-normal, 200ms) ease;
 }
 
 .row-range-controls:hover {

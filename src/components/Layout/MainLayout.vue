@@ -253,15 +253,15 @@ const showAbout = () => {
 };
 
 const exportLogs = () => {
-  console.log("导出日志");
+  // TODO: 实现日志导出功能
 };
 
 const showFeedback = () => {
-  console.log("显示反馈表单");
+  // TODO: 实现反馈表单功能
 };
 
 const showHelp = () => {
-  console.log("显示帮助文档");
+  // TODO: 实现帮助文档功能
 };
 
 // 监听路由变化
@@ -276,7 +276,7 @@ watch(
 
 // 生命周期
 onMounted(() => {
-  console.log("MainLayout 已加载");
+  // MainLayout 已加载
 });
 </script>
 
@@ -287,6 +287,7 @@ onMounted(() => {
  */
 .main-layout {
   min-height: 100vh;
+  contain: layout style;
 }
 
 .header {
@@ -297,7 +298,7 @@ onMounted(() => {
   );
   padding: 0;
   box-shadow: var(--shadow-header);
-  transition: all var(--transition-normal) ease;
+  transition: background var(--transition-normal) ease, box-shadow var(--transition-normal) ease;
 }
 
 .header-content {
@@ -308,7 +309,7 @@ onMounted(() => {
   margin: 0 auto;
   padding: 0 24px;
   height: 64px;
-  transition: all var(--transition-normal) ease;
+  transition: padding var(--transition-normal) ease;
 }
 
 .logo {
@@ -333,13 +334,12 @@ onMounted(() => {
   flex: 1;
   display: flex;
   justify-content: center;
-  transition: all var(--transition-normal) ease;
 }
 
 .nav-menu :deep(.ant-menu) {
   background: transparent;
   border: none;
-  transition: all var(--transition-normal) ease;
+  transition: color var(--transition-normal) ease, background-color var(--transition-normal) ease, border-color var(--transition-normal) ease;
 }
 
 .nav-menu :deep(.ant-menu-item) {
@@ -365,7 +365,7 @@ onMounted(() => {
 .theme-toggle,
 .settings-btn {
   color: var(--header-text) !important;
-  transition: all var(--transition-normal) ease;
+  transition: color var(--transition-normal) ease, background-color var(--transition-normal) ease, border-color var(--transition-normal) ease, box-shadow var(--transition-normal) ease;
 }
 
 .theme-toggle:hover,
@@ -404,7 +404,7 @@ onMounted(() => {
   border-radius: var(--border-radius-sm);
   box-shadow: var(--shadow-sm);
   min-height: 600px;
-  transition: all var(--transition-normal) ease;
+  transition: background var(--transition-normal) ease, box-shadow var(--transition-normal) ease;
 }
 
 .footer {
@@ -415,7 +415,7 @@ onMounted(() => {
   );
   color: var(--header-text-secondary);
   padding: 16px 0;
-  transition: all var(--transition-normal) ease;
+  transition: background var(--transition-normal) ease, color var(--transition-normal) ease;
 }
 
 .footer-content {

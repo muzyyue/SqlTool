@@ -197,6 +197,7 @@ const handleDownload = () => {
   background: $bg-elevated;
   border-bottom: 1px solid $border-default;
   min-height: 40px;
+  contain: layout;
 }
 
 .toolbar-left {

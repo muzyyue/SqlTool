@@ -362,6 +362,7 @@ defineExpose({
 .compare-result {
   flex: 1;
   overflow-y: auto;
+  contain: content;
 }
 
 .differences-section {

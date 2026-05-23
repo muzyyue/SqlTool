@@ -909,6 +909,7 @@ onMounted(async () => {
   -webkit-backdrop-filter: blur(var(--backdrop-blur, 20px));
   border: 1px solid var(--border-glass);
   border-radius: var(--border-radius-md, 12px);
+  contain: layout style paint;
 }
 
 /**
@@ -930,6 +931,7 @@ onMounted(async () => {
   animation: spin 1s linear infinite;
   font-size: 24px;
   color: var(--color-primary);
+  will-change: transform;
 }
 
 @keyframes spin {
@@ -1033,7 +1035,7 @@ onMounted(async () => {
   border-color: var(--input-border);
   background: var(--input-bg);
   color: var(--text-primary);
-  transition: all var(--transition-fast, 120ms) ease;
+  transition: border-color var(--transition-fast, 120ms) ease, background-color var(--transition-fast, 120ms) ease, box-shadow var(--transition-fast, 120ms) ease;
 }
 
 .input-textarea:focus,
@@ -1058,7 +1060,7 @@ onMounted(async () => {
 .generate-btn {
   min-width: 120px;
   border-radius: var(--border-radius-sm, 4px);
-  transition: all var(--transition-fast, 120ms) ease;
+  transition: transform var(--transition-fast, 120ms) ease, box-shadow var(--transition-fast, 120ms) ease, background-color var(--transition-fast, 120ms) ease, border-color var(--transition-fast, 120ms) ease;
 }
 
 .generate-btn:not(:disabled):hover {

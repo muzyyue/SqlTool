@@ -845,6 +845,7 @@ defineExpose({
 <style scoped>
 .batch-edit-panel {
   margin-top: 16px;
+  contain: layout style;
 }
 
 .glass-card {
@@ -865,7 +866,7 @@ defineExpose({
   border: 1px solid var(--border-glass-light);
   padding: 16px;
   margin-bottom: 12px;
-  transition: all var(--transition-normal) ease;
+  transition: box-shadow var(--transition-normal) ease, transform var(--transition-normal) ease, background-color var(--transition-normal) ease;
 }
 
 .glass-card-inner:hover {
@@ -1024,7 +1025,7 @@ defineExpose({
 }
 
 :deep(.ant-btn) {
-  transition: all var(--transition-fast) ease;
+  transition: transform var(--transition-fast) ease, box-shadow var(--transition-fast) ease, background-color var(--transition-fast) ease;
 }
 
 :deep(.ant-btn:hover) {

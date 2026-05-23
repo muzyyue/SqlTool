@@ -118,10 +118,22 @@ const handleClick = () => {
   border-radius: var(--border-radius-md);
   padding: 20px;
   cursor: pointer;
-  transition: all var(--transition-slow) ease;
+
+  /* 性能优化：只过渡实际变化的属性（避免 transition: all） */
+  transition:
+    transform var(--transition-slow) ease,
+    box-shadow var(--transition-slow) ease,
+    border-color var(--transition-slow) ease;
+
   display: flex;
   flex-direction: column;
   height: 100%;
+
+  /* GPU 加速：hover 时有 translateY 动画 */
+  will-change: transform;
+
+  /* 布局隔离：卡片内部布局不影响外部 */
+  contain: layout style;
 }
 
 .tool-card:hover {
@@ -174,6 +186,9 @@ const handleClick = () => {
   flex: 1;
   display: flex;
   flex-direction: column;
+
+  /* 性能优化：内容区域布局隔离 */
+  contain: content;
 }
 
 .tool-name {

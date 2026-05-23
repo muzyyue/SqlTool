@@ -1455,6 +1455,7 @@ const JsonTreeNode = {
   -webkit-backdrop-filter: blur(var(--backdrop-blur));
   border: 1px solid var(--border-glass);
   border-radius: var(--border-radius-md);
+  contain: layout style paint;
 }
 
 /**
@@ -1477,6 +1478,7 @@ const JsonTreeNode = {
   animation: spin 1s linear infinite;
   font-size: 24px;
   color: var(--color-primary);
+  will-change: transform;
 }
 
 @keyframes spin {
@@ -1566,7 +1568,7 @@ const JsonTreeNode = {
 .analyze-btn {
   min-width: 120px;
   border-radius: var(--border-radius-sm);
-  transition: all var(--transition-fast) ease;
+  transition: transform var(--transition-fast) ease, box-shadow var(--transition-fast) ease, background-color var(--transition-fast) ease, border-color var(--transition-fast) ease;
 }
 
 .analyze-btn:not(:disabled):hover {

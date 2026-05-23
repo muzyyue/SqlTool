@@ -182,6 +182,7 @@ defineExpose({
   border: 1px solid $border-default;
   border-radius: $border-radius-md;
   overflow: hidden;
+  contain: content;
 }
 
 .panel-header {

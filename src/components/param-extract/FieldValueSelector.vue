@@ -364,6 +364,7 @@ watch(
   border: 1px solid var(--border-default);
   border-radius: var(--border-radius-md);
   overflow: hidden;
+  contain: content;
 }
 
 .selector-header {

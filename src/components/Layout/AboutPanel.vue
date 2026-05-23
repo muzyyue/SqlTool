@@ -215,6 +215,7 @@ onMounted(() => {
 .about-panel {
   max-height: 70vh;
   overflow-y: auto;
+  contain: content;
 }
 
 .about-header {
@@ -341,6 +342,7 @@ onMounted(() => {
 /* 动画效果 */
 .app-icon {
   animation: float 3s ease-in-out infinite;
+  will-change: transform;
 }
 
 @keyframes float {
@@ -355,6 +357,7 @@ onMounted(() => {
 
 .info-section {
   animation: fadeInUp 0.5s ease-out;
+  will-change: transform, opacity;
 }
 
 @keyframes fadeInUp {

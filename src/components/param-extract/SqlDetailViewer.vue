@@ -111,6 +111,8 @@ async function copyFormatted() {
 
 <style lang="scss" scoped>
 .sql-detail-viewer {
+  contain: content;
+
   .sql-preview {
     background: var(--code-bg, #1e1e1e);
     border-radius: 8px;

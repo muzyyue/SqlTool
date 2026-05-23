@@ -167,14 +167,13 @@ const getCategoryName = (categoryId) => {
  * 处理搜索
  */
 const handleSearch = () => {
-  console.log('搜索:', searchQuery.value)
+  // 搜索逻辑由 computed 自动响应，无需额外处理
 }
 
 /**
  * 处理工具点击
  */
 const handleToolClick = (tool) => {
-  console.log('点击工具:', tool.name)
   router.push(tool.route)
 }
 
@@ -182,7 +181,7 @@ const handleToolClick = (tool) => {
  * 初始化
  */
 onMounted(() => {
-  console.log('工具网格已加载')
+  // 组件挂载完成，数据由 computed 自动加载
 })
 </script>
 
@@ -191,6 +190,9 @@ onMounted(() => {
   padding: 40px 20px;
   max-width: 1400px;
   margin: 0 auto;
+
+  /* 布局隔离：网格内部布局不影响外部 */
+  contain: layout style;
 }
 
 /* 头部区域 */
@@ -258,11 +260,19 @@ onMounted(() => {
   background: var(--bg-elevated);
   padding: 24px;
   border-radius: 12px;
+
+  /* 性能优化：收藏夹可能离屏，跳过不可见时的渲染 */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 200px;
 }
 
 /* 工具区域 */
 .tools-section {
   margin-top: 40px;
+
+  /* 性能优化：工具列表可能离屏，跳过不可见时的渲染 */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 400px;
 }
 
 /* 工具容器 */

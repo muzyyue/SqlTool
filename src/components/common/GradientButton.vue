@@ -110,9 +110,26 @@ const handleClick = (event) => {
   border-radius: var(--border-radius-sm);
   box-shadow: var(--shadow-sm);
   cursor: pointer;
-  transition: all var(--transition-normal) ease;
+
+  /* 性能优化：只过渡实际变化的属性（避免 transition: all）
+   * hover: background, box-shadow
+   * active: transform (scale)
+   * disabled/loading: opacity
+   */
+  transition:
+    background-color var(--transition-normal) ease,
+    box-shadow var(--transition-normal) ease,
+    transform var(--transition-normal) ease,
+    opacity var(--transition-normal) ease;
+
   user-select: none;
   outline: none;
+
+  /* GPU 加速：active 时有 scale 动画 */
+  will-change: transform;
+
+  /* 布局隔离：按钮内部不影响外部 */
+  contain: layout style;
 }
 
 /**

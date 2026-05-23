@@ -425,6 +425,7 @@ onMounted(() => {
 .settings-panel {
   max-height: 70vh;
   overflow-y: auto;
+  contain: content;
 }
 
 .settings-section {

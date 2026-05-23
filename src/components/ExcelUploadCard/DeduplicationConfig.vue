@@ -67,6 +67,7 @@ const handleChange = (value) => {
 <style scoped>
 .deduplication-config {
   margin-top: 16px;
+  contain: layout;
 }
 
 .deduplication-header {
@@ -80,7 +81,7 @@ const handleChange = (value) => {
   border: 1px solid var(--card-border, rgba(255, 255, 255, 0.5));
   border-radius: var(--border-radius-md, 12px);
   box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
-  transition: all var(--transition-normal, 200ms) ease;
+  transition: box-shadow var(--transition-normal, 200ms) ease;
 }
 
 .deduplication-header:hover {
@@ -96,7 +97,7 @@ const handleChange = (value) => {
   border: 1px solid var(--card-border, rgba(255, 255, 255, 0.5));
   border-radius: var(--border-radius-md, 12px);
   box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
-  transition: all var(--transition-normal, 200ms) ease;
+  transition: box-shadow var(--transition-normal, 200ms) ease;
 }
 
 .deduplication-controls:hover {
@@ -104,7 +105,7 @@ const handleChange = (value) => {
 }
 
 .deduplication-controls .ant-select {
-  transition: all var(--transition-fast, 120ms) ease;
+  transition: box-shadow var(--transition-fast, 120ms) ease;
 }
 
 .deduplication-controls .ant-select:hover {
@@ -124,7 +125,7 @@ const handleChange = (value) => {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
-  transition: all var(--transition-normal, 200ms) ease;
+  transition: background,box-shadow var(--transition-normal, 200ms) ease;
 }
 
 .deduplication-stats:hover {
@@ -139,7 +140,7 @@ const handleChange = (value) => {
   font-weight: 500;
   padding: 6px 14px;
   border-radius: var(--border-radius-xs, 4px);
-  transition: all var(--transition-fast, 120ms) ease;
+  transition: color,border-color,box-shadow,transform var(--transition-fast, 120ms) ease;
 }
 
 .deduplication-stats .ant-tag:hover {

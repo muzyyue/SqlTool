@@ -1031,7 +1031,6 @@ const loadBindings = () => {
       customFields.value = [];
     } else {
       // 编辑自定义字段：只加载这一条数据
-      console.log("编辑模式：加载字段数据", props.editingField);
       singleBindings.value = [];
       concatenationRules.value = [];
       customFields.value = [
@@ -1120,7 +1119,6 @@ const removeSingleBinding = (id) => {
 const handleSingleBindingChange = (record) => {
   // 只更新本地状态，不立即添加到管理器中
   // 最终保存时由saveBindings统一处理
-  console.log("单列绑定已更新:", record);
 };
 
 const addConcatenationRule = () => {
@@ -1138,7 +1136,6 @@ const addConcatenationRule = () => {
 
 const clearConcatenationFieldName = (record) => {
   record.customFieldName = "";
-  console.log("自定义字段名已清空:", record);
 };
 
 const removeConcatenationRule = (id) => {
@@ -1186,13 +1183,11 @@ const handleCustomFieldNameChange = (record) => {
   if (record.customFieldName) {
     record.ddlFieldName = record.customFieldName;
   }
-  console.log("自定义字段名已更新:", record);
 };
 
 const clearCustomFieldName = (record) => {
   record.customFieldName = "";
   record.ddlFieldName = "";
-  console.log("自定义字段名已清空:", record);
 };
 
 const isColumnUsed = (columnIndex, currentBindingId) => {
@@ -1416,8 +1411,6 @@ const handleCustomFieldChange = (record) => {
       };
     }
   }
-
-  console.log("自定义字段已更新:", record);
 };
 
 /**
@@ -1580,11 +1573,6 @@ const getCustomFieldPreview = (field) => {
 };
 
 const saveBindings = () => {
-  console.log(
-    "========================customFields===================================",
-    customFields.value,
-  );
-
   // 判断是编辑模式还是添加模式
   const isEditMode = !!props.editingField;
 
@@ -1738,6 +1726,7 @@ const generateId = () => {
 .custom-binding-modal {
   max-height: 70vh;
   overflow-y: auto;
+  contain: content;
 }
 
 .feature-toggle {

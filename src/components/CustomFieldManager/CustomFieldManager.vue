@@ -195,15 +195,7 @@ const filteredFields = computed(() => {
 watch(
   () => props.customFields,
   (newFields, oldFields) => {
-    console.log('CustomFieldManager: customFields props changed', {
-      oldLength: oldFields?.length || 0,
-      newLength: newFields?.length || 0,
-      oldFields: oldFields,
-      newFields: newFields,
-    })
-
     if (newFields && newFields.length !== oldFields?.length) {
-      console.log('CustomFieldManager: 自定义字段数量发生变化，重置搜索和筛选状态')
       searchText.value = ''
       filterType.value = 'all'
     }
@@ -279,6 +271,7 @@ const handleDelete = (record) => {
 .custom-field-manager {
   background: var(--card-bg);
   border-radius: var(--border-radius-sm);
+  contain: layout style;
 }
 
 .manager-header {

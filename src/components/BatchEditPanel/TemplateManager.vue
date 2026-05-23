@@ -495,6 +495,7 @@ defineExpose({
 .template-list {
   max-height: calc(100vh - 350px);
   overflow-y: auto;
+  contain: content;
 }
 
 .template-item {
@@ -502,6 +503,8 @@ defineExpose({
   background: #fafafa;
   border-radius: 8px;
   margin-bottom: 12px;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 100px;
 }
 
 .template-item:hover {

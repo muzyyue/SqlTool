@@ -179,6 +179,8 @@ const handleProcess = () => {
 <style scoped lang="scss">
 .quote-card {
   padding: 32px;
+  contain: layout style;
+  will-change: auto;
 }
 
 .hint-text {

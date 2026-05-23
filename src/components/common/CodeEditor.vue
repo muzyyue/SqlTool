@@ -198,7 +198,6 @@ const handleCopy = async () => {
     message.success('已复制到剪贴板')
   } catch (error) {
     message.error('复制失败，请检查浏览器权限')
-    console.error('复制失败:', error)
   }
 }
 
@@ -223,7 +222,6 @@ const handleDownload = () => {
     message.success('文件下载成功')
   } catch (error) {
     message.error('下载失败')
-    console.error('下载失败:', error)
   }
 }
 
@@ -280,7 +278,14 @@ defineExpose({
   border-radius: var(--border-radius-md, 12px);
   overflow: hidden;
   background: var(--code-bg);
-  transition: all var(--transition-normal, 200ms) ease;
+
+  /* 性能优化：只过渡边框和阴影（聚焦时的高亮效果） */
+  transition:
+    border-color var(--transition-normal, 200ms) ease,
+    box-shadow var(--transition-normal, 200ms) ease;
+
+  /* 布局隔离：编辑器内部不影响外部布局 */
+  contain: layout style;
 }
 
 /**

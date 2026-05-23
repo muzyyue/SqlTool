@@ -228,7 +228,7 @@ defineExpose({
 
   :deep(.ant-btn) {
     border-radius: 8px;
-    transition: all 0.2s ease;
+    transition: color,border-color,transform 0.2s ease;
     font-weight: 500;
     font-size: 13px;
     display: inline-flex;

@@ -1,5 +1,12 @@
 # SqlTool 更新日志
 
+## v1.5.67 (2026-05-23) Excel 组件性能优化
+- 将所有 transition: all 替换为具体 CSS 属性（box-shadow, border-color, transform, background-color 等）
+- 清理调试用 console.log/warn 共 9 处，保留关键错误处理中的 console.error
+- 添加 CSS containment（contain: layout style / contain: content）限制浏览器重算范围
+- 添加 GPU 加速提示（will-change: transform / will-change: scroll-position）到滚动/动画元素
+- 涉及文件: BasicFillTab.vue, AdvancedFillTab.vue, QuoteConvertTab.vue, ExcelUploadCard.vue, FieldMappingCard.vue, CustomFieldManager.vue, CustomBindingModal.vue, SqlPreview.vue, BatchEditPanel.vue
+
 ## v1.5.66 (2026-05-22) 增强 JSON 字符串化解包能力与嵌套字段选择
 - 新增 JSON 树形结构预览（CodeMirror 编辑器）
 - 字段选择器升级为树形选择器（a-tree-select），支持嵌套结构展示

@@ -146,7 +146,7 @@
 
           <!-- 🆕 JSON 字符串化解包提示条 -->
           <a-alert
-            v-if="isFieldStringifiedJson"
+            v-if="parsedJsonCache"
             :type="isJsonUnwrapMode ? 'success' : 'info'"
             show-icon
             closable
@@ -445,69 +445,41 @@ const innerFieldTree = ref([]); // 内层字段树形结构
  * 仅当字段类型为 string 时才检测
  */
 const isFieldStringifiedJson = computed(() => {
-  // 条件A：基本检查
   if (!selectedField.value) {
-    console.log("⚠️ [JSON检测] 失败: selectedField 为空");
     return false;
   }
   if (!sourceDataCache.value || !sourceDataCache.value.length) {
-    console.log("⚠️ [JSON检测] 失败: sourceDataCache 为空");
     return false;
   }
 
-  // 条件B：从 sampleSchema 获取字段类型，仅 string 类型才检测
   const fieldInfo = sampleSchema.value?.fields?.find(
     (f) => f.path === selectedField.value,
   );
-  console.log(
-    `🔍 [JSON检测] 查找字段: "${selectedField.value}", 找到:`,
-    fieldInfo,
-  );
 
   if (!fieldInfo) {
-    console.log(
-      "⚠️ [JSON检测] 失败: 在 sampleSchema.fields 中未找到字段",
-      "可用字段列表:",
-      sampleSchema.value?.fields?.map((f) => f.path),
-    );
     return false;
   }
   if (fieldInfo.type !== "string") {
-    console.log(`⚠️ [JSON检测] 跳过: 字段类型为 ${fieldInfo.type}（非string）`);
     return false;
   }
 
-  // 条件C：尝试解析样本数据
   try {
     const firstSample = sourceDataCache.value[0].value;
-    console.log(
-      `🔍 [JSON检测] 样本数据前50字符:`,
-      firstSample?.substring(0, 50),
-    );
 
     if (
       !firstSample ||
       !(firstSample.startsWith("{") || firstSample.startsWith("["))
     ) {
-      console.log("⚠️ [JSON检测] 失败: 样本数据不是 JSON 格式");
       return false;
     }
 
     const parsedRoot = JSON.parse(firstSample);
     const fieldValue = getNestedValue(parsedRoot, selectedField.value);
 
-    console.log(
-      `🔍 [JSON检测] 字段 "${selectedField.value}" 的值:`,
-      fieldValue,
-      typeof fieldValue,
-    );
-
     const result = isStringifiedJsonSimple(fieldValue);
-    console.log(`✅ [JSON检测结果]: ${result}`);
 
     return result;
   } catch (e) {
-    console.error("❌ [JSON检测] 异常:", e.message);
     return false;
   }
 });
@@ -725,19 +697,13 @@ const targetColumnOptions = computed(() => {
 
 // 🆕 新架构：基于sampleSchema的即时字段选项（树形结构）
 const fieldOptions = computed(() => {
-  console.log("🔍 [fieldOptions] 计算树形结构...");
-
   // ✅ 策略1：基于 sampleSchema（采样模式，<100ms响应）
   if (isSampleAnalyzed.value && sampleSchema.value?.fields?.length > 0) {
-    console.log(
-      `✅ [fieldOptions] 使用 sampleSchema (${sampleSchema.value.fields.length} 个字段) 构建树`,
-    );
     return buildFieldTree(sampleSchema.value.fields);
   }
 
   // ⚠️ 回退：手动输入模式 + 已有提取结果
   if (dataSource.value === "manual" && hasResults.value) {
-    console.log("⚠️ [fieldOptions] 回退到手动模式逻辑");
     if (filteredItems.value?.length > 0) {
       const fields = [];
       const fieldSet = new Set();
@@ -764,15 +730,12 @@ const fieldOptions = computed(() => {
     }
   }
 
-  console.log("❌ [fieldOptions] 无可用字段");
   return [];
 });
 
 // 🆕 新架构：两阶段取值选项
 const valueOptions = computed(() => {
   if (!selectedField.value) return [];
-
-  console.log(`🔍 [valueOptions] 计算字段 "${selectedField.value}" 的取值...`);
 
   // ✅ 阶段1：基于 sampleSchema（预览，快速）
   if (isSampleAnalyzed.value && sampleSchema.value) {
@@ -781,9 +744,6 @@ const valueOptions = computed(() => {
     );
 
     if (field?.values?.length > 0) {
-      console.log(
-        `✅ [valueOptions] 使用 sampleSchema 预览 (${field.values.length} 个取值)`,
-      );
       return field.values.map((v) => ({
         label: v,
         value: v,
@@ -795,7 +755,6 @@ const valueOptions = computed(() => {
   // ⚠️ 阶段2：基于完整提取结果（精确）
   // 保留原有逻辑作为回退...
 
-  console.log("❌ [valueOptions] 无可用取值");
   return [];
 });
 
@@ -812,16 +771,18 @@ function filterOption(input, option) {
  * 从样本数据中提取字段值，尝试解析为JSON，构建内层字段树
  */
 function parseSelectedFieldAsJson(depth = 0) {
-  console.log(
-    `\n🔧 [parseSelectedFieldAsJson] 开始, depth=${depth}, selectedField=${selectedField.value}`,
-  );
-
-  if (!selectedField.value || !sourceDataCache.value.length) {
-    console.log("❌ [parseSelectedFieldAsJson] 失败: 基本条件不满足");
+  if (!selectedField.value) {
     return false;
   }
 
-  const MAX_DEPTH = 3; // 最大嵌套深度
+  if (!sourceDataCache.value?.length) {
+    if (sampleSchema.value && formattedSampleJson.value) {
+      return parseFromFormattedSample(depth);
+    }
+    return false;
+  }
+
+  const MAX_DEPTH = 3;
   if (depth > MAX_DEPTH) {
     message.warning(`已达到最大解析深度 (${MAX_DEPTH} 层)`);
     return false;
@@ -829,65 +790,43 @@ function parseSelectedFieldAsJson(depth = 0) {
 
   try {
     const firstSample = sourceDataCache.value[0].value;
-    console.log(
-      `🔍 [parseSelectedFieldAsJson] 样本数据:`,
-      firstSample?.substring(0, 100),
-    );
 
-    if (
-      !firstSample ||
-      !(firstSample.startsWith("{") || firstSample.startsWith("["))
-    ) {
-      console.log("❌ [parseSelectedFieldAsJson] 失败: 样本不是JSON");
-      return false;
+    const sampleStr = String(firstSample ?? "").trim();
+
+    let parsedRoot;
+    let targetData;
+
+    if (sampleStr.startsWith("{") || sampleStr.startsWith("[")) {
+      parsedRoot = JSON.parse(sampleStr);
+
+      if (depth === 0 && selectedField.value) {
+        targetData = getNestedValue(parsedRoot, selectedField.value);
+      } else if (depth > 0 && selectedInnerField.value) {
+        targetData = getNestedValue(
+          parsedJsonCache.value?.raw,
+          selectedInnerField.value,
+        );
+      } else {
+        targetData = parsedRoot;
+      }
+    } else {
+      targetData = sampleStr;
     }
 
-    const parsedRoot = JSON.parse(firstSample);
-
-    // 根据当前深度获取目标值
-    let targetData = parsedRoot;
-    if (depth === 0 && selectedField.value) {
-      targetData = getNestedValue(parsedRoot, selectedField.value);
-      console.log(
-        `🔍 [parseSelectedFieldAsJson] depth=0, 提取字段 "${selectedField.value}" 的值:`,
-        targetData,
-        typeof targetData,
-      );
-    } else if (depth > 0 && selectedInnerField.value) {
-      // 多层嵌套：从已解析的缓存中继续解包
-      targetData = getNestedValue(
-        parsedJsonCache.value?.raw,
-        selectedInnerField.value,
-      );
-      console.log(
-        `🔍 [parseSelectedFieldAsJson] depth=${depth}, 提取内层字段 "${selectedInnerField.value}":`,
-        targetData,
-        typeof targetData,
-      );
+    if (targetData == null) {
+      const valueOptionVal = valueOptions.value[0]?.value;
+      if (valueOptionVal && isStringifiedJsonSimple(valueOptionVal)) {
+        targetData = JSON.parse(valueOptionVal);
+      } else {
+        return false;
+      }
     }
-
-    if (!targetData) {
-      console.log("❌ [parseSelectedFieldAsJson] 失败: targetData 为空");
-      return false;
-    }
-
-    // 检查是否为字符串化JSON
-    console.log(
-      `🔍 [parseSelectedFieldAsJson] 检查是否字符串化JSON...`,
-      isStringifiedJsonSimple(targetData),
-    );
 
     if (isStringifiedJsonSimple(targetData)) {
       const innerParsed = JSON.parse(targetData);
-      console.log(`✅ [parseSelectedFieldAsJson] JSON解析成功:`, innerParsed);
 
-      // 构建扁平字段列表
       const flatFields = flattenObject(innerParsed);
-      console.log(
-        `🔍 [parseSelectedFieldAsJson] 扁平化字段数: ${flatFields.length}`,
-      );
 
-      // 缓存解析结果
       parsedJsonCache.value = {
         raw: innerParsed,
         fields: flatFields.map((f) => ({
@@ -904,23 +843,113 @@ function parseSelectedFieldAsJson(depth = 0) {
             : JSON.stringify(targetData).substring(0, 80) + "...",
       };
 
-      // 构建内层字段树
       innerFieldTree.value = buildFieldTree(parsedJsonCache.value.fields);
-
       jsonUnwrapDepth.value = depth;
       isJsonUnwrapMode.value = true;
 
-      console.log(
-        `✅ [JSON解包] 第${depth + 1}层解析成功:`,
-        parsedJsonCache.value,
-      );
+      return true;
+    }
+
+    if (typeof targetData === "object" && targetData !== null) {
+      const flatFields = flattenObject(targetData);
+      parsedJsonCache.value = {
+        raw: targetData,
+        fields: flatFields.map((f) => ({
+          path: f.path,
+          label: f.path.split(".").pop() || f.path,
+          type: f.dataType,
+          value: f.value,
+        })),
+        itemCount: Array.isArray(targetData) ? targetData.length : 1,
+        fieldCount: flatFields.length,
+        samplePreview: JSON.stringify(targetData).substring(0, 80) + "...",
+      };
+
+      innerFieldTree.value = buildFieldTree(parsedJsonCache.value.fields);
+      jsonUnwrapDepth.value = depth;
+      isJsonUnwrapMode.value = true;
 
       return true;
     }
 
     return false;
   } catch (e) {
-    console.error("❌ [JSON解包] 解析失败:", e);
+    try {
+      const firstVal = valueOptions.value[0]?.value;
+      if (firstVal && isStringifiedJsonSimple(firstVal)) {
+        const fallbackParsed = JSON.parse(firstVal);
+        const flatFields = flattenObject(fallbackParsed);
+
+        parsedJsonCache.value = {
+          raw: fallbackParsed,
+          fields: flatFields.map((f) => ({
+            path: f.path,
+            label: f.path.split(".").pop() || f.path,
+            type: f.dataType,
+            value: f.value,
+          })),
+          itemCount: Array.isArray(fallbackParsed) ? fallbackParsed.length : 1,
+          fieldCount: flatFields.length,
+          samplePreview: firstVal.substring(0, 80) + "...",
+        };
+
+        innerFieldTree.value = buildFieldTree(parsedJsonCache.value.fields);
+        jsonUnwrapDepth.value = depth;
+        isJsonUnwrapMode.value = true;
+
+        return true;
+      }
+    } catch (e2) {
+      // 容错降级失败
+    }
+
+    return false;
+  }
+}
+
+/**
+ * 从格式化样本中解析（当 sourceDataCache 为空时的回退方案）
+ */
+function parseFromFormattedSample(depth) {
+  try {
+    const sampleText = formattedSampleJson.value;
+    if (!sampleText || !(sampleText.startsWith("{") || sampleText.startsWith("["))) {
+      return false;
+    }
+
+    const parsedRoot = JSON.parse(sampleText);
+    let targetData = parsedRoot;
+
+    if (depth === 0 && selectedField.value) {
+      targetData = getNestedValue(parsedRoot, selectedField.value);
+    }
+
+    if (!targetData || !isStringifiedJsonSimple(targetData)) {
+      return false;
+    }
+
+    const innerParsed = JSON.parse(targetData);
+    const flatFields = flattenObject(innerParsed);
+
+    parsedJsonCache.value = {
+      raw: innerParsed,
+      fields: flatFields.map((f) => ({
+        path: f.path,
+        label: f.path.split(".").pop() || f.path,
+        type: f.dataType,
+        value: f.value,
+      })),
+      itemCount: Array.isArray(innerParsed) ? innerParsed.length : 1,
+      fieldCount: flatFields.length,
+      samplePreview: targetData.substring(0, 80) + "...",
+    };
+
+    innerFieldTree.value = buildFieldTree(parsedJsonCache.value.fields);
+    jsonUnwrapDepth.value = depth;
+    isJsonUnwrapMode.value = true;
+
+    return true;
+  } catch (e) {
     return false;
   }
 }
@@ -1034,7 +1063,7 @@ function loadInnerFieldValues(innerPath) {
       message.info(`已加载 ${valuesArray.length} 个可选值，请选择要提取的内容`);
     }
   } catch (e) {
-    console.error("❌ [内层取值] 加载失败:", e);
+    // 内层取值加载失败
   }
 }
 
@@ -1043,12 +1072,9 @@ function loadInnerFieldValues(innerPath) {
  * 当用户选择字段时，自动检测是否为字符串化JSON并触发解包
  */
 function handleFieldChange(value) {
-  console.log("\n📌 [handleFieldChange] 开始, value:", value);
-
   selectedValues.value = [];
   selectedInnerField.value = undefined;
 
-  // 重置 JSON 解包状态
   isJsonUnwrapMode.value = false;
   parsedJsonCache.value = null;
   innerFieldTree.value = [];
@@ -1056,34 +1082,25 @@ function handleFieldChange(value) {
 
   if (!value) {
     extractor.setInteractiveMode(false);
-    console.log("📌 [handleFieldChange] 清空选择，退出");
   } else {
     extractor.setInteractiveMode(true);
     extractor.state.selectedField = value;
 
     message.info(`已选择字段: ${value}，请选择要提取的取值`);
 
-    // 🆕 自动检测字符串化JSON（仅 string 类型字段）
-    // 使用 nextTick 确保 Vue 响应式更新完成后再检查
     nextTick(() => {
-      const shouldDetect = isFieldStringifiedJson.value;
-      console.log(
-        `🔍 [handleFieldChange] nextTick 后 isFieldStringifiedJson:`,
-        shouldDetect,
-      );
-
-      if (shouldDetect) {
-        console.log("🔍 [字段变化] 检测到字符串化JSON，自动开启解包模式...");
-
-        const success = parseSelectedFieldAsJson(0);
-        if (success) {
-          message.success(`✅ 自动检测到JSON数据！${unwrapHintMessage.value}`);
-        } else {
-          console.warn("⚠️ [字段变化] parseSelectedFieldAsJson 返回 false");
-        }
-      } else {
-        console.log("ℹ️ [字段变化] 该字段不是字符串化JSON，跳过自动解包");
+      let success = parseSelectedFieldAsJson(0);
+      if (success) {
+        message.success(`自动检测到JSON数据！${unwrapHintMessage.value}`);
+        return;
       }
+
+      setTimeout(() => {
+        success = parseSelectedFieldAsJson(0);
+        if (success) {
+          message.success(`自动检测到JSON数据！${unwrapHintMessage.value}`);
+        }
+      }, 200);
     });
   }
 }
@@ -1113,7 +1130,6 @@ async function handleValueChange(values) {
       );
     }
   } catch (error) {
-    console.error("精准提取出错:", error);
     message.error(`精准提取失败: ${error.message}`);
   }
 }
@@ -1396,27 +1412,20 @@ watch(selectedColumn, async (newColumn) => {
 
     if (allData.length === 0) return;
 
-    sourceDataCache.value = allData; // 缓存全部数据
-    console.log(`📊 [采样分析] 缓存 ${allData.length} 行数据`);
+    sourceDataCache.value = allData;
 
     // 2️⃣ 只取前3行作为样本
     const SAMPLE_SIZE = Math.min(3, allData.length);
     const sampleLines = allData.slice(0, SAMPLE_SIZE).map((d) => d.value);
-
-    console.log(`🔬 [采样分析] 分析前 ${SAMPLE_SIZE} 行样本...`);
 
     // 3️⃣ 分析样本，提取通用结构
     const schema = analyzeSampleData(sampleLines);
 
     if (schema?.fields?.length > 0) {
       sampleSchema.value = schema;
-      console.log(`✅ [采样分析] 成功！发现 ${schema.fields.length} 个字段:`);
-      schema.fields.forEach((f) => console.log(`   - ${f.path} (${f.type})`));
-    } else {
-      console.warn("⚠️ [采样分析] 未检测到可识别的字段结构");
     }
   } catch (error) {
-    console.error("💥 [采样分析] 失败:", error);
+    // 采样分析失败
   }
 });
 
@@ -1446,12 +1455,6 @@ async function handleExtract() {
       return;
     }
 
-    console.log(
-      `🚀 [批量提取] 开始处理 ${sourceDataCache.value.length} 行数据...`,
-    );
-    console.log(`   目标字段: ${selectedField.value || "全部"}`);
-    console.log(`   目标列: ${targetColumn.value}`);
-
     try {
       const sheetName = props.sheets[0];
       const ws = props.workbook.Sheets[sheetName];
@@ -1462,14 +1465,13 @@ async function handleExtract() {
       for (const sourceItem of sourceDataCache.value) {
         let extractedContent = "";
 
-        // 如果选择了特定字段，按字段提取
         if (selectedField.value) {
           extractedContent = extractFieldValue(
             sourceItem.value,
             selectedField.value,
+            isJsonUnwrapMode.value ? selectedInnerField.value : undefined,
           );
         } else {
-          // 未选择字段时，返回原始内容
           extractedContent = sourceItem.value;
         }
 
@@ -1483,16 +1485,23 @@ async function handleExtract() {
       // 写入目标列
       await writeBatchToTargetColumn(ws, batchResults, targetColumn.value);
 
-      message.success(`✅ 批量提取完成！已处理 ${batchResults.length} 行数据`);
+      const excelBuffer = XLSX.write(
+        { Sheets: { [props.sheets[0]]: ws }, SheetNames: [props.sheets[0]] },
+        { bookType: "xlsx", type: "array" },
+      );
+      const outputBlob = new Blob([excelBuffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
 
-      // 触发父组件刷新
+      message.success(`批量提取完成！已处理 ${batchResults.length} 行数据`);
+
       emit("extract-complete", {
         sourceColumn: selectedColumn.value,
         targetColumn: targetColumn.value,
         processedCount: batchResults.length,
+        outputBlob,
       });
     } catch (error) {
-      console.error("💥 [批量提取] 失败:", error);
       message.error(`批量提取失败: ${error.message}`);
     }
 
@@ -1649,11 +1658,11 @@ function clearError() {
  * 支持多层嵌套和字符串化JSON解包
  * @param {string} data - 原始数据字符串（通常是JSON）
  * @param {string} fieldPath - 字段路径（如 "value_data.file" 或 "value[0].value"）
+ * @param {string} [innerPath] - 内层字段路径（JSON解包模式下使用，如 "file" 或 "[0].value"）
  * @returns {string} 提取的值
  */
-function extractFieldValue(data, fieldPath) {
+function extractFieldValue(data, fieldPath, innerPath) {
   try {
-    // 尝试解析为JSON
     if (
       (data.startsWith("{") || data.startsWith("[")) &&
       data.length < 100000
@@ -1662,28 +1671,42 @@ function extractFieldValue(data, fieldPath) {
       const items = Array.isArray(parsed) ? parsed : [parsed];
 
       for (const item of items) {
-        // 按路径访问嵌套属性（支持数组索引）
         const value = getNestedValue(item, fieldPath);
         if (value !== undefined) {
-          // 如果值仍然是字符串化JSON，尝试进一步解析
-          if (typeof value === "string" && isStringifiedJsonSimple(value)) {
+          let result = value;
+
+          if (typeof result === "string" && isStringifiedJsonSimple(result)) {
             try {
-              const innerParsed = JSON.parse(value);
-              return typeof innerParsed === "object"
-                ? JSON.stringify(innerParsed)
-                : String(innerParsed);
+              result = JSON.parse(result);
             } catch (e) {
-              return value;
+              return result;
             }
           }
-          return typeof value === "object"
-            ? JSON.stringify(value)
-            : String(value);
+
+          if (innerPath && typeof result === "object" && result !== null) {
+            const innerValue = getNestedValue(result, innerPath);
+            if (innerValue !== undefined) {
+              result = innerValue;
+            }
+          }
+
+          if (Array.isArray(result)) {
+            return result
+              .map((item) =>
+                typeof item === "object" && item !== null
+                  ? item.value ?? JSON.stringify(item)
+                  : String(item),
+              )
+              .join(", ");
+          }
+
+          return typeof result === "object"
+            ? JSON.stringify(result)
+            : String(result);
         }
       }
     }
 
-    // 如果不是JSON或路径不存在，返回原始数据
     return data;
   } catch (e) {
     return data;
@@ -1756,6 +1779,9 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
 
 <style scoped lang="scss">
 .param-extract-tab {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 800px;
+
   .section-title {
     font-size: 15px;
     font-weight: 600;
@@ -1920,20 +1946,18 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
   }
 
   .interactive-selector {
-    background: linear-gradient(135deg, #f8f9fb 0%, #f0f2f5 100%);
+    background: #f8f9fb;
     border-radius: 12px;
     padding: 24px;
     margin-top: 16px;
     border: 1px solid rgba(22, 119, 255, 0.08);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    will-change: transform;
+    contain: layout;
 
     // 数据结构概览
     .schema-summary {
-      background: linear-gradient(
-        135deg,
-        rgba(8, 145, 178, 0.04) 0%,
-        rgba(6, 182, 212, 0.03) 100%
-      );
+      background: rgba(8, 145, 178, 0.04);
       border: 1px solid rgba(8, 145, 178, 0.12);
       border-radius: 10px;
       padding: 14px 18px;
@@ -1954,7 +1978,7 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
           display: inline-flex;
           align-items: center;
           padding: 2px 10px;
-          background: linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%);
+          background: #cffafe;
           color: #0e7490;
           font-size: 12px;
           font-weight: 700;
@@ -2017,13 +2041,13 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      color: #6366f1; // 靛蓝色（柔和）
+      color: #6366f1;
       font-size: 13px;
       font-weight: 600;
       margin-bottom: 8px;
       padding-left: 10px;
       border-left: 3px solid #6366f1;
-      transition: all 0.2s ease;
+      transition: color 0.2s ease, border-left-color 0.2s ease;
 
       &:hover {
         color: #4f46e5;
@@ -2037,7 +2061,7 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
         height: 16px;
         background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
         border-radius: 4px;
-        transition: all 0.2s ease;
+        transition: background 0.2s ease;
       }
     }
 
@@ -2099,13 +2123,13 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      color: #059669; // 翠绿色（柔和）
+      color: #059669;
       font-size: 13px;
       font-weight: 600;
       margin-bottom: 8px;
       padding-left: 10px;
       border-left: 3px solid #059669;
-      transition: all 0.2s ease;
+      transition: color 0.2s ease, border-left-color 0.2s ease;
 
       &:hover {
         color: #047857;
@@ -2119,7 +2143,7 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
         height: 16px;
         background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
         border-radius: 4px;
-        transition: all 0.2s ease;
+        transition: background 0.2s ease;
       }
     }
 
@@ -2131,7 +2155,7 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
         min-height: 44px;
         border: 1.5px solid #e5e7eb;
         background: white;
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
         &:hover {
           border-color: #93c5fd;
@@ -2152,25 +2176,17 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
 
     :deep(.ant-select-multiple) {
       .ant-select-selection-item {
-        background: linear-gradient(
-          135deg,
-          #eff6ff 0%,
-          #dbeafe 100%
-        ) !important;
+        background: #eff6ff !important;
         border: 1.5px solid #93c5fd !important;
         border-radius: 6px;
         color: #1e40af;
         font-weight: 500;
         font-size: 13px;
         margin: 2px;
-        transition: all 0.2s ease;
+        transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 
         &:hover {
-          background: linear-gradient(
-            135deg,
-            #dbeafe 0%,
-            #bfdbfe 100%
-          ) !important;
+          background: #dbeafe !important;
           border-color: #60a5fa !important;
           transform: translateY(-1px);
           box-shadow: 0 2px 4px rgba(96, 165, 250, 0.15);
@@ -2208,20 +2224,12 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
       overflow: hidden;
 
       &.ant-alert-info {
-        background: linear-gradient(
-          135deg,
-          rgba(99, 102, 241, 0.06) 0%,
-          rgba(139, 92, 246, 0.04) 100%
-        );
+        background: rgba(99, 102, 241, 0.06);
         border: 1px solid rgba(99, 102, 241, 0.18);
       }
 
       &.ant-alert-success {
-        background: linear-gradient(
-          135deg,
-          rgba(16, 185, 129, 0.06) 0%,
-          rgba(5, 150, 105, 0.04) 100%
-        );
+        background: rgba(16, 185, 129, 0.06);
         border: 1px solid rgba(16, 185, 129, 0.2);
       }
 
@@ -2282,7 +2290,7 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
             font-size: 12px;
             color: #9ca3af;
             font-weight: 500;
-            transition: all 0.2s ease;
+            transition: color 0.2s ease, font-weight 0.2s ease;
 
             &.active {
               color: #059669;
@@ -2304,7 +2312,7 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
       margin-bottom: 8px;
       padding-left: 10px;
       border-left: 3px solid #8b5cf6;
-      transition: all 0.2s ease;
+      transition: color 0.2s ease, border-left-color 0.2s ease;
 
       &:hover {
         color: #7c3aed;
@@ -2318,7 +2326,7 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
         height: 16px;
         background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
         border-radius: 4px;
-        transition: all 0.2s ease;
+        transition: background 0.2s ease;
       }
 
       .depth-badge {
@@ -2329,7 +2337,7 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
         font-size: 10px;
         font-weight: 700;
         color: #fff;
-        background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
+        background: #8b5cf6;
         border-radius: 10px;
         letter-spacing: 0.5px;
       }

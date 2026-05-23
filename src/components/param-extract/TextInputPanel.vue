@@ -378,6 +378,7 @@ defineExpose({
 .text-input-panel {
   width: 100%;
   height: 100%;
+  contain: content;
 
   .panel-outer-shell {
     background: linear-gradient(
@@ -388,7 +389,7 @@ defineExpose({
     border-radius: 24px;
     padding: 6px;
     box-shadow: var(--shadow-xs), var(--shadow-sm);
-    transition: all 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    transition: box-shadow 0.3s cubic-bezier(0.32, 0.72, 0, 1);
 
     &:hover {
       box-shadow:
@@ -455,7 +456,7 @@ defineExpose({
       border: none;
       border-radius: 8px;
       cursor: pointer;
-      transition: all 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+      transition: background,color,border-color,box-shadow,transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
       white-space: nowrap;
 
       .btn-icon {
@@ -500,7 +501,7 @@ defineExpose({
     border: none;
     border-radius: 10px;
     cursor: pointer;
-    transition: all 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+    transition: background,color,border-color,box-shadow,transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
     white-space: nowrap;
     flex-shrink: 0;
 
@@ -595,7 +596,7 @@ defineExpose({
     border-radius: 12px;
     background: var(--bg-base);
     border: 2px solid transparent;
-    transition: all 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    transition: border-color,background,box-shadow 0.3s cubic-bezier(0.32, 0.72, 0, 1);
 
     &.is-focused {
       border-color: var(--border-focus);
@@ -731,7 +732,7 @@ defineExpose({
       background: transparent;
       border: none;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: color,background 0.2s ease;
 
       &:hover {
         color: var(--text-primary);
@@ -809,7 +810,7 @@ defineExpose({
           inset: 0;
           background: var(--border-default);
           border-radius: 9999px;
-          transition: all 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+          transition: background 0.3s cubic-bezier(0.32, 0.72, 0, 1);
         }
 
         .switch-thumb {
@@ -839,7 +840,7 @@ defineExpose({
 
 .expand-enter-active,
 .expand-leave-active {
-  transition: all 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+  transition: opacity,max-height,padding 0.35s cubic-bezier(0.32, 0.72, 0, 1);
   overflow: hidden;
 }
 

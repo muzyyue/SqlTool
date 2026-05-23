@@ -576,7 +576,8 @@ const resetRowRange = () => {
   border: 1px solid $card-border;
   border-radius: $border-radius-md;
   padding: 20px;
-  transition: all $transition-normal ease;
+  transition: box-shadow $transition-normal ease, border-color $transition-normal ease;
+  contain: layout style;
 
   &:hover {
     box-shadow: $shadow-card-hover;
@@ -612,7 +613,7 @@ const resetRowRange = () => {
     border-radius: $border-radius-md;
     background: $bg-elevated;
     padding: 32px;
-    transition: all $transition-normal ease;
+    transition: border-color $transition-normal ease, background-color $transition-normal ease;
 
     &:hover {
       border-color: $color-primary;
@@ -762,7 +763,7 @@ const resetRowRange = () => {
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  transition: all $transition-normal ease;
+  transition: box-shadow $transition-normal ease, transform $transition-normal ease, background-color $transition-normal ease;
 
   @include glass-card-hover;
 }
@@ -771,7 +772,7 @@ const resetRowRange = () => {
   @include glass-card;
   margin-top: 16px;
   padding: 20px;
-  transition: all $transition-normal ease;
+  transition: box-shadow $transition-normal ease, transform $transition-normal ease, background-color $transition-normal ease;
 
   @include glass-card-hover;
 }

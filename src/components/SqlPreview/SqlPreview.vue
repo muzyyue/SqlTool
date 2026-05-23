@@ -548,6 +548,7 @@ defineExpose({
   border: 1px solid var(--border-default);
   border-radius: var(--border-radius-md);
   overflow: hidden;
+  contain: layout style;
 }
 
 .preview-controls {
@@ -576,6 +577,7 @@ defineExpose({
   overflow: auto;
   max-height: 400px;
   background: var(--panel-bg);
+  will-change: scroll-position;
 }
 
 .sql-preview-area.with-line-numbers {

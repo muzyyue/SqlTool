@@ -545,6 +545,8 @@ const handleProcess = () => {
 <style scoped lang="scss">
 .advanced-card {
   padding: 32px;
+  contain: layout style;
+  will-change: auto;
 }
 
 .hint-text {

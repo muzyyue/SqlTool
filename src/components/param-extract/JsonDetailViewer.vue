@@ -420,7 +420,7 @@ watch(() => props.item, () => {
       border: 1px solid var(--border-default);
       border-radius: 8px;
       margin-bottom: 8px;
-      transition: all 0.2s;
+      transition: border-color,box-shadow 0.2s;
 
       &:hover {
         border-color: var(--color-primary);

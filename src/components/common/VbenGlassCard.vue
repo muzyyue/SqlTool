@@ -68,6 +68,7 @@ const handleClick = (event) => {
 /**
  * 玻璃卡片容器
  * 使用 CSS 变量实现主题切换，无需 [data-theme='dark'] 选择器
+ * 性能优化：使用 contain 和 will-change 提升渲染性能
  */
 .vben-glass-card {
   position: relative;
@@ -77,13 +78,23 @@ const handleClick = (event) => {
   border: 1px solid var(--border-glass-strong);
   border-radius: var(--border-radius-md);
   box-shadow: var(--shadow-lg);
-  transition: all var(--transition-normal) ease;
+
+  /* 性能优化：只过渡 transform 和 box-shadow（避免 transition: all） */
+  transition:
+    transform var(--transition-normal) ease,
+    box-shadow var(--transition-normal) ease;
+
   overflow: hidden;
+
+  /* GPU 加速和布局隔离 */
+  will-change: transform;
+  contain: layout style;
 }
 
 /**
  * Hover 效果
  * 抬高 2px + 阴影增强
+ * 性能优化：只使用 transform 和 box-shadow（已声明在 transition 中）
  */
 .vben-glass-card.glass-card-hover:hover {
   transform: translateY(-2px);
@@ -99,6 +110,10 @@ const handleClick = (event) => {
   align-items: flex-start;
   padding: 16px 20px;
   border-bottom: 1px solid var(--border-glass);
+
+  /* 性能优化：头部内容通常固定，可跳过渲染 */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 60px;
 }
 
 .header-content {
@@ -135,6 +150,9 @@ const handleClick = (event) => {
 .glass-card-body {
   padding: 20px;
   min-height: 40px;
+
+  /* 性能优化：内容区域布局隔离 */
+  contain: content;
 }
 
 /**
@@ -144,6 +162,10 @@ const handleClick = (event) => {
   padding: 12px 20px;
   border-top: 1px solid var(--border-glass);
   background: var(--bg-glass-footer);
+
+  /* 性能优化：底部内容通常固定 */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 40px;
 }
 
 /* 响应式设计 */
