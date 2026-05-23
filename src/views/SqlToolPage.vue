@@ -152,6 +152,7 @@ const navigateTo = (path) => {
 .page-header {
   text-align: center;
   margin-bottom: 60px;
+  animation: fadeInUp 0.6s cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 
 .page-title {
@@ -173,6 +174,7 @@ const navigateTo = (path) => {
 .feature-section {
   max-width: 1200px;
   margin: 0 auto 60px;
+  animation: fadeInUp 0.6s cubic-bezier(0.32, 0.72, 0, 1) 0.1s both;
 }
 
 .feature-card {
@@ -193,6 +195,23 @@ const navigateTo = (path) => {
   border-radius: $border-radius-md;
   transition: transform $transition-normal ease, box-shadow $transition-normal ease, background-color $transition-normal ease, border-color $transition-normal ease;
   will-change: transform;
+  animation: fadeInUp 0.6s cubic-bezier(0.32, 0.72, 0, 1) both;
+
+  &:nth-child(1) {
+    animation-delay: 0.15s;
+  }
+
+  &:nth-child(2) {
+    animation-delay: 0.23s;
+  }
+
+  &:nth-child(3) {
+    animation-delay: 0.31s;
+  }
+
+  &:nth-child(4) {
+    animation-delay: 0.39s;
+  }
 
   &:hover {
     transform: translateY(-4px);
@@ -226,6 +245,7 @@ const navigateTo = (path) => {
 .tools-section {
   max-width: 1200px;
   margin: 0 auto 60px;
+  animation: fadeInUp 0.6s cubic-bezier(0.32, 0.72, 0, 1) 0.5s both;
 }
 
 .section-title {
@@ -251,6 +271,7 @@ const navigateTo = (path) => {
 .usage-section {
   max-width: 800px;
   margin: 0 auto;
+  animation: fadeInUp 0.6s cubic-bezier(0.32, 0.72, 0, 1) 0.6s both;
 }
 
 .steps-container {
@@ -314,6 +335,30 @@ const navigateTo = (path) => {
 
   .feature-icon {
     font-size: 36px;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sql-tool-page {
+    .page-header,
+    .feature-section,
+    .feature-item,
+    .tools-section,
+    .usage-section {
+      animation: none;
+    }
   }
 }
 </style>

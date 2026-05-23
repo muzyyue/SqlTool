@@ -132,6 +132,7 @@ const navigateToTool = (tool) => {
 
 .hero-content {
   padding-left: 40px;
+  animation: fadeInUp 0.6s cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 
 .hero-title {
@@ -160,6 +161,15 @@ const navigateToTool = (tool) => {
   background: $card-bg;
   border-radius: $border-radius-md;
   box-shadow: $shadow-card;
+  animation: fadeInUp 0.6s cubic-bezier(0.32, 0.72, 0, 1) both;
+
+  &:nth-child(1) {
+    animation-delay: 0.1s;
+  }
+
+  &:nth-child(2) {
+    animation-delay: 0.15s;
+  }
 }
 
 .stat-number {
@@ -177,6 +187,7 @@ const navigateToTool = (tool) => {
 
 .hero-image {
   padding-right: 40px;
+  animation: fadeInUp 0.6s cubic-bezier(0.32, 0.72, 0, 1) 0.2s both;
 }
 
 .icon-grid {
@@ -194,18 +205,37 @@ const navigateToTool = (tool) => {
   background: $card-bg;
   border-radius: $border-radius-md;
   box-shadow: $shadow-card;
+  animation: fadeInUp 0.6s cubic-bezier(0.32, 0.72, 0, 1) both;
+
+  &:nth-child(1) {
+    animation-delay: 0.25s;
+  }
+
+  &:nth-child(2) {
+    animation-delay: 0.3s;
+  }
+
+  &:nth-child(3) {
+    animation-delay: 0.35s;
+  }
+
+  &:nth-child(4) {
+    animation-delay: 0.4s;
+  }
 }
 
 // 工具网格区域
 .tools-section {
   background: $bg-elevated;
   padding: 80px 0;
+  animation: fadeInUp 0.6s cubic-bezier(0.32, 0.72, 0, 1) 0.45s both;
 }
 
 // 快速访问区域
 .quick-access-section {
   background: $bg-base;
   padding: 80px 0;
+  animation: fadeInUp 0.6s cubic-bezier(0.32, 0.72, 0, 1) 0.55s both;
 }
 
 .section-header {
@@ -329,6 +359,31 @@ const navigateToTool = (tool) => {
 
   .stat-number {
     font-size: 28px;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-page {
+    .hero-content,
+    .hero-image,
+    .stat-item,
+    .hero-icon,
+    .tools-section,
+    .quick-access-section {
+      animation: none;
+    }
   }
 }
 </style>

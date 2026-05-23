@@ -1814,6 +1814,7 @@ onMounted(() => {
   border-bottom: 1px solid $page-header-border;
   background: $page-header-bg;
   border-radius: $border-radius-sm;
+  animation: fadeInUp 0.6s cubic-bezier(0.32, 0.72, 0, 1) both;
 
   h2 {
     margin: 0;
@@ -1852,6 +1853,25 @@ onMounted(() => {
   @include card-base;
   @include card-hover;
   border-radius: $border-radius-lg;
+  animation: fadeInUp 0.6s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+.input-section .input-card {
+  animation-delay: 0.1s;
+}
+
+.output-section .output-card {
+  &:nth-child(1) {
+    animation-delay: 0.2s;
+  }
+
+  &:nth-child(2) {
+    animation-delay: 0.3s;
+  }
+
+  &:nth-child(3) {
+    animation-delay: 0.35s;
+  }
 }
 
 .card-header {
@@ -2250,5 +2270,27 @@ onMounted(() => {
   margin-top: 12px;
   padding-top: 12px;
   @include divider-top;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .update-page {
+    .page-header,
+    .input-card,
+    .output-card {
+      animation: none;
+    }
+  }
 }
 </style>

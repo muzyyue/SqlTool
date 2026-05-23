@@ -1,5 +1,15 @@
 # 版本变更历史
 
+## 1.5.72 (2026-05-23) 为多页面添加 fadeInUp 入场动画
+
+- 从 ParamExtractPage 提取 fadeInUp 动画（cubic-bezier(0.32, 0.72, 0, 1) + 递增延迟），统一应用到 4 个页面
+- HomePage: 标题区/统计/图标网格/工具区/快速访问区依次淡入上移
+- SqlToolPage: 标题区/功能特性卡片/工具列表/使用流程依次淡入上移
+- InsertPage: 页面标题栏/DDL输入卡/SQL预览卡/操作日志依次淡入上移
+- UpdatePage: 页面标题栏/DDL输入卡/SQL预览卡/条件预览/操作日志依次淡入上移
+- 所有页面均添加 prefers-reduced-motion 无障碍支持
+- 涉及文件: HomePage.vue, SqlToolPage.vue, InsertPage.vue, UpdatePage.vue
+
 ## 1.5.71 (2026-05-23) 修复 GitHub Actions Release 命名与认证问题
 
 - 修复 Release 名称使用 package.json 版本号（v1.5.x）而非分支名（master）
@@ -21,6 +31,41 @@
 - 移除 utils/json/ 下 5 个工具文件（保留 jsonExtractor.js 供参数提取工具复用）
 - 移除 composables/json/ 目录和 types/json.ts
 - 涉及文件: tools.js, JsonPage.vue, JsonFormat.vue, components/json/*, utils/json/* (部分), composables/json/*, types/json.ts
+
+## v1.5.68 (2026-05-23) 视图层全面性能优化
+- 替换全部 25 处 transition: all 为具体 CSS 属性（transform, box-shadow, opacity, background-color, border-color）
+- 清理生产环境不需要的 console 调试日志约 35 处（UpdatePage.vue 约30处 + InsertPage.vue 4处 + 其他）
+- 为所有页面根容器添加 contain: layout style，内容区域添加 contain: content
+- 为动画元素添加 will-change: transform 提示 GPU 加速
+- 简化 deduplication-stats / row-range-stats 复杂渐变为纯色+边框方案
+- ExcelFillPage.vue 补充 contain 属性，验证优化完整性通过
+- 涉及文件: UpdatePage.vue, InsertPage.vue, ParamExtractPage.vue, SqlToolPage.vue, NotFound.vue, JsonPage.vue, ExcelFillPage.vue, DdlPage.vue, TimestampPage.vue, JsonFormat.vue, HomePage.vue
+
+## v1.5.67 (2026-05-23) Excel 组件性能优化
+- 将所有 transition: all 替换为具体 CSS 属性（box-shadow, border-color, transform, background-color 等）
+- 清理调试用 console.log/warn 共 9 处，保留关键错误处理中的 console.error
+- 添加 CSS containment（contain: layout style / contain: content）限制浏览器重算范围
+- 添加 GPU 加速提示（will-change: transform / will-change: scroll-position）到滚动/动画元素
+- 涉及文件: BasicFillTab.vue, AdvancedFillTab.vue, QuoteConvertTab.vue, ExcelUploadCard.vue, FieldMappingCard.vue, CustomFieldManager.vue, CustomBindingModal.vue, SqlPreview.vue, BatchEditPanel.vue
+
+## v1.5.66 (2026-05-22) 增强 JSON 字符串化解包能力与嵌套字段选择
+- 新增 JSON 树形结构预览（CodeMirror 编辑器）
+- 字段选择器升级为树形选择器（a-tree-select），支持嵌套结构展示
+- 新增自动检测字符串化 JSON 字段并提供解包模式切换
+- 支持内层字段选择和多层级 JSON 解包（L1, L2... 深度标记）
+- 优化取值区交互逻辑：动态 placeholder、条件禁用、路径提示
+- 增强 UI 提示信息：解包状态提示、内层字段引导
+- 涉及文件: ParamExtractTab.vue
+
+## v1.5.65 (2026-05-18) 修复参数提取工具核心功能并增强字符串化JSON解包能力
+- 修复按钮无法点击问题：RadioGroup事件处理、Props类型传递（toRefs解构）、ResultItem数据兼容
+- 修复字符串化JSON未完全解包的致命bug：将检测优先级提升至原子值检查之前
+- 增强extractAtomicValues：默认maxDepth从3提升至8，支持深层嵌套解包
+- 新增fromStringifiedJson标记传播机制，子结果自动继承父级解包来源
+- 修正递归深度计算逻辑，数组/对象遍历正确递增depth
+- 完善错误处理：超时保护（10s）、重复操作防护、状态一致性保证
+- 重构测试用例：24/24全部通过，覆盖字符串化JSON解包、血缘追踪、循环引用等场景
+- 涉及文件: jsonExtractor.js, ParamExtractPage.vue, TextInputPanel.vue, ResultItem.vue, useParamExtractor.js, jsonExtractor.test.js
 
 ## 1.5.64 (2026-05-11) 修复 Excel 解析器 Dense 模式兼容性问题
 
