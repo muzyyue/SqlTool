@@ -1,5 +1,12 @@
 # 版本变更历史
 
+## 1.5.73 (2026-05-25) 修复 sqlExtractor 3 个测试失败
+
+- Fix 1: SQL_START_PATTERN 增加 DECLARE\b 独立分支，PL/SQL DECLARE 块正确识别为 procedure 类型（原返回 tcl）
+- Fix 2: 放宽 LOG_PREFIX_PATTERN 日志级别分隔符匹配，支持 INFO/ERROR 等多种格式前缀移除
+- Fix 3: 新增 extractInlineSql 内联提取函数（逐行扫描），支持从混合文本中间提取 SQL 片段；兜底条件改为「无有效结果」时触发
+- 涉及文件: src/utils/sql/sqlExtractor.js
+
 ## 1.5.72 (2026-05-23) 为多页面添加 fadeInUp 入场动画
 
 - 从 ParamExtractPage 提取 fadeInUp 动画（cubic-bezier(0.32, 0.72, 0, 1) + 递增延迟），统一应用到 4 个页面

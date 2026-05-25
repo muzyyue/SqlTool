@@ -12,12 +12,12 @@ const SQL_KEYWORD_PATTERN = /\b(SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|TR
 /**
  * SQL语句起始正则（用于快速定位SQL片段）
  */
-const SQL_START_PATTERN = /\b(?:SELECT|INSERT\s+INTO|UPDATE|DELETE\s+FROM|CREATE\s+(?:TABLE|INDEX|VIEW|PROCEDURE|FUNCTION|TRIGGER|DATABASE|SCHEMA)|ALTER\s+(?:TABLE|INDEX|VIEW|PROCEDURE|FUNCTION|TRIGGER|DATABASE)|DROP\s+(?:TABLE|INDEX|VIEW|PROCEDURE|FUNCTION|TRIGGER|DATABASE)|TRUNCATE\s+TABLE|BEGIN|(?:DECLARE\s*.*?\s*)?BEGIN|WITH\s+\w+\s+AS\s*\(|MERGE\s+INTO|CALL\s+|EXEC(?:UTE)?\s+)\b/i
+const SQL_START_PATTERN = /\b(?:SELECT|INSERT\s+INTO|UPDATE|DELETE\s+FROM|CREATE\s+(?:TABLE|INDEX|VIEW|PROCEDURE|FUNCTION|TRIGGER|DATABASE|SCHEMA)|ALTER\s+(?:TABLE|INDEX|VIEW|PROCEDURE|FUNCTION|TRIGGER|DATABASE)|DROP\s+(?:TABLE|INDEX|VIEW|PROCEDURE|FUNCTION|TRIGGER|DATABASE)|TRUNCATE\s+TABLE|BEGIN|(?:DECLARE\s*.*?\s*)?BEGIN|DECLARE\b|WITH\s+\w+\s+AS\s*\(|MERGE\s+INTO|CALL\s+|EXEC(?:UTE)?\s+)\b/i
 
 /**
  * 日志/时间戳前缀正则（用于清理非SQL内容）
  */
-const LOG_PREFIX_PATTERN = /^\s*(?:\[\d{4}-\d{2}-\d{2}[^\]]*\]|\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?|\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s*[-:]\s*/gm
+const LOG_PREFIX_PATTERN = /^\s*(?:\[\d{4}[^\]]*\]|\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?|\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s*(?:[-:—–]\s*\w+\s*(?:[-:—–]\s*)?)?/gm
 
 /**
  * 代码块标记正则
@@ -112,6 +112,58 @@ export function extractSqlStatements(text, options = {}) {
       lineEnd: 0,
       raw: rawStatement
     })
+  }
+
+  // 4. 内联提取兜底：标准流程未提取到有效SQL时，尝试从混合文本中间提取
+  const hasValidResult = results.some((r) => r.type !== 'unknown')
+  if (!hasValidResult) {
+    const inlineResults = extractInlineSql(text, { removeLogPrefix, ignoreComments, trimWhitespace })
+    if (inlineResults.length > 0) {
+      return inlineResults
+    }
+  }
+
+  return results
+}
+
+const INLINE_SQL_START = /\b(SELECT|INSERT\s+INTO|UPDATE|DELETE\s+FROM|CREATE\s|ALTER\s|DROP\s|TRUNCATE|BEGIN|DECLARE\b|WITH\s+\w+\s+AS\s*\(|MERGE\s+INTO|CALL\s|EXEC(?:UTE)?\s)\b/i
+
+function extractInlineSql(text, { removeLogPrefix, ignoreComments, trimWhitespace }) {
+  let workingText = text
+
+  if (removeLogPrefix) {
+    workingText = workingText.replace(LOG_PREFIX_PATTERN, '')
+  }
+
+  if (ignoreComments) {
+    workingText = workingText
+      .replace(MULTI_LINE_COMMENT, ' ')
+      .replace(SINGLE_LINE_COMMENT, ' ')
+  }
+
+  const results = []
+  const lines = workingText.split(/\r?\n/)
+
+  for (const line of lines) {
+    const match = INLINE_SQL_START.exec(line)
+    if (!match) continue
+
+    const sqlCandidate = line.slice(match.index)
+
+    if (trimWhitespace) {
+      const trimmed = sqlCandidate.replace(/\s+/g, ' ').trim()
+      if (trimmed.length < 6 || !SQL_KEYWORD_PATTERN.test(trimmed)) continue
+      SQL_KEYWORD_PATTERN.lastIndex = 0
+
+      const sqlType = detectSqlType(trimmed)
+      results.push({
+        sql: cleanSqlStatement(trimmed),
+        type: sqlType,
+        lineStart: 0,
+        lineEnd: 0,
+        raw: trimmed
+      })
+    }
   }
 
   return results
