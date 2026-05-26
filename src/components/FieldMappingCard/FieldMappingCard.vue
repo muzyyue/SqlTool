@@ -87,8 +87,16 @@
                 <a-table
                   :dataSource="mappingFields"
                   :columns="mappingColumns"
-                  :pagination="false"
+                  :pagination="{
+                    pageSize: 15,
+                    showSizeChanger: true,
+                    showQuickJumper: true,
+                    pageSizeOptions: ['10', '20', '50'],
+                    size: 'small',
+                    showTotal: (total) => `共 ${total} 个字段`,
+                  }"
                   size="small"
+                  :scroll="{ y: 400 }"
                   :rowClassName="
                     (record) =>
                       record.excelIndex === -1 ? 'unmatched-row' : ''
@@ -501,13 +509,18 @@ const hasValidMappings = computed(() => {
   return mappingFields.value.some((field) => field.excelIndex !== -1);
 });
 
+const usedColumnSet = computed(() => {
+  const set = new Set();
+  mappingFields.value.forEach((m) => {
+    if (m.excelIndex !== -1) {
+      set.add(m.excelIndex);
+    }
+  });
+  return set;
+});
+
 const isColumnUsed = (columnIndex, currentExcelIndex = -1) => {
-  return mappingFields.value.some(
-    (mapping) =>
-      mapping.excelIndex === columnIndex &&
-      mapping.excelIndex !== -1 &&
-      mapping.excelIndex !== currentExcelIndex,
-  );
+  return columnIndex !== currentExcelIndex && usedColumnSet.value.has(columnIndex);
 };
 
 const getConfidenceColor = (confidence) => {
@@ -675,11 +688,10 @@ const handleDatabaseTypeChange = (e) => {
 
 .field-mapping-card {
   background: var(--bg-glass);
-  backdrop-filter: blur(var(--backdrop-blur));
   border: 1px solid var(--border-glass-strong);
   border-radius: var(--border-radius-md);
   padding: 20px;
-  transition: box-shadow var(--transition-slow) ease, background-color var(--transition-slow) ease;
+  transition: border-color var(--transition-slow) ease, background-color var(--transition-slow) ease;
   contain: layout style;
 }
 
@@ -837,7 +849,7 @@ const handleDatabaseTypeChange = (e) => {
   background: var(--card-bg);
   border-radius: var(--border-radius-sm);
   border: 1px solid var(--border-default);
-  transition: border-color var(--transition-normal) ease, box-shadow var(--transition-normal) ease, background-color var(--transition-normal) ease;
+  transition: border-color var(--transition-normal) ease, background-color var(--transition-normal) ease;
 }
 
 .mapping-item:hover {

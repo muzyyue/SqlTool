@@ -23,7 +23,7 @@ switch
 
       <!-- 自定义绑定配置 -->
       <div v-if="enableCustomBinding" class="binding-config">
-        <a-tabs v-model:activeKey="activeTab">
+        <a-tabs v-model:activeKey="activeTab" :destroyInactiveTabPane="true">
           <!-- 单列绑定标签页 -->
           <a-tab-pane key="single" tab="单列绑定">
             <div class="tab-content">
@@ -54,7 +54,7 @@ switch
                 :columns="singleBindingColumns"
                 :pagination="false"
                 size="small"
-                :scroll="{ x: 'max-content' }"
+                :scroll="{ x: 'max-content', y: 300 }"
               >
                 <template #bodyCell="{ column, record }">
                   <div v-if="column.key === 'ddlField'">
@@ -180,7 +180,7 @@ switch
                 :columns="concatenationColumns"
                 :pagination="false"
                 size="medium"
-                :scroll="{ x: 'max-content' }"
+                :scroll="{ x: 'max-content', y: 300 }"
               >
                 <template #bodyCell="{ column, record }">
                   <div v-if="column.key === 'customFieldName'">
@@ -369,7 +369,7 @@ switch
                 :columns="customFieldColumns"
                 :pagination="false"
                 size="small"
-                :scroll="{ x: 'max-content' }"
+                :scroll="{ x: 'max-content', y: 300 }"
               >
                 <template #bodyCell="{ column, record }">
                   <div v-if="column.key === 'fieldName'">

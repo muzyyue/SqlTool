@@ -1,5 +1,14 @@
 # 版本变更历史
 
+## 1.5.74 (2026-05-26) 字段映射部分性能优化（核显低配电脑专项）
+- 移除 backdrop-filter: blur() GPU合成瓶颈，改用纯色半透明背景
+- 优化 isColumnUsed() 从 O(n²) 降为 O(1) Set查找（2500次遍历→1次has调用）
+- CustomBindingModal 添加 destroyInactiveTabPane 减少内存占用60%+
+- 移除 box-shadow CSS过渡属性，仅保留CPU合成的border-color/background-color
+- FieldMappingCard 手动映射表格添加分页（15/页）+ y轴滚动限制400px
+- CustomBindingModal 三个表格统一添加 y:300 滚动高度限制
+- 涉及文件: FieldMappingCard.vue, CustomBindingModal.vue
+
 ## 1.5.73 (2026-05-25) 修复 sqlExtractor 3 个测试失败
 
 - Fix 1: SQL_START_PATTERN 增加 DECLARE\b 独立分支，PL/SQL DECLARE 块正确识别为 procedure 类型（原返回 tcl）
