@@ -7,7 +7,11 @@
           placeholder="选择工作表"
           @change="handleSheetChange"
         >
-          <a-select-option v-for="sheet in sheetNames" :key="sheet" :value="sheet">
+          <a-select-option
+            v-for="sheet in sheetNames"
+            :key="sheet"
+            :value="sheet"
+          >
             {{ sheet }}
           </a-select-option>
         </a-select>
@@ -22,7 +26,11 @@
           show-search
           :filter-option="filterOption"
         >
-          <a-select-option v-for="col in columns" :key="col.letter" :value="col.letter">
+          <a-select-option
+            v-for="col in columns"
+            :key="col.letter"
+            :value="col.letter"
+          >
             {{ col.letter }} ({{ col.name }})
           </a-select-option>
         </a-select>
@@ -36,7 +44,10 @@
           <a-select-option value="custom">自定义</a-select-option>
         </a-select>
       </a-form-item>
-      <a-form-item label="自定义分隔符" v-if="localQuoteConfig.delimiter === 'custom'">
+      <a-form-item
+        label="自定义分隔符"
+        v-if="localQuoteConfig.delimiter === 'custom'"
+      >
         <a-input
           v-model:value="localQuoteConfig.customDelimiter"
           placeholder="请输入自定义分隔符"
@@ -56,7 +67,11 @@
           :filter-option="filterOption"
           allow-clear
         >
-          <a-select-option v-for="col in columns" :key="col.letter" :value="col.letter">
+          <a-select-option
+            v-for="col in columns"
+            :key="col.letter"
+            :value="col.letter"
+          >
             {{ col.letter }} ({{ col.name }})
           </a-select-option>
         </a-select>
@@ -96,9 +111,9 @@
  * @author SqlTool
  */
 
-import { computed } from 'vue'
-import { PlayCircleOutlined } from '@ant-design/icons-vue'
-import VbenGlassCard from '@/components/common/VbenGlassCard.vue'
+import { computed } from "vue";
+import { PlayCircleOutlined } from "@ant-design/icons-vue";
+import VbenGlassCard from "@/components/common/VbenGlassCard.vue";
 
 /**
  * 组件Props定义
@@ -138,42 +153,42 @@ const props = defineProps({
   /** 处理状态文本 */
   quoteStatusText: {
     type: String,
-    default: '',
+    default: "",
   },
   /** 下拉过滤函数 */
   filterOption: {
     type: Function,
     default: () => true,
   },
-})
+});
 
 /**
  * 组件Emits定义
  */
-const emit = defineEmits(['update:quoteConfig', 'sheetChange', 'process'])
+const emit = defineEmits(["update:quoteConfig", "sheetChange", "process"]);
 
 /**
  * 本地引号配置对象（双向绑定）
  */
 const localQuoteConfig = computed({
   get: () => props.quoteConfig,
-  set: (value) => emit('update:quoteConfig', value),
-})
+  set: (value) => emit("update:quoteConfig", value),
+});
 
 /**
  * 处理工作表变更
  * @param {string} sheetName - 新的工作表名称
  */
 const handleSheetChange = (sheetName) => {
-  emit('sheetChange', sheetName)
-}
+  emit("sheetChange", sheetName);
+};
 
 /**
  * 处理开始处理按钮点击
  */
 const handleProcess = () => {
-  emit('process')
-}
+  emit("process");
+};
 </script>
 
 <style scoped lang="scss">

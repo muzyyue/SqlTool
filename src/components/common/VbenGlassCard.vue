@@ -1,7 +1,14 @@
 <template>
-  <div class="vben-glass-card" :class="{ 'glass-card-hover': hoverable }" @click="handleClick">
+  <div
+    class="vben-glass-card"
+    :class="{ 'glass-card-hover': hoverable }"
+    @click="handleClick"
+  >
     <!-- 头部插槽 -->
-    <div v-if="$slots.header || title || description || $slots.extra" class="glass-card-header">
+    <div
+      v-if="$slots.header || title || description || $slots.extra"
+      class="glass-card-header"
+    >
       <div class="header-content">
         <slot name="header">
           <div v-if="title || description" class="header-title">
@@ -43,25 +50,25 @@ defineProps({
   /** 卡片标题 */
   title: {
     type: String,
-    default: '',
+    default: "",
   },
   /** 卡片描述 */
   description: {
     type: String,
-    default: '',
+    default: "",
   },
   /** 是否启用 hover 效果（抬高 2px + 阴影增强） */
   hoverable: {
     type: Boolean,
     default: true,
   },
-})
+});
 
-const emit = defineEmits(['hover', 'hoverLeave', 'click'])
+const emit = defineEmits(["hover", "hoverLeave", "click"]);
 
 const handleClick = (event) => {
-  emit('click', event)
-}
+  emit("click", event);
+};
 </script>
 
 <style scoped>

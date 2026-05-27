@@ -13,7 +13,10 @@
                 <template #icon><ImportOutlined /></template>
                 批量导入
               </a-button>
-              <a-button @click="templateManager.openTemplateDrawer()" size="small">
+              <a-button
+                @click="templateManager.openTemplateDrawer()"
+                size="small"
+              >
                 <template #icon><FolderOpenOutlined /></template>
                 模板管理
               </a-button>
@@ -33,7 +36,11 @@
                 <template #icon><FileExcelOutlined /></template>
                 导出JSON
               </a-button>
-              <a-button @click="handleReset" size="small" :disabled="editRules.length === 0">
+              <a-button
+                @click="handleReset"
+                size="small"
+                :disabled="editRules.length === 0"
+              >
                 <template #icon><ReloadOutlined /></template>
                 重置
               </a-button>
@@ -48,10 +55,21 @@
           </div>
 
           <div v-if="editRules.length > 0" class="rules-list">
-            <div v-for="rule in editRules" :key="rule.id" class="rule-item glass-card-inner">
+            <div
+              v-for="rule in editRules"
+              :key="rule.id"
+              class="rule-item glass-card-inner"
+            >
               <div class="rule-header">
-                <span class="rule-title">修改规则 #{{ editRules.indexOf(rule) + 1 }}</span>
-                <a-button type="link" danger size="small" @click="handleRemoveRule(rule.id)">
+                <span class="rule-title"
+                  >修改规则 #{{ editRules.indexOf(rule) + 1 }}</span
+                >
+                <a-button
+                  type="link"
+                  danger
+                  size="small"
+                  @click="handleRemoveRule(rule.id)"
+                >
                   <template #icon><DeleteOutlined /></template>
                   删除
                 </a-button>
@@ -90,7 +108,9 @@
                     <span class="condition-label">设置修改条件</span>
                   </a-checkbox>
                   <a-tooltip title="启用后，只有满足条件的行才会被修改">
-                    <QuestionCircleOutlined style="color: #999; margin-left: 4px" />
+                    <QuestionCircleOutlined
+                      style="color: #999; margin-left: 4px"
+                    />
                   </a-tooltip>
                 </div>
 
@@ -153,7 +173,11 @@
                   <template #icon><EyeOutlined /></template>
                   预览修改
                 </a-button>
-                <a-button type="primary" @click="handleApply" :loading="applying">
+                <a-button
+                  type="primary"
+                  @click="handleApply"
+                  :loading="applying"
+                >
                   <template #icon><CheckOutlined /></template>
                   应用修改
                 </a-button>
@@ -179,7 +203,11 @@
       :footer="null"
       :mask-closable="false"
     >
-      <a-steps :current="batchImport.importState.step" size="small" style="margin-bottom: 24px">
+      <a-steps
+        :current="batchImport.importState.step"
+        size="small"
+        style="margin-bottom: 24px"
+      >
         <a-step title="选择格式" />
         <a-step title="上传文件" />
         <a-step title="字段映射" />
@@ -187,31 +215,48 @@
       </a-steps>
 
       <div class="import-content">
-        <div v-if="batchImport.importState.step === 0" class="import-step step-format">
+        <div
+          v-if="batchImport.importState.step === 0"
+          class="import-step step-format"
+        >
           <h4>选择导入格式</h4>
           <a-radio-group
             v-model:value="batchImport.importState.format"
             class="format-options"
             @change="(e) => batchImport.setFormat(e.target.value)"
           >
-            <a-card hoverable class="format-card" @click="batchImport.setFormat('excel')">
+            <a-card
+              hoverable
+              class="format-card"
+              @click="batchImport.setFormat('excel')"
+            >
               <template #cover>
                 <div class="format-icon">
                   <FileExcelOutlined style="font-size: 48px; color: #52c41a" />
                 </div>
               </template>
-              <a-radio-button value="excel" :checked="batchImport.importState.format === 'excel'">
+              <a-radio-button
+                value="excel"
+                :checked="batchImport.importState.format === 'excel'"
+              >
                 Excel 文件
               </a-radio-button>
               <p class="format-hint">支持 .xlsx、.xls、.csv 格式</p>
             </a-card>
-            <a-card hoverable class="format-card" @click="batchImport.setFormat('json')">
+            <a-card
+              hoverable
+              class="format-card"
+              @click="batchImport.setFormat('json')"
+            >
               <template #cover>
                 <div class="format-icon">
                   <CodeOutlined style="font-size: 48px; color: #1890ff" />
                 </div>
               </template>
-              <a-radio-button value="json" :checked="batchImport.importState.format === 'json'">
+              <a-radio-button
+                value="json"
+                :checked="batchImport.importState.format === 'json'"
+              >
                 JSON 文件
               </a-radio-button>
               <p class="format-hint">支持标准 JSON 格式</p>
@@ -219,7 +264,10 @@
           </a-radio-group>
         </div>
 
-        <div v-if="batchImport.importState.step === 1" class="import-step step-upload">
+        <div
+          v-if="batchImport.importState.step === 1"
+          class="import-step step-upload"
+        >
           <h4>上传 {{ batchImport.formatName }} 文件</h4>
           <a-upload
             v-model:file-list="batchImport.importState.fileList"
@@ -240,9 +288,14 @@
           </a-button>
         </div>
 
-        <div v-if="batchImport.importState.step === 2" class="import-step step-mapping">
+        <div
+          v-if="batchImport.importState.step === 2"
+          class="import-step step-mapping"
+        >
           <h4>确认字段映射</h4>
-          <p class="mapping-tip">系统将尝试自动匹配字段名，请确认或修改以下映射关系</p>
+          <p class="mapping-tip">
+            系统将尝试自动匹配字段名，请确认或修改以下映射关系
+          </p>
           <a-table
             :data-source="batchImport.importState.fieldMappings"
             :columns="batchImport.mappingColumns"
@@ -267,12 +320,19 @@
                   style="width: 100%"
                   show-search
                   :filter-option="filterOption"
-                  @change="(value) => batchImport.handleFieldMappingChange(record)"
+                  @change="
+                    (value) => batchImport.handleFieldMappingChange(record)
+                  "
                   allow-clear
                 />
               </template>
               <template v-if="column.key === 'action'">
-                <a-button type="link" size="small" danger @click="batchImport.skipMapping(record)">
+                <a-button
+                  type="link"
+                  size="small"
+                  danger
+                  @click="batchImport.skipMapping(record)"
+                >
                   跳过
                 </a-button>
               </template>
@@ -287,7 +347,10 @@
           />
         </div>
 
-        <div v-if="batchImport.importState.step === 3" class="import-step step-preview">
+        <div
+          v-if="batchImport.importState.step === 3"
+          class="import-step step-preview"
+        >
           <h4>预览即将导入的规则</h4>
           <a-table
             :data-source="batchImport.importState.previewRules"
@@ -315,7 +378,11 @@
         </div>
 
         <div v-if="batchImport.importState.error" class="import-error">
-          <a-alert :message="batchImport.importState.error" type="error" show-icon />
+          <a-alert
+            :message="batchImport.importState.error"
+            type="error"
+            show-icon
+          />
         </div>
       </div>
 
@@ -323,10 +390,17 @@
 
       <div
         class="import-actions"
-        style="display: flex; justify-content: space-between; align-items: center"
+        style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        "
       >
         <a-space>
-          <a-button v-if="batchImport.importState.step > 0" @click="batchImport.prevStep">
+          <a-button
+            v-if="batchImport.importState.step > 0"
+            @click="batchImport.prevStep"
+          >
             上一步
           </a-button>
           <a-button
@@ -360,9 +434,9 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
-import { message } from 'ant-design-vue'
-import * as XLSX from 'xlsx'
+import { ref, computed, watch, onMounted } from "vue";
+import { message } from "ant-design-vue";
+import * as XLSX from "xlsx";
 import {
   PlusOutlined,
   ReloadOutlined,
@@ -378,10 +452,10 @@ import {
   FileExcelOutlined,
   CodeOutlined,
   FolderOpenOutlined,
-} from '@ant-design/icons-vue'
-import { useBatchImport } from '@/composables/data/useBatchImport.js'
-import { useTemplateManager } from '@/composables/data/useTemplateManager.js'
-import TemplateManager from './TemplateManager.vue'
+} from "@ant-design/icons-vue";
+import { useBatchImport } from "@/composables/data/useBatchImport.js";
+import { useTemplateManager } from "@/composables/data/useTemplateManager.js";
+import TemplateManager from "./TemplateManager.vue";
 
 const props = defineProps({
   ddlFields: {
@@ -404,70 +478,70 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
-})
+});
 
-const emit = defineEmits(['preview', 'apply', 'change', 'update:excelData'])
+const emit = defineEmits(["preview", "apply", "change", "update:excelData"]);
 
-const activeKey = ref([])
-const previewing = ref(false)
-const applying = ref(false)
-const editRules = ref([])
+const activeKey = ref([]);
+const previewing = ref(false);
+const applying = ref(false);
+const editRules = ref([]);
 const previewResult = ref({
   affectedRows: 0,
   modifiedData: [],
-})
+});
 
 const batchImport = useBatchImport({
   enableAutoMatch: true,
   maxRules: 100,
   skipInvalid: true,
   autoPreview: false,
-})
+});
 
-const templateManager = useTemplateManager()
+const templateManager = useTemplateManager();
 
 const fieldOptions = computed(() => {
   return props.ddlFields.map((field) => ({
     label: `${field.name} (${field.type})`,
     value: field.name,
-  }))
-})
+  }));
+});
 
 const rulesStats = computed(() => {
   return {
     total: editRules.value.length,
     withCondition: editRules.value.filter((r) => r.condition.enabled).length,
-  }
-})
+  };
+});
 
 const filterOption = (input, option) => {
-  return option.label.toLowerCase().includes(input.toLowerCase())
-}
+  return option.label.toLowerCase().includes(input.toLowerCase());
+};
 
 onMounted(() => {
-  batchImport.setDdlFields(props.ddlFields)
+  batchImport.setDdlFields(props.ddlFields);
   batchImport.setOnRulesChange((newRules) => {
-    editRules.value = [...editRules.value, ...newRules]
-    emit('change', editRules.value)
+    editRules.value = [...editRules.value, ...newRules];
+    emit("change", editRules.value);
     if (props.autoPreview && props.excelData.length > 0) {
-      handlePreview()
+      handlePreview();
     }
-  })
+  });
   batchImport.setOnImportComplete((rules) => {
-    message.success(`成功导入 ${rules.length} 条规则`)
-  })
+    message.success(`成功导入 ${rules.length} 条规则`);
+  });
   batchImport.setOnImportError((error) => {
-    message.error(`导入失败: ${error.message}`)
-  })
-})
+    message.error(`导入失败: ${error.message}`);
+  });
+});
 
 watch(
   () => props.ddlFields,
   (newFields) => {
-    batchImport.setDdlFields(newFields)
+    batchImport.setDdlFields(newFields);
   },
   { deep: true },
-)
+);
 
 watch(
   editRules,
@@ -478,54 +552,61 @@ watch(
       props.excelData.length > 0 &&
       editRules.value.length > 0
     ) {
-      const result = applyBatchEditToData(props.excelData, editRules.value)
-      emit('preview', result)
+      const result = applyBatchEditToData(props.excelData, editRules.value);
+      emit("preview", result);
     }
-    emit('change', editRules.value)
+    emit("change", editRules.value);
   },
   { deep: true },
-)
+);
 
 watch(
   () => props.rules,
   (newRules) => {
     if (newRules && newRules.length > 0) {
-      editRules.value = [...newRules]
+      editRules.value = [...newRules];
     }
   },
   { immediate: true },
-)
+);
 
-const handleExportRules = (format = 'excel') => {
+const handleExportRules = (format = "excel") => {
   if (editRules.value.length === 0) {
-    message.warning('没有可导出的规则')
-    return
+    message.warning("没有可导出的规则");
+    return;
   }
 
   const exportData = editRules.value.map((rule) => ({
     字段名: rule.fieldName,
     新值: rule.newValue,
-    条件字段: rule.condition.enabled ? rule.condition.fieldName : '',
-    操作符: rule.condition.enabled ? rule.condition.operator : '',
-    条件值: rule.condition.enabled ? rule.condition.value : '',
-    描述: rule.description || '',
-  }))
+    条件字段: rule.condition.enabled ? rule.condition.fieldName : "",
+    操作符: rule.condition.enabled ? rule.condition.operator : "",
+    条件值: rule.condition.enabled ? rule.condition.value : "",
+    描述: rule.description || "",
+  }));
 
-  if (format === 'excel') {
-    const worksheet = XLSX.utils.json_to_sheet(exportData)
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, '批量修改规则')
+  if (format === "excel") {
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "批量修改规则");
 
-    const colWidths = [{ wch: 20 }, { wch: 30 }, { wch: 20 }, { wch: 10 }, { wch: 30 }, { wch: 30 }]
-    worksheet['!cols'] = colWidths
+    const colWidths = [
+      { wch: 20 },
+      { wch: 30 },
+      { wch: 20 },
+      { wch: 10 },
+      { wch: 30 },
+      { wch: 30 },
+    ];
+    worksheet["!cols"] = colWidths;
 
-    XLSX.writeFile(workbook, 'batch_edit_rules.xlsx')
-    message.success(`已导出 ${editRules.value.length} 条规则到 Excel`)
-  } else if (format === 'json') {
+    XLSX.writeFile(workbook, "batch_edit_rules.xlsx");
+    message.success(`已导出 ${editRules.value.length} 条规则到 Excel`);
+  } else if (format === "json") {
     const jsonData = {
-      templateName: '批量修改规则导出',
+      templateName: "批量修改规则导出",
       exportedAt: new Date().toISOString(),
-      version: '1.0',
+      version: "1.0",
       ruleCount: editRules.value.length,
       rules: editRules.value.map((rule) => ({
         fieldName: rule.fieldName,
@@ -537,285 +618,303 @@ const handleExportRules = (format = 'excel') => {
               operator: rule.condition.operator,
               value: rule.condition.value,
             }
-          : { enabled: false, fieldName: '', operator: '=', value: '' },
-        description: rule.description || '',
+          : { enabled: false, fieldName: "", operator: "=", value: "" },
+        description: rule.description || "",
       })),
-    }
+    };
 
-    const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `batch_edit_rules_${new Date().toISOString().slice(0, 10)}.json`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
+    const blob = new Blob([JSON.stringify(jsonData, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `batch_edit_rules_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 
-    message.success(`已导出 ${editRules.value.length} 条规则到 JSON`)
+    message.success(`已导出 ${editRules.value.length} 条规则到 JSON`);
   }
-}
+};
 
 const getExcelColumnIndex = (ddlFieldName) => {
   const mapping = props.fieldMappings.find((m) => {
-    const ddlField = m.ddlField
-    const ddlFieldNameValue = ddlField && typeof ddlField === 'object' ? ddlField.name : ddlField
-    return ddlFieldNameValue === ddlFieldName || m.excelHeader === ddlFieldName
-  })
-  return mapping ? mapping.excelIndex : -1
-}
+    const ddlField = m.ddlField;
+    const ddlFieldNameValue =
+      ddlField && typeof ddlField === "object" ? ddlField.name : ddlField;
+    return ddlFieldNameValue === ddlFieldName || m.excelHeader === ddlFieldName;
+  });
+  return mapping ? mapping.excelIndex : -1;
+};
 
 const matchCondition = (fieldValue, operator, conditionValue) => {
   try {
     switch (operator) {
-      case '=':
-        return String(fieldValue) === String(conditionValue)
-      case '!=':
-        return String(fieldValue) !== String(conditionValue)
-      case '>':
-        return Number(fieldValue) > Number(conditionValue)
-      case '<':
-        return Number(fieldValue) < Number(conditionValue)
-      case '>=':
-        return Number(fieldValue) >= Number(conditionValue)
-      case '<=':
-        return Number(fieldValue) <= Number(conditionValue)
-      case 'LIKE': {
-        const pattern = conditionValue.replace(/%/g, '.*').replace(/_/g, '.')
-        const regex = new RegExp(pattern, 'i')
-        return regex.test(String(fieldValue))
+      case "=":
+        return String(fieldValue) === String(conditionValue);
+      case "!=":
+        return String(fieldValue) !== String(conditionValue);
+      case ">":
+        return Number(fieldValue) > Number(conditionValue);
+      case "<":
+        return Number(fieldValue) < Number(conditionValue);
+      case ">=":
+        return Number(fieldValue) >= Number(conditionValue);
+      case "<=":
+        return Number(fieldValue) <= Number(conditionValue);
+      case "LIKE": {
+        const pattern = conditionValue.replace(/%/g, ".*").replace(/_/g, ".");
+        const regex = new RegExp(pattern, "i");
+        return regex.test(String(fieldValue));
       }
-      case 'IN': {
-        const values = conditionValue.split(',').map((v) => v.trim())
-        return values.includes(String(fieldValue))
+      case "IN": {
+        const values = conditionValue.split(",").map((v) => v.trim());
+        return values.includes(String(fieldValue));
       }
       default:
-        return false
+        return false;
     }
   } catch (error) {
-    console.error('条件匹配失败:', error)
-    return false
+    console.error("条件匹配失败:", error);
+    return false;
   }
-}
+};
 
 const validateFieldType = (fieldName, value) => {
-  const field = props.ddlFields.find((f) => f.name === fieldName)
+  const field = props.ddlFields.find((f) => f.name === fieldName);
   if (!field) {
-    return { valid: true, error: null }
+    return { valid: true, error: null };
   }
 
-  const fieldType = (field.type || '').toUpperCase()
-  const strValue = String(value).trim()
+  const fieldType = (field.type || "").toUpperCase();
+  const strValue = String(value).trim();
 
-  if (strValue === '' || strValue === 'NULL' || strValue === 'NULL'.toLowerCase()) {
-    return { valid: true, error: null }
+  if (
+    strValue === "" ||
+    strValue === "NULL" ||
+    strValue === "NULL".toLowerCase()
+  ) {
+    return { valid: true, error: null };
   }
 
   const intTypes = [
-    'INT',
-    'INTEGER',
-    'BIGINT',
-    'SMALLINT',
-    'TINYINT',
-    'MEDIUMINT',
-    'NUMBER',
-    'NUMERIC',
-    'DECIMAL',
-    'FLOAT',
-    'DOUBLE',
-    'REAL',
-    'BIGDECIMAL',
-  ]
-  const dateTypes = ['DATE', 'DATETIME', 'TIMESTAMP', 'TIME', 'YEAR']
-  const boolTypes = ['BOOLEAN', 'BOOL', 'BIT']
+    "INT",
+    "INTEGER",
+    "BIGINT",
+    "SMALLINT",
+    "TINYINT",
+    "MEDIUMINT",
+    "NUMBER",
+    "NUMERIC",
+    "DECIMAL",
+    "FLOAT",
+    "DOUBLE",
+    "REAL",
+    "BIGDECIMAL",
+  ];
+  const dateTypes = ["DATE", "DATETIME", "TIMESTAMP", "TIME", "YEAR"];
+  const boolTypes = ["BOOLEAN", "BOOL", "BIT"];
 
   if (intTypes.some((t) => fieldType.includes(t))) {
-    const numValue = Number(strValue)
+    const numValue = Number(strValue);
     if (isNaN(numValue) || !isFinite(numValue)) {
       return {
         valid: false,
         error: `字段 "${fieldName}" 类型为 ${field.type}，值 "${value}" 不是有效的数字`,
-      }
+      };
     }
   } else if (dateTypes.some((t) => fieldType.includes(t))) {
-    const dateValue = new Date(strValue)
+    const dateValue = new Date(strValue);
     if (isNaN(dateValue.getTime())) {
       return {
         valid: false,
         error: `字段 "${fieldName}" 类型为 ${field.type}，值 "${value}" 不是有效的日期格式`,
-      }
+      };
     }
   } else if (boolTypes.some((t) => fieldType.includes(t))) {
-    const lowerValue = strValue.toLowerCase()
-    if (!['TRUE', 'FALSE', '1', '0', 'YES', 'NO'].includes(lowerValue)) {
+    const lowerValue = strValue.toLowerCase();
+    if (!["TRUE", "FALSE", "1", "0", "YES", "NO"].includes(lowerValue)) {
       return {
         valid: false,
         error: `字段 "${fieldName}" 类型为 ${field.type}，值 "${value}" 不是有效的布尔值（可用 TRUE/FALSE/1/0）`,
-      }
+      };
     }
   }
 
-  return { valid: true, error: null }
-}
+  return { valid: true, error: null };
+};
 
 const applyBatchEditToData = (data, rules) => {
   if (!data || !rules || rules.length === 0) {
     return {
       affectedRows: 0,
       modifiedData: data,
-    }
+    };
   }
 
-  const modifiedData = data.map((row) => ({ ...row }))
-  const affectedRowIndices = new Set()
+  const modifiedData = data.map((row) => ({ ...row }));
+  const affectedRowIndices = new Set();
 
   rules.forEach((rule) => {
-    if (!rule.fieldName || rule.newValue === undefined || rule.newValue === '') {
-      return
+    if (
+      !rule.fieldName ||
+      rule.newValue === undefined ||
+      rule.newValue === ""
+    ) {
+      return;
     }
 
-    const columnIndex = getExcelColumnIndex(rule.fieldName)
+    const columnIndex = getExcelColumnIndex(rule.fieldName);
     if (columnIndex === -1) {
-      return
+      return;
     }
 
-    const typeValidation = validateFieldType(rule.fieldName, rule.newValue)
+    const typeValidation = validateFieldType(rule.fieldName, rule.newValue);
     if (!typeValidation.valid) {
-      throw new Error(typeValidation.error)
+      throw new Error(typeValidation.error);
     }
 
-    let rowIndicesToModify = []
+    let rowIndicesToModify = [];
 
     if (rule.condition.enabled) {
-      const conditionColumnIndex = getExcelColumnIndex(rule.condition.fieldName)
+      const conditionColumnIndex = getExcelColumnIndex(
+        rule.condition.fieldName,
+      );
       if (conditionColumnIndex === -1) {
-        return
+        return;
       }
 
       rowIndicesToModify = modifiedData
         .map((row, index) => {
-          const conditionFieldValue = row[String(conditionColumnIndex)]
+          const conditionFieldValue = row[String(conditionColumnIndex)];
           const match = matchCondition(
             conditionFieldValue,
             rule.condition.operator,
             rule.condition.value,
-          )
-          return match ? index : -1
+          );
+          return match ? index : -1;
         })
-        .filter((index) => index !== -1)
+        .filter((index) => index !== -1);
     } else {
-      rowIndicesToModify = modifiedData.map((_, index) => index)
+      rowIndicesToModify = modifiedData.map((_, index) => index);
     }
 
     rowIndicesToModify.forEach((rowIndex) => {
-      modifiedData[rowIndex][String(columnIndex)] = rule.newValue
-      affectedRowIndices.add(rowIndex)
-    })
-  })
+      modifiedData[rowIndex][String(columnIndex)] = rule.newValue;
+      affectedRowIndices.add(rowIndex);
+    });
+  });
 
   return {
     affectedRows: affectedRowIndices.size,
     modifiedData,
-  }
-}
+  };
+};
 
 const handleAddRule = () => {
   const newRule = {
     id: `rule_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-    fieldName: '',
-    newValue: '',
+    fieldName: "",
+    newValue: "",
     condition: {
       enabled: false,
-      operator: '=',
-      value: '',
+      operator: "=",
+      value: "",
     },
-  }
-  editRules.value.push(newRule)
+  };
+  editRules.value.push(newRule);
   if (activeKey.value.length === 0) {
-    activeKey.value = ['1']
+    activeKey.value = ["1"];
   }
-  emit('change', editRules.value)
-}
+  emit("change", editRules.value);
+};
 
 const handleRemoveRule = (ruleId) => {
-  const index = editRules.value.findIndex((rule) => rule.id === ruleId)
+  const index = editRules.value.findIndex((rule) => rule.id === ruleId);
   if (index !== -1) {
-    editRules.value.splice(index, 1)
+    editRules.value.splice(index, 1);
   }
-  emit('change', editRules.value)
-}
+  emit("change", editRules.value);
+};
 
 const handleReset = () => {
-  editRules.value = []
+  editRules.value = [];
   previewResult.value = {
     affectedRows: 0,
     modifiedData: [],
-  }
-  message.info('已重置所有修改规则')
-  emit('change', editRules.value)
-}
+  };
+  message.info("已重置所有修改规则");
+  emit("change", editRules.value);
+};
 
 const handleLoadTemplate = (rules) => {
   const normalizedRules = rules.map((rule) => ({
     id: `rule_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-    fieldName: rule.fieldName || '',
-    newValue: rule.newValue || '',
-    condition: rule.condition || { enabled: false, fieldName: '', operator: '=', value: '' },
-    description: rule.description || '',
-  }))
+    fieldName: rule.fieldName || "",
+    newValue: rule.newValue || "",
+    condition: rule.condition || {
+      enabled: false,
+      fieldName: "",
+      operator: "=",
+      value: "",
+    },
+    description: rule.description || "",
+  }));
 
-  editRules.value = [...editRules.value, ...normalizedRules]
-  emit('change', editRules.value)
-  message.success(`已加载 ${normalizedRules.length} 条规则`)
-}
+  editRules.value = [...editRules.value, ...normalizedRules];
+  emit("change", editRules.value);
+  message.success(`已加载 ${normalizedRules.length} 条规则`);
+};
 
 const handleExportTemplate = (template) => {
-  message.info(`模板 "${template.name}" 已导出`)
-}
+  message.info(`模板 "${template.name}" 已导出`);
+};
 
 const handlePreview = async () => {
   if (!props.excelData || props.excelData.length === 0) {
-    message.warning('请先上传Excel文件')
-    return
+    message.warning("请先上传Excel文件");
+    return;
   }
   if (editRules.value.length === 0) {
-    message.warning('请先添加修改规则')
-    return
+    message.warning("请先添加修改规则");
+    return;
   }
-  previewing.value = true
+  previewing.value = true;
   try {
-    const result = applyBatchEditToData(props.excelData, editRules.value)
-    previewResult.value = result
-    emit('preview', result)
-    message.success(`预览成功，将影响 ${result.affectedRows} 行数据`)
+    const result = applyBatchEditToData(props.excelData, editRules.value);
+    previewResult.value = result;
+    emit("preview", result);
+    message.success(`预览成功，将影响 ${result.affectedRows} 行数据`);
   } catch (error) {
-    message.error('预览失败：' + error.message)
+    message.error("预览失败：" + error.message);
   } finally {
-    previewing.value = false
+    previewing.value = false;
   }
-}
+};
 
 const handleApply = async () => {
   if (!props.excelData || props.excelData.length === 0) {
-    message.warning('请先上传Excel文件')
-    return
+    message.warning("请先上传Excel文件");
+    return;
   }
   if (editRules.value.length === 0) {
-    message.warning('请先添加修改规则')
-    return
+    message.warning("请先添加修改规则");
+    return;
   }
-  applying.value = true
+  applying.value = true;
   try {
-    const result = applyBatchEditToData(props.excelData, editRules.value)
-    emit('update:excelData', result.modifiedData)
-    emit('apply', result)
-    message.success(`应用成功，已修改 ${result.affectedRows} 行数据`)
+    const result = applyBatchEditToData(props.excelData, editRules.value);
+    emit("update:excelData", result.modifiedData);
+    emit("apply", result);
+    message.success(`应用成功，已修改 ${result.affectedRows} 行数据`);
   } catch (error) {
-    message.error('应用失败：' + error.message)
+    message.error("应用失败：" + error.message);
   } finally {
-    applying.value = false
+    applying.value = false;
   }
-}
+};
 
 watch(
   editRules,
@@ -826,20 +925,20 @@ watch(
       props.excelData.length > 0 &&
       editRules.value.length > 0
     ) {
-      const result = applyBatchEditToData(props.excelData, editRules.value)
-      emit('preview', result)
+      const result = applyBatchEditToData(props.excelData, editRules.value);
+      emit("preview", result);
     }
-    emit('change', editRules.value)
+    emit("change", editRules.value);
   },
   { deep: true },
-)
+);
 
 defineExpose({
   addRule: handleAddRule,
   removeRule: handleRemoveRule,
   resetRules: handleReset,
   applyBatchEdit: () => applyBatchEditToData(props.excelData, editRules.value),
-})
+});
 </script>
 
 <style scoped>
@@ -866,7 +965,10 @@ defineExpose({
   border: 1px solid var(--border-glass-light);
   padding: 16px;
   margin-bottom: 12px;
-  transition: box-shadow var(--transition-normal) ease, transform var(--transition-normal) ease, background-color var(--transition-normal) ease;
+  transition:
+    box-shadow var(--transition-normal) ease,
+    transform var(--transition-normal) ease,
+    background-color var(--transition-normal) ease;
 }
 
 .glass-card-inner:hover {
@@ -1025,7 +1127,10 @@ defineExpose({
 }
 
 :deep(.ant-btn) {
-  transition: transform var(--transition-fast) ease, box-shadow var(--transition-fast) ease, background-color var(--transition-fast) ease;
+  transition:
+    transform var(--transition-fast) ease,
+    box-shadow var(--transition-fast) ease,
+    background-color var(--transition-fast) ease;
 }
 
 :deep(.ant-btn:hover) {

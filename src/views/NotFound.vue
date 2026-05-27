@@ -7,8 +7,12 @@
       <h1 class="error-title">404</h1>
       <p class="error-message">抱歉，您访问的页面不存在</p>
       <div class="error-actions">
-        <GradientButton type="primary" size="lg" @click="goHome"> 返回首页 </GradientButton>
-        <GradientButton type="secondary" size="lg" @click="goBack"> 返回上页 </GradientButton>
+        <GradientButton type="primary" size="lg" @click="goHome">
+          返回首页
+        </GradientButton>
+        <GradientButton type="secondary" size="lg" @click="goBack">
+          返回上页
+        </GradientButton>
       </div>
       <div class="quick-links">
         <h3>快速链接</h3>
@@ -24,31 +28,31 @@
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router'
-import { FileUnknownOutlined } from '@ant-design/icons-vue'
-import GradientButton from '@/components/common/GradientButton.vue'
+import { useRouter } from "vue-router";
+import { FileUnknownOutlined } from "@ant-design/icons-vue";
+import GradientButton from "@/components/common/GradientButton.vue";
 
-const router = useRouter()
+const router = useRouter();
 
 const goHome = () => {
-  router.push('/')
-}
+  router.push("/");
+};
 
 const goBack = () => {
-  router.back()
-}
+  router.back();
+};
 
 const goToTools = () => {
-  router.push('/#')
-}
+  router.push("/#");
+};
 
 const goToInsert = () => {
-  router.push('/insert')
-}
+  router.push("/insert");
+};
 
 const goToUpdate = () => {
-  router.push('/update')
-}
+  router.push("/update");
+};
 </script>
 
 <style lang="scss" scoped>
@@ -130,7 +134,10 @@ const goToUpdate = () => {
     border-radius: $border-radius-sm;
     color: $text-secondary;
     text-decoration: none;
-    transition: color 0.3s ease, background-color 0.3s ease, transform 0.3s ease;
+    transition:
+      color 0.3s ease,
+      background-color 0.3s ease,
+      transform 0.3s ease;
     will-change: transform;
     cursor: pointer;
 

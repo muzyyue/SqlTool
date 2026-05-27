@@ -18,7 +18,11 @@
 
       <div class="category-filter">
         <a-radio-group v-model:value="selectedCategory" size="large">
-          <a-radio-button v-for="category in categories" :key="category.id" :value="category.id">
+          <a-radio-button
+            v-for="category in categories"
+            :key="category.id"
+            :value="category.id"
+          >
             <component :is="category.iconComponent" class="category-icon" />
             {{ category.name }}
           </a-radio-button>
@@ -52,7 +56,9 @@
       <div class="section-title">
         <StarFilled class="title-icon" />
         <h3>我的收藏</h3>
-        <a-button type="link" size="small" @click="clearFavorites"> 清空 </a-button>
+        <a-button type="link" size="small" @click="clearFavorites">
+          清空
+        </a-button>
       </div>
       <div :class="['tools-container', `tools-container-${viewMode}`]">
         <ToolCard
@@ -68,7 +74,13 @@
     <div class="tools-section">
       <div class="section-title">
         <AppstoreOutlined class="title-icon" />
-        <h3>{{ selectedCategory === 'all' ? '全部工具' : getCategoryName(selectedCategory) }}</h3>
+        <h3>
+          {{
+            selectedCategory === "all"
+              ? "全部工具"
+              : getCategoryName(selectedCategory)
+          }}
+        </h3>
         <span class="tool-count">{{ filteredTools.length }} 个工具</span>
       </div>
 
@@ -91,8 +103,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import {
   SearchOutlined,
   AppstoreOutlined,
@@ -105,17 +117,21 @@ import {
   SafetyCertificateOutlined,
   PlusSquareOutlined,
   CodeOutlined as CodeOutlinedIcon,
-} from '@ant-design/icons-vue'
-import { categories, searchTools, filterToolsByCategory } from '@/config/tools.js'
-import { useFavorites } from '@/composables/data/useFavorites.js'
-import ToolCard from '@/components/common/ToolCard.vue'
+} from "@ant-design/icons-vue";
+import {
+  categories,
+  searchTools,
+  filterToolsByCategory,
+} from "@/config/tools.js";
+import { useFavorites } from "@/composables/data/useFavorites.js";
+import ToolCard from "@/components/common/ToolCard.vue";
 
-const router = useRouter()
-const { favorites, clearFavorites } = useFavorites()
+const router = useRouter();
+const { favorites, clearFavorites } = useFavorites();
 
-const searchQuery = ref('')
-const selectedCategory = ref('all')
-const viewMode = ref('grid')
+const searchQuery = ref("");
+const selectedCategory = ref("all");
+const viewMode = ref("grid");
 
 /**
  * 分类图标映射
@@ -129,60 +145,60 @@ const categoryIconMap = {
   PlusSquareOutlined: PlusSquareOutlined,
   CodeOutlined: CodeOutlinedIcon,
   SearchOutlined: SearchOutlined,
-}
+};
 
 /**
  * 带图标的分类列表（计算属性保留，用于后续扩展）
  */
- 
+
 const categoriesWithIcons = computed(() => {
   return categories.map((category) => ({
     ...category,
     iconComponent: categoryIconMap[category.icon] || AppstoreOutlinedIcon,
-  }))
-})
+  }));
+});
 
 /**
  * 过滤后的工具列表
  */
 const filteredTools = computed(() => {
-  let result = filterToolsByCategory(selectedCategory.value)
+  let result = filterToolsByCategory(selectedCategory.value);
 
   if (searchQuery.value) {
-    result = searchTools(searchQuery.value)
+    result = searchTools(searchQuery.value);
   }
 
-  return result
-})
+  return result;
+});
 
 /**
  * 获取分类名称
  */
 const getCategoryName = (categoryId) => {
-  const category = categories.find((c) => c.id === categoryId)
-  return category ? category.name : ''
-}
+  const category = categories.find((c) => c.id === categoryId);
+  return category ? category.name : "";
+};
 
 /**
  * 处理搜索
  */
 const handleSearch = () => {
   // 搜索逻辑由 computed 自动响应，无需额外处理
-}
+};
 
 /**
  * 处理工具点击
  */
 const handleToolClick = (tool) => {
-  router.push(tool.route)
-}
+  router.push(tool.route);
+};
 
 /**
  * 初始化
  */
 onMounted(() => {
   // 组件挂载完成，数据由 computed 自动加载
-})
+});
 </script>
 
 <style scoped>

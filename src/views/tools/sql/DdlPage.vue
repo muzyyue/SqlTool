@@ -33,7 +33,11 @@
             placeholder="请选择数据库类型"
             @change="handleDatabaseChange"
           >
-            <a-select-option v-for="db in databaseOptions" :key="db.value" :value="db.value">
+            <a-select-option
+              v-for="db in databaseOptions"
+              :key="db.value"
+              :value="db.value"
+            >
               <div class="database-option">
                 <span class="db-icon">{{ db.icon }}</span>
                 <span class="db-name">{{ db.label }}</span>
@@ -85,7 +89,11 @@
           <!-- CREATE TABLE 输入 -->
           <div v-if="selectedDdlType === 'create'" class="ddl-input-section">
             <div class="form-row">
-              <a-input v-model:value="tableName" placeholder="请输入表名" addon-before="表名" />
+              <a-input
+                v-model:value="tableName"
+                placeholder="请输入表名"
+                addon-before="表名"
+              />
             </div>
 
             <div class="form-row">
@@ -175,7 +183,12 @@
 
                   <template v-if="column.key === 'actions'">
                     <a-space>
-                      <a-button type="link" size="small" @click="removeField(index)" danger>
+                      <a-button
+                        type="link"
+                        size="small"
+                        @click="removeField(index)"
+                        danger
+                      >
                         删除
                       </a-button>
                     </a-space>
@@ -188,8 +201,12 @@
               <div class="section-header">
                 <h4>约束定义</h4>
                 <a-space>
-                  <a-button type="link" @click="addPrimaryKey" size="small"> 主键约束 </a-button>
-                  <a-button type="link" @click="addUniqueKey" size="small"> 唯一约束 </a-button>
+                  <a-button type="link" @click="addPrimaryKey" size="small">
+                    主键约束
+                  </a-button>
+                  <a-button type="link" @click="addUniqueKey" size="small">
+                    唯一约束
+                  </a-button>
                 </a-space>
               </div>
 
@@ -200,8 +217,15 @@
                   class="constraint-item"
                 >
                   <span class="constraint-type">{{ constraint.type }}</span>
-                  <span class="constraint-fields">{{ constraint.fields.join(', ') }}</span>
-                  <a-button type="link" size="small" @click="removeConstraint(index)" danger>
+                  <span class="constraint-fields">{{
+                    constraint.fields.join(", ")
+                  }}</span>
+                  <a-button
+                    type="link"
+                    size="small"
+                    @click="removeConstraint(index)"
+                    danger
+                  >
                     删除
                   </a-button>
                 </div>
@@ -211,9 +235,16 @@
           </div>
 
           <!-- ALTER TABLE 输入 -->
-          <div v-else-if="selectedDdlType === 'alter'" class="ddl-input-section">
+          <div
+            v-else-if="selectedDdlType === 'alter'"
+            class="ddl-input-section"
+          >
             <div class="form-row">
-              <a-input v-model:value="tableName" placeholder="请输入表名" addon-before="表名" />
+              <a-input
+                v-model:value="tableName"
+                placeholder="请输入表名"
+                addon-before="表名"
+              />
             </div>
 
             <div class="alter-actions">
@@ -230,7 +261,10 @@
               <!-- 添加字段的界面 -->
             </div>
 
-            <div v-else-if="alterAction === 'modify'" class="alter-modify-section">
+            <div
+              v-else-if="alterAction === 'modify'"
+              class="alter-modify-section"
+            >
               <!-- 修改字段的界面 -->
             </div>
 
@@ -238,7 +272,10 @@
               <!-- 删除字段的界面 -->
             </div>
 
-            <div v-else-if="alterAction === 'rename'" class="alter-rename-section">
+            <div
+              v-else-if="alterAction === 'rename'"
+              class="alter-rename-section"
+            >
               <!-- 重命名字段的界面 -->
             </div>
           </div>
@@ -254,12 +291,17 @@
             </div>
 
             <div class="form-row">
-              <a-checkbox v-model:checked="dropIfExists"> 如果存在则删除 (IF EXISTS) </a-checkbox>
+              <a-checkbox v-model:checked="dropIfExists">
+                如果存在则删除 (IF EXISTS)
+              </a-checkbox>
             </div>
           </div>
 
           <!-- TRUNCATE TABLE 输入 -->
-          <div v-else-if="selectedDdlType === 'truncate'" class="ddl-input-section">
+          <div
+            v-else-if="selectedDdlType === 'truncate'"
+            class="ddl-input-section"
+          >
             <div class="form-row">
               <a-input
                 v-model:value="tableName"
@@ -270,9 +312,16 @@
           </div>
 
           <!-- UPDATE TABLE 输入 -->
-          <div v-else-if="selectedDdlType === 'update'" class="ddl-input-section">
+          <div
+            v-else-if="selectedDdlType === 'update'"
+            class="ddl-input-section"
+          >
             <div class="form-row">
-              <a-input v-model:value="tableName" placeholder="请输入表名" addon-before="表名" />
+              <a-input
+                v-model:value="tableName"
+                placeholder="请输入表名"
+                addon-before="表名"
+              />
             </div>
 
             <div class="form-row">
@@ -317,7 +366,12 @@
                   </template>
 
                   <template v-if="column.key === 'actions'">
-                    <a-button type="link" danger size="small" @click="removeUpdateField(index)">
+                    <a-button
+                      type="link"
+                      danger
+                      size="small"
+                      @click="removeUpdateField(index)"
+                    >
                       <template #icon><CloseCircleOutlined /></template>
                       删除
                     </a-button>
@@ -337,7 +391,11 @@
             <h3>生成的DDL语句</h3>
             <div class="output-actions">
               <a-space>
-                <a-button type="primary" @click="generateSql" :loading="generating">
+                <a-button
+                  type="primary"
+                  @click="generateSql"
+                  :loading="generating"
+                >
                   <template #icon><PlayCircleOutlined /></template>
                   生成SQL
                 </a-button>
@@ -358,72 +416,72 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { message } from 'ant-design-vue'
-import { useDdlGenerator } from '@/composables/sql/useDdlGenerator'
-import SqlPreview from '@/components/SqlPreview/SqlPreview.vue'
+import { ref, computed, onMounted } from "vue";
+import { message } from "ant-design-vue";
+import { useDdlGenerator } from "@/composables/sql/useDdlGenerator";
+import SqlPreview from "@/components/SqlPreview/SqlPreview.vue";
 import {
   ReloadOutlined,
   PlayCircleOutlined,
   QuestionCircleOutlined,
   PlusOutlined,
-} from '@ant-design/icons-vue'
+} from "@ant-design/icons-vue";
 
 // 响应式数据
-const selectedDatabase = ref('mysql')
-const selectedDdlType = ref('create')
-const tableName = ref('')
-const tableComment = ref('')
-const fields = ref([])
-const constraints = ref([])
-const generatedSql = ref('')
-const generating = ref(false)
+const selectedDatabase = ref("mysql");
+const selectedDdlType = ref("create");
+const tableName = ref("");
+const tableComment = ref("");
+const fields = ref([]);
+const constraints = ref([]);
+const generatedSql = ref("");
+const generating = ref(false);
 
 // UPDATE TABLE 相关数据
-const updateWhereClause = ref('')
-const updateFields = ref([])
+const updateWhereClause = ref("");
+const updateFields = ref([]);
 
 // DDL类型解析器和生成器
-const { generateDdl } = useDdlGenerator()
+const { generateDdl } = useDdlGenerator();
 
 // 数据库选项
 const databaseOptions = [
-  { value: 'mysql', label: 'MySQL', icon: '🐬', version: '8.0+' },
-  { value: 'postgresql', label: 'PostgreSQL', icon: '🐘', version: '14+' },
-  { value: 'oracle', label: 'Oracle', icon: '🏢', version: '19c+' },
-  { value: 'sqlserver', label: 'SQL Server', icon: '💼', version: '2019+' },
-  { value: 'dm', label: '达梦数据库', icon: '🎯', version: '8.0+' },
-]
+  { value: "mysql", label: "MySQL", icon: "🐬", version: "8.0+" },
+  { value: "postgresql", label: "PostgreSQL", icon: "🐘", version: "14+" },
+  { value: "oracle", label: "Oracle", icon: "🏢", version: "19c+" },
+  { value: "sqlserver", label: "SQL Server", icon: "💼", version: "2019+" },
+  { value: "dm", label: "达梦数据库", icon: "🎯", version: "8.0+" },
+];
 
 // 字段表格列定义
 const fieldColumns = ref([
-  { title: '字段名', key: 'name', width: '15%' },
-  { title: '数据类型', key: 'type', width: '15%' },
-  { title: '长度', key: 'length', width: '10%' },
-  { title: '可空', key: 'nullable', width: '10%' },
-  { title: '默认值', key: 'default', width: '15%' },
-  { title: '注释', key: 'comment', width: '20%' },
-  { title: '操作', key: 'actions', width: '15%' },
-])
+  { title: "字段名", key: "name", width: "15%" },
+  { title: "数据类型", key: "type", width: "15%" },
+  { title: "长度", key: "length", width: "10%" },
+  { title: "可空", key: "nullable", width: "10%" },
+  { title: "默认值", key: "default", width: "15%" },
+  { title: "注释", key: "comment", width: "20%" },
+  { title: "操作", key: "actions", width: "15%" },
+]);
 
 // UPDATE字段表格列定义
 const updateFieldColumns = ref([
-  { title: '字段名', key: 'name', width: '40%' },
-  { title: '更新值', key: 'value', width: '40%' },
-  { title: '操作', key: 'actions', width: '20%' },
-])
+  { title: "字段名", key: "name", width: "40%" },
+  { title: "更新值", key: "value", width: "40%" },
+  { title: "操作", key: "actions", width: "20%" },
+]);
 
 // 计算属性
 const getDdlInputTooltip = computed(() => {
   const tooltips = {
-    create: '输入CREATE TABLE语句的表结构和约束信息',
-    alter: '输入ALTER TABLE语句的修改操作',
-    update: '输入UPDATE TABLE语句的更新字段和WHERE条件',
-    drop: '输入要删除的表名',
-    truncate: '输入要清空的表名',
-  }
-  return tooltips[selectedDdlType.value] || '输入DDL语句参数'
-})
+    create: "输入CREATE TABLE语句的表结构和约束信息",
+    alter: "输入ALTER TABLE语句的修改操作",
+    update: "输入UPDATE TABLE语句的更新字段和WHERE条件",
+    drop: "输入要删除的表名",
+    truncate: "输入要清空的表名",
+  };
+  return tooltips[selectedDdlType.value] || "输入DDL语句参数";
+});
 
 // SQL统计信息计算属性
 const sqlStats = computed(() => ({
@@ -431,149 +489,176 @@ const sqlStats = computed(() => ({
   affectedRows: 0,
   generationTime: 0,
   fileSize: new Blob([generatedSql.value]).size,
-}))
+}));
 
 // 方法
 const handleDatabaseChange = (value) => {
-  selectedDatabase.value = value
-  message.info(`已选择数据库: ${getDatabaseInfo(value).name}`)
-}
+  selectedDatabase.value = value;
+  message.info(`已选择数据库: ${getDatabaseInfo(value).name}`);
+};
 
 const handleDdlTypeChange = (e) => {
-  selectedDdlType.value = e.target.value
-  resetDdlInputs()
-}
+  selectedDdlType.value = e.target.value;
+  resetDdlInputs();
+};
 
 const getDatabaseInfo = (dbType) => {
   const infoMap = {
-    mysql: { name: 'MySQL', description: '开源关系型数据库，广泛用于Web应用' },
-    postgresql: { name: 'PostgreSQL', description: '功能强大的开源对象关系数据库' },
-    oracle: { name: 'Oracle', description: '企业级关系数据库管理系统' },
-    sqlserver: { name: 'SQL Server', description: '微软开发的商业关系数据库' },
-    sqlite: { name: 'SQLite', description: '轻量级嵌入式数据库引擎' },
-  }
-  return infoMap[dbType] || { name: '未知数据库', description: '' }
-}
+    mysql: { name: "MySQL", description: "开源关系型数据库，广泛用于Web应用" },
+    postgresql: {
+      name: "PostgreSQL",
+      description: "功能强大的开源对象关系数据库",
+    },
+    oracle: { name: "Oracle", description: "企业级关系数据库管理系统" },
+    sqlserver: { name: "SQL Server", description: "微软开发的商业关系数据库" },
+    sqlite: { name: "SQLite", description: "轻量级嵌入式数据库引擎" },
+  };
+  return infoMap[dbType] || { name: "未知数据库", description: "" };
+};
 
 const getDataTypeOptions = () => {
   const typeMap = {
-    mysql: ['INT', 'VARCHAR', 'TEXT', 'DATE', 'DATETIME', 'DECIMAL', 'BOOLEAN'],
-    postgresql: ['INTEGER', 'VARCHAR', 'TEXT', 'DATE', 'TIMESTAMP', 'NUMERIC', 'BOOLEAN'],
-    oracle: ['NUMBER', 'VARCHAR2', 'CLOB', 'DATE', 'TIMESTAMP', 'FLOAT', 'CHAR'],
-    sqlserver: ['INT', 'VARCHAR', 'NVARCHAR', 'DATE', 'DATETIME', 'DECIMAL', 'BIT'],
-    sqlite: ['INTEGER', 'TEXT', 'REAL', 'BLOB', 'NUMERIC'],
-  }
-  return typeMap[selectedDatabase.value] || typeMap.mysql
-}
+    mysql: ["INT", "VARCHAR", "TEXT", "DATE", "DATETIME", "DECIMAL", "BOOLEAN"],
+    postgresql: [
+      "INTEGER",
+      "VARCHAR",
+      "TEXT",
+      "DATE",
+      "TIMESTAMP",
+      "NUMERIC",
+      "BOOLEAN",
+    ],
+    oracle: [
+      "NUMBER",
+      "VARCHAR2",
+      "CLOB",
+      "DATE",
+      "TIMESTAMP",
+      "FLOAT",
+      "CHAR",
+    ],
+    sqlserver: [
+      "INT",
+      "VARCHAR",
+      "NVARCHAR",
+      "DATE",
+      "DATETIME",
+      "DECIMAL",
+      "BIT",
+    ],
+    sqlite: ["INTEGER", "TEXT", "REAL", "BLOB", "NUMERIC"],
+  };
+  return typeMap[selectedDatabase.value] || typeMap.mysql;
+};
 
 const addField = () => {
   fields.value.push({
-    name: '',
+    name: "",
     type: getDataTypeOptions()[0],
     length: null,
     nullable: true,
-    defaultValue: '',
-    comment: '',
-  })
-}
+    defaultValue: "",
+    comment: "",
+  });
+};
 
 const updateField = (index, field, value) => {
   if (fields.value[index]) {
-    fields.value[index][field] = value
+    fields.value[index][field] = value;
   }
-}
+};
 
 const removeField = (index) => {
-  fields.value.splice(index, 1)
-}
+  fields.value.splice(index, 1);
+};
 
 const addPrimaryKey = () => {
   if (fields.value.length === 0) {
-    message.warning('请先添加字段')
-    return
+    message.warning("请先添加字段");
+    return;
   }
 
   constraints.value.push({
-    type: 'PRIMARY KEY',
-    fields: ['id'], // 默认选择第一个字段
-  })
-}
+    type: "PRIMARY KEY",
+    fields: ["id"], // 默认选择第一个字段
+  });
+};
 
 const addUniqueKey = () => {
   if (fields.value.length === 0) {
-    message.warning('请先添加字段')
-    return
+    message.warning("请先添加字段");
+    return;
   }
 
   constraints.value.push({
-    type: 'UNIQUE',
-    fields: ['name'], // 默认选择第二个字段
-  })
-}
+    type: "UNIQUE",
+    fields: ["name"], // 默认选择第二个字段
+  });
+};
 
 const removeConstraint = (index) => {
-  constraints.value.splice(index, 1)
-}
+  constraints.value.splice(index, 1);
+};
 
 const resetDdlInputs = () => {
-  tableName.value = ''
-  tableComment.value = ''
-  fields.value = []
-  constraints.value = []
-  updateWhereClause.value = ''
-  updateFields.value = []
-}
+  tableName.value = "";
+  tableComment.value = "";
+  fields.value = [];
+  constraints.value = [];
+  updateWhereClause.value = "";
+  updateFields.value = [];
+};
 
 const addUpdateField = () => {
   updateFields.value.push({
-    name: '',
-    value: '',
-  })
-}
+    name: "",
+    value: "",
+  });
+};
 
 const updateUpdateField = (index, field, value) => {
   if (updateFields.value[index]) {
-    updateFields.value[index][field] = value
+    updateFields.value[index][field] = value;
   }
-}
+};
 
 const removeUpdateField = (index) => {
-  updateFields.value.splice(index, 1)
-}
+  updateFields.value.splice(index, 1);
+};
 
 const generateSql = async () => {
   if (!selectedDatabase.value) {
-    message.warning('请选择目标数据库')
-    return
+    message.warning("请选择目标数据库");
+    return;
   }
 
   if (
-    selectedDdlType.value !== 'drop' &&
-    selectedDdlType.value !== 'truncate' &&
+    selectedDdlType.value !== "drop" &&
+    selectedDdlType.value !== "truncate" &&
     !tableName.value.trim()
   ) {
-    message.warning('请输入表名')
-    return
+    message.warning("请输入表名");
+    return;
   }
 
-  if (selectedDdlType.value === 'update' && updateFields.value.length === 0) {
-    message.warning('请至少添加一个更新字段')
-    return
+  if (selectedDdlType.value === "update" && updateFields.value.length === 0) {
+    message.warning("请至少添加一个更新字段");
+    return;
   }
 
-  generating.value = true
+  generating.value = true;
 
   try {
     // 这里将调用DDL生成器生成SQL
-    const sql = await generateDdlSql()
-    generatedSql.value = sql
-    message.success('DDL语句生成成功')
+    const sql = await generateDdlSql();
+    generatedSql.value = sql;
+    message.success("DDL语句生成成功");
   } catch (error) {
-    message.error('生成DDL语句失败: ' + error.message)
+    message.error("生成DDL语句失败: " + error.message);
   } finally {
-    generating.value = false
+    generating.value = false;
   }
-}
+};
 
 const generateDdlSql = async () => {
   // 使用DDL生成器生成SQL
@@ -584,71 +669,73 @@ const generateDdlSql = async () => {
       tableComment: tableComment.value,
       fields: fields.value,
       constraints: constraints.value,
-    }
+    };
 
     // 根据DDL类型调用相应的生成方法
-    const ddlType = selectedDdlType.value.toUpperCase()
+    const ddlType = selectedDdlType.value.toUpperCase();
 
     // 特殊处理UPDATE TABLE
-    if (ddlType === 'UPDATE') {
+    if (ddlType === "UPDATE") {
       const setClause = updateFields.value
         .map((field) => `${field.name} = ${formatValue(field.value)}`)
-        .join(', ')
-      const whereClause = updateWhereClause.value ? `WHERE ${updateWhereClause.value}` : ''
-      return `UPDATE ${tableName.value} SET ${setClause} ${whereClause};`.trim()
+        .join(", ");
+      const whereClause = updateWhereClause.value
+        ? `WHERE ${updateWhereClause.value}`
+        : "";
+      return `UPDATE ${tableName.value} SET ${setClause} ${whereClause};`.trim();
     }
 
-    const sql = await generateDdl(ddlType, options)
-    return sql
+    const sql = await generateDdl(ddlType, options);
+    return sql;
   } catch (error) {
-    console.error('生成DDL语句失败:', error)
-    throw new Error(`DDL生成失败: ${error.message}`)
+    console.error("生成DDL语句失败:", error);
+    throw new Error(`DDL生成失败: ${error.message}`);
   }
-}
+};
 
 const formatValue = (value) => {
-  if (!value) return 'NULL'
-  if (typeof value === 'string') {
-    return `'${value.replace(/'/g, "''")}'`
+  if (!value) return "NULL";
+  if (typeof value === "string") {
+    return `'${value.replace(/'/g, "''")}'`;
   }
-  if (typeof value === 'number') return value
-  return `'${value}'`
-}
+  if (typeof value === "number") return value;
+  return `'${value}'`;
+};
 
 const copySql = async (sql) => {
   try {
-    await navigator.clipboard.writeText(sql || generatedSql.value)
-    message.success('SQL已复制到剪贴板')
+    await navigator.clipboard.writeText(sql || generatedSql.value);
+    message.success("SQL已复制到剪贴板");
   } catch {
-    message.error('复制失败')
+    message.error("复制失败");
   }
-}
+};
 
 const downloadSql = (sql) => {
-  const sqlToDownload = sql || generatedSql.value
-  const blob = new Blob([sqlToDownload], { type: 'text/plain' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `${tableName.value || 'ddl'}_${selectedDdlType.value}.sql`
-  a.click()
-  URL.revokeObjectURL(url)
-  message.success('SQL文件下载成功')
-}
+  const sqlToDownload = sql || generatedSql.value;
+  const blob = new Blob([sqlToDownload], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${tableName.value || "ddl"}_${selectedDdlType.value}.sql`;
+  a.click();
+  URL.revokeObjectURL(url);
+  message.success("SQL文件下载成功");
+};
 
 const resetAll = () => {
-  selectedDatabase.value = 'mysql'
-  selectedDdlType.value = 'create'
-  resetDdlInputs()
-  generatedSql.value = ''
-  message.success('所有数据已重置')
-}
+  selectedDatabase.value = "mysql";
+  selectedDdlType.value = "create";
+  resetDdlInputs();
+  generatedSql.value = "";
+  message.success("所有数据已重置");
+};
 
 // 生命周期
 onMounted(() => {
   // 初始化一个示例字段
-  addField()
-})
+  addField();
+});
 </script>
 
 <style scoped lang="scss">
@@ -796,7 +883,7 @@ onMounted(() => {
 
 .sql-code {
   margin: 0;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   font-size: 12px;
   line-height: 1.4;
   white-space: pre-wrap;

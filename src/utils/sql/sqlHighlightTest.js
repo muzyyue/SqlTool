@@ -3,7 +3,7 @@
  * 验证INSERT语句的语法高亮效果
  */
 
-import { sqlHighlighter } from './sqlSyntaxHighlighter.js'
+import { sqlHighlighter } from "./sqlSyntaxHighlighter.js";
 
 // 测试用的INSERT语句
 const testSqlStatements = [
@@ -72,80 +72,80 @@ const testSqlStatements = [
     theme = VALUES(theme),
     language = VALUES(language),
     notifications = VALUES(notifications);`,
-]
+];
 
 /**
  * 执行语法高亮测试
  */
 function testSyntaxHighlighting() {
-  console.log('=== SQL语法高亮功能测试 ===\n')
+  console.log("=== SQL语法高亮功能测试 ===\n");
 
   testSqlStatements.forEach((sql, index) => {
-    console.log(`测试用例 ${index + 1}:`)
-    console.log('原始SQL:')
-    console.log(sql)
-    console.log('\n高亮后的HTML:')
+    console.log(`测试用例 ${index + 1}:`);
+    console.log("原始SQL:");
+    console.log(sql);
+    console.log("\n高亮后的HTML:");
 
     try {
-      const highlightedHtml = sqlHighlighter.highlight(sql)
-      console.log(highlightedHtml)
-      console.log('\n' + '='.repeat(80) + '\n')
+      const highlightedHtml = sqlHighlighter.highlight(sql);
+      console.log(highlightedHtml);
+      console.log("\n" + "=".repeat(80) + "\n");
     } catch (error) {
-      console.error('语法高亮失败:', error.message)
-      console.log('\n' + '='.repeat(80) + '\n')
+      console.error("语法高亮失败:", error.message);
+      console.log("\n" + "=".repeat(80) + "\n");
     }
-  })
+  });
 }
 
 /**
  * 验证高亮结果的正确性
  */
 function validateHighlightResults() {
-  console.log('=== 语法高亮结果验证 ===\n')
+  console.log("=== 语法高亮结果验证 ===\n");
 
-  const testSql = `INSERT INTO users (id, username, email) VALUES (1, 'john_doe', 'john@example.com');`
+  const testSql = `INSERT INTO users (id, username, email) VALUES (1, 'john_doe', 'john@example.com');`;
 
   try {
-    const highlightedHtml = sqlHighlighter.highlight(testSql)
+    const highlightedHtml = sqlHighlighter.highlight(testSql);
 
     // 检查是否包含预期的CSS类
     const expectedClasses = [
-      'sql-keyword', // INSERT, INTO, VALUES
-      'sql-table', // users
-      'sql-column', // id, username, email
-      'sql-number', // 1
-      'sql-string', // 'john_doe', 'john@example.com'
-    ]
+      "sql-keyword", // INSERT, INTO, VALUES
+      "sql-table", // users
+      "sql-column", // id, username, email
+      "sql-number", // 1
+      "sql-string", // 'john_doe', 'john@example.com'
+    ];
 
-    let validationPassed = true
+    let validationPassed = true;
 
     expectedClasses.forEach((className) => {
       if (highlightedHtml.includes(`class="${className}"`)) {
-        console.log(`✓ 找到CSS类: ${className}`)
+        console.log(`✓ 找到CSS类: ${className}`);
       } else {
-        console.log(`✗ 缺少CSS类: ${className}`)
-        validationPassed = false
+        console.log(`✗ 缺少CSS类: ${className}`);
+        validationPassed = false;
       }
-    })
+    });
 
-    console.log(`\n验证结果: ${validationPassed ? '通过' : '失败'}`)
-    console.log('高亮后的HTML:')
-    console.log(highlightedHtml)
+    console.log(`\n验证结果: ${validationPassed ? "通过" : "失败"}`);
+    console.log("高亮后的HTML:");
+    console.log(highlightedHtml);
 
-    return validationPassed
+    return validationPassed;
   } catch (error) {
-    console.error('验证过程中出现错误:', error.message)
-    return false
+    console.error("验证过程中出现错误:", error.message);
+    return false;
   }
 }
 
 // 导出测试函数
-export { testSyntaxHighlighting, validateHighlightResults, testSqlStatements }
+export { testSyntaxHighlighting, validateHighlightResults, testSqlStatements };
 
 // 如果直接运行此文件，执行测试
-if (typeof window === 'undefined') {
+if (typeof window === "undefined") {
   // Node.js环境
-  testSyntaxHighlighting()
-  console.log('\n')
-  validateHighlightResults()
+  testSyntaxHighlighting();
+  console.log("\n");
+  validateHighlightResults();
 }

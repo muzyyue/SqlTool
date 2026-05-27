@@ -3,9 +3,13 @@
  * 封装批量导入修改规则的完整流程
  */
 
-import { reactive, computed } from 'vue'
-import { message } from 'ant-design-vue'
-import { parseImportFile, validateFileFormat, downloadTemplateFile } from './useImportParser.js'
+import { reactive, computed } from "vue";
+import { message } from "ant-design-vue";
+import {
+  parseImportFile,
+  validateFileFormat,
+  downloadTemplateFile,
+} from "./useImportParser.js";
 
 /**
  * 导入配置选项
@@ -40,23 +44,23 @@ import { parseImportFile, validateFileFormat, downloadTemplateFile } from './use
  * @returns {Object} 批量导入相关方法和状态
  */
 export function useBatchImport(options = {}) {
-  const { enableAutoMatch = true, maxRules = 100 } = options
+  const { enableAutoMatch = true, maxRules = 100 } = options;
 
   const props = {
     ddlFields: [],
     editRules: [],
-  }
+  };
 
   const emit = {
     onRulesChange: () => {},
     onImportComplete: () => {},
     onImportError: () => {},
-  }
+  };
 
   const importState = reactive({
     visible: false,
     step: 0,
-    format: 'excel',
+    format: "excel",
     file: null,
     fileList: [],
     parsedRules: [],
@@ -68,349 +72,362 @@ export function useBatchImport(options = {}) {
     error: null,
     templateDrawerVisible: false,
     templates: [],
-  })
+  });
 
   const formatOptions = [
-    { label: 'Excel 文件 (.xlsx, .xls)', value: 'excel' },
-    { label: 'CSV 文件 (.csv)', value: 'csv' },
-    { label: 'JSON 文件 (.json)', value: 'json' },
-  ]
+    { label: "Excel 文件 (.xlsx, .xls)", value: "excel" },
+    { label: "CSV 文件 (.csv)", value: "csv" },
+    { label: "JSON 文件 (.json)", value: "json" },
+  ];
 
   const operatorOptions = [
-    { label: '=', value: '=' },
-    { label: '!=', value: '!=' },
-    { label: '>', value: '>' },
-    { label: '<', value: '<' },
-    { label: '>=', value: '>=' },
-    { label: '<=', value: '<=' },
-    { label: 'LIKE', value: 'LIKE' },
-    { label: 'IN', value: 'IN' },
-  ]
+    { label: "=", value: "=" },
+    { label: "!=", value: "!=" },
+    { label: ">", value: ">" },
+    { label: "<", value: "<" },
+    { label: ">=", value: ">=" },
+    { label: "<=", value: "<=" },
+    { label: "LIKE", value: "LIKE" },
+    { label: "IN", value: "IN" },
+  ];
 
   const mappingColumns = [
     {
-      title: '导入字段',
-      dataIndex: 'importField',
-      key: 'importField',
-      width: '30%',
+      title: "导入字段",
+      dataIndex: "importField",
+      key: "importField",
+      width: "30%",
     },
     {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      width: '15%',
+      title: "状态",
+      dataIndex: "status",
+      key: "status",
+      width: "15%",
     },
     {
-      title: 'DDL 字段',
-      dataIndex: 'ddlField',
-      key: 'ddlField',
-      width: '40%',
+      title: "DDL 字段",
+      dataIndex: "ddlField",
+      key: "ddlField",
+      width: "40%",
     },
     {
-      title: '操作',
-      key: 'action',
-      width: '15%',
+      title: "操作",
+      key: "action",
+      width: "15%",
     },
-  ]
+  ];
 
   const previewColumns = [
     {
-      title: '序号',
-      dataIndex: 'index',
-      key: 'index',
-      width: '60px',
+      title: "序号",
+      dataIndex: "index",
+      key: "index",
+      width: "60px",
     },
     {
-      title: '字段名',
-      dataIndex: 'fieldName',
-      key: 'fieldName',
-      width: '20%',
+      title: "字段名",
+      dataIndex: "fieldName",
+      key: "fieldName",
+      width: "20%",
     },
     {
-      title: '新值',
-      dataIndex: 'newValue',
-      key: 'newValue',
-      width: '25%',
+      title: "新值",
+      dataIndex: "newValue",
+      key: "newValue",
+      width: "25%",
     },
     {
-      title: '条件',
-      dataIndex: 'condition',
-      key: 'condition',
-      width: '35%',
+      title: "条件",
+      dataIndex: "condition",
+      key: "condition",
+      width: "35%",
     },
     {
-      title: '描述',
-      dataIndex: 'description',
-      key: 'description',
-      width: '20%',
+      title: "描述",
+      dataIndex: "description",
+      key: "description",
+      width: "20%",
     },
-  ]
+  ];
 
   const statusText = {
-    matched: '已匹配',
-    partial: '部分匹配',
-    unmatched: '未匹配',
-  }
+    matched: "已匹配",
+    partial: "部分匹配",
+    unmatched: "未匹配",
+  };
 
   const statusColor = {
-    matched: 'green',
-    partial: 'orange',
-    unmatched: 'red',
-  }
+    matched: "green",
+    partial: "orange",
+    unmatched: "red",
+  };
 
   const ddlFieldOptions = computed(() => {
     return props.ddlFields.map((field) => ({
       label: `${field.name} (${field.type})`,
       value: field.name,
-    }))
-  })
+    }));
+  });
 
   const canNext = computed(() => {
     switch (importState.step) {
       case 0:
-        return !!importState.format
+        return !!importState.format;
       case 1:
-        return importState.file !== null && !importState.uploading
+        return importState.file !== null && !importState.uploading;
       case 2:
-        return importState.fieldMappings.length > 0
+        return importState.fieldMappings.length > 0;
       case 3:
-        return importState.previewRules.length > 0
+        return importState.previewRules.length > 0;
       default:
-        return false
+        return false;
     }
-  })
+  });
 
   const formatName = computed(() => {
     const formatMap = {
-      excel: 'Excel',
-      csv: 'CSV',
-      json: 'JSON',
-    }
-    return formatMap[importState.format] || importState.format
-  })
+      excel: "Excel",
+      csv: "CSV",
+      json: "JSON",
+    };
+    return formatMap[importState.format] || importState.format;
+  });
 
   const openImport = () => {
-    resetImport()
-    importState.visible = true
-  }
+    resetImport();
+    importState.visible = true;
+  };
 
   const closeImport = () => {
-    importState.visible = false
-    resetImport()
-  }
+    importState.visible = false;
+    resetImport();
+  };
 
   const resetImport = () => {
-    importState.step = 0
-    importState.format = 'excel'
-    importState.file = null
-    importState.fileList = []
-    importState.parsedRules = []
-    importState.fieldMappings = []
-    importState.previewRules = []
-    importState.validationResult = null
-    importState.importing = false
-    importState.uploading = false
-    importState.error = null
-  }
+    importState.step = 0;
+    importState.format = "excel";
+    importState.file = null;
+    importState.fileList = [];
+    importState.parsedRules = [];
+    importState.fieldMappings = [];
+    importState.previewRules = [];
+    importState.validationResult = null;
+    importState.importing = false;
+    importState.uploading = false;
+    importState.error = null;
+  };
 
   const nextStep = () => {
     if (importState.step < 3) {
-      importState.step++
+      importState.step++;
       if (importState.step === 2 && importState.parsedRules.length > 0) {
-        performFieldMapping()
+        performFieldMapping();
       } else if (importState.step === 3) {
-        generatePreview()
+        generatePreview();
       }
     }
-  }
+  };
 
   const prevStep = () => {
     if (importState.step > 0) {
-      importState.step--
+      importState.step--;
     }
-  }
+  };
 
   const setFormat = (format) => {
-    importState.format = format
-  }
+    importState.format = format;
+  };
 
   const beforeUpload = (file) => {
-    const validation = validateFileFormat(file)
+    const validation = validateFileFormat(file);
     if (!validation.valid) {
-      message.error(validation.error)
-      return false
+      message.error(validation.error);
+      return false;
     }
-    return true
-  }
+    return true;
+  };
 
   const handleUpload = async (options) => {
-    const { file, onSuccess, onError } = options
-    importState.uploading = true
-    importState.file = file
-    importState.fileList = [file]
+    const { file, onSuccess, onError } = options;
+    importState.uploading = true;
+    importState.file = file;
+    importState.fileList = [file];
 
     try {
-      const result = await parseImportFile(file)
+      const result = await parseImportFile(file);
 
       if (result.errors.length > 0 && result.rules.length === 0) {
-        importState.error = result.errors[0].message
-        onError(result.errors[0].message)
-        message.error(`解析失败: ${result.errors[0].message}`)
-        importState.uploading = false
-        return
+        importState.error = result.errors[0].message;
+        onError(result.errors[0].message);
+        message.error(`解析失败: ${result.errors[0].message}`);
+        importState.uploading = false;
+        return;
       }
 
       if (result.rules.length > maxRules) {
-        message.warning(`导入数据超过最大限制 ${maxRules} 条，将截取前 ${maxRules} 条`)
-        result.rules = result.rules.slice(0, maxRules)
+        message.warning(
+          `导入数据超过最大限制 ${maxRules} 条，将截取前 ${maxRules} 条`,
+        );
+        result.rules = result.rules.slice(0, maxRules);
       }
 
-      importState.parsedRules = result.rules
+      importState.parsedRules = result.rules;
 
       if (result.warnings.length > 0) {
         result.warnings.forEach((warning) => {
-          message.warn(`第 ${warning.row} 行: ${warning.message}`)
-        })
+          message.warn(`第 ${warning.row} 行: ${warning.message}`);
+        });
       }
 
-      onSuccess('文件解析成功')
-      message.success(`成功解析 ${result.rules.length} 条规则`)
+      onSuccess("文件解析成功");
+      message.success(`成功解析 ${result.rules.length} 条规则`);
     } catch (error) {
-      importState.error = error.message
-      onError(error.message)
-      message.error(`文件处理失败: ${error.message}`)
+      importState.error = error.message;
+      onError(error.message);
+      message.error(`文件处理失败: ${error.message}`);
     } finally {
-      importState.uploading = false
+      importState.uploading = false;
     }
-  }
+  };
 
   const customRequest = (options) => {
-    handleUpload(options)
-  }
+    handleUpload(options);
+  };
 
   const performFieldMapping = () => {
     if (!enableAutoMatch || props.ddlFields.length === 0) {
-      importState.fieldMappings = importState.parsedRules.map((rule, index) => ({
-        importIndex: index,
-        importField: rule.fieldName,
-        ddlField: null,
-        status: 'unmatched',
-        matchType: 'none',
-      }))
-      return
+      importState.fieldMappings = importState.parsedRules.map(
+        (rule, index) => ({
+          importIndex: index,
+          importField: rule.fieldName,
+          ddlField: null,
+          status: "unmatched",
+          matchType: "none",
+        }),
+      );
+      return;
     }
 
     importState.fieldMappings = importState.parsedRules.map((rule, index) => {
-      const ddlField = matchField(rule.fieldName, props.ddlFields)
+      const ddlField = matchField(rule.fieldName, props.ddlFields);
 
       return {
         importIndex: index,
         importField: rule.fieldName,
         ddlField: ddlField?.name || null,
-        status: ddlField ? 'matched' : 'unmatched',
-        matchType: ddlField?.matchType || 'none',
-      }
-    })
-  }
+        status: ddlField ? "matched" : "unmatched",
+        matchType: ddlField?.matchType || "none",
+      };
+    });
+  };
 
   const matchField = (fieldName, ddlFields) => {
-    const normalizedName = fieldName.toLowerCase().replace(/[_\s-]/g, '')
+    const normalizedName = fieldName.toLowerCase().replace(/[_\s-]/g, "");
 
     for (const field of ddlFields) {
-      const fieldNameLower = field.name.toLowerCase()
+      const fieldNameLower = field.name.toLowerCase();
 
       if (fieldNameLower === normalizedName) {
-        return { name: field.name, matchType: 'exact' }
+        return { name: field.name, matchType: "exact" };
       }
     }
 
     for (const field of ddlFields) {
-      const fieldNameLower = field.name.toLowerCase()
+      const fieldNameLower = field.name.toLowerCase();
 
       if (fieldNameLower === fieldName.toLowerCase()) {
-        return { name: field.name, matchType: 'case-insensitive' }
+        return { name: field.name, matchType: "case-insensitive" };
       }
     }
 
     for (const field of ddlFields) {
-      const fieldNameLower = field.name.toLowerCase()
+      const fieldNameLower = field.name.toLowerCase();
 
       if (
         normalizedName.length >= 2 &&
         fieldNameLower.length >= 2 &&
-        (normalizedName.includes(fieldNameLower) || fieldNameLower.includes(normalizedName))
+        (normalizedName.includes(fieldNameLower) ||
+          fieldNameLower.includes(normalizedName))
       ) {
-        return { name: field.name, matchType: 'fuzzy' }
+        return { name: field.name, matchType: "fuzzy" };
       }
     }
 
-    return null
-  }
+    return null;
+  };
 
   const handleFieldMappingChange = (mapping) => {
-    const index = importState.fieldMappings.findIndex((m) => m.importIndex === mapping.importIndex)
+    const index = importState.fieldMappings.findIndex(
+      (m) => m.importIndex === mapping.importIndex,
+    );
     if (index !== -1) {
       const newMapping = {
         ...mapping,
         ddlField: mapping.ddlField,
-        status: mapping.ddlField ? 'matched' : 'unmatched',
-        matchType: mapping.ddlField ? 'manual' : 'none',
-      }
-      importState.fieldMappings[index] = newMapping
+        status: mapping.ddlField ? "matched" : "unmatched",
+        matchType: mapping.ddlField ? "manual" : "none",
+      };
+      importState.fieldMappings[index] = newMapping;
     }
-  }
+  };
 
   const skipMapping = (mapping) => {
-    const index = importState.fieldMappings.findIndex((m) => m.importIndex === mapping.importIndex)
+    const index = importState.fieldMappings.findIndex(
+      (m) => m.importIndex === mapping.importIndex,
+    );
     if (index !== -1) {
-      importState.fieldMappings.splice(index, 1)
+      importState.fieldMappings.splice(index, 1);
     }
-  }
+  };
 
   const generatePreview = () => {
     const fieldMappingMap = new Map(
       importState.fieldMappings.map((m) => [m.importIndex, m.ddlField]),
-    )
+    );
 
     importState.previewRules = importState.parsedRules
       .filter((rule, index) => {
-        const mappedField = fieldMappingMap.get(index)
-        return mappedField !== undefined && mappedField !== null
+        const mappedField = fieldMappingMap.get(index);
+        return mappedField !== undefined && mappedField !== null;
       })
       .map((rule, displayIndex) => {
-        const originalIndex = importState.parsedRules.indexOf(rule)
-        const ddlField = fieldMappingMap.get(originalIndex)
+        const originalIndex = importState.parsedRules.indexOf(rule);
+        const ddlField = fieldMappingMap.get(originalIndex);
 
-        let conditionText = ''
+        let conditionText = "";
         if (rule.condition.enabled) {
-          conditionText = `${rule.condition.fieldName} ${rule.condition.operator} ${rule.condition.value}`
+          conditionText = `${rule.condition.fieldName} ${rule.condition.operator} ${rule.condition.value}`;
         }
 
         return {
           ...rule,
           index: displayIndex + 1,
           ddlField: ddlField || rule.fieldName,
-          condition: conditionText || '-',
-        }
-      })
-  }
+          condition: conditionText || "-",
+        };
+      });
+  };
 
   const confirmImport = () => {
-    importState.importing = true
+    importState.importing = true;
 
     try {
       const fieldMappingMap = new Map(
         importState.fieldMappings.map((m) => [m.importIndex, m.ddlField]),
-      )
+      );
 
       const rulesToAdd = importState.parsedRules
         .filter((rule, index) => {
-          const mappedField = fieldMappingMap.get(index)
-          return mappedField !== undefined && mappedField !== null && mappedField !== ''
+          const mappedField = fieldMappingMap.get(index);
+          return (
+            mappedField !== undefined &&
+            mappedField !== null &&
+            mappedField !== ""
+          );
         })
         .map((rule) => {
-          const originalIndex = importState.parsedRules.indexOf(rule)
-          const ddlField = fieldMappingMap.get(originalIndex)
+          const originalIndex = importState.parsedRules.indexOf(rule);
+          const ddlField = fieldMappingMap.get(originalIndex);
 
           return {
             id: `rule_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -418,13 +435,13 @@ export function useBatchImport(options = {}) {
             newValue: rule.newValue,
             condition: rule.condition,
             description: rule.description,
-          }
-        })
+          };
+        });
 
       if (rulesToAdd.length === 0) {
-        message.warning('没有有效的规则可导入')
-        importState.importing = false
-        return
+        message.warning("没有有效的规则可导入");
+        importState.importing = false;
+        return;
       }
 
       importState.previewRules = rulesToAdd.map((rule, index) => ({
@@ -432,44 +449,44 @@ export function useBatchImport(options = {}) {
         index: index + 1,
         condition: rule.condition.enabled
           ? `${rule.condition.fieldName} ${rule.condition.operator} ${rule.condition.value}`
-          : '-',
-      }))
+          : "-",
+      }));
 
-      emit.onRulesChange(rulesToAdd)
-      emit.onImportComplete(rulesToAdd)
+      emit.onRulesChange(rulesToAdd);
+      emit.onImportComplete(rulesToAdd);
 
-      message.success(`成功导入 ${rulesToAdd.length} 条修改规则`)
-      closeImport()
+      message.success(`成功导入 ${rulesToAdd.length} 条修改规则`);
+      closeImport();
     } catch (error) {
-      importState.error = error.message
-      emit.onImportError(error)
-      message.error(`导入失败: ${error.message}`)
+      importState.error = error.message;
+      emit.onImportError(error);
+      message.error(`导入失败: ${error.message}`);
     } finally {
-      importState.importing = false
+      importState.importing = false;
     }
-  }
+  };
 
   const downloadTemplate = () => {
-    const fieldNames = props.ddlFields.map((f) => f.name)
-    downloadTemplateFile(fieldNames, 'batch_edit_template.xlsx')
-    message.success('模板下载成功')
-  }
+    const fieldNames = props.ddlFields.map((f) => f.name);
+    downloadTemplateFile(fieldNames, "batch_edit_template.xlsx");
+    message.success("模板下载成功");
+  };
 
   const setDdlFields = (fields) => {
-    props.ddlFields = fields
-  }
+    props.ddlFields = fields;
+  };
 
   const setOnRulesChange = (callback) => {
-    emit.onRulesChange = callback
-  }
+    emit.onRulesChange = callback;
+  };
 
   const setOnImportComplete = (callback) => {
-    emit.onImportComplete = callback
-  }
+    emit.onImportComplete = callback;
+  };
 
   const setOnImportError = (callback) => {
-    emit.onImportError = callback
-  }
+    emit.onImportError = callback;
+  };
 
   return {
     importState,
@@ -497,5 +514,5 @@ export function useBatchImport(options = {}) {
     setOnRulesChange,
     setOnImportComplete,
     setOnImportError,
-  }
+  };
 }

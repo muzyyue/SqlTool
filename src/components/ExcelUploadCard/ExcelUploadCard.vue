@@ -138,22 +138,26 @@
                   class="deduplication-stats"
                   v-if="deduplicationStats.originalRows > 0"
                 >
-                  <a-descriptions :column="3" size="small" bordered>
-                    <a-descriptions-item label="原始数据">
-                      <a-statistic :value="deduplicationStats.originalRows" />
-                    </a-descriptions-item>
-                    <a-descriptions-item label="去重后">
-                      <a-statistic
-                        :value="deduplicationStats.deduplicatedRows"
-                      />
-                    </a-descriptions-item>
-                    <a-descriptions-item label="已移除">
-                      <a-statistic
-                        :value="deduplicationStats.removedRows"
-                        type="danger"
-                      />
-                    </a-descriptions-item>
-                  </a-descriptions>
+                  <div class="stats-row">
+                    <div class="stat-item">
+                      <span class="stat-label">原始数据</span>
+                      <span class="stat-value">{{
+                        deduplicationStats.originalRows
+                      }}</span>
+                    </div>
+                    <div class="stat-item">
+                      <span class="stat-label">去重后</span>
+                      <span class="stat-value">{{
+                        deduplicationStats.deduplicatedRows
+                      }}</span>
+                    </div>
+                    <div class="stat-item stat-danger">
+                      <span class="stat-label">已移除</span>
+                      <span class="stat-value">{{
+                        deduplicationStats.removedRows
+                      }}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </a-collapse-panel>
@@ -214,20 +218,26 @@
                   class="cell-split-stats"
                   v-if="cellSplitStats.originalRows > 0"
                 >
-                  <a-descriptions :column="3" size="small" bordered>
-                    <a-descriptions-item label="原始行数">
-                      <a-statistic :value="cellSplitStats.originalRows" />
-                    </a-descriptions-item>
-                    <a-descriptions-item label="拆分后">
-                      <a-statistic :value="cellSplitStats.splitRows" />
-                    </a-descriptions-item>
-                    <a-descriptions-item label="新增行数">
-                      <a-statistic
-                        :value="cellSplitStats.expandedRows"
-                        type="success"
-                      />
-                    </a-descriptions-item>
-                  </a-descriptions>
+                  <div class="stats-row">
+                    <div class="stat-item">
+                      <span class="stat-label">原始行数</span>
+                      <span class="stat-value">{{
+                        cellSplitStats.originalRows
+                      }}</span>
+                    </div>
+                    <div class="stat-item">
+                      <span class="stat-label">拆分后</span>
+                      <span class="stat-value">{{
+                        cellSplitStats.splitRows
+                      }}</span>
+                    </div>
+                    <div class="stat-item stat-success">
+                      <span class="stat-label">新增行数</span>
+                      <span class="stat-value">{{
+                        cellSplitStats.expandedRows
+                      }}</span>
+                    </div>
+                  </div>
                 </div>
                 <a-button
                   type="primary"
@@ -261,6 +271,21 @@
               </template>
               <div class="row-range-panel">
                 <div class="row-range-controls">
+                  <!-- 自动应用开关 -->
+                  <div class="row-range-auto-apply">
+                    <a-switch
+                      :checked="autoApplyEnabled"
+                      size="small"
+                      @change="handleAutoApplyToggle"
+                    />
+                    <span class="auto-apply-label">自动应用</span>
+                    <a-tooltip
+                      title="开启后修改行范围将自动应用（800ms 后），关闭后需手动点击应用按钮"
+                    >
+                      <QuestionCircleOutlined class="help-icon" />
+                    </a-tooltip>
+                  </div>
+
                   <div class="row-range-inputs">
                     <div class="row-range-input">
                       <label>起始行:</label>
@@ -287,6 +312,16 @@
                       />
                     </div>
                   </div>
+
+                  <!-- 倒计时提示 -->
+                  <div
+                    v-if="countdown > 0 && autoApplyEnabled"
+                    class="countdown-hint"
+                  >
+                    <ClockCircleOutlined />
+                    <span>将在 {{ countdown }} 秒后自动应用...</span>
+                  </div>
+
                   <div class="row-range-options">
                     <a-checkbox
                       v-model:checked="includeHeaderLocal"
@@ -315,6 +350,32 @@
                       <template #icon><ReloadOutlined /></template>
                       重置范围
                     </a-button>
+                  </div>
+
+                  <!-- 历史记录 -->
+                  <div
+                    v-if="rowRangeHistory.length > 0"
+                    class="row-range-history"
+                  >
+                    <div class="history-header">
+                      <HistoryOutlined />
+                      <span>最近使用</span>
+                    </div>
+                    <div class="history-list">
+                      <div
+                        v-for="record in rowRangeHistory.slice(0, 3)"
+                        :key="record.id"
+                        class="history-item"
+                        @click="handleApplyHistory(record.id)"
+                      >
+                        <span class="history-range"
+                          >{{ record.startRow }}-{{ record.endRow }} 行</span
+                        >
+                        <span class="history-count"
+                          >{{ record.rowCount }} 条数据</span
+                        >
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -380,6 +441,9 @@ import {
   CheckOutlined,
   CloudUploadOutlined,
   ReloadOutlined,
+  QuestionCircleOutlined,
+  ClockCircleOutlined,
+  HistoryOutlined,
 } from "@ant-design/icons-vue";
 import { useSettings } from "@/composables/core/useSettings";
 
@@ -407,6 +471,9 @@ const props = defineProps({
   endRow: { type: Number, default: null },
   includeHeader: { type: Boolean, default: true },
   totalExcelRows: { type: Number, default: 0 },
+  autoApplyEnabled: { type: Boolean, default: true },
+  countdown: { type: Number, default: 0 },
+  rowRangeHistory: { type: Array, default: () => [] },
   showCellSplit: { type: Boolean, default: true },
 });
 
@@ -425,6 +492,8 @@ const emit = defineEmits([
   "update:startRow",
   "update:endRow",
   "update:includeHeader",
+  "auto-apply-toggle",
+  "apply-history",
 ]);
 
 const activeCollapseKeys = ref([]);
@@ -563,6 +632,14 @@ const resetRowRange = () => {
   includeHeaderLocal.value = true;
   emit("row-range-reset");
 };
+
+const handleAutoApplyToggle = (checked) => {
+  emit("auto-apply-toggle", checked);
+};
+
+const handleApplyHistory = (historyId) => {
+  emit("apply-history", historyId);
+};
 </script>
 
 <style scoped lang="scss">
@@ -572,15 +649,14 @@ const resetRowRange = () => {
 
 .excel-upload-card {
   background: $card-bg;
-  backdrop-filter: blur($backdrop-blur);
   border: 1px solid $card-border;
   border-radius: $border-radius-md;
   padding: 20px;
-  transition: box-shadow $transition-normal ease, border-color $transition-normal ease;
+  transition: border-color $transition-normal ease;
   contain: layout style;
 
   &:hover {
-    box-shadow: $shadow-card-hover;
+    border-color: $color-primary-border;
   }
 }
 
@@ -613,11 +689,10 @@ const resetRowRange = () => {
     border-radius: $border-radius-md;
     background: $bg-elevated;
     padding: 32px;
-    transition: border-color $transition-normal ease, background-color $transition-normal ease;
+    transition: border-color $transition-normal ease;
 
     &:hover {
       border-color: $color-primary;
-      background: $color-primary-bg;
     }
   }
 }
@@ -665,7 +740,7 @@ const resetRowRange = () => {
   align-items: center;
   gap: 16px;
   padding: 16px;
-  background: $gradient-primary-light;
+  background: $color-primary-bg;
   border-radius: $border-radius-md;
   border: 1px solid $color-primary-border;
 }
@@ -676,7 +751,6 @@ const resetRowRange = () => {
   background: $bg-elevated;
   padding: 12px;
   border-radius: $border-radius-md;
-  box-shadow: $shadow-sm;
 }
 
 .file-info {
@@ -706,6 +780,14 @@ const resetRowRange = () => {
 
 .data-options {
   margin-top: 8px;
+
+  :deep(.ant-collapse-content) {
+    transition: none;
+  }
+
+  :deep(.ant-collapse-item:last-child) {
+    border-bottom: none;
+  }
 }
 
 .collapse-header {
@@ -732,6 +814,43 @@ const resetRowRange = () => {
 .preview-table-container {
   max-height: 300px;
   overflow: auto;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 200px;
+}
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 12px 16px;
+  background: $table-header-bg;
+  border-radius: $border-radius-xs;
+}
+
+.stat-item {
+  @include flex-column-center;
+  gap: 4px;
+  padding: 8px;
+
+  .stat-label {
+    font-size: 12px;
+    color: $text-secondary;
+  }
+
+  .stat-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: $text-primary;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &.stat-danger .stat-value {
+    color: $color-error;
+  }
+
+  &.stat-success .stat-value {
+    color: $color-success;
+  }
 }
 
 .panel-description {
@@ -758,23 +877,31 @@ const resetRowRange = () => {
 }
 
 .row-range-header {
-  @include glass-card;
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  transition: box-shadow $transition-normal ease, transform $transition-normal ease, background-color $transition-normal ease;
+  background: $bg-elevated;
+  border: 1px solid $border-default;
+  border-radius: $border-radius-md;
+  transition: border-color $transition-normal ease;
 
-  @include glass-card-hover;
+  &:hover {
+    border-color: $color-primary-border;
+  }
 }
 
 .row-range-controls {
-  @include glass-card;
   margin-top: 16px;
   padding: 20px;
-  transition: box-shadow $transition-normal ease, transform $transition-normal ease, background-color $transition-normal ease;
+  background: $bg-elevated;
+  border: 1px solid $border-default;
+  border-radius: $border-radius-md;
+  transition: border-color $transition-normal ease;
 
-  @include glass-card-hover;
+  &:hover {
+    border-color: $color-primary-border;
+  }
 }
 
 .row-range-inputs {
@@ -812,6 +939,113 @@ const resetRowRange = () => {
 
 .action-btn {
   min-width: 100px;
+}
+
+// 自动应用开关
+.row-range-auto-apply {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  background: $color-primary-bg;
+  border-radius: $border-radius-sm;
+  border: 1px solid $border-default;
+
+  .auto-apply-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: $text-primary;
+  }
+
+  .help-icon {
+    color: $text-secondary;
+    cursor: help;
+
+    &:hover {
+      color: $color-primary;
+    }
+  }
+}
+
+// 倒计时提示
+.countdown-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, #e6f7ff 0%, #f0f5ff 100%);
+  border: 1px solid #91d5ff;
+  border-radius: $border-radius-sm;
+  color: #1890ff;
+  font-size: 13px;
+  animation: countdown-pulse 1s ease-in-out infinite;
+
+  @keyframes countdown-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+}
+
+// 历史记录
+.row-range-history {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed $border-default;
+
+  .history-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    color: $text-secondary;
+    margin-bottom: 10px;
+  }
+
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: $bg-sunken;
+    border: 1px solid transparent;
+    border-radius: $border-radius-sm;
+    cursor: pointer;
+    transition: all $transition-normal ease;
+
+    &:hover {
+      background: $color-primary-bg;
+      border-color: $color-primary-border;
+      transform: translateX(2px);
+    }
+
+    .history-range {
+      font-size: 13px;
+      font-weight: 500;
+      color: $text-primary;
+    }
+
+    .history-count {
+      font-size: 11px;
+      color: $text-secondary;
+      background: $bg-elevated;
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+  }
 }
 
 // 响应式适配

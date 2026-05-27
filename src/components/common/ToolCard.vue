@@ -1,10 +1,18 @@
 <template>
-  <div class="tool-card" :class="{ 'tool-card-favorite': isFavorited }" @click="handleClick">
+  <div
+    class="tool-card"
+    :class="{ 'tool-card-favorite': isFavorited }"
+    @click="handleClick"
+  >
     <div class="tool-card-header">
       <div class="tool-icon">
         <component :is="iconComponent" />
       </div>
-      <a-button type="text" class="favorite-button" @click.stop="toggleFavorite">
+      <a-button
+        type="text"
+        class="favorite-button"
+        @click.stop="toggleFavorite"
+      >
         <StarFilled v-if="isFavorited" class="star-filled" />
         <StarOutlined v-else class="star-outlined" />
       </a-button>
@@ -34,8 +42,8 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed } from "vue";
+import { useRouter } from "vue-router";
 import {
   StarOutlined,
   StarFilled,
@@ -50,8 +58,8 @@ import {
   QrcodeOutlined,
   BgColorsOutlined,
   SearchOutlined,
-} from '@ant-design/icons-vue'
-import { useFavorites } from '@/composables/data/useFavorites.js'
+} from "@ant-design/icons-vue";
+import { useFavorites } from "@/composables/data/useFavorites.js";
 
 const props = defineProps({
   /** 工具对象 */
@@ -59,12 +67,12 @@ const props = defineProps({
     type: Object,
     required: true,
   },
-})
+});
 
-const emit = defineEmits(['click'])
+const emit = defineEmits(["click"]);
 
-const router = useRouter()
-const { isFavorite, toggleFavorite } = useFavorites()
+const router = useRouter();
+const { isFavorite, toggleFavorite } = useFavorites();
 
 /**
  * 图标组件映射
@@ -80,31 +88,31 @@ const iconMap = {
   QrcodeOutlined: QrcodeOutlined,
   BgColorsOutlined: BgColorsOutlined,
   SearchOutlined: SearchOutlined,
-}
+};
 
 /**
  * 图标组件
  */
 const iconComponent = computed(() => {
-  const iconName = props.tool?.icon
-  return iconMap[iconName] || CodeOutlined
-})
+  const iconName = props.tool?.icon;
+  return iconMap[iconName] || CodeOutlined;
+});
 
 /**
  * 是否已收藏
  */
 const isFavorited = computed(() => {
-  return props.tool && isFavorite(props.tool)
-})
+  return props.tool && isFavorite(props.tool);
+});
 
 /**
  * 处理点击事件
  */
 const handleClick = () => {
-  if (!props.tool) return
-  emit('click', props.tool)
-  router.push(props.tool.route)
-}
+  if (!props.tool) return;
+  emit("click", props.tool);
+  router.push(props.tool.route);
+};
 </script>
 
 <style scoped>

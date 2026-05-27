@@ -21,9 +21,7 @@
           <span class="i-carbon-warning-filled"></span>
         </template>
         <template #action>
-          <a-button size="small" @click="handleRetry">
-            重试
-          </a-button>
+          <a-button size="small" @click="handleRetry"> 重试 </a-button>
         </template>
       </a-alert>
 
@@ -56,7 +54,7 @@
         <div class="context-content">
           <div class="context-item">
             <span class="context-label">表名:</span>
-            <a-tag color="blue">{{ tableName || '未指定' }}</a-tag>
+            <a-tag color="blue">{{ tableName || "未指定" }}</a-tag>
           </div>
           <div class="context-item">
             <span class="context-label">操作类型:</span>
@@ -82,7 +80,9 @@
             <div class="input-section">
               <div class="input-header">
                 <span class="input-label">描述您的需求</span>
-                <span class="input-hint">使用自然语言描述，AI 将帮您生成 SQL</span>
+                <span class="input-hint"
+                  >使用自然语言描述，AI 将帮您生成 SQL</span
+                >
               </div>
               <a-textarea
                 v-model:value="naturalLanguage"
@@ -105,7 +105,7 @@
                 <template #icon>
                   <span v-if="!isGenerating" class="i-carbon-magic-wand"></span>
                 </template>
-                {{ isGenerating ? '生成中...' : '生成 SQL' }}
+                {{ isGenerating ? "生成中..." : "生成 SQL" }}
               </a-button>
             </div>
 
@@ -120,7 +120,11 @@
                     </template>
                     复制
                   </a-button>
-                  <a-button type="link" size="small" @click="handleClearGenerate">
+                  <a-button
+                    type="link"
+                    size="small"
+                    @click="handleClearGenerate"
+                  >
                     <template #icon>
                       <span class="i-carbon-close"></span>
                     </template>
@@ -196,50 +200,75 @@
                 <template #icon>
                   <span v-if="!isOptimizing" class="i-carbon-analytics"></span>
                 </template>
-                {{ isOptimizing ? '分析中...' : '分析优化' }}
+                {{ isOptimizing ? "分析中..." : "分析优化" }}
               </a-button>
             </div>
 
             <!-- 优化结果区域 -->
             <div v-if="optimizationResult" class="result-section">
               <!-- 问题分析 -->
-              <div v-if="optimizationResult.problems.length > 0" class="analysis-section">
+              <div
+                v-if="optimizationResult.problems.length > 0"
+                class="analysis-section"
+              >
                 <div class="analysis-header">
                   <span class="i-carbon-warning"></span>
                   <span class="analysis-title">问题分析</span>
                 </div>
                 <ul class="analysis-list">
-                  <li v-for="(problem, index) in optimizationResult.problems" :key="index">
+                  <li
+                    v-for="(problem, index) in optimizationResult.problems"
+                    :key="index"
+                  >
                     {{ problem }}
                   </li>
                 </ul>
               </div>
 
               <!-- 优化建议 -->
-              <div v-if="optimizationResult.suggestions.length > 0" class="suggestions-section">
+              <div
+                v-if="optimizationResult.suggestions.length > 0"
+                class="suggestions-section"
+              >
                 <div class="suggestions-header">
                   <span class="i-carbon-light"></span>
                   <span class="suggestions-title">优化建议</span>
                 </div>
                 <ul class="suggestions-list">
-                  <li v-for="(suggestion, index) in optimizationResult.suggestions" :key="index">
+                  <li
+                    v-for="(
+                      suggestion, index
+                    ) in optimizationResult.suggestions"
+                    :key="index"
+                  >
                     {{ suggestion }}
                   </li>
                 </ul>
               </div>
 
               <!-- 优化后 SQL -->
-              <div v-if="optimizationResult.optimizedSql" class="optimized-sql-section">
+              <div
+                v-if="optimizationResult.optimizedSql"
+                class="optimized-sql-section"
+              >
                 <div class="result-header">
                   <span class="result-label">优化后的 SQL</span>
                   <a-space>
-                    <a-button type="link" size="small" @click="handleCopyOptimizedSql">
+                    <a-button
+                      type="link"
+                      size="small"
+                      @click="handleCopyOptimizedSql"
+                    >
                       <template #icon>
                         <span class="i-carbon-copy"></span>
                       </template>
                       复制
                     </a-button>
-                    <a-button type="link" size="small" @click="handleClearOptimize">
+                    <a-button
+                      type="link"
+                      size="small"
+                      @click="handleClearOptimize"
+                    >
                       <template #icon>
                         <span class="i-carbon-close"></span>
                       </template>
@@ -310,42 +339,42 @@
  * />
  */
 
-import { ref, computed, onMounted } from 'vue'
-import { message } from 'ant-design-vue'
-import { useAiStore } from '@/stores/ai.js'
-import { useThemeStore } from '@/stores/theme.js'
-import { getModelManager } from '@/composables/ai/useModelManager'
-import type { GenerateOptions } from '@/composables/ai/types'
-import CodeEditor from '@/components/common/CodeEditor.vue'
+import { ref, computed, onMounted } from "vue";
+import { message } from "ant-design-vue";
+import { useAiStore } from "@/stores/ai.js";
+import { useThemeStore } from "@/stores/theme.js";
+import { getModelManager } from "@/composables/ai/useModelManager";
+import type { GenerateOptions } from "@/composables/ai/types";
+import CodeEditor from "@/components/common/CodeEditor.vue";
 
 // ==================== 类型定义 ====================
 
 /**
  * 操作类型
  */
-type OperationType = 'INSERT' | 'UPDATE' | 'SELECT'
+type OperationType = "INSERT" | "UPDATE" | "SELECT";
 
 /**
  * 字段信息接口
  */
 interface FieldInfo {
   /** 字段名称 */
-  name: string
+  name: string;
   /** 字段类型 */
-  type: string
+  type: string;
   /** 字段注释 */
-  comment?: string
+  comment?: string;
   /** 是否可空 */
-  nullable?: boolean
+  nullable?: boolean;
 }
 
 /**
  * 生成错误接口
  */
 interface GenerateError {
-  message: string
-  code?: string
-  details?: unknown
+  message: string;
+  code?: string;
+  details?: unknown;
 }
 
 /**
@@ -353,11 +382,11 @@ interface GenerateError {
  */
 interface OptimizationResult {
   /** 问题列表 */
-  problems: string[]
+  problems: string[];
   /** 优化建议列表 */
-  suggestions: string[]
+  suggestions: string[];
   /** 优化后的 SQL */
-  optimizedSql: string
+  optimizedSql: string;
 }
 
 // ==================== Props 定义 ====================
@@ -365,76 +394,76 @@ interface OptimizationResult {
 const props = withDefaults(
   defineProps<{
     /** 表名 */
-    tableName: string
+    tableName: string;
     /** DDL 语句 */
-    ddl: string
+    ddl: string;
     /** 操作类型 */
-    operationType: OperationType
+    operationType: OperationType;
     /** 字段列表 */
-    fields: FieldInfo[]
+    fields: FieldInfo[];
   }>(),
   {
-    tableName: '',
-    ddl: '',
-    operationType: 'SELECT',
+    tableName: "",
+    ddl: "",
+    operationType: "SELECT",
     fields: () => [],
-  }
-)
+  },
+);
 
 // ==================== Emits 定义 ====================
 
 const emit = defineEmits<{
   /** 生成结果事件 */
-  result: [sql: string]
+  result: [sql: string];
   /** 错误事件 */
-  error: [error: Error]
-}>()
+  error: [error: Error];
+}>();
 
 // ==================== Store & Composables ====================
 
 /** AI Store 实例 */
-const aiStore = useAiStore()
+const aiStore = useAiStore();
 
 /** 主题 Store 实例 */
-const themeStore = useThemeStore()
+const themeStore = useThemeStore();
 
 /** 模型管理器实例 */
-const modelManager = getModelManager()
+const modelManager = getModelManager();
 
 // ==================== 响应式状态 ====================
 
 /** 当前激活的标签页 */
-const activeTab = ref<'generate' | 'optimize'>('generate')
+const activeTab = ref<"generate" | "optimize">("generate");
 
 /** 自然语言输入 */
-const naturalLanguage = ref('')
+const naturalLanguage = ref("");
 
 /** 待优化的 SQL */
-const inputSql = ref('')
+const inputSql = ref("");
 
 /** 生成的 SQL */
-const generatedSql = ref('')
+const generatedSql = ref("");
 
 /** SQL 解释 */
-const sqlExplanation = ref('')
+const sqlExplanation = ref("");
 
 /** 优化结果 */
-const optimizationResult = ref<OptimizationResult | null>(null)
+const optimizationResult = ref<OptimizationResult | null>(null);
 
 /** 是否正在生成 SQL */
-const isGenerating = ref(false)
+const isGenerating = ref(false);
 
 /** 是否正在优化 SQL */
-const isOptimizing = ref(false)
+const isOptimizing = ref(false);
 
 /** 是否正在检查 AI 状态 */
-const isCheckingAi = ref(false)
+const isCheckingAi = ref(false);
 
 /** AI 错误信息 */
-const aiError = ref<string | null>(null)
+const aiError = ref<string | null>(null);
 
 /** 生成错误信息 */
-const generateError = ref<GenerateError | null>(null)
+const generateError = ref<GenerateError | null>(null);
 
 // ==================== 计算属性 ====================
 
@@ -442,47 +471,47 @@ const generateError = ref<GenerateError | null>(null)
  * AI 是否就绪
  */
 const isAiReady = computed(() => {
-  return aiStore.canUseAi && !aiError.value
-})
+  return aiStore.canUseAi && !aiError.value;
+});
 
 /**
  * AI 错误标题
  */
 const aiErrorTitle = computed(() => {
   if (!aiStore.isEnabled) {
-    return 'AI 功能未启用'
+    return "AI 功能未启用";
   }
   if (aiStore.lastError) {
-    return 'AI 服务不可用'
+    return "AI 服务不可用";
   }
-  return 'AI 服务异常'
-})
+  return "AI 服务异常";
+});
 
 /**
  * 操作类型对应的标签颜色
  */
 const operationTypeColor = computed(() => {
   const colorMap: Record<OperationType, string> = {
-    SELECT: 'green',
-    INSERT: 'blue',
-    UPDATE: 'orange',
-  }
-  return colorMap[props.operationType] || 'default'
-})
+    SELECT: "green",
+    INSERT: "blue",
+    UPDATE: "orange",
+  };
+  return colorMap[props.operationType] || "default";
+});
 
 /**
  * 编辑器主题
  */
 const editorTheme = computed(() => {
-  return themeStore.isDark ? 'dark' : 'light'
-})
+  return themeStore.isDark ? "dark" : "light";
+});
 
 /**
  * 当前模型名称
  */
 const currentModelName = computed(() => {
-  return modelManager.currentModelName.value || '未知模型'
-})
+  return modelManager.currentModelName.value || "未知模型";
+});
 
 // ==================== 方法定义 ====================
 
@@ -490,49 +519,50 @@ const currentModelName = computed(() => {
  * 检查 AI 服务可用性
  */
 const checkAiAvailability = async (): Promise<void> => {
-  isCheckingAi.value = true
-  aiError.value = null
+  isCheckingAi.value = true;
+  aiError.value = null;
 
   try {
     // 如果未启用，不检查
     if (!aiStore.isEnabled) {
-      isCheckingAi.value = false
-      return
+      isCheckingAi.value = false;
+      return;
     }
 
     // 检查可用性
-    const isAvailable = await aiStore.checkAvailability()
+    const isAvailable = await aiStore.checkAvailability();
 
     if (!isAvailable) {
-      aiError.value = aiStore.lastError?.message || 'AI 服务暂时不可用，请稍后重试'
+      aiError.value =
+        aiStore.lastError?.message || "AI 服务暂时不可用，请稍后重试";
     }
   } catch (error) {
-    const err = error instanceof Error ? error : new Error(String(error))
-    aiError.value = err.message
+    const err = error instanceof Error ? error : new Error(String(error));
+    aiError.value = err.message;
   } finally {
-    isCheckingAi.value = false
+    isCheckingAi.value = false;
   }
-}
+};
 
 /**
  * 启用 AI 功能
  */
 const handleEnableAi = async (): Promise<void> => {
   try {
-    aiStore.toggleEnabled()
-    await checkAiAvailability()
+    aiStore.toggleEnabled();
+    await checkAiAvailability();
   } catch (error) {
-    const err = error instanceof Error ? error : new Error(String(error))
-    message.error(`启用 AI 失败: ${err.message}`)
+    const err = error instanceof Error ? error : new Error(String(error));
+    message.error(`启用 AI 失败: ${err.message}`);
   }
-}
+};
 
 /**
  * 重试检查 AI 可用性
  */
 const handleRetry = async (): Promise<void> => {
-  await checkAiAvailability()
-}
+  await checkAiAvailability();
+};
 
 /**
  * 构建生成 SQL 的 Prompt
@@ -540,61 +570,61 @@ const handleRetry = async (): Promise<void> => {
  * @returns 完整的 Prompt
  */
 const buildGeneratePrompt = (userInput: string): string => {
-  const parts: string[] = []
+  const parts: string[] = [];
 
   // 添加角色定义
-  parts.push('你是一个 SQL 专家，请根据以下信息生成 SQL 语句。')
-  parts.push('')
+  parts.push("你是一个 SQL 专家，请根据以下信息生成 SQL 语句。");
+  parts.push("");
 
   // 添加表信息
   if (props.tableName) {
-    parts.push(`表名: ${props.tableName}`)
+    parts.push(`表名: ${props.tableName}`);
   }
 
   // 添加操作类型
-  parts.push(`操作类型: ${props.operationType}`)
-  parts.push('')
+  parts.push(`操作类型: ${props.operationType}`);
+  parts.push("");
 
   // 添加 DDL 结构
   if (props.ddl) {
-    parts.push('DDL 结构:')
-    parts.push('```sql')
-    parts.push(props.ddl)
-    parts.push('```')
-    parts.push('')
+    parts.push("DDL 结构:");
+    parts.push("```sql");
+    parts.push(props.ddl);
+    parts.push("```");
+    parts.push("");
   }
 
   // 添加字段列表
   if (props.fields.length > 0) {
-    parts.push('字段列表:')
+    parts.push("字段列表:");
     props.fields.forEach((field) => {
-      let fieldDesc = `- ${field.name} (${field.type})`
+      let fieldDesc = `- ${field.name} (${field.type})`;
       if (field.comment) {
-        fieldDesc += ` - ${field.comment}`
+        fieldDesc += ` - ${field.comment}`;
       }
       if (field.nullable !== undefined) {
-        fieldDesc += field.nullable ? ' [可空]' : ' [非空]'
+        fieldDesc += field.nullable ? " [可空]" : " [非空]";
       }
-      parts.push(fieldDesc)
-    })
-    parts.push('')
+      parts.push(fieldDesc);
+    });
+    parts.push("");
   }
 
   // 添加用户需求
-  parts.push('用户需求:')
-  parts.push(userInput)
-  parts.push('')
+  parts.push("用户需求:");
+  parts.push(userInput);
+  parts.push("");
 
   // 添加输出要求
-  parts.push('输出要求:')
-  parts.push('1. 只输出 SQL 语句，不要添加额外的解释或说明')
-  parts.push('2. SQL 语句使用标准 SQL 语法')
-  parts.push('3. 如果是 SELECT 语句，只查询必要的字段')
-  parts.push('4. 如果是 INSERT 语句，确保字段和值一一对应')
-  parts.push('5. 如果是 UPDATE 语句，确保 WHERE 条件合理')
+  parts.push("输出要求:");
+  parts.push("1. 只输出 SQL 语句，不要添加额外的解释或说明");
+  parts.push("2. SQL 语句使用标准 SQL 语法");
+  parts.push("3. 如果是 SELECT 语句，只查询必要的字段");
+  parts.push("4. 如果是 INSERT 语句，确保字段和值一一对应");
+  parts.push("5. 如果是 UPDATE 语句，确保 WHERE 条件合理");
 
-  return parts.join('\n')
-}
+  return parts.join("\n");
+};
 
 /**
  * 构建优化 SQL 的 Prompt
@@ -602,51 +632,51 @@ const buildGeneratePrompt = (userInput: string): string => {
  * @returns 完整的 Prompt
  */
 const buildOptimizePrompt = (sql: string): string => {
-  const parts: string[] = []
+  const parts: string[] = [];
 
   // 添加角色定义
-  parts.push('你是一个 SQL 优化专家，请分析以下 SQL 并给出优化建议。')
-  parts.push('')
+  parts.push("你是一个 SQL 优化专家，请分析以下 SQL 并给出优化建议。");
+  parts.push("");
 
   // 添加表信息
   if (props.tableName) {
-    parts.push(`表名: ${props.tableName}`)
+    parts.push(`表名: ${props.tableName}`);
   }
 
   // 添加 DDL 结构
   if (props.ddl) {
-    parts.push('DDL 结构:')
-    parts.push('```sql')
-    parts.push(props.ddl)
-    parts.push('```')
-    parts.push('')
+    parts.push("DDL 结构:");
+    parts.push("```sql");
+    parts.push(props.ddl);
+    parts.push("```");
+    parts.push("");
   }
 
   // 添加原始 SQL
-  parts.push('原始 SQL:')
-  parts.push('```sql')
-  parts.push(sql)
-  parts.push('```')
-  parts.push('')
+  parts.push("原始 SQL:");
+  parts.push("```sql");
+  parts.push(sql);
+  parts.push("```");
+  parts.push("");
 
   // 添加输出要求
-  parts.push('请按以下格式输出:')
-  parts.push('')
-  parts.push('## 问题分析')
-  parts.push('- 问题1')
-  parts.push('- 问题2')
-  parts.push('')
-  parts.push('## 优化建议')
-  parts.push('- 建议1')
-  parts.push('- 建议2')
-  parts.push('')
-  parts.push('## 优化后 SQL')
-  parts.push('```sql')
-  parts.push('优化后的 SQL 语句')
-  parts.push('```')
+  parts.push("请按以下格式输出:");
+  parts.push("");
+  parts.push("## 问题分析");
+  parts.push("- 问题1");
+  parts.push("- 问题2");
+  parts.push("");
+  parts.push("## 优化建议");
+  parts.push("- 建议1");
+  parts.push("- 建议2");
+  parts.push("");
+  parts.push("## 优化后 SQL");
+  parts.push("```sql");
+  parts.push("优化后的 SQL 语句");
+  parts.push("```");
 
-  return parts.join('\n')
-}
+  return parts.join("\n");
+};
 
 /**
  * 从 Markdown 中提取 SQL
@@ -655,20 +685,20 @@ const buildOptimizePrompt = (sql: string): string => {
  */
 const extractSqlFromMarkdown = (content: string): string => {
   // 尝试匹配 ```sql ... ``` 代码块
-  const sqlBlockMatch = content.match(/```sql\s*([\s\S]*?)```/i)
+  const sqlBlockMatch = content.match(/```sql\s*([\s\S]*?)```/i);
   if (sqlBlockMatch) {
-    return sqlBlockMatch[1].trim()
+    return sqlBlockMatch[1].trim();
   }
 
   // 尝试匹配 ``` ... ``` 代码块
-  const codeBlockMatch = content.match(/```\s*([\s\S]*?)```/)
+  const codeBlockMatch = content.match(/```\s*([\s\S]*?)```/);
   if (codeBlockMatch) {
-    return codeBlockMatch[1].trim()
+    return codeBlockMatch[1].trim();
   }
 
   // 如果没有代码块，返回原内容
-  return content.trim()
-}
+  return content.trim();
+};
 
 /**
  * 解析优化结果
@@ -679,37 +709,39 @@ const parseOptimizationResult = (content: string): OptimizationResult => {
   const result: OptimizationResult = {
     problems: [],
     suggestions: [],
-    optimizedSql: '',
-  }
+    optimizedSql: "",
+  };
 
   // 解析问题分析
-  const problemsMatch = content.match(/##\s*问题分析\s*([\s\S]*?)(?=##|$)/i)
+  const problemsMatch = content.match(/##\s*问题分析\s*([\s\S]*?)(?=##|$)/i);
   if (problemsMatch) {
     const problems = problemsMatch[1]
-      .split('\n')
-      .filter((line) => line.trim().startsWith('-'))
-      .map((line) => line.replace(/^-\s*/, '').trim())
-    result.problems = problems
+      .split("\n")
+      .filter((line) => line.trim().startsWith("-"))
+      .map((line) => line.replace(/^-\s*/, "").trim());
+    result.problems = problems;
   }
 
   // 解析优化建议
-  const suggestionsMatch = content.match(/##\s*优化建议\s*([\s\S]*?)(?=##|$)/i)
+  const suggestionsMatch = content.match(/##\s*优化建议\s*([\s\S]*?)(?=##|$)/i);
   if (suggestionsMatch) {
     const suggestions = suggestionsMatch[1]
-      .split('\n')
-      .filter((line) => line.trim().startsWith('-'))
-      .map((line) => line.replace(/^-\s*/, '').trim())
-    result.suggestions = suggestions
+      .split("\n")
+      .filter((line) => line.trim().startsWith("-"))
+      .map((line) => line.replace(/^-\s*/, "").trim());
+    result.suggestions = suggestions;
   }
 
   // 解析优化后 SQL
-  const optimizedSqlMatch = content.match(/##\s*优化后\s*SQL\s*```sql\s*([\s\S]*?)```/i)
+  const optimizedSqlMatch = content.match(
+    /##\s*优化后\s*SQL\s*```sql\s*([\s\S]*?)```/i,
+  );
   if (optimizedSqlMatch) {
-    result.optimizedSql = optimizedSqlMatch[1].trim()
+    result.optimizedSql = optimizedSqlMatch[1].trim();
   }
 
-  return result
-}
+  return result;
+};
 
 /**
  * 处理生成 SQL 操作
@@ -717,52 +749,52 @@ const parseOptimizationResult = (content: string): OptimizationResult => {
 const handleGenerateSql = async (): Promise<void> => {
   // 验证输入
   if (!naturalLanguage.value.trim()) {
-    message.warning('请输入您的需求描述')
-    return
+    message.warning("请输入您的需求描述");
+    return;
   }
 
   // 验证 AI 可用性
   if (!isAiReady.value) {
-    message.warning('AI 服务不可用，请稍后重试')
-    return
+    message.warning("AI 服务不可用，请稍后重试");
+    return;
   }
 
-  isGenerating.value = true
-  generateError.value = null
-  generatedSql.value = ''
-  sqlExplanation.value = ''
+  isGenerating.value = true;
+  generateError.value = null;
+  generatedSql.value = "";
+  sqlExplanation.value = "";
 
   try {
     // 构建提示词
-    const prompt = buildGeneratePrompt(naturalLanguage.value)
+    const prompt = buildGeneratePrompt(naturalLanguage.value);
 
     // 调用 AI 生成
     const options: GenerateOptions = {
       maxTokens: 2000,
       temperature: 0.3, // 降低温度以获得更精确的 SQL
-    }
+    };
 
-    const response = await modelManager.generate(prompt, options)
+    const response = await modelManager.generate(prompt, options);
 
     if (response.content) {
       // 提取 SQL
-      generatedSql.value = extractSqlFromMarkdown(response.content)
-      message.success('SQL 生成成功')
+      generatedSql.value = extractSqlFromMarkdown(response.content);
+      message.success("SQL 生成成功");
     } else {
-      throw new Error('生成结果为空，请重试')
+      throw new Error("生成结果为空，请重试");
     }
   } catch (error) {
-    const err = error instanceof Error ? error : new Error(String(error))
+    const err = error instanceof Error ? error : new Error(String(error));
     generateError.value = {
       message: err.message,
-      code: 'GENERATE_ERROR',
+      code: "GENERATE_ERROR",
       details: error,
-    }
-    emit('error', err)
+    };
+    emit("error", err);
   } finally {
-    isGenerating.value = false
+    isGenerating.value = false;
   }
-}
+};
 
 /**
  * 处理优化 SQL 操作
@@ -770,63 +802,63 @@ const handleGenerateSql = async (): Promise<void> => {
 const handleOptimizeSql = async (): Promise<void> => {
   // 验证输入
   if (!inputSql.value.trim()) {
-    message.warning('请输入需要优化的 SQL')
-    return
+    message.warning("请输入需要优化的 SQL");
+    return;
   }
 
   // 验证 AI 可用性
   if (!isAiReady.value) {
-    message.warning('AI 服务不可用，请稍后重试')
-    return
+    message.warning("AI 服务不可用，请稍后重试");
+    return;
   }
 
-  isOptimizing.value = true
-  generateError.value = null
-  optimizationResult.value = null
+  isOptimizing.value = true;
+  generateError.value = null;
+  optimizationResult.value = null;
 
   try {
     // 构建提示词
-    const prompt = buildOptimizePrompt(inputSql.value)
+    const prompt = buildOptimizePrompt(inputSql.value);
 
     // 调用 AI 生成
     const options: GenerateOptions = {
       maxTokens: 3000,
       temperature: 0.3,
-    }
+    };
 
-    const response = await modelManager.generate(prompt, options)
+    const response = await modelManager.generate(prompt, options);
 
     if (response.content) {
       // 解析优化结果
-      optimizationResult.value = parseOptimizationResult(response.content)
-      message.success('SQL 分析完成')
+      optimizationResult.value = parseOptimizationResult(response.content);
+      message.success("SQL 分析完成");
     } else {
-      throw new Error('分析结果为空，请重试')
+      throw new Error("分析结果为空，请重试");
     }
   } catch (error) {
-    const err = error instanceof Error ? error : new Error(String(error))
+    const err = error instanceof Error ? error : new Error(String(error));
     generateError.value = {
       message: err.message,
-      code: 'OPTIMIZE_ERROR',
+      code: "OPTIMIZE_ERROR",
       details: error,
-    }
-    emit('error', err)
+    };
+    emit("error", err);
   } finally {
-    isOptimizing.value = false
+    isOptimizing.value = false;
   }
-}
+};
 
 /**
  * 复制 SQL 到剪贴板
  */
 const handleCopySql = async (): Promise<void> => {
   try {
-    await navigator.clipboard.writeText(generatedSql.value)
-    message.success('已复制到剪贴板')
+    await navigator.clipboard.writeText(generatedSql.value);
+    message.success("已复制到剪贴板");
   } catch {
-    message.error('复制失败，请手动复制')
+    message.error("复制失败，请手动复制");
   }
-}
+};
 
 /**
  * 复制优化后的 SQL 到剪贴板
@@ -834,54 +866,56 @@ const handleCopySql = async (): Promise<void> => {
 const handleCopyOptimizedSql = async (): Promise<void> => {
   try {
     if (optimizationResult.value?.optimizedSql) {
-      await navigator.clipboard.writeText(optimizationResult.value.optimizedSql)
-      message.success('已复制到剪贴板')
+      await navigator.clipboard.writeText(
+        optimizationResult.value.optimizedSql,
+      );
+      message.success("已复制到剪贴板");
     }
   } catch {
-    message.error('复制失败，请手动复制')
+    message.error("复制失败，请手动复制");
   }
-}
+};
 
 /**
  * 清除生成结果
  */
 const handleClearGenerate = (): void => {
-  generatedSql.value = ''
-  sqlExplanation.value = ''
-}
+  generatedSql.value = "";
+  sqlExplanation.value = "";
+};
 
 /**
  * 清除优化结果
  */
 const handleClearOptimize = (): void => {
-  optimizationResult.value = null
-}
+  optimizationResult.value = null;
+};
 
 /**
  * 应用生成的 SQL
  */
 const handleApply = (): void => {
   if (!generatedSql.value.trim()) {
-    message.warning('没有可应用的 SQL')
-    return
+    message.warning("没有可应用的 SQL");
+    return;
   }
 
-  emit('result', generatedSql.value)
-  message.success('SQL 已应用')
-}
+  emit("result", generatedSql.value);
+  message.success("SQL 已应用");
+};
 
 /**
  * 应用优化后的 SQL
  */
 const handleApplyOptimized = (): void => {
   if (!optimizationResult.value?.optimizedSql?.trim()) {
-    message.warning('没有可应用的优化 SQL')
-    return
+    message.warning("没有可应用的优化 SQL");
+    return;
   }
 
-  emit('result', optimizationResult.value.optimizedSql)
-  message.success('优化 SQL 已应用')
-}
+  emit("result", optimizationResult.value.optimizedSql);
+  message.success("优化 SQL 已应用");
+};
 
 // ==================== 生命周期 ====================
 
@@ -890,9 +924,9 @@ const handleApplyOptimized = (): void => {
  */
 onMounted(async () => {
   if (aiStore.isEnabled) {
-    await checkAiAvailability()
+    await checkAiAvailability();
   }
-})
+});
 </script>
 
 <style scoped>
@@ -1035,7 +1069,10 @@ onMounted(async () => {
   border-color: var(--input-border);
   background: var(--input-bg);
   color: var(--text-primary);
-  transition: border-color var(--transition-fast, 120ms) ease, background-color var(--transition-fast, 120ms) ease, box-shadow var(--transition-fast, 120ms) ease;
+  transition:
+    border-color var(--transition-fast, 120ms) ease,
+    background-color var(--transition-fast, 120ms) ease,
+    box-shadow var(--transition-fast, 120ms) ease;
 }
 
 .input-textarea:focus,
@@ -1060,7 +1097,11 @@ onMounted(async () => {
 .generate-btn {
   min-width: 120px;
   border-radius: var(--border-radius-sm, 4px);
-  transition: transform var(--transition-fast, 120ms) ease, box-shadow var(--transition-fast, 120ms) ease, background-color var(--transition-fast, 120ms) ease, border-color var(--transition-fast, 120ms) ease;
+  transition:
+    transform var(--transition-fast, 120ms) ease,
+    box-shadow var(--transition-fast, 120ms) ease,
+    background-color var(--transition-fast, 120ms) ease,
+    border-color var(--transition-fast, 120ms) ease;
 }
 
 .generate-btn:not(:disabled):hover {

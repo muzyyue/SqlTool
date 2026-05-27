@@ -3,13 +3,20 @@
     <div class="page-header">
       <h2>时间戳转换</h2>
       <div class="header-actions">
-        <GradientButton type="secondary" size="md" @click="clearAll"> 清空 </GradientButton>
-        <GradientButton type="primary" size="md" @click="convertTimestamp"> 转换 </GradientButton>
+        <GradientButton type="secondary" size="md" @click="clearAll">
+          清空
+        </GradientButton>
+        <GradientButton type="primary" size="md" @click="convertTimestamp">
+          转换
+        </GradientButton>
       </div>
     </div>
 
     <div class="content-grid">
-      <VbenGlassCard title="时间戳转日期" description="将时间戳转换为可读的日期时间格式">
+      <VbenGlassCard
+        title="时间戳转日期"
+        description="将时间戳转换为可读的日期时间格式"
+      >
         <div class="input-group">
           <a-input
             v-model:value="timestampInput"
@@ -32,7 +39,10 @@
         </div>
       </VbenGlassCard>
 
-      <VbenGlassCard title="日期转时间戳" description="将日期时间转换为时间戳格式">
+      <VbenGlassCard
+        title="日期转时间戳"
+        description="将日期时间转换为时间戳格式"
+      >
         <div class="input-group">
           <a-date-picker
             v-model:value="dateTimeInput"
@@ -83,142 +93,142 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
-import { message } from 'ant-design-vue'
-import { CopyOutlined } from '@ant-design/icons-vue'
-import { storeToRefs } from 'pinia'
-import VbenGlassCard from '@/components/common/VbenGlassCard.vue'
-import GradientButton from '@/components/common/GradientButton.vue'
-import { useThemeStore } from '@/stores/theme.js'
+import { ref, onMounted, onUnmounted } from "vue";
+import { message } from "ant-design-vue";
+import { CopyOutlined } from "@ant-design/icons-vue";
+import { storeToRefs } from "pinia";
+import VbenGlassCard from "@/components/common/VbenGlassCard.vue";
+import GradientButton from "@/components/common/GradientButton.vue";
+import { useThemeStore } from "@/stores/theme.js";
 
-const themeStore = useThemeStore()
- 
-const { isDark } = storeToRefs(themeStore)
+const themeStore = useThemeStore();
 
-const timestampInput = ref('')
-const dateTimeInput = ref(null)
-const timestampResult = ref('')
-const dateTimeResult = ref('')
+const { isDark } = storeToRefs(themeStore);
+
+const timestampInput = ref("");
+const dateTimeInput = ref(null);
+const timestampResult = ref("");
+const dateTimeResult = ref("");
 const currentTime = ref({
-  timestamp: '',
-  datetime: '',
-  iso8601: '',
-})
+  timestamp: "",
+  datetime: "",
+  iso8601: "",
+});
 
-let timer = null
+let timer = null;
 
 const handleTimestampChange = () => {
-  const timestamp = parseInt(timestampInput.value)
+  const timestamp = parseInt(timestampInput.value);
   if (isNaN(timestamp)) {
-    timestampResult.value = ''
-    return
+    timestampResult.value = "";
+    return;
   }
 
-  const date = new Date(timestamp)
-  timestampResult.value = formatDateTime(date)
-}
+  const date = new Date(timestamp);
+  timestampResult.value = formatDateTime(date);
+};
 
 const handleDateTimeChange = (date) => {
   if (!date) {
-    dateTimeResult.value = ''
-    return
+    dateTimeResult.value = "";
+    return;
   }
 
-  dateTimeResult.value = date.getTime().toString()
-}
+  dateTimeResult.value = date.getTime().toString();
+};
 
 const convertTimestamp = () => {
   if (timestampInput.value) {
-    handleTimestampChange()
+    handleTimestampChange();
   } else if (dateTimeInput.value) {
-    handleDateTimeChange()
+    handleDateTimeChange();
   } else {
-    message.warning('请输入时间戳或选择日期时间')
+    message.warning("请输入时间戳或选择日期时间");
   }
-}
+};
 
 const copyTimestampResult = async () => {
   if (!timestampResult.value) {
-    message.warning('没有内容可复制')
-    return
+    message.warning("没有内容可复制");
+    return;
   }
   try {
-    await navigator.clipboard.writeText(timestampResult.value)
-    message.success('已复制到剪贴板')
+    await navigator.clipboard.writeText(timestampResult.value);
+    message.success("已复制到剪贴板");
   } catch {
-    message.error('复制失败')
+    message.error("复制失败");
   }
-}
+};
 
 const copyDateTimeResult = async () => {
   if (!dateTimeResult.value) {
-    message.warning('没有内容可复制')
-    return
+    message.warning("没有内容可复制");
+    return;
   }
   try {
-    await navigator.clipboard.writeText(dateTimeResult.value)
-    message.success('已复制到剪贴板')
+    await navigator.clipboard.writeText(dateTimeResult.value);
+    message.success("已复制到剪贴板");
   } catch {
-    message.error('复制失败')
+    message.error("复制失败");
   }
-}
+};
 
 const copyCurrentTimestamp = async () => {
   try {
-    await navigator.clipboard.writeText(currentTime.value.timestamp)
-    message.success('已复制时间戳')
+    await navigator.clipboard.writeText(currentTime.value.timestamp);
+    message.success("已复制时间戳");
   } catch {
-    message.error('复制失败')
+    message.error("复制失败");
   }
-}
+};
 
 const copyCurrentDateTime = async () => {
   try {
-    await navigator.clipboard.writeText(currentTime.value.datetime)
-    message.success('已复制日期时间')
+    await navigator.clipboard.writeText(currentTime.value.datetime);
+    message.success("已复制日期时间");
   } catch {
-    message.error('复制失败')
+    message.error("复制失败");
   }
-}
+};
 
 const formatDateTime = (date) => {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  const hours = String(date.getHours()).padStart(2, '0')
-  const minutes = String(date.getMinutes()).padStart(2, '0')
-  const seconds = String(date.getSeconds()).padStart(2, '0')
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
 
-  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
-}
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+};
 
 const updateCurrentTime = () => {
-  const now = new Date()
+  const now = new Date();
   currentTime.value = {
     timestamp: now.getTime().toString(),
     datetime: formatDateTime(now),
     iso8601: now.toISOString(),
-  }
-}
+  };
+};
 
 const clearAll = () => {
-  timestampInput.value = ''
-  dateTimeInput.value = null
-  timestampResult.value = ''
-  dateTimeResult.value = ''
-  message.success('已清空')
-}
+  timestampInput.value = "";
+  dateTimeInput.value = null;
+  timestampResult.value = "";
+  dateTimeResult.value = "";
+  message.success("已清空");
+};
 
 onMounted(() => {
-  updateCurrentTime()
-  timer = setInterval(updateCurrentTime, 1000)
-})
+  updateCurrentTime();
+  timer = setInterval(updateCurrentTime, 1000);
+});
 
 onUnmounted(() => {
   if (timer) {
-    clearInterval(timer)
+    clearInterval(timer);
   }
-})
+});
 </script>
 
 <style lang="scss" scoped>

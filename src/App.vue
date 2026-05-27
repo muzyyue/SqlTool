@@ -1,18 +1,18 @@
 <script setup>
-import { computed } from 'vue'
-import { theme } from 'ant-design-vue'
-import { useThemeStore } from '@/stores/theme'
-import MainLayout from '@/components/Layout/MainLayout.vue'
+import { computed } from "vue";
+import { theme } from "ant-design-vue";
+import { useThemeStore } from "@/stores/theme";
+import MainLayout from "@/components/Layout/MainLayout.vue";
 
-const themeStore = useThemeStore()
+const themeStore = useThemeStore();
 
 const antdTheme = computed(() => ({
   algorithm: themeStore.isDark ? theme.darkAlgorithm : theme.defaultAlgorithm,
   token: {
-    colorPrimary: '#1677ff',
+    colorPrimary: "#1677ff",
     borderRadius: 6,
   },
-}))
+}));
 </script>
 
 <template>
@@ -40,12 +40,12 @@ html,
 body {
   height: 100%;
   font-family:
-    'Plus Jakarta Sans',
+    "Plus Jakarta Sans",
     -apple-system,
     BlinkMacSystemFont,
-    'Segoe UI',
+    "Segoe UI",
     Roboto,
-    'Helvetica Neue',
+    "Helvetica Neue",
     Arial,
     sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -73,8 +73,12 @@ body {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes scaleIn {
@@ -103,7 +107,8 @@ body {
 }
 
 @keyframes pulse-soft {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {

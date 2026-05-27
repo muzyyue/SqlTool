@@ -4,9 +4,9 @@
  * @module composables/ai/useAiFallback
  */
 
-import { ref, computed, readonly } from 'vue'
-import { type ModelResponse } from './types'
-import { useAiErrorHandler, type AiError } from './utils/errorHandler'
+import { ref, computed, readonly } from "vue";
+import { type ModelResponse } from "./types";
+import { useAiErrorHandler, type AiError } from "./utils/errorHandler";
 
 /**
  * 降级级别枚举
@@ -27,21 +27,21 @@ export enum FallbackLevel {
  */
 export interface FallbackLog {
   /** 日志唯一标识 */
-  id: string
+  id: string;
   /** 降级发生时间戳 */
-  timestamp: number
+  timestamp: number;
   /** 降级前级别 */
-  fromLevel: FallbackLevel
+  fromLevel: FallbackLevel;
   /** 降级后级别 */
-  toLevel: FallbackLevel
+  toLevel: FallbackLevel;
   /** 降级原因 */
-  reason: string
+  reason: string;
   /** 原始错误信息 */
-  error?: AiError
+  error?: AiError;
   /** 当前级别执行耗时（毫秒） */
-  duration: number
+  duration: number;
   /** 操作上下文描述 */
-  context?: string
+  context?: string;
 }
 
 /**
@@ -51,19 +51,19 @@ export interface FallbackLog {
  */
 export interface FallbackResult<T = ModelResponse> {
   /** 操作是否成功 */
-  success: boolean
+  success: boolean;
   /** 返回数据 */
-  data?: T
+  data?: T;
   /** 最终使用的降级级别 */
-  finalLevel: FallbackLevel
+  finalLevel: FallbackLevel;
   /** 是否发生了降级 */
-  isFallback: boolean
+  isFallback: boolean;
   /** 降级路径（记录经过的所有级别） */
-  fallbackPath: FallbackLevel[]
+  fallbackPath: FallbackLevel[];
   /** 总耗时（毫秒） */
-  totalDuration: number
+  totalDuration: number;
   /** 错误信息（仅在失败时有值） */
-  error?: AiError
+  error?: AiError;
 }
 
 /**
@@ -72,19 +72,23 @@ export interface FallbackResult<T = ModelResponse> {
  */
 export interface FallbackOptions {
   /** 是否启用降级，默认 true */
-  enabled?: boolean
+  enabled?: boolean;
   /** 最大降级级别，默认 ORIGINAL */
-  maxFallbackLevel?: FallbackLevel
+  maxFallbackLevel?: FallbackLevel;
   /** 每级降级之间的延迟时间（毫秒），默认 0 */
-  fallbackDelay?: number
+  fallbackDelay?: number;
   /** 操作上下文描述，用于日志记录 */
-  context?: string
+  context?: string;
   /** 自定义降级判断函数 */
-  shouldFallback?: (error: AiError, currentLevel: FallbackLevel) => boolean
+  shouldFallback?: (error: AiError, currentLevel: FallbackLevel) => boolean;
   /** 降级开始回调 */
-  onFallbackStart?: (fromLevel: FallbackLevel, toLevel: FallbackLevel, reason: string) => void
+  onFallbackStart?: (
+    fromLevel: FallbackLevel,
+    toLevel: FallbackLevel,
+    reason: string,
+  ) => void;
   /** 降级完成回调 */
-  onFallbackComplete?: (result: FallbackResult) => void
+  onFallbackComplete?: (result: FallbackResult) => void;
 }
 
 /**
@@ -93,15 +97,15 @@ export interface FallbackOptions {
  */
 export interface FallbackState {
   /** 当前降级级别 */
-  currentLevel: FallbackLevel
+  currentLevel: FallbackLevel;
   /** 是否正在降级中 */
-  isFallingBack: boolean
+  isFallingBack: boolean;
   /** 最后一次降级时间 */
-  lastFallbackTime: number
+  lastFallbackTime: number;
   /** 连续降级次数（用于冷却判断） */
-  consecutiveFallbacks: number
+  consecutiveFallbacks: number;
   /** 降级冷却结束时间 */
-  cooldownEndTime: number
+  cooldownEndTime: number;
 }
 
 /**
@@ -109,42 +113,50 @@ export interface FallbackState {
  */
 export enum FallbackEvent {
   /** 降级开始 */
-  START = 'fallback:start',
+  START = "fallback:start",
   /** 降级成功 */
-  SUCCESS = 'fallback:success',
+  SUCCESS = "fallback:success",
   /** 降级失败 */
-  FAILED = 'fallback:failed',
+  FAILED = "fallback:failed",
   /** 恢复到更高级别 */
-  RECOVER = 'fallback:recover',
+  RECOVER = "fallback:recover",
 }
 
 /**
  * 降级事件处理器类型
  */
-export type FallbackEventHandler = (event: FallbackEvent, data: unknown) => void
+export type FallbackEventHandler = (
+  event: FallbackEvent,
+  data: unknown,
+) => void;
 
 /**
  * 模型操作函数类型
  * @description 定义各级别需要执行的操作函数签名
  */
-type LevelOperation<T> = () => Promise<T>
+type LevelOperation<T> = () => Promise<T>;
 
 /**
  * 默认降级选项
  */
-const DEFAULT_OPTIONS: Required<Omit<FallbackOptions, 'shouldFallback' | 'onFallbackStart' | 'onFallbackComplete' | 'context'>> = {
+const DEFAULT_OPTIONS: Required<
+  Omit<
+    FallbackOptions,
+    "shouldFallback" | "onFallbackStart" | "onFallbackComplete" | "context"
+  >
+> = {
   enabled: true,
   maxFallbackLevel: FallbackLevel.ORIGINAL,
   fallbackDelay: 0,
-}
+};
 
 /**
  * 生成唯一 ID
  * @returns 唯一标识字符串
  */
 const generateId = (): string => {
-  return `fallback_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
-}
+  return `fallback_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+};
 
 /**
  * 获取降级级别名称
@@ -153,12 +165,12 @@ const generateId = (): string => {
  */
 export const getFallbackLevelName = (level: FallbackLevel): string => {
   const names: Record<FallbackLevel, string> = {
-    [FallbackLevel.API]: 'API 模型',
-    [FallbackLevel.LOCAL]: '本地模型',
-    [FallbackLevel.ORIGINAL]: '原有流程',
-  }
-  return names[level]
-}
+    [FallbackLevel.API]: "API 模型",
+    [FallbackLevel.LOCAL]: "本地模型",
+    [FallbackLevel.ORIGINAL]: "原有流程",
+  };
+  return names[level];
+};
 
 /**
  * 降级日志管理器
@@ -166,38 +178,38 @@ export const getFallbackLevelName = (level: FallbackLevel): string => {
  */
 export function useFallbackLogger() {
   /** 日志记录数组 */
-  const logs = ref<FallbackLog[]>([])
+  const logs = ref<FallbackLog[]>([]);
   /** 最大日志条数 */
-  const maxLogs = 100
+  const maxLogs = 100;
 
   /**
    * 记录降级日志
    * @param log - 日志条目（不含 id 和 timestamp）
    * @returns 完整的日志条目
    */
-  const addLog = (log: Omit<FallbackLog, 'id' | 'timestamp'>): FallbackLog => {
+  const addLog = (log: Omit<FallbackLog, "id" | "timestamp">): FallbackLog => {
     const fullLog: FallbackLog = {
       ...log,
       id: generateId(),
       timestamp: Date.now(),
-    }
+    };
 
-    logs.value.unshift(fullLog)
+    logs.value.unshift(fullLog);
 
     // 限制日志数量
     if (logs.value.length > maxLogs) {
-      logs.value = logs.value.slice(0, maxLogs)
+      logs.value = logs.value.slice(0, maxLogs);
     }
 
-    return fullLog
-  }
+    return fullLog;
+  };
 
   /**
    * 清除所有日志
    */
   const clearLogs = (): void => {
-    logs.value = []
-  }
+    logs.value = [];
+  };
 
   /**
    * 获取指定时间范围内的日志
@@ -205,9 +217,14 @@ export function useFallbackLogger() {
    * @param endTime - 结束时间戳
    * @returns 过滤后的日志数组
    */
-  const getLogsByTimeRange = (startTime: number, endTime: number): FallbackLog[] => {
-    return logs.value.filter((log) => log.timestamp >= startTime && log.timestamp <= endTime)
-  }
+  const getLogsByTimeRange = (
+    startTime: number,
+    endTime: number,
+  ): FallbackLog[] => {
+    return logs.value.filter(
+      (log) => log.timestamp >= startTime && log.timestamp <= endTime,
+    );
+  };
 
   /**
    * 获取指定级别的降级日志
@@ -215,8 +232,10 @@ export function useFallbackLogger() {
    * @returns 过滤后的日志数组
    */
   const getLogsByLevel = (level: FallbackLevel): FallbackLog[] => {
-    return logs.value.filter((log) => log.fromLevel === level || log.toLevel === level)
-  }
+    return logs.value.filter(
+      (log) => log.fromLevel === level || log.toLevel === level,
+    );
+  };
 
   /**
    * 获取降级统计信息
@@ -230,30 +249,30 @@ export function useFallbackLogger() {
         [FallbackLevel.ORIGINAL]: 0,
       },
       averageDuration: 0,
-    }
+    };
 
     if (logs.value.length === 0) {
-      return stats
+      return stats;
     }
 
-    let totalDuration = 0
+    let totalDuration = 0;
     for (const log of logs.value) {
-      stats.byLevel[log.fromLevel]++
-      totalDuration += log.duration
+      stats.byLevel[log.fromLevel]++;
+      totalDuration += log.duration;
     }
 
-    stats.averageDuration = Math.round(totalDuration / logs.value.length)
+    stats.averageDuration = Math.round(totalDuration / logs.value.length);
 
-    return stats
-  })
+    return stats;
+  });
 
   /**
    * 导出日志为 JSON 格式
    * @returns JSON 字符串
    */
   const exportLogs = (): string => {
-    return JSON.stringify(logs.value, null, 2)
-  }
+    return JSON.stringify(logs.value, null, 2);
+  };
 
   /**
    * 从 JSON 导入日志
@@ -261,14 +280,14 @@ export function useFallbackLogger() {
    */
   const importLogs = (json: string): void => {
     try {
-      const parsed = JSON.parse(json) as FallbackLog[]
+      const parsed = JSON.parse(json) as FallbackLog[];
       if (Array.isArray(parsed)) {
-        logs.value = parsed.slice(0, maxLogs)
+        logs.value = parsed.slice(0, maxLogs);
       }
     } catch (error) {
-      console.error('[FallbackLogger] 导入日志失败:', error)
+      console.error("[FallbackLogger] 导入日志失败:", error);
     }
-  }
+  };
 
   return {
     logs: computed(() => readonly(logs.value)),
@@ -279,7 +298,7 @@ export function useFallbackLogger() {
     getLogsByLevel,
     exportLogs,
     importLogs,
-  }
+  };
 }
 
 /**
@@ -294,27 +313,27 @@ export function useFallbackState() {
     lastFallbackTime: 0,
     consecutiveFallbacks: 0,
     cooldownEndTime: 0,
-  })
+  });
 
   /** 降级冷却时间（毫秒） */
-  const cooldownDuration = 30000 // 30 秒
+  const cooldownDuration = 30000; // 30 秒
 
   /** 降级阈值（连续降级次数达到此值后触发冷却） */
-  const fallbackThreshold = 3
+  const fallbackThreshold = 3;
 
   /**
    * 是否处于冷却期
    */
   const isInCooldown = computed(() => {
-    return Date.now() < state.value.cooldownEndTime
-  })
+    return Date.now() < state.value.cooldownEndTime;
+  });
 
   /**
    * 是否可以尝试更高级别
    */
   const canAttemptHigherLevel = computed(() => {
-    return !state.value.isFallingBack && !isInCooldown.value
-  })
+    return !state.value.isFallingBack && !isInCooldown.value;
+  });
 
   /**
    * 更新当前级别
@@ -322,34 +341,34 @@ export function useFallbackState() {
    * @param reason - 更新原因
    */
   const updateLevel = (level: FallbackLevel, reason?: string): void => {
-    const previousLevel = state.value.currentLevel
+    const previousLevel = state.value.currentLevel;
 
-    state.value.currentLevel = level
-    state.value.lastFallbackTime = Date.now()
+    state.value.currentLevel = level;
+    state.value.lastFallbackTime = Date.now();
 
     // 如果降级到更低级别，增加连续降级计数
     if (level > previousLevel) {
-      state.value.consecutiveFallbacks++
+      state.value.consecutiveFallbacks++;
 
       // 检查是否需要进入冷却
       if (state.value.consecutiveFallbacks >= fallbackThreshold) {
-        state.value.cooldownEndTime = Date.now() + cooldownDuration
-        console.warn('[FallbackState] 达到降级阈值，进入冷却期')
+        state.value.cooldownEndTime = Date.now() + cooldownDuration;
+        console.warn("[FallbackState] 达到降级阈值，进入冷却期");
       }
     } else if (level < previousLevel) {
       // 恢复到更高级别，重置计数
-      state.value.consecutiveFallbacks = 0
-      state.value.cooldownEndTime = 0
+      state.value.consecutiveFallbacks = 0;
+      state.value.cooldownEndTime = 0;
     }
-  }
+  };
 
   /**
    * 设置降级中状态
    * @param isFallingBack - 是否正在降级
    */
   const setFallingBack = (isFallingBack: boolean): void => {
-    state.value.isFallingBack = isFallingBack
-  }
+    state.value.isFallingBack = isFallingBack;
+  };
 
   /**
    * 重置状态
@@ -361,8 +380,8 @@ export function useFallbackState() {
       lastFallbackTime: 0,
       consecutiveFallbacks: 0,
       cooldownEndTime: 0,
-    }
-  }
+    };
+  };
 
   /**
    * 尝试恢复到更高级别
@@ -370,18 +389,18 @@ export function useFallbackState() {
    */
   const attemptRecover = (): boolean => {
     if (!canAttemptHigherLevel.value) {
-      return false
+      return false;
     }
 
     if (state.value.currentLevel > FallbackLevel.API) {
       // 尝试恢复到上一级
-      const newLevel = state.value.currentLevel - 1
-      updateLevel(newLevel, '尝试恢复')
-      return true
+      const newLevel = state.value.currentLevel - 1;
+      updateLevel(newLevel, "尝试恢复");
+      return true;
     }
 
-    return false
-  }
+    return false;
+  };
 
   return {
     state: computed(() => readonly(state.value)),
@@ -391,7 +410,7 @@ export function useFallbackState() {
     setFallingBack,
     reset,
     attemptRecover,
-  }
+  };
 }
 
 /**
@@ -400,12 +419,12 @@ export function useFallbackState() {
  * @template T - 返回数据类型
  */
 export function useAiFallback() {
-  const errorHandler = useAiErrorHandler()
-  const logger = useFallbackLogger()
-  const fallbackState = useFallbackState()
+  const errorHandler = useAiErrorHandler();
+  const logger = useFallbackLogger();
+  const fallbackState = useFallbackState();
 
   /** 事件监听器映射 */
-  const eventListeners = new Map<FallbackEvent, Set<FallbackEventHandler>>()
+  const eventListeners = new Map<FallbackEvent, Set<FallbackEventHandler>>();
 
   /**
    * 触发事件
@@ -413,41 +432,47 @@ export function useAiFallback() {
    * @param data - 事件数据
    */
   const emitEvent = (event: FallbackEvent, data: unknown): void => {
-    const listeners = eventListeners.get(event)
+    const listeners = eventListeners.get(event);
     if (listeners) {
       listeners.forEach((handler) => {
         try {
-          handler(event, data)
+          handler(event, data);
         } catch (error) {
-          console.error(`[Fallback] 事件处理器错误 [${event}]:`, error)
+          console.error(`[Fallback] 事件处理器错误 [${event}]:`, error);
         }
-      })
+      });
     }
-  }
+  };
 
   /**
    * 添加事件监听器
    * @param event - 事件类型
    * @param handler - 事件处理器
    */
-  const addEventListener = (event: FallbackEvent, handler: FallbackEventHandler): void => {
+  const addEventListener = (
+    event: FallbackEvent,
+    handler: FallbackEventHandler,
+  ): void => {
     if (!eventListeners.has(event)) {
-      eventListeners.set(event, new Set())
+      eventListeners.set(event, new Set());
     }
-    eventListeners.get(event)!.add(handler)
-  }
+    eventListeners.get(event)!.add(handler);
+  };
 
   /**
    * 移除事件监听器
    * @param event - 事件类型
    * @param handler - 事件处理器
    */
-  const removeEventListener = (event: FallbackEvent, handler: FallbackEventHandler): void => {
-    const listeners = eventListeners.get(event)
+  const removeEventListener = (
+    event: FallbackEvent,
+    handler: FallbackEventHandler,
+  ): void => {
+    const listeners = eventListeners.get(event);
     if (listeners) {
-      listeners.delete(handler)
+      listeners.delete(handler);
     }
-  }
+  };
 
   /**
    * 判断是否应该降级
@@ -459,25 +484,28 @@ export function useAiFallback() {
   const shouldFallback = (
     error: AiError,
     currentLevel: FallbackLevel,
-    options: FallbackOptions
+    options: FallbackOptions,
   ): boolean => {
     // 使用自定义判断函数
     if (options.shouldFallback) {
-      return options.shouldFallback(error, currentLevel)
+      return options.shouldFallback(error, currentLevel);
     }
 
     // 默认判断逻辑：可恢复错误才降级
     if (!error.recoverable) {
-      return false
+      return false;
     }
 
     // 检查是否已达到最大降级级别
-    if (currentLevel >= (options.maxFallbackLevel ?? DEFAULT_OPTIONS.maxFallbackLevel)) {
-      return false
+    if (
+      currentLevel >=
+      (options.maxFallbackLevel ?? DEFAULT_OPTIONS.maxFallbackLevel)
+    ) {
+      return false;
     }
 
-    return true
-  }
+    return true;
+  };
 
   /**
    * 执行指定级别的操作
@@ -488,14 +516,14 @@ export function useAiFallback() {
    */
   const executeWithLevel = async <T>(
     level: FallbackLevel,
-    operations: Map<FallbackLevel, LevelOperation<T>>
+    operations: Map<FallbackLevel, LevelOperation<T>>,
   ): Promise<T> => {
-    const operation = operations.get(level)
+    const operation = operations.get(level);
     if (!operation) {
-      throw new Error(`未找到 ${getFallbackLevelName(level)} 的操作函数`)
+      throw new Error(`未找到 ${getFallbackLevelName(level)} 的操作函数`);
     }
-    return operation()
-  }
+    return operation();
+  };
 
   /**
    * 尝试执行操作，失败时自动降级
@@ -506,15 +534,15 @@ export function useAiFallback() {
    */
   const tryWithFallback = async <T = ModelResponse>(
     operations: Map<FallbackLevel, LevelOperation<T>>,
-    options: FallbackOptions = {}
+    options: FallbackOptions = {},
   ): Promise<FallbackResult<T>> => {
-    const mergedOptions = { ...DEFAULT_OPTIONS, ...options }
+    const mergedOptions = { ...DEFAULT_OPTIONS, ...options };
 
     // 如果降级未启用，直接执行最高级别
     if (!mergedOptions.enabled) {
-      const startTime = Date.now()
+      const startTime = Date.now();
       try {
-        const data = await executeWithLevel(FallbackLevel.API, operations)
+        const data = await executeWithLevel(FallbackLevel.API, operations);
         return {
           success: true,
           data,
@@ -522,12 +550,12 @@ export function useAiFallback() {
           isFallback: false,
           fallbackPath: [FallbackLevel.API],
           totalDuration: Date.now() - startTime,
-        }
+        };
       } catch (error) {
         const aiError = errorHandler.logError(
           error instanceof Error ? error : new Error(String(error)),
-          options.context
-        )
+          options.context,
+        );
         return {
           success: false,
           finalLevel: FallbackLevel.API,
@@ -535,49 +563,49 @@ export function useAiFallback() {
           fallbackPath: [FallbackLevel.API],
           totalDuration: Date.now() - startTime,
           error: aiError,
-        }
+        };
       }
     }
 
-    const startTime = Date.now()
-    const fallbackPath: FallbackLevel[] = []
-    let currentLevel = FallbackLevel.API
-    let lastError: AiError | undefined
+    const startTime = Date.now();
+    const fallbackPath: FallbackLevel[] = [];
+    let currentLevel = FallbackLevel.API;
+    let lastError: AiError | undefined;
 
-    fallbackState.setFallingBack(true)
+    fallbackState.setFallingBack(true);
 
     try {
       // 从 API 级别开始尝试
       while (currentLevel <= mergedOptions.maxFallbackLevel) {
-        fallbackPath.push(currentLevel)
-        const levelStartTime = Date.now()
+        fallbackPath.push(currentLevel);
+        const levelStartTime = Date.now();
 
         try {
           // 执行当前级别的操作
-          const data = await executeWithLevel(currentLevel, operations)
-          const levelDuration = Date.now() - levelStartTime
+          const data = await executeWithLevel(currentLevel, operations);
+          const levelDuration = Date.now() - levelStartTime;
 
           // 成功，更新状态
           if (currentLevel !== FallbackLevel.API && fallbackPath.length > 1) {
             // 发生了降级
-            fallbackState.updateLevel(currentLevel, '降级成功')
+            fallbackState.updateLevel(currentLevel, "降级成功");
 
             // 记录降级日志
             logger.addLog({
               fromLevel: fallbackPath[0],
               toLevel: currentLevel,
-              reason: lastError?.message ?? '未知错误',
+              reason: lastError?.message ?? "未知错误",
               error: lastError,
               duration: levelDuration,
               context: options.context,
-            })
+            });
 
             // 触发降级成功事件
             emitEvent(FallbackEvent.SUCCESS, {
               fromLevel: fallbackPath[0],
               toLevel: currentLevel,
               reason: lastError?.message,
-            })
+            });
           }
 
           return {
@@ -587,15 +615,15 @@ export function useAiFallback() {
             isFallback: currentLevel > FallbackLevel.API,
             fallbackPath,
             totalDuration: Date.now() - startTime,
-          }
+          };
         } catch (error) {
           // 记录错误
           lastError = errorHandler.logError(
             error instanceof Error ? error : new Error(String(error)),
-            `${options.context} [${getFallbackLevelName(currentLevel)}]`
-          )
+            `${options.context} [${getFallbackLevelName(currentLevel)}]`,
+          );
 
-          const levelDuration = Date.now() - levelStartTime
+          const levelDuration = Date.now() - levelStartTime;
 
           // 判断是否应该降级
           if (!shouldFallback(lastError, currentLevel, mergedOptions)) {
@@ -607,11 +635,11 @@ export function useAiFallback() {
               fallbackPath,
               totalDuration: Date.now() - startTime,
               error: lastError,
-            }
+            };
           }
 
           // 记录降级日志
-          const nextLevel = currentLevel + 1
+          const nextLevel = currentLevel + 1;
           if (nextLevel <= mergedOptions.maxFallbackLevel) {
             logger.addLog({
               fromLevel: currentLevel,
@@ -620,28 +648,34 @@ export function useAiFallback() {
               error: lastError,
               duration: levelDuration,
               context: options.context,
-            })
+            });
 
             // 触发降级开始事件
             emitEvent(FallbackEvent.START, {
               fromLevel: currentLevel,
               toLevel: nextLevel,
               reason: lastError.message,
-            })
+            });
 
             // 调用回调
             if (mergedOptions.onFallbackStart) {
-              mergedOptions.onFallbackStart(currentLevel, nextLevel, lastError.message)
+              mergedOptions.onFallbackStart(
+                currentLevel,
+                nextLevel,
+                lastError.message,
+              );
             }
 
             // 降级延迟
             if (mergedOptions.fallbackDelay > 0) {
-              await new Promise((resolve) => setTimeout(resolve, mergedOptions.fallbackDelay))
+              await new Promise((resolve) =>
+                setTimeout(resolve, mergedOptions.fallbackDelay),
+              );
             }
           }
 
           // 进入下一级别
-          currentLevel = nextLevel
+          currentLevel = nextLevel;
         }
       }
 
@@ -649,7 +683,7 @@ export function useAiFallback() {
       emitEvent(FallbackEvent.FAILED, {
         path: fallbackPath,
         error: lastError,
-      })
+      });
 
       return {
         success: false,
@@ -658,9 +692,9 @@ export function useAiFallback() {
         fallbackPath,
         totalDuration: Date.now() - startTime,
         error: lastError,
-      }
+      };
     } finally {
-      fallbackState.setFallingBack(false)
+      fallbackState.setFallingBack(false);
 
       // 调用完成回调
       if (mergedOptions.onFallbackComplete) {
@@ -671,11 +705,11 @@ export function useAiFallback() {
           fallbackPath,
           totalDuration: Date.now() - startTime,
           error: lastError,
-        }
-        mergedOptions.onFallbackComplete(result)
+        };
+        mergedOptions.onFallbackComplete(result);
       }
     }
-  }
+  };
 
   /**
    * 创建模型操作映射
@@ -688,21 +722,21 @@ export function useAiFallback() {
   const createOperations = <T>(
     apiOperation: LevelOperation<T>,
     localOperation?: LevelOperation<T>,
-    originalOperation?: LevelOperation<T>
+    originalOperation?: LevelOperation<T>,
   ): Map<FallbackLevel, LevelOperation<T>> => {
-    const operations = new Map<FallbackLevel, LevelOperation<T>>()
-    operations.set(FallbackLevel.API, apiOperation)
+    const operations = new Map<FallbackLevel, LevelOperation<T>>();
+    operations.set(FallbackLevel.API, apiOperation);
 
     if (localOperation) {
-      operations.set(FallbackLevel.LOCAL, localOperation)
+      operations.set(FallbackLevel.LOCAL, localOperation);
     }
 
     if (originalOperation) {
-      operations.set(FallbackLevel.ORIGINAL, originalOperation)
+      operations.set(FallbackLevel.ORIGINAL, originalOperation);
     }
 
-    return operations
-  }
+    return operations;
+  };
 
   return {
     // 状态
@@ -738,7 +772,7 @@ export function useAiFallback() {
     getFallbackLevelName,
     FallbackLevel,
     FallbackEvent,
-  }
+  };
 }
 
 /**
@@ -750,4 +784,4 @@ export type {
   FallbackOptions,
   FallbackState,
   FallbackEventHandler,
-}
+};

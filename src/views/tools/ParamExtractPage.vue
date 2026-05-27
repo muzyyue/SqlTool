@@ -146,12 +146,7 @@ import { useParamExtractor } from "@/composables/useParamExtractor";
 const extractor = useParamExtractor();
 
 // 直接解构 computed 属性和 reactive 状态（无需 toRefs）
-const {
-  isLoading,
-  filteredItems,
-  hasResults,
-  hasSelectedItem,
-} = extractor;
+const { isLoading, filteredItems, hasResults, hasSelectedItem } = extractor;
 
 /**
  * 选中的详情查看器组件类型（仅SQL）
@@ -255,8 +250,17 @@ function handleFilter(filterKey) {
     inset: 0;
     z-index: 0;
     opacity: 0.15;
-    background-image: radial-gradient(circle at 20% 50%, rgba(22, 119, 255, 0.08) 0%, transparent 50%),
-                      radial-gradient(circle at 80% 80%, rgba(168, 85, 247, 0.06) 0%, transparent 50%);
+    background-image:
+      radial-gradient(
+        circle at 20% 50%,
+        rgba(22, 119, 255, 0.08) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 80% 80%,
+        rgba(168, 85, 247, 0.06) 0%,
+        transparent 50%
+      );
     pointer-events: none;
     transform: translateZ(0);
     will-change: transform;
@@ -380,7 +384,9 @@ function handleFilter(filterKey) {
     border: 1px solid var(--border-default);
     box-shadow: var(--shadow-sm);
     overflow: hidden;
-    transition: opacity 0.25s ease, transform 0.25s ease;
+    transition:
+      opacity 0.25s ease,
+      transform 0.25s ease;
     min-height: 380px;
     contain: layout style;
 
@@ -491,7 +497,10 @@ function handleFilter(filterKey) {
         background: var(--bg-sunken);
         border: 1px solid var(--border-default);
         border-radius: 10px;
-        transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+        transition:
+          background-color 0.2s ease,
+          border-color 0.2s ease,
+          transform 0.15s ease;
 
         &:hover {
           background: var(--interactive-hover);
@@ -530,7 +539,9 @@ function handleFilter(filterKey) {
     }
 
     .hint-item {
-      transition: background-color 0.1s ease, border-color 0.1s ease;
+      transition:
+        background-color 0.1s ease,
+        border-color 0.1s ease;
     }
   }
 }

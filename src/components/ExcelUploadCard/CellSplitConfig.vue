@@ -2,7 +2,9 @@
   <div class="cell-split-config">
     <a-divider style="margin: 12px 0" />
     <div class="cell-split-header">
-      <a-checkbox :checked="enabled" @change="handleToggle"> 启用单元格数据拆分 </a-checkbox>
+      <a-checkbox :checked="enabled" @change="handleToggle">
+        启用单元格数据拆分
+      </a-checkbox>
       <a-tooltip title="将单元格内使用分隔符分割的多个数据项拆分成多行数据">
         <QuestionCircleOutlined />
       </a-tooltip>
@@ -36,7 +38,9 @@
           @pressEnter="handleApply"
           @input="handleCustomSeparatorInput"
         />
-        <a-button type="primary" size="small" @click="handleApply"> 应用 </a-button>
+        <a-button type="primary" size="small" @click="handleApply">
+          应用
+        </a-button>
       </div>
       <div v-if="stats.expandedRows > 0" class="cell-split-stats">
         <a-tag color="blue">原始: {{ stats.originalRows }} 行</a-tag>
@@ -48,7 +52,7 @@
 </template>
 
 <script setup>
-import { QuestionCircleOutlined } from '@ant-design/icons-vue'
+import { QuestionCircleOutlined } from "@ant-design/icons-vue";
 
 defineProps({
   enabled: {
@@ -57,11 +61,11 @@ defineProps({
   },
   separator: {
     type: String,
-    default: ',',
+    default: ",",
   },
   customSeparator: {
     type: String,
-    default: '',
+    default: "",
   },
   stats: {
     type: Object,
@@ -71,25 +75,30 @@ defineProps({
       expandedRows: 0,
     }),
   },
-})
+});
 
-const emit = defineEmits(['toggle', 'separator-change', 'apply', 'update:customSeparator'])
+const emit = defineEmits([
+  "toggle",
+  "separator-change",
+  "apply",
+  "update:customSeparator",
+]);
 
 const handleToggle = (e) => {
-  emit('toggle', e.target.checked)
-}
+  emit("toggle", e.target.checked);
+};
 
 const handleSeparatorChange = (value) => {
-  emit('separator-change', value)
-}
+  emit("separator-change", value);
+};
 
 const handleCustomSeparatorInput = (value) => {
-  emit('update:customSeparator', value)
-}
+  emit("update:customSeparator", value);
+};
 
 const handleApply = () => {
-  emit('apply')
-}
+  emit("apply");
+};
 </script>
 
 <style scoped>
@@ -153,7 +162,6 @@ const handleApply = () => {
 }
 
 .cell-split-separator .ant-select {
-
   /* 性能优化：只过渡 border-color, box-shadow */
   transition:
     border-color var(--transition-fast, 120ms) ease,
@@ -183,7 +191,6 @@ const handleApply = () => {
 }
 
 .cell-split-custom-separator .ant-input {
-
   /* 性能优化：只过渡 border-color, box-shadow */
   transition:
     border-color var(--transition-fast, 120ms) ease,

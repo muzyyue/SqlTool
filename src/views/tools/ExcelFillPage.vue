@@ -157,10 +157,7 @@
         />
       </VbenGlassCard>
 
-      <div
-        class="action-buttons"
-        v-if="workbook"
-      >
+      <div class="action-buttons" v-if="workbook">
         <template v-if="activeTabKey === 'extract'">
           <a-button
             type="primary"
@@ -186,7 +183,9 @@
             size="large"
             :loading="processing"
             :disabled="
-              activeTabKey === 'advanced' ? !canProcessAdvanced : !canProcessBasic
+              activeTabKey === 'advanced'
+                ? !canProcessAdvanced
+                : !canProcessBasic
             "
             @click="handleProcess"
           >
@@ -375,17 +374,17 @@ import {
 import VbenGlassCard from "@/components/common/VbenGlassCard.vue";
 
 // 异步加载 Tab 组件（优化首屏性能，减少不必要的 JS 解析）
-const BasicFillTab = defineAsyncComponent(() =>
-  import("@/components/excel/BasicFillTab.vue")
+const BasicFillTab = defineAsyncComponent(
+  () => import("@/components/excel/BasicFillTab.vue"),
 );
-const AdvancedFillTab = defineAsyncComponent(() =>
-  import("@/components/excel/AdvancedFillTab.vue")
+const AdvancedFillTab = defineAsyncComponent(
+  () => import("@/components/excel/AdvancedFillTab.vue"),
 );
-const QuoteConvertTab = defineAsyncComponent(() =>
-  import("@/components/excel/QuoteConvertTab.vue")
+const QuoteConvertTab = defineAsyncComponent(
+  () => import("@/components/excel/QuoteConvertTab.vue"),
 );
-const ParamExtractTab = defineAsyncComponent(() =>
-  import("@/components/excel-fill/ParamExtractTab.vue")
+const ParamExtractTab = defineAsyncComponent(
+  () => import("@/components/excel-fill/ParamExtractTab.vue"),
 );
 
 import * as XLSX from "xlsx";
@@ -2073,7 +2072,9 @@ const handleReset = () => {
     padding: 12px 24px;
     font-size: 15px;
     font-weight: 500;
-    transition: color 0.2s ease, background-color 0.2s ease;
+    transition:
+      color 0.2s ease,
+      background-color 0.2s ease;
 
     &:hover {
       color: $color-primary;
@@ -2121,7 +2122,9 @@ const handleReset = () => {
 // 进度条过渡动画（使用 opacity 和 transform 避免布局抖动）
 .progress-fade-enter-active,
 .progress-fade-leave-active {
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
   overflow: hidden;
 }
 

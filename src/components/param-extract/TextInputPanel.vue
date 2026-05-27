@@ -241,7 +241,11 @@ defineExpose({
     border: none;
     border-radius: 10px;
     cursor: pointer;
-    transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, transform 0.15s ease;
+    transition:
+      background-color 0.25s ease,
+      border-color 0.25s ease,
+      box-shadow 0.25s ease,
+      transform 0.15s ease;
     white-space: nowrap;
     flex-shrink: 0;
 
@@ -314,7 +318,10 @@ defineExpose({
     border-radius: 12px;
     background: var(--bg-base);
     border: 2px solid transparent;
-    transition: border-color,background,box-shadow 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    transition:
+      border-color,
+      background,
+      box-shadow 0.3s cubic-bezier(0.32, 0.72, 0, 1);
 
     &.is-focused {
       border-color: var(--border-focus);

@@ -2,17 +2,27 @@
   <Tooltip :title="tooltipContent" :placement="tooltipPlacement">
     <div
       class="ai-status-indicator"
-      :class="[`status-${currentStatus}`, `size-${size}`, { clickable: clickable }]"
+      :class="[
+        `status-${currentStatus}`,
+        `size-${size}`,
+        { clickable: clickable },
+      ]"
       @click="handleClick"
     >
       <!-- Loading 状态：显示旋转图标 -->
-      <span v-if="currentStatus === 'loading'" class="status-icon spin-icon" :class="statusConfig.icon"></span>
+      <span
+        v-if="currentStatus === 'loading'"
+        class="status-icon spin-icon"
+        :class="statusConfig.icon"
+      ></span>
 
       <!-- 其他状态：显示对应图标 -->
       <span v-else class="status-icon" :class="statusConfig.icon"></span>
 
       <!-- 状态文字 -->
-      <span v-if="showLabel" class="status-label">{{ statusConfig.label }}</span>
+      <span v-if="showLabel" class="status-label">{{
+        statusConfig.label
+      }}</span>
     </div>
   </Tooltip>
 </template>
@@ -40,9 +50,9 @@
  * <!-- 自定义状态 -->
  * <AiStatusIndicator status="loading" />
  */
-import { computed } from 'vue'
-import { Tooltip } from 'ant-design-vue'
-import { useAiStore, AI_STATUS_CONFIG } from '@/stores/ai.js'
+import { computed } from "vue";
+import { Tooltip } from "ant-design-vue";
+import { useAiStore, AI_STATUS_CONFIG } from "@/stores/ai.js";
 
 /**
  * AI 状态类型
@@ -71,8 +81,8 @@ const props = defineProps({
    */
   size: {
     type: String,
-    default: 'default',
-    validator: (value) => ['small', 'default', 'large'].includes(value),
+    default: "default",
+    validator: (value) => ["small", "default", "large"].includes(value),
   },
 
   /**
@@ -82,7 +92,9 @@ const props = defineProps({
   status: {
     type: String,
     default: null,
-    validator: (value) => value === null || ['ready', 'loading', 'error', 'disabled'].includes(value),
+    validator: (value) =>
+      value === null ||
+      ["ready", "loading", "error", "disabled"].includes(value),
   },
 
   /**
@@ -100,9 +112,9 @@ const props = defineProps({
    */
   tooltipPlacement: {
     type: String,
-    default: 'top',
+    default: "top",
   },
-})
+});
 
 // ===== Emits 定义 =====
 const emit = defineEmits([
@@ -110,16 +122,16 @@ const emit = defineEmits([
    * 状态切换事件
    * @param {AiStatus} newStatus - 新状态
    */
-  'toggle',
+  "toggle",
   /**
    * 点击事件
    * @param {Event} event - 原生点击事件
    */
-  'click',
-])
+  "click",
+]);
 
 // ===== Store =====
-const aiStore = useAiStore()
+const aiStore = useAiStore();
 
 // ===== 计算属性 =====
 
@@ -128,37 +140,37 @@ const aiStore = useAiStore()
  * @returns {AiStatus}
  */
 const currentStatus = computed(() => {
-  return props.status || aiStore.status
-})
+  return props.status || aiStore.status;
+});
 
 /**
  * 当前状态配置
  * @returns {{ color: string, label: string, icon: string, description: string }}
  */
 const statusConfig = computed(() => {
-  return AI_STATUS_CONFIG[currentStatus.value]
-})
+  return AI_STATUS_CONFIG[currentStatus.value];
+});
 
 /**
  * Tooltip 内容
  * @returns {String}
  */
 const tooltipContent = computed(() => {
-  const config = statusConfig.value
-  let content = config.description
+  const config = statusConfig.value;
+  let content = config.description;
 
   // 如果有错误信息，追加显示
-  if (currentStatus.value === 'error' && aiStore.errorMessage) {
-    content += `：${aiStore.errorMessage}`
+  if (currentStatus.value === "error" && aiStore.errorMessage) {
+    content += `：${aiStore.errorMessage}`;
   }
 
   // 如果可点击，提示可操作
   if (props.clickable && aiStore.canToggle) {
-    content += '（点击切换状态）'
+    content += "（点击切换状态）";
   }
 
-  return content
-})
+  return content;
+});
 
 // ===== 方法 =====
 
@@ -168,19 +180,19 @@ const tooltipContent = computed(() => {
  */
 const handleClick = (event) => {
   // 不可点击或正在加载时，不处理
-  if (!props.clickable || currentStatus.value === 'loading') {
-    return
+  if (!props.clickable || currentStatus.value === "loading") {
+    return;
   }
 
   // 触发点击事件
-  emit('click', event)
+  emit("click", event);
 
   // 切换 Store 状态
-  aiStore.toggleEnabled()
+  aiStore.toggleEnabled();
 
   // 触发状态切换事件
-  emit('toggle', aiStore.status)
-}
+  emit("toggle", aiStore.status);
+};
 </script>
 
 <style scoped>
@@ -200,7 +212,12 @@ const handleClick = (event) => {
   border-radius: var(--border-radius-xs);
   font-size: 13px;
   font-weight: 500;
-  transition: background var(--transition-fast) ease, border-color var(--transition-fast) ease, color var(--transition-fast) ease, opacity var(--transition-fast) ease, transform var(--transition-fast) ease;
+  transition:
+    background var(--transition-fast) ease,
+    border-color var(--transition-fast) ease,
+    color var(--transition-fast) ease,
+    opacity var(--transition-fast) ease,
+    transform var(--transition-fast) ease;
   cursor: default;
   user-select: none;
 }

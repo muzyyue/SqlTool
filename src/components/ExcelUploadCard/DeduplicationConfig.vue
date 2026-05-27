@@ -2,7 +2,9 @@
   <div class="deduplication-config">
     <a-divider style="margin: 12px 0" />
     <div class="deduplication-header">
-      <a-checkbox :checked="enabled" @change="handleToggle"> 启用数据去重 </a-checkbox>
+      <a-checkbox :checked="enabled" @change="handleToggle">
+        启用数据去重
+      </a-checkbox>
       <a-tooltip title="根据选定列的值去除重复数据行，仅保留每组的第一次出现">
         <QuestionCircleOutlined />
       </a-tooltip>
@@ -14,7 +16,11 @@
         style="width: 100%; max-width: 300px"
         @change="handleChange"
       >
-        <a-select-option v-for="(header, idx) in headers || []" :key="idx" :value="idx">
+        <a-select-option
+          v-for="(header, idx) in headers || []"
+          :key="idx"
+          :value="idx"
+        >
           {{ header }} (列{{ idx + 1 }})
         </a-select-option>
       </a-select>
@@ -28,7 +34,7 @@
 </template>
 
 <script setup>
-import { QuestionCircleOutlined } from '@ant-design/icons-vue'
+import { QuestionCircleOutlined } from "@ant-design/icons-vue";
 
 defineProps({
   enabled: {
@@ -51,17 +57,17 @@ defineProps({
     type: Array,
     default: () => [],
   },
-})
+});
 
-const emit = defineEmits(['toggle', 'change'])
+const emit = defineEmits(["toggle", "change"]);
 
 const handleToggle = (e) => {
-  emit('toggle', e.target.checked)
-}
+  emit("toggle", e.target.checked);
+};
 
 const handleChange = (value) => {
-  emit('change', value)
-}
+  emit("change", value);
+};
 </script>
 
 <style scoped>
@@ -113,7 +119,8 @@ const handleChange = (value) => {
 }
 
 .deduplication-controls .ant-select-focused {
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 30%, transparent);
+  box-shadow: 0 0 0 2px
+    color-mix(in srgb, var(--color-primary) 30%, transparent);
 }
 
 .deduplication-stats {
@@ -125,7 +132,9 @@ const handleChange = (value) => {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
-  transition: background,box-shadow var(--transition-normal, 200ms) ease;
+  transition:
+    background,
+    box-shadow var(--transition-normal, 200ms) ease;
 }
 
 .deduplication-stats:hover {
@@ -140,7 +149,11 @@ const handleChange = (value) => {
   font-weight: 500;
   padding: 6px 14px;
   border-radius: var(--border-radius-xs, 4px);
-  transition: color,border-color,box-shadow,transform var(--transition-fast, 120ms) ease;
+  transition:
+    color,
+    border-color,
+    box-shadow,
+    transform var(--transition-fast, 120ms) ease;
 }
 
 .deduplication-stats .ant-tag:hover {

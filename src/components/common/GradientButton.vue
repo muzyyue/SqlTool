@@ -41,7 +41,7 @@
  *   点击按钮
  * </GradientButton>
  */
-import { LoadingOutlined } from '@ant-design/icons-vue'
+import { LoadingOutlined } from "@ant-design/icons-vue";
 
 /**
  * 组件属性定义
@@ -50,14 +50,14 @@ const props = defineProps({
   /** 按钮类型：primary（主渐变）、secondary（次级） */
   type: {
     type: String,
-    default: 'primary',
-    validator: (value) => ['primary', 'secondary'].includes(value),
+    default: "primary",
+    validator: (value) => ["primary", "secondary"].includes(value),
   },
   /** 按钮尺寸：sm（小）、md（中）、lg（大） */
   size: {
     type: String,
-    default: 'md',
-    validator: (value) => ['sm', 'md', 'lg'].includes(value),
+    default: "md",
+    validator: (value) => ["sm", "md", "lg"].includes(value),
   },
   /** 是否禁用 */
   disabled: {
@@ -69,7 +69,7 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
-})
+});
 
 /**
  * 组件事件定义
@@ -77,7 +77,7 @@ const props = defineProps({
 const emit = defineEmits({
   /** 点击事件 */
   click: [event],
-})
+});
 
 /**
  * 处理点击事件
@@ -85,9 +85,9 @@ const emit = defineEmits({
  */
 const handleClick = (event) => {
   if (!props.disabled && !props.loading) {
-    emit('click', event)
+    emit("click", event);
   }
-}
+};
 </script>
 
 <style scoped>
@@ -135,7 +135,9 @@ const handleClick = (event) => {
 /**
  * Hover 效果：背景色加深
  */
-.gradient-button:hover:not(.gradient-button-disabled):not(.gradient-button-loading) {
+.gradient-button:hover:not(.gradient-button-disabled):not(
+    .gradient-button-loading
+  ) {
   background: var(--color-primary-hover);
   box-shadow: var(--shadow-md);
 }
@@ -143,7 +145,9 @@ const handleClick = (event) => {
 /**
  * Active 效果：缩放 0.98
  */
-.gradient-button:active:not(.gradient-button-disabled):not(.gradient-button-loading) {
+.gradient-button:active:not(.gradient-button-disabled):not(
+    .gradient-button-loading
+  ) {
   transform: scale(0.98);
 }
 
@@ -151,7 +155,8 @@ const handleClick = (event) => {
  * Focus 状态：显示焦点环
  */
 .gradient-button:focus-visible:not(.gradient-button-disabled) {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 30%, transparent);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--color-primary) 30%, transparent);
 }
 
 /**

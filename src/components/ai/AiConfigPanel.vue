@@ -49,7 +49,11 @@
             @change="handleProviderEnableChange('openai')"
           />
         </div>
-        <a-form layout="vertical" class="provider-form" v-if="providerStates.openai.enabled">
+        <a-form
+          layout="vertical"
+          class="provider-form"
+          v-if="providerStates.openai.enabled"
+        >
           <a-form-item label="API Key">
             <a-input-password
               v-model:value="providerStates.openai.apiKey"
@@ -87,7 +91,11 @@
             @change="handleProviderEnableChange('anthropic')"
           />
         </div>
-        <a-form layout="vertical" class="provider-form" v-if="providerStates.anthropic.enabled">
+        <a-form
+          layout="vertical"
+          class="provider-form"
+          v-if="providerStates.anthropic.enabled"
+        >
           <a-form-item label="API Key">
             <a-input-password
               v-model:value="providerStates.anthropic.apiKey"
@@ -125,7 +133,11 @@
             @change="handleProviderEnableChange('custom')"
           />
         </div>
-        <a-form layout="vertical" class="provider-form" v-if="providerStates.custom.enabled">
+        <a-form
+          layout="vertical"
+          class="provider-form"
+          v-if="providerStates.custom.enabled"
+        >
           <a-form-item label="API Key">
             <a-input-password
               v-model:value="providerStates.custom.apiKey"
@@ -156,7 +168,9 @@
       <div class="section-header">
         <span class="section-icon i-carbon-chip"></span>
         <h3 class="section-title">本地模型</h3>
-        <a-tag v-if="localModelEnabled" color="success" class="local-tag">已启用</a-tag>
+        <a-tag v-if="localModelEnabled" color="success" class="local-tag"
+          >已启用</a-tag
+        >
       </div>
 
       <a-form layout="vertical" class="local-form">
@@ -226,80 +240,86 @@
  * <AiConfigPanel />
  */
 
-import { ref, reactive, computed, onMounted } from 'vue'
-import { message, Modal } from 'ant-design-vue'
-import { useAiStore, AI_STATUS_CONFIG } from '@/stores/ai.js'
-import { useAiConfig } from '@/composables/ai/useAiConfig'
+import { ref, reactive, computed, onMounted } from "vue";
+import { message, Modal } from "ant-design-vue";
+import { useAiStore, AI_STATUS_CONFIG } from "@/stores/ai.js";
+import { useAiConfig } from "@/composables/ai/useAiConfig";
 
 // ==================== Store & Composable ====================
 
 /** AI Store 实例 */
-const aiStore = useAiStore()
+const aiStore = useAiStore();
 
 /** AI 配置管理实例 */
-const aiConfig = useAiConfig()
+const aiConfig = useAiConfig();
 
 // ==================== 响应式状态 ====================
 
 /** AI 功能是否启用 */
-const aiEnabled = ref(aiStore.isEnabled)
+const aiEnabled = ref(aiStore.isEnabled);
 
 /** 提供商状态 */
 const providerStates = reactive({
   openai: {
     enabled: false,
-    apiKey: '',
-    model: 'gpt-4o-mini',
-    baseUrl: 'https://api.openai.com/v1',
+    apiKey: "",
+    model: "gpt-4o-mini",
+    baseUrl: "https://api.openai.com/v1",
   },
   anthropic: {
     enabled: false,
-    apiKey: '',
-    model: 'claude-3-haiku-20240307',
-    baseUrl: 'https://api.anthropic.com/v1',
+    apiKey: "",
+    model: "claude-3-haiku-20240307",
+    baseUrl: "https://api.anthropic.com/v1",
   },
   custom: {
     enabled: false,
-    apiKey: '',
-    model: '',
-    baseUrl: '',
+    apiKey: "",
+    model: "",
+    baseUrl: "",
   },
-})
+});
 
 /** 本地模型启用状态 */
-const localModelEnabled = ref(false)
+const localModelEnabled = ref(false);
 
 /** 本地模型状态 */
 const localModelState = reactive({
   enabled: false,
-  modelId: 'Xenova/Qwen2.5-0.5B-Instruct',
+  modelId: "Xenova/Qwen2.5-0.5B-Instruct",
   quantized: true,
-})
+});
 
 // ==================== 模型选项配置 ====================
 
 /** OpenAI 模型选项 */
 const openaiModelOptions = [
-  { label: 'GPT-4o', value: 'gpt-4o' },
-  { label: 'GPT-4o Mini', value: 'gpt-4o-mini' },
-  { label: 'GPT-4 Turbo', value: 'gpt-4-turbo' },
-  { label: 'GPT-3.5 Turbo', value: 'gpt-3.5-turbo' },
-]
+  { label: "GPT-4o", value: "gpt-4o" },
+  { label: "GPT-4o Mini", value: "gpt-4o-mini" },
+  { label: "GPT-4 Turbo", value: "gpt-4-turbo" },
+  { label: "GPT-3.5 Turbo", value: "gpt-3.5-turbo" },
+];
 
 /** Anthropic 模型选项 */
 const anthropicModelOptions = [
-  { label: 'Claude 3 Opus', value: 'claude-3-opus-20240229' },
-  { label: 'Claude 3 Sonnet', value: 'claude-3-sonnet-20240229' },
-  { label: 'Claude 3 Haiku', value: 'claude-3-haiku-20240307' },
-]
+  { label: "Claude 3 Opus", value: "claude-3-opus-20240229" },
+  { label: "Claude 3 Sonnet", value: "claude-3-sonnet-20240229" },
+  { label: "Claude 3 Haiku", value: "claude-3-haiku-20240307" },
+];
 
 /** 本地模型选项 */
 const localModelOptions = [
-  { label: 'Qwen2.5-0.5B-Instruct (推荐)', value: 'Xenova/Qwen2.5-0.5B-Instruct' },
-  { label: 'Qwen2.5-1.5B-Instruct', value: 'Xenova/Qwen2.5-1.5B-Instruct' },
-  { label: 'Phi-3-mini-4k-instruct', value: 'Xenova/Phi-3-mini-4k-instruct' },
-  { label: 'TinyLlama-1.1B-Chat-v1.0', value: 'Xenova/TinyLlama-1.1B-Chat-v1.0' },
-]
+  {
+    label: "Qwen2.5-0.5B-Instruct (推荐)",
+    value: "Xenova/Qwen2.5-0.5B-Instruct",
+  },
+  { label: "Qwen2.5-1.5B-Instruct", value: "Xenova/Qwen2.5-1.5B-Instruct" },
+  { label: "Phi-3-mini-4k-instruct", value: "Xenova/Phi-3-mini-4k-instruct" },
+  {
+    label: "TinyLlama-1.1B-Chat-v1.0",
+    value: "Xenova/TinyLlama-1.1B-Chat-v1.0",
+  },
+];
 
 // ==================== 计算属性 ====================
 
@@ -309,42 +329,42 @@ const localModelOptions = [
  * @returns {'success' | 'info' | 'warning' | 'error'}
  */
 const statusAlertType = computed(() => {
-  const status = aiStore.status
+  const status = aiStore.status;
   const typeMap = {
-    ready: 'success',
-    loading: 'info',
-    error: 'error',
-    disabled: 'warning',
-  }
-  return typeMap[status] || 'info'
-})
+    ready: "success",
+    loading: "info",
+    error: "error",
+    disabled: "warning",
+  };
+  return typeMap[status] || "info";
+});
 
 /**
  * 状态提示消息
  * @returns {string}
  */
 const statusAlertMessage = computed(() => {
-  const status = aiStore.status
-  const config = AI_STATUS_CONFIG[status]
-  let msg = config.description
+  const status = aiStore.status;
+  const config = AI_STATUS_CONFIG[status];
+  let msg = config.description;
 
   // 如果有错误信息，追加显示
-  if (status === 'error' && aiStore.errorMessage) {
-    msg += `：${aiStore.errorMessage}`
+  if (status === "error" && aiStore.errorMessage) {
+    msg += `：${aiStore.errorMessage}`;
   }
 
-  return msg
-})
+  return msg;
+});
 
 /**
  * 状态图标类名
  * @returns {string}
  */
 const statusIconClass = computed(() => {
-  const status = aiStore.status
-  const config = AI_STATUS_CONFIG[status]
-  return config.icon
-})
+  const status = aiStore.status;
+  const config = AI_STATUS_CONFIG[status];
+  return config.icon;
+});
 
 // ==================== 方法定义 ====================
 
@@ -354,26 +374,26 @@ const statusIconClass = computed(() => {
  */
 const initConfig = () => {
   // 同步 AI 启用状态
-  aiEnabled.value = aiStore.isEnabled
+  aiEnabled.value = aiStore.isEnabled;
 
   // 同步提供商配置
-  const config = aiConfig.config.value
-  for (const provider of ['openai', 'anthropic', 'custom']) {
-    const p = config.providers[provider]
+  const config = aiConfig.config.value;
+  for (const provider of ["openai", "anthropic", "custom"]) {
+    const p = config.providers[provider];
     providerStates[provider] = {
       enabled: p.enabled,
       apiKey: p.apiKey,
       model: p.model,
       baseUrl: p.baseUrl,
-    }
+    };
   }
 
   // 同步本地模型配置
-  localModelEnabled.value = config.localModel.enabled
-  localModelState.enabled = config.localModel.enabled
-  localModelState.modelId = config.localModel.modelId
-  localModelState.quantized = config.localModel.quantized
-}
+  localModelEnabled.value = config.localModel.enabled;
+  localModelState.enabled = config.localModel.enabled;
+  localModelState.modelId = config.localModel.modelId;
+  localModelState.quantized = config.localModel.quantized;
+};
 
 /**
  * 处理 AI 功能启用状态变更
@@ -381,169 +401,182 @@ const initConfig = () => {
  */
 const handleAiEnabledChange = async (checked) => {
   if (checked) {
-    await aiStore.enable()
+    await aiStore.enable();
   } else {
-    aiStore.disable()
+    aiStore.disable();
   }
-}
+};
 
 /**
  * 处理提供商启用状态变更
  * @param {'openai' | 'anthropic' | 'custom'} provider - 提供商名称
  */
 const handleProviderEnableChange = (provider) => {
-  const state = providerStates[provider]
+  const state = providerStates[provider];
   // 如果启用但没有 API Key，提示用户输入
   if (state.enabled && !state.apiKey) {
     const providerName =
-      provider === 'openai' ? 'OpenAI' : provider === 'anthropic' ? 'Anthropic' : '自定义'
-    message.info(`请输入 ${providerName} 的 API Key`)
+      provider === "openai"
+        ? "OpenAI"
+        : provider === "anthropic"
+          ? "Anthropic"
+          : "自定义";
+    message.info(`请输入 ${providerName} 的 API Key`);
   }
   // 更新配置
   if (state.apiKey) {
-    aiConfig.setApiKey(provider, state.apiKey)
+    aiConfig.setApiKey(provider, state.apiKey);
   }
-}
+};
 
 /**
  * 处理 API Key 变更
  * @param {'openai' | 'anthropic' | 'custom'} provider - 提供商名称
  */
 const handleApiKeyChange = (provider) => {
-  const apiKey = providerStates[provider].apiKey
-  aiConfig.setApiKey(provider, apiKey)
+  const apiKey = providerStates[provider].apiKey;
+  aiConfig.setApiKey(provider, apiKey);
 
   // 如果有 API Key，自动启用该提供商
   if (apiKey) {
-    providerStates[provider].enabled = true
+    providerStates[provider].enabled = true;
   }
 
   // 重新检查可用性
   if (aiEnabled.value) {
-    aiStore.checkAvailability()
+    aiStore.checkAvailability();
   }
-}
+};
 
 /**
  * 处理模型变更
  * @param {'openai' | 'anthropic' | 'custom'} provider - 提供商名称
  */
 const handleModelChange = (provider) => {
-  const model = providerStates[provider].model
-  aiConfig.setModel(provider, model)
-}
+  const model = providerStates[provider].model;
+  aiConfig.setModel(provider, model);
+};
 
 /**
  * 处理 Base URL 变更
  * @param {'openai' | 'anthropic' | 'custom'} provider - 提供商名称
  */
 const handleBaseUrlChange = (provider) => {
-  const baseUrl = providerStates[provider].baseUrl
-  aiConfig.setBaseUrl(provider, baseUrl)
-}
+  const baseUrl = providerStates[provider].baseUrl;
+  aiConfig.setBaseUrl(provider, baseUrl);
+};
 
 /**
  * 处理本地模型启用状态变更
  * @param {boolean} enabled - 是否启用
  */
 const handleLocalModelEnableChange = (enabled) => {
-  localModelState.enabled = enabled
-  aiConfig.setLocalModelConfig(localModelState.modelId, localModelState.quantized)
+  localModelState.enabled = enabled;
+  aiConfig.setLocalModelConfig(
+    localModelState.modelId,
+    localModelState.quantized,
+  );
 
   // 重新检查可用性
   if (aiEnabled.value) {
-    aiStore.checkAvailability()
+    aiStore.checkAvailability();
   }
-}
+};
 
 /**
  * 处理本地模型配置变更
  */
 const handleLocalModelChange = () => {
-  aiConfig.setLocalModelConfig(localModelState.modelId, localModelState.quantized)
+  aiConfig.setLocalModelConfig(
+    localModelState.modelId,
+    localModelState.quantized,
+  );
 
   // 重新检查可用性
   if (aiEnabled.value) {
-    aiStore.checkAvailability()
+    aiStore.checkAvailability();
   }
-}
+};
 
 /**
  * 保存配置
  */
 const handleSave = () => {
   // 保存提供商配置
-  for (const provider of ['openai', 'anthropic', 'custom']) {
-    const state = providerStates[provider]
+  for (const provider of ["openai", "anthropic", "custom"]) {
+    const state = providerStates[provider];
     if (state.apiKey) {
-      aiConfig.setApiKey(provider, state.apiKey)
+      aiConfig.setApiKey(provider, state.apiKey);
     }
-    aiConfig.setModel(provider, state.model)
-    aiConfig.setBaseUrl(provider, state.baseUrl)
+    aiConfig.setModel(provider, state.model);
+    aiConfig.setBaseUrl(provider, state.baseUrl);
   }
 
   // 保存本地模型配置
-  aiConfig.setLocalModelConfig(localModelState.modelId, localModelState.quantized)
+  aiConfig.setLocalModelConfig(
+    localModelState.modelId,
+    localModelState.quantized,
+  );
 
-  message.success('配置已保存')
+  message.success("配置已保存");
 
   // 重新检查可用性
   if (aiEnabled.value) {
-    aiStore.checkAvailability()
+    aiStore.checkAvailability();
   }
-}
+};
 
 /**
  * 重置配置
  */
 const handleReset = () => {
   Modal.confirm({
-    title: '确认重置',
-    content: '确定要重置所有 AI 配置吗？这将清除所有 API Key 和模型设置。',
-    okText: '确认重置',
-    cancelText: '取消',
-    okType: 'danger',
+    title: "确认重置",
+    content: "确定要重置所有 AI 配置吗？这将清除所有 API Key 和模型设置。",
+    okText: "确认重置",
+    cancelText: "取消",
+    okType: "danger",
     onOk: () => {
       // 重置配置
-      aiConfig.resetConfig()
+      aiConfig.resetConfig();
 
       // 重置本地状态
       providerStates.openai = {
         enabled: false,
-        apiKey: '',
-        model: 'gpt-4o-mini',
-        baseUrl: 'https://api.openai.com/v1',
-      }
+        apiKey: "",
+        model: "gpt-4o-mini",
+        baseUrl: "https://api.openai.com/v1",
+      };
       providerStates.anthropic = {
         enabled: false,
-        apiKey: '',
-        model: 'claude-3-haiku-20240307',
-        baseUrl: 'https://api.anthropic.com/v1',
-      }
+        apiKey: "",
+        model: "claude-3-haiku-20240307",
+        baseUrl: "https://api.anthropic.com/v1",
+      };
       providerStates.custom = {
         enabled: false,
-        apiKey: '',
-        model: '',
-        baseUrl: '',
-      }
-      localModelEnabled.value = true
-      localModelState.enabled = true
-      localModelState.modelId = 'Xenova/Qwen2.5-0.5B-Instruct'
-      localModelState.quantized = true
+        apiKey: "",
+        model: "",
+        baseUrl: "",
+      };
+      localModelEnabled.value = true;
+      localModelState.enabled = true;
+      localModelState.modelId = "Xenova/Qwen2.5-0.5B-Instruct";
+      localModelState.quantized = true;
 
       // 禁用 AI 功能
-      aiStore.disable()
+      aiStore.disable();
 
-      message.success('配置已重置')
+      message.success("配置已重置");
     },
-  })
-}
+  });
+};
 
 // ==================== 生命周期 ====================
 
 onMounted(() => {
-  initConfig()
-})
+  initConfig();
+});
 </script>
 
 <style scoped>
@@ -571,7 +604,9 @@ onMounted(() => {
   border: 1px solid var(--border-glass-strong);
   border-radius: var(--border-radius-md);
   padding: 20px;
-  transition: background var(--transition-normal) ease, box-shadow var(--transition-normal) ease;
+  transition:
+    background var(--transition-normal) ease,
+    box-shadow var(--transition-normal) ease;
 }
 
 .config-section:hover {

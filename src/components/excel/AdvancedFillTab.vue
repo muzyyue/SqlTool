@@ -8,55 +8,65 @@
           @change="handleSourceSheetChange"
           style="width: 300px"
         >
-          <a-select-option v-for="sheet in sheetNames" :key="sheet" :value="sheet">
+          <a-select-option
+            v-for="sheet in sheetNames"
+            :key="sheet"
+            :value="sheet"
+          >
             {{ sheet }}
           </a-select-option>
         </a-select>
-          <template #extra>
-            <span class="hint-text"> 选择包含源数据列的工作表 </span>
-          </template>
+        <template #extra>
+          <span class="hint-text"> 选择包含源数据列的工作表 </span>
+        </template>
       </a-form-item>
 
       <a-alert
-          v-if="localAdvancedConfig.sourceSheetName && sourceWorksheet"
-          type="info"
-          show-icon
-          style="margin-bottom: 16px"
-        >
-          <template #message>
-            <div class="sheet-info">
-              <div class="sheet-info-item">
-                <span class="sheet-info-label">工作表名称:</span>
-                <span class="sheet-info-value">{{ localAdvancedConfig.sourceSheetName }}</span>
-              </div>
-              <div class="sheet-info-item">
-                <span class="sheet-info-label">列数:</span>
-                <span class="sheet-info-value">{{ sourceColumns.length }}</span>
-              </div>
-              <div class="sheet-info-item">
-                <span class="sheet-info-label">行数:</span>
-                <span class="sheet-info-value">{{ sheetRowCount }}</span>
-              </div>
+        v-if="localAdvancedConfig.sourceSheetName && sourceWorksheet"
+        type="info"
+        show-icon
+        style="margin-bottom: 16px"
+      >
+        <template #message>
+          <div class="sheet-info">
+            <div class="sheet-info-item">
+              <span class="sheet-info-label">工作表名称:</span>
+              <span class="sheet-info-value">{{
+                localAdvancedConfig.sourceSheetName
+              }}</span>
             </div>
-          </template>
-        </a-alert>
+            <div class="sheet-info-item">
+              <span class="sheet-info-label">列数:</span>
+              <span class="sheet-info-value">{{ sourceColumns.length }}</span>
+            </div>
+            <div class="sheet-info-item">
+              <span class="sheet-info-label">行数:</span>
+              <span class="sheet-info-value">{{ sheetRowCount }}</span>
+            </div>
+          </div>
+        </template>
+      </a-alert>
 
       <a-form-item label="源数据列">
-          <a-select
-            v-model:value="localAdvancedConfig.sourceColumnForSplit"
-            placeholder="选择源数据列（用于分割）"
-            show-search
-            :filter-option="filterOption"
-            style="width: 300px"
-            @change="handleSourceColumnForSplitChange"
+        <a-select
+          v-model:value="localAdvancedConfig.sourceColumnForSplit"
+          placeholder="选择源数据列（用于分割）"
+          show-search
+          :filter-option="filterOption"
+          style="width: 300px"
+          @change="handleSourceColumnForSplitChange"
+        >
+          <a-select-option
+            v-for="col in sourceColumns"
+            :key="col.letter"
+            :value="col.letter"
           >
-            <a-select-option v-for="col in sourceColumns" :key="col.letter" :value="col.letter">
-              {{ col.letter }} ({{ col.name }})
-            </a-select-option>
-          </a-select>
-          <template #extra>
-            <span class="hint-text"> 选择包含需要分割的数据的列 </span>
-          </template>
+            {{ col.letter }} ({{ col.name }})
+          </a-select-option>
+        </a-select>
+        <template #extra>
+          <span class="hint-text"> 选择包含需要分割的数据的列 </span>
+        </template>
       </a-form-item>
 
       <a-form-item label="数据分割符">
@@ -68,11 +78,11 @@
         >
           <a-select-option
             v-for="option in splitDelimiterOptions"
-              :key="option.value"
-              :value="option.value"
-            >
-              {{ option.label }}
-            </a-select-option>
+            :key="option.value"
+            :value="option.value"
+          >
+            {{ option.label }}
+          </a-select-option>
         </a-select>
         <a-input
           v-if="isCustomSplitDelimiter"
@@ -92,38 +102,44 @@
           @change="handleMatchSheetChange"
           style="width: 300px"
         >
-          <a-select-option v-for="sheet in sheetNames" :key="sheet" :value="sheet">
+          <a-select-option
+            v-for="sheet in sheetNames"
+            :key="sheet"
+            :value="sheet"
+          >
             {{ sheet }}
           </a-select-option>
         </a-select>
-          <template #extra>
-            <span class="hint-text"> 选择包含查询匹配列和提取列的工作表 </span>
-          </template>
+        <template #extra>
+          <span class="hint-text"> 选择包含查询匹配列和提取列的工作表 </span>
+        </template>
       </a-form-item>
 
       <a-alert
-          v-if="localAdvancedConfig.matchSheetName && matchWorksheet"
-          type="info"
-          show-icon
-          style="margin-bottom: 16px"
-        >
-          <template #message>
-            <div class="sheet-info">
-              <div class="sheet-info-item">
-                <span class="sheet-info-label">工作表名称:</span>
-                <span class="sheet-info-value">{{ localAdvancedConfig.matchSheetName }}</span>
-              </div>
-              <div class="sheet-info-item">
-                <span class="sheet-info-label">列数:</span>
-                <span class="sheet-info-value">{{ matchColumns.length }}</span>
-              </div>
-              <div class="sheet-info-item">
-                <span class="sheet-info-label">行数:</span>
-                <span class="sheet-info-value">{{ matchSheetRowCount }}</span>
-              </div>
+        v-if="localAdvancedConfig.matchSheetName && matchWorksheet"
+        type="info"
+        show-icon
+        style="margin-bottom: 16px"
+      >
+        <template #message>
+          <div class="sheet-info">
+            <div class="sheet-info-item">
+              <span class="sheet-info-label">工作表名称:</span>
+              <span class="sheet-info-value">{{
+                localAdvancedConfig.matchSheetName
+              }}</span>
             </div>
-          </template>
-        </a-alert>
+            <div class="sheet-info-item">
+              <span class="sheet-info-label">列数:</span>
+              <span class="sheet-info-value">{{ matchColumns.length }}</span>
+            </div>
+            <div class="sheet-info-item">
+              <span class="sheet-info-label">行数:</span>
+              <span class="sheet-info-value">{{ matchSheetRowCount }}</span>
+            </div>
+          </div>
+        </template>
+      </a-alert>
 
       <a-form-item label="查询匹配列">
         <a-select
@@ -134,13 +150,17 @@
           style="width: 300px"
           @change="handleMatchColumnChange"
         >
-          <a-select-option v-for="col in matchColumns" :key="col.letter" :value="col.letter">
+          <a-select-option
+            v-for="col in matchColumns"
+            :key="col.letter"
+            :value="col.letter"
+          >
             {{ col.letter }} ({{ col.name }})
           </a-select-option>
         </a-select>
-          <template #extra>
-            <span class="hint-text"> 在此列中查找与分割后的数据项匹配的行 </span>
-          </template>
+        <template #extra>
+          <span class="hint-text"> 在此列中查找与分割后的数据项匹配的行 </span>
+        </template>
       </a-form-item>
 
       <a-form-item label="提取列选择">
@@ -153,13 +173,17 @@
           style="width: 100%"
           @change="handleExtractColumnsChange"
         >
-          <a-select-option v-for="col in matchColumns" :key="col.letter" :value="col.letter">
+          <a-select-option
+            v-for="col in matchColumns"
+            :key="col.letter"
+            :value="col.letter"
+          >
             {{ col.letter }} ({{ col.name }})
           </a-select-option>
         </a-select>
-          <template #extra>
-            <span class="hint-text"> 从匹配到的行中提取指定列的数据 </span>
-          </template>
+        <template #extra>
+          <span class="hint-text"> 从匹配到的行中提取指定列的数据 </span>
+        </template>
       </a-form-item>
 
       <a-form-item label="目标工作表" v-if="hasMultipleSheets">
@@ -169,13 +193,17 @@
           @change="handleTargetSheetChange"
           style="width: 300px"
         >
-          <a-select-option v-for="sheet in sheetNames" :key="sheet" :value="sheet">
+          <a-select-option
+            v-for="sheet in sheetNames"
+            :key="sheet"
+            :value="sheet"
+          >
             {{ sheet }}
           </a-select-option>
         </a-select>
-          <template #extra>
-            <span class="hint-text"> 选择用于填充数据的目标工作表 </span>
-          </template>
+        <template #extra>
+          <span class="hint-text"> 选择用于填充数据的目标工作表 </span>
+        </template>
       </a-form-item>
       <a-form-item label="结果拼接符">
         <a-input
@@ -187,7 +215,6 @@
           <span class="hint-text"> 用于拼接多个提取的数据项 </span>
         </template>
       </a-form-item>
-       
 
       <a-form-item label="结果填充列">
         <a-select
@@ -199,42 +226,49 @@
           style="width: 300px"
           @change="handleResultColumnChange"
         >
-          <a-select-option v-for="col in sourceColumns" :key="col.letter" :value="col.letter">
+          <a-select-option
+            v-for="col in sourceColumns"
+            :key="col.letter"
+            :value="col.letter"
+          >
             {{ col.letter }} ({{ col.name }})
           </a-select-option>
         </a-select>
-          <template #extra>
-            <span class="hint-text"> 不选择则填充到源工作表的结果列 </span>
-          </template>
+        <template #extra>
+          <span class="hint-text"> 不选择则填充到源工作表的结果列 </span>
+        </template>
       </a-form-item>
 
-     
-
       <a-alert
-          v-if="localAdvancedConfig.targetSheetName && targetWorksheet"
-          type="info"
-          show-icon
-          style="margin-bottom: 16px"
-        >
-          <template #message>
-            <div class="sheet-info">
-              <div class="sheet-info-item">
-                <span class="sheet-info-label">工作表名称:</span>
-                <span class="sheet-info-value">{{ localAdvancedConfig.targetSheetName }}</span>
-              </div>
-              <div class="sheet-info-item">
-                <span class="sheet-info-label">列数:</span>
-                <span class="sheet-info-value">{{ targetColumns.length }}</span>
-              </div>
-              <div class="sheet-info-item">
-                <span class="sheet-info-label">行数:</span>
-                <span class="sheet-info-value">{{ targetSheetRowCount }}</span>
-              </div>
+        v-if="localAdvancedConfig.targetSheetName && targetWorksheet"
+        type="info"
+        show-icon
+        style="margin-bottom: 16px"
+      >
+        <template #message>
+          <div class="sheet-info">
+            <div class="sheet-info-item">
+              <span class="sheet-info-label">工作表名称:</span>
+              <span class="sheet-info-value">{{
+                localAdvancedConfig.targetSheetName
+              }}</span>
             </div>
-          </template>
-        </a-alert>
+            <div class="sheet-info-item">
+              <span class="sheet-info-label">列数:</span>
+              <span class="sheet-info-value">{{ targetColumns.length }}</span>
+            </div>
+            <div class="sheet-info-item">
+              <span class="sheet-info-label">行数:</span>
+              <span class="sheet-info-value">{{ targetSheetRowCount }}</span>
+            </div>
+          </div>
+        </template>
+      </a-alert>
 
-      <a-form-item label="目标填充列" v-if="localAdvancedConfig.targetSheetName">
+      <a-form-item
+        label="目标填充列"
+        v-if="localAdvancedConfig.targetSheetName"
+      >
         <a-select
           v-model:value="localAdvancedConfig.targetColumn"
           placeholder="选择目标工作表中的填充列"
@@ -244,13 +278,17 @@
           style="width: 300px"
           @change="handleTargetColumnChange"
         >
-          <a-select-option v-for="col in targetColumns" :key="col.letter" :value="col.letter">
+          <a-select-option
+            v-for="col in targetColumns"
+            :key="col.letter"
+            :value="col.letter"
+          >
             {{ col.letter }} ({{ col.name }})
           </a-select-option>
         </a-select>
-          <template #extra>
-            <span class="hint-text"> 选择目标工作表中用于填充数据的列 </span>
-          </template>
+        <template #extra>
+          <span class="hint-text"> 选择目标工作表中用于填充数据的列 </span>
+        </template>
       </a-form-item>
 
       <a-form-item label="未匹配处理">
@@ -260,7 +298,10 @@
         </a-radio-group>
       </a-form-item>
 
-      <a-form-item label="默认值" v-if="localAdvancedConfig.noMatchAction === 'default'">
+      <a-form-item
+        label="默认值"
+        v-if="localAdvancedConfig.noMatchAction === 'default'"
+      >
         <a-input
           v-model:value="localAdvancedConfig.defaultValue"
           placeholder="请输入默认值"

@@ -80,7 +80,7 @@
                 <template #icon>
                   <span v-if="!isGenerating" class="i-carbon-magic-wand"></span>
                 </template>
-                {{ isGenerating ? '生成中...' : '生成正则' }}
+                {{ isGenerating ? "生成中..." : "生成正则" }}
               </a-button>
             </div>
 
@@ -95,7 +95,11 @@
                     </template>
                     复制
                   </a-button>
-                  <a-button type="link" size="small" @click="handleClearGenerate">
+                  <a-button
+                    type="link"
+                    size="small"
+                    @click="handleClearGenerate"
+                  >
                     <template #icon>
                       <span class="i-carbon-close"></span>
                     </template>
@@ -144,9 +148,12 @@
                 @click="handleExplain"
               >
                 <template #icon>
-                  <span v-if="!isExplaining" class="i-carbon-text-annotation-toggle"></span>
+                  <span
+                    v-if="!isExplaining"
+                    class="i-carbon-text-annotation-toggle"
+                  ></span>
                 </template>
-                {{ isExplaining ? '解释中...' : '解释正则' }}
+                {{ isExplaining ? "解释中..." : "解释正则" }}
               </a-button>
             </div>
 
@@ -208,7 +215,10 @@
               </span>
             </div>
             <!-- 匹配详情表格 -->
-            <div v-if="matchResult.matches.length > 1" class="match-table-wrapper">
+            <div
+              v-if="matchResult.matches.length > 1"
+              class="match-table-wrapper"
+            >
               <a-table
                 :columns="matchColumns"
                 :data-source="matchResult.tableData"
@@ -219,7 +229,10 @@
             </div>
           </template>
           <template v-else>
-            <a-empty description="无匹配结果" :image-style="{ height: '40px' }" />
+            <a-empty
+              description="无匹配结果"
+              :image-style="{ height: '40px' }"
+            />
           </template>
         </div>
 
@@ -235,11 +248,7 @@
 
       <!-- 应用按钮 -->
       <div v-if="generatedRegex || explainInput" class="apply-section">
-        <a-button
-          type="primary"
-          :disabled="!currentRegex"
-          @click="handleApply"
-        >
+        <a-button type="primary" :disabled="!currentRegex" @click="handleApply">
           <template #icon>
             <span class="i-carbon-checkmark"></span>
           </template>
@@ -280,11 +289,11 @@
  * />
  */
 
-import { ref, computed, watch, onMounted } from 'vue'
-import { message } from 'ant-design-vue'
-import { useAiStore } from '@/stores/ai.js'
-import { getModelManager } from '@/composables/ai/useModelManager'
-import type { GenerateOptions } from '@/composables/ai/types'
+import { ref, computed, watch, onMounted } from "vue";
+import { message } from "ant-design-vue";
+import { useAiStore } from "@/stores/ai.js";
+import { getModelManager } from "@/composables/ai/useModelManager";
+import type { GenerateOptions } from "@/composables/ai/types";
 
 // ===== 类型定义 =====
 
@@ -293,9 +302,9 @@ import type { GenerateOptions } from '@/composables/ai/types'
  */
 interface MatchPart {
   /** 文本内容 */
-  text: string
+  text: string;
   /** 是否为匹配部分 */
-  isMatch: boolean
+  isMatch: boolean;
 }
 
 /**
@@ -303,21 +312,21 @@ interface MatchPart {
  */
 interface MatchResult {
   /** 所有匹配项 */
-  matches: RegExpMatchArray[]
+  matches: RegExpMatchArray[];
   /** 高亮显示的部分 */
-  highlightedParts: MatchPart[]
+  highlightedParts: MatchPart[];
   /** 表格数据 */
-  tableData: Array<{ key: number; index: number; value: string }>
+  tableData: Array<{ key: number; index: number; value: string }>;
 }
 
 /**
  * 表格列配置类型
  */
 interface TableColumn {
-  title: string
-  dataIndex: string
-  key: string
-  width?: number
+  title: string;
+  dataIndex: string;
+  key: string;
+  width?: number;
 }
 
 // ===== Props 定义 =====
@@ -325,100 +334,100 @@ interface TableColumn {
 const props = withDefaults(
   defineProps<{
     /** 当前正则表达式 */
-    currentRegex?: string
+    currentRegex?: string;
     /** 测试字符串 */
-    testString?: string
+    testString?: string;
   }>(),
   {
-    currentRegex: '',
-    testString: '',
-  }
-)
+    currentRegex: "",
+    testString: "",
+  },
+);
 
 // ===== Emits 定义 =====
 
 const emit = defineEmits<{
   /** 生成结果事件 */
-  result: [regex: string]
+  result: [regex: string];
   /** 错误事件 */
-  error: [error: Error]
-}>()
+  error: [error: Error];
+}>();
 
 // ===== Store & Composables =====
 
-const aiStore = useAiStore()
-const modelManager = getModelManager()
+const aiStore = useAiStore();
+const modelManager = getModelManager();
 
 // ===== 响应式状态 =====
 
 /** 当前激活的标签页 */
-const activeTab = ref<'generate' | 'explain'>('generate')
+const activeTab = ref<"generate" | "explain">("generate");
 
 /** 自然语言输入 */
-const generateInput = ref('')
+const generateInput = ref("");
 
 /** 生成的正则表达式 */
-const generatedRegex = ref('')
+const generatedRegex = ref("");
 
 /** 需要解释的正则输入 */
-const explainInput = ref('')
+const explainInput = ref("");
 
 /** 解释结果 */
-const explainResult = ref('')
+const explainResult = ref("");
 
 /** 测试字符串输入 */
-const testInputValue = ref('')
+const testInputValue = ref("");
 
 /** 是否正在生成正则 */
-const isGenerating = ref(false)
+const isGenerating = ref(false);
 
 /** 是否正在解释正则 */
-const isExplaining = ref(false)
+const isExplaining = ref(false);
 
 /** 是否正在检查 AI 状态 */
-const isCheckingAi = ref(false)
+const isCheckingAi = ref(false);
 
 /** AI 错误信息 */
-const aiError = ref<string | null>(null)
+const aiError = ref<string | null>(null);
 
 /** 操作错误信息 */
-const operationError = ref<string | null>(null)
+const operationError = ref<string | null>(null);
 
 /** 正则表达式错误 */
-const regexError = ref<string | null>(null)
+const regexError = ref<string | null>(null);
 
 /** 匹配结果 */
-const matchResult = ref<MatchResult | null>(null)
+const matchResult = ref<MatchResult | null>(null);
 
 // ===== 计算属性 =====
 
 /** AI 是否就绪 */
 const isAiReady = computed(() => {
-  return aiStore.canUseAi && !aiError.value
-})
+  return aiStore.canUseAi && !aiError.value;
+});
 
 /** 当前使用的正则表达式 */
 const currentRegex = computed(() => {
-  if (activeTab.value === 'generate') {
-    return generatedRegex.value || props.currentRegex
+  if (activeTab.value === "generate") {
+    return generatedRegex.value || props.currentRegex;
   }
-  return explainInput.value || props.currentRegex
-})
+  return explainInput.value || props.currentRegex;
+});
 
 /** 匹配表格列配置 */
 const matchColumns: TableColumn[] = [
   {
-    title: '序号',
-    dataIndex: 'index',
-    key: 'index',
+    title: "序号",
+    dataIndex: "index",
+    key: "index",
     width: 60,
   },
   {
-    title: '匹配内容',
-    dataIndex: 'value',
-    key: 'value',
+    title: "匹配内容",
+    dataIndex: "value",
+    key: "value",
   },
-]
+];
 
 // ===== 监听器 =====
 
@@ -430,39 +439,33 @@ watch(
   () => props.testString,
   (newVal) => {
     if (newVal) {
-      testInputValue.value = newVal
+      testInputValue.value = newVal;
     }
   },
-  { immediate: true }
-)
+  { immediate: true },
+);
 
 /**
  * 监听当前正则变化
  * 更新匹配结果
  */
-watch(
-  currentRegex,
-  () => {
-    updateMatchResult()
-  }
-)
+watch(currentRegex, () => {
+  updateMatchResult();
+});
 
 /**
  * 监听测试字符串变化
  * 更新匹配结果
  */
-watch(
-  testInputValue,
-  () => {
-    updateMatchResult()
-  }
-)
+watch(testInputValue, () => {
+  updateMatchResult();
+});
 
 // ===== 生命周期 =====
 
 onMounted(async () => {
-  await checkAiAvailability()
-})
+  await checkAiAvailability();
+});
 
 // ===== 方法 =====
 
@@ -470,42 +473,43 @@ onMounted(async () => {
  * 检查 AI 服务可用性
  */
 const checkAiAvailability = async (): Promise<void> => {
-  isCheckingAi.value = true
-  aiError.value = null
+  isCheckingAi.value = true;
+  aiError.value = null;
 
   try {
     // 如果未启用，不检查
     if (!aiStore.isEnabled) {
-      isCheckingAi.value = false
-      return
+      isCheckingAi.value = false;
+      return;
     }
 
     // 检查可用性
-    const isAvailable = await aiStore.checkAvailability()
+    const isAvailable = await aiStore.checkAvailability();
 
     if (!isAvailable) {
-      aiError.value = aiStore.lastError?.message || 'AI 服务暂时不可用，请稍后重试'
+      aiError.value =
+        aiStore.lastError?.message || "AI 服务暂时不可用，请稍后重试";
     }
   } catch (error) {
-    const err = error instanceof Error ? error : new Error(String(error))
-    aiError.value = err.message
+    const err = error instanceof Error ? error : new Error(String(error));
+    aiError.value = err.message;
   } finally {
-    isCheckingAi.value = false
+    isCheckingAi.value = false;
   }
-}
+};
 
 /**
  * 启用 AI 功能
  */
 const handleEnableAi = async (): Promise<void> => {
   try {
-    aiStore.toggleEnabled()
-    await checkAiAvailability()
+    aiStore.toggleEnabled();
+    await checkAiAvailability();
   } catch (error) {
-    const err = error instanceof Error ? error : new Error(String(error))
-    message.error(`启用 AI 失败: ${err.message}`)
+    const err = error instanceof Error ? error : new Error(String(error));
+    message.error(`启用 AI 失败: ${err.message}`);
   }
-}
+};
 
 /**
  * 处理生成正则操作
@@ -513,48 +517,48 @@ const handleEnableAi = async (): Promise<void> => {
 const handleGenerate = async (): Promise<void> => {
   // 验证输入
   if (!generateInput.value.trim()) {
-    message.warning('请输入您的需求描述')
-    return
+    message.warning("请输入您的需求描述");
+    return;
   }
 
   // 验证 AI 可用性
   if (!isAiReady.value) {
-    message.warning('AI 服务不可用，请稍后重试')
-    return
+    message.warning("AI 服务不可用，请稍后重试");
+    return;
   }
 
-  isGenerating.value = true
-  operationError.value = null
+  isGenerating.value = true;
+  operationError.value = null;
 
   try {
     // 构建提示词
-    const prompt = buildGeneratePrompt(generateInput.value)
+    const prompt = buildGeneratePrompt(generateInput.value);
 
     // 调用 AI 生成
     const options: GenerateOptions = {
       maxTokens: 500,
       temperature: 0.3,
-    }
+    };
 
-    const response = await modelManager.generate(prompt, options)
+    const response = await modelManager.generate(prompt, options);
 
     // ModelResponse 直接返回 content，失败时会抛出异常
     if (response.content) {
       // 清理生成的正则表达式
-      const regex = cleanGeneratedRegex(response.content)
-      generatedRegex.value = regex
-      message.success('正则表达式生成成功')
+      const regex = cleanGeneratedRegex(response.content);
+      generatedRegex.value = regex;
+      message.success("正则表达式生成成功");
     } else {
-      throw new Error('生成结果为空，请重试')
+      throw new Error("生成结果为空，请重试");
     }
   } catch (error) {
-    const err = error instanceof Error ? error : new Error(String(error))
-    operationError.value = err.message
-    emit('error', err)
+    const err = error instanceof Error ? error : new Error(String(error));
+    operationError.value = err.message;
+    emit("error", err);
   } finally {
-    isGenerating.value = false
+    isGenerating.value = false;
   }
-}
+};
 
 /**
  * 处理解释正则操作
@@ -562,52 +566,52 @@ const handleGenerate = async (): Promise<void> => {
 const handleExplain = async (): Promise<void> => {
   // 验证输入
   if (!explainInput.value.trim()) {
-    message.warning('请输入需要解释的正则表达式')
-    return
+    message.warning("请输入需要解释的正则表达式");
+    return;
   }
 
   // 验证 AI 可用性
   if (!isAiReady.value) {
-    message.warning('AI 服务不可用，请稍后重试')
-    return
+    message.warning("AI 服务不可用，请稍后重试");
+    return;
   }
 
   // 验证正则表达式有效性
   if (!validateRegex(explainInput.value)) {
-    message.warning('输入的正则表达式格式无效')
-    return
+    message.warning("输入的正则表达式格式无效");
+    return;
   }
 
-  isExplaining.value = true
-  operationError.value = null
+  isExplaining.value = true;
+  operationError.value = null;
 
   try {
     // 构建提示词
-    const prompt = buildExplainPrompt(explainInput.value)
+    const prompt = buildExplainPrompt(explainInput.value);
 
     // 调用 AI 生成
     const options: GenerateOptions = {
       maxTokens: 1000,
       temperature: 0.5,
-    }
+    };
 
-    const response = await modelManager.generate(prompt, options)
+    const response = await modelManager.generate(prompt, options);
 
     // ModelResponse 直接返回 content，失败时会抛出异常
     if (response.content) {
-      explainResult.value = response.content.trim()
-      message.success('正则解释生成成功')
+      explainResult.value = response.content.trim();
+      message.success("正则解释生成成功");
     } else {
-      throw new Error('解释结果为空，请重试')
+      throw new Error("解释结果为空，请重试");
     }
   } catch (error) {
-    const err = error instanceof Error ? error : new Error(String(error))
-    operationError.value = err.message
-    emit('error', err)
+    const err = error instanceof Error ? error : new Error(String(error));
+    operationError.value = err.message;
+    emit("error", err);
   } finally {
-    isExplaining.value = false
+    isExplaining.value = false;
   }
-}
+};
 
 /**
  * 构建生成正则的提示词
@@ -626,8 +630,8 @@ const buildGeneratePrompt = (userInput: string): string => {
 用户需求：
 ${userInput}
 
-请直接输出正则表达式：`
-}
+请直接输出正则表达式：`;
+};
 
 /**
  * 构建解释正则的提示词
@@ -646,8 +650,8 @@ const buildExplainPrompt = (regex: string): string => {
 正则表达式：
 ${regex}
 
-请解释这个正则表达式：`
-}
+请解释这个正则表达式：`;
+};
 
 /**
  * 清理生成的正则表达式
@@ -656,19 +660,19 @@ ${regex}
  * @returns 清理后的正则表达式
  */
 const cleanGeneratedRegex = (content: string): string => {
-  let regex = content.trim()
+  let regex = content.trim();
 
   // 移除代码块标记
-  regex = regex.replace(/^```[\w]*\n?/g, '').replace(/\n?```$/g, '')
+  regex = regex.replace(/^```[\w]*\n?/g, "").replace(/\n?```$/g, "");
 
   // 移除可能的包裹符号
-  regex = regex.replace(/^\/|\/$/g, '')
+  regex = regex.replace(/^\/|\/$/g, "");
 
   // 移除多余的空白和换行
-  regex = regex.replace(/\s+/g, '').trim()
+  regex = regex.replace(/\s+/g, "").trim();
 
-  return regex
-}
+  return regex;
+};
 
 /**
  * 验证正则表达式是否有效
@@ -677,45 +681,45 @@ const cleanGeneratedRegex = (content: string): string => {
  */
 const validateRegex = (pattern: string): boolean => {
   try {
-    new RegExp(pattern)
-    return true
+    new RegExp(pattern);
+    return true;
   } catch {
-    return false
+    return false;
   }
-}
+};
 
 /**
  * 更新匹配结果
  */
 const updateMatchResult = (): void => {
-  regexError.value = null
-  matchResult.value = null
+  regexError.value = null;
+  matchResult.value = null;
 
   if (!currentRegex.value || !testInputValue.value) {
-    return
+    return;
   }
 
   try {
-    const regex = new RegExp(currentRegex.value, 'g')
-    const text = testInputValue.value
-    const matches: RegExpMatchArray[] = []
+    const regex = new RegExp(currentRegex.value, "g");
+    const text = testInputValue.value;
+    const matches: RegExpMatchArray[] = [];
 
     // 获取所有匹配
-    let match: RegExpMatchArray | null
+    let match: RegExpMatchArray | null;
     while ((match = regex.exec(text)) !== null) {
-      matches.push([...match] as RegExpMatchArray)
+      matches.push([...match] as RegExpMatchArray);
       // 防止零宽匹配导致的无限循环
       if (match.index === regex.lastIndex) {
-        regex.lastIndex++
+        regex.lastIndex++;
       }
     }
 
     // 构建高亮显示部分
-    const highlightedParts: MatchPart[] = []
-    let lastIndex = 0
+    const highlightedParts: MatchPart[] = [];
+    let lastIndex = 0;
 
     // 重置正则
-    regex.lastIndex = 0
+    regex.lastIndex = 0;
 
     while ((match = regex.exec(text)) !== null) {
       // 添加未匹配部分
@@ -723,18 +727,18 @@ const updateMatchResult = (): void => {
         highlightedParts.push({
           text: text.slice(lastIndex, match.index),
           isMatch: false,
-        })
+        });
       }
       // 添加匹配部分
       highlightedParts.push({
         text: match[0],
         isMatch: true,
-      })
-      lastIndex = match.index + match[0].length
+      });
+      lastIndex = match.index + match[0].length;
 
       // 防止零宽匹配导致的无限循环
       if (match.index === regex.lastIndex) {
-        regex.lastIndex++
+        regex.lastIndex++;
       }
     }
 
@@ -743,7 +747,7 @@ const updateMatchResult = (): void => {
       highlightedParts.push({
         text: text.slice(lastIndex),
         isMatch: false,
-      })
+      });
     }
 
     // 构建表格数据
@@ -751,65 +755,65 @@ const updateMatchResult = (): void => {
       key: index,
       index: index + 1,
       value: m[0],
-    }))
+    }));
 
     matchResult.value = {
       matches,
       highlightedParts,
       tableData,
-    }
+    };
   } catch (error) {
-    const err = error instanceof Error ? error : new Error(String(error))
-    regexError.value = `正则表达式错误: ${err.message}`
+    const err = error instanceof Error ? error : new Error(String(error));
+    regexError.value = `正则表达式错误: ${err.message}`;
   }
-}
+};
 
 /**
  * 复制正则表达式到剪贴板
  */
 const handleCopyRegex = async (): Promise<void> => {
   try {
-    await navigator.clipboard.writeText(generatedRegex.value)
-    message.success('已复制到剪贴板')
+    await navigator.clipboard.writeText(generatedRegex.value);
+    message.success("已复制到剪贴板");
   } catch {
-    message.error('复制失败，请手动复制')
+    message.error("复制失败，请手动复制");
   }
-}
+};
 
 /**
  * 清除生成结果
  */
 const handleClearGenerate = (): void => {
-  generatedRegex.value = ''
-}
+  generatedRegex.value = "";
+};
 
 /**
  * 清除解释结果
  */
 const handleClearExplain = (): void => {
-  explainResult.value = ''
-}
+  explainResult.value = "";
+};
 
 /**
  * 应用正则表达式到目标
  */
 const handleApply = (): void => {
-  const regex = currentRegex.value
+  const regex = currentRegex.value;
 
   if (!regex) {
-    message.warning('没有可应用的正则表达式')
-    return
+    message.warning("没有可应用的正则表达式");
+    return;
   }
 
   // 验证正则有效性
   if (!validateRegex(regex)) {
-    message.warning('正则表达式格式无效')
-    return
+    message.warning("正则表达式格式无效");
+    return;
   }
 
-  emit('result', regex)
-  message.success('正则表达式已应用')
-}
+  emit("result", regex);
+  message.success("正则表达式已应用");
+};
 </script>
 
 <style scoped>
@@ -904,7 +908,10 @@ const handleApply = (): void => {
   border-color: var(--input-border);
   background: var(--input-bg);
   color: var(--text-primary);
-  transition: border-color var(--transition-fast) ease, background-color var(--transition-fast) ease, box-shadow var(--transition-fast) ease;
+  transition:
+    border-color var(--transition-fast) ease,
+    background-color var(--transition-fast) ease,
+    box-shadow var(--transition-fast) ease;
 }
 
 .input-textarea:focus,
@@ -929,7 +936,11 @@ const handleApply = (): void => {
 .generate-btn {
   min-width: 120px;
   border-radius: var(--border-radius-sm);
-  transition: transform var(--transition-fast) ease, box-shadow var(--transition-fast) ease, background-color var(--transition-fast) ease, border-color var(--transition-fast) ease;
+  transition:
+    transform var(--transition-fast) ease,
+    box-shadow var(--transition-fast) ease,
+    background-color var(--transition-fast) ease,
+    border-color var(--transition-fast) ease;
 }
 
 .generate-btn:not(:disabled):hover {
@@ -976,7 +987,7 @@ const handleApply = (): void => {
 }
 
 .regex-code {
-  font-family: 'Fira Code', 'Consolas', monospace;
+  font-family: "Fira Code", "Consolas", monospace;
   font-size: 14px;
   color: var(--color-primary);
   word-break: break-all;
@@ -1051,7 +1062,7 @@ const handleApply = (): void => {
   padding: 12px;
   background: var(--bg-code);
   border-radius: var(--border-radius-xs);
-  font-family: 'Fira Code', 'Consolas', monospace;
+  font-family: "Fira Code", "Consolas", monospace;
   font-size: 13px;
   line-height: 1.6;
   word-break: break-all;

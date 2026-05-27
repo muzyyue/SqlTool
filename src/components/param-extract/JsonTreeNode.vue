@@ -2,7 +2,7 @@
   <div class="json-tree-node" :style="{ paddingLeft: depth * 18 + 'px' }">
     <div class="node-header" @click="toggleExpand">
       <span class="expand-icon" v-if="!node.isLeaf">
-        {{ expanded ? '▼' : '▶' }}
+        {{ expanded ? "▼" : "▶" }}
       </span>
       <span class="leaf-dot" v-else>●</span>
 
@@ -45,44 +45,47 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { CopyOutlined } from '@ant-design/icons-vue'
+import { ref } from "vue";
+import { CopyOutlined } from "@ant-design/icons-vue";
 
 const props = defineProps({
   node: {
     type: Object,
-    required: true
+    required: true,
   },
   depth: {
     type: Number,
-    default: 0
-  }
-})
+    default: 0,
+  },
+});
 
-defineEmits(['copyPath'])
+defineEmits(["copyPath"]);
 
-const expanded = ref(props.depth === 0)
+const expanded = ref(props.depth === 0);
 
 function toggleExpand() {
   if (!props.node.isLeaf) {
-    expanded.value = !expanded.value
+    expanded.value = !expanded.value;
   }
 }
 
 function formatValue(val) {
-  if (val === null) return 'null'
-  if (val === undefined) return 'undefined'
-  if (typeof val === 'string') {
-    const maxLen = 60
-    return val.length > maxLen ? `"${val.slice(0, maxLen)}..."` : `"${val}"`
+  if (val === null) return "null";
+  if (val === undefined) return "undefined";
+  if (typeof val === "string") {
+    const maxLen = 60;
+    return val.length > maxLen ? `"${val.slice(0, maxLen)}..."` : `"${val}"`;
   }
-  return String(val)
+  return String(val);
 }
 
 async function handleCopyValue() {
   try {
-    const text = typeof props.node.value === 'string' ? props.node.value : JSON.stringify(props.node.value)
-    await navigator.clipboard.writeText(text)
+    const text =
+      typeof props.node.value === "string"
+        ? props.node.value
+        : JSON.stringify(props.node.value);
+    await navigator.clipboard.writeText(text);
   } catch {
     // 静默失败
   }
@@ -106,7 +109,8 @@ async function handleCopyValue() {
       background: rgba(22, 119, 255, 0.04);
     }
 
-    .expand-icon, .leaf-dot {
+    .expand-icon,
+    .leaf-dot {
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -116,19 +120,27 @@ async function handleCopyValue() {
       flex-shrink: 0;
     }
 
-    .leaf-dot { color: #c0c0c0; }
+    .leaf-dot {
+      color: #c0c0c0;
+    }
 
     .node-key {
       color: #9cdcfe;
-      font-family: 'Fira Code', Consolas, monospace;
+      font-family: "Fira Code", Consolas, monospace;
       font-weight: 500;
 
       &.type-string,
       &.type-number,
       &.type-boolean,
-      &.type-null { color: #569cd6; }
-      &.type-object { color: #4ec9b0; }
-      &.type-array { color: #d7ba7d; }
+      &.type-null {
+        color: #569cd6;
+      }
+      &.type-object {
+        color: #4ec9b0;
+      }
+      &.type-array {
+        color: #d7ba7d;
+      }
     }
 
     .node-separator {
@@ -136,7 +148,7 @@ async function handleCopyValue() {
     }
 
     .node-value {
-      font-family: 'Fira Code', Consolas, monospace;
+      font-family: "Fira Code", Consolas, monospace;
       cursor: pointer;
       padding: 0 4px;
       border-radius: 3px;
@@ -145,16 +157,34 @@ async function handleCopyValue() {
       &:hover {
         background: rgba(82, 196, 26, 0.08);
 
-        &.value-string { background: rgba(82, 196, 26, 0.12); }
-        &.value-number { background: rgba(22, 119, 255, 0.12); }
-        &.value-boolean { background: rgba(114, 46, 209, 0.12); }
-        &.value-null { color: #8c8c8c; background: rgba(140, 140, 140, 0.08); }
+        &.value-string {
+          background: rgba(82, 196, 26, 0.12);
+        }
+        &.value-number {
+          background: rgba(22, 119, 255, 0.12);
+        }
+        &.value-boolean {
+          background: rgba(114, 46, 209, 0.12);
+        }
+        &.value-null {
+          color: #8c8c8c;
+          background: rgba(140, 140, 140, 0.08);
+        }
       }
 
-      &.value-string { color: #ce9178; }
-      &.value-number { color: #b5cea8; }
-      &.value-boolean { color: #569cd6; }
-      &.value-null { color: #569cd6; opacity: 0.5; }
+      &.value-string {
+        color: #ce9178;
+      }
+      &.value-number {
+        color: #b5cea8;
+      }
+      &.value-boolean {
+        color: #569cd6;
+      }
+      &.value-null {
+        color: #569cd6;
+        opacity: 0.5;
+      }
     }
 
     .node-summary {

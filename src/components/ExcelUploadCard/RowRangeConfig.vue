@@ -2,7 +2,9 @@
   <div class="row-range-config">
     <a-divider style="margin: 12px 0" />
     <div class="row-range-header">
-      <a-checkbox :checked="enabled" @change="handleToggle"> 启用行范围选择 </a-checkbox>
+      <a-checkbox :checked="enabled" @change="handleToggle">
+        启用行范围选择
+      </a-checkbox>
       <a-tooltip title="只处理指定范围内的Excel行，提高处理效率">
         <QuestionCircleOutlined />
       </a-tooltip>
@@ -33,7 +35,10 @@
         </div>
       </div>
       <div class="row-range-options">
-        <a-checkbox :checked="includeHeader" @change="handleIncludeHeaderChange">
+        <a-checkbox
+          :checked="includeHeader"
+          @change="handleIncludeHeaderChange"
+        >
           包含表头
         </a-checkbox>
         <a-tag color="blue">文件总行数: {{ totalRows }}</a-tag>
@@ -57,7 +62,11 @@
 </template>
 
 <script setup>
-import { QuestionCircleOutlined, CheckOutlined, ReloadOutlined } from '@ant-design/icons-vue'
+import {
+  QuestionCircleOutlined,
+  CheckOutlined,
+  ReloadOutlined,
+} from "@ant-design/icons-vue";
 
 defineProps({
   enabled: {
@@ -80,40 +89,40 @@ defineProps({
     type: Number,
     default: 0,
   },
-})
+});
 
 const emit = defineEmits([
-  'toggle',
-  'start-row-change',
-  'end-row-change',
-  'include-header-change',
-  'apply',
-  'reset',
-])
+  "toggle",
+  "start-row-change",
+  "end-row-change",
+  "include-header-change",
+  "apply",
+  "reset",
+]);
 
 const handleToggle = (e) => {
-  emit('toggle', e.target.checked)
-}
+  emit("toggle", e.target.checked);
+};
 
 const handleStartRowChange = (value) => {
-  emit('start-row-change', value)
-}
+  emit("start-row-change", value);
+};
 
 const handleEndRowChange = (value) => {
-  emit('end-row-change', value)
-}
+  emit("end-row-change", value);
+};
 
 const handleIncludeHeaderChange = (e) => {
-  emit('include-header-change', e.target.checked)
-}
+  emit("include-header-change", e.target.checked);
+};
 
 const handleApply = () => {
-  emit('apply')
-}
+  emit("apply");
+};
 
 const handleReset = () => {
-  emit('reset')
-}
+  emit("reset");
+};
 </script>
 
 <style scoped>

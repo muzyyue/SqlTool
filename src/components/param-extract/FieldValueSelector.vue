@@ -34,11 +34,7 @@
         <a-select
           v-model:value="localValue"
           :options="valueOptions"
-          :placeholder="
-            localField
-              ? '请选择具体取值'
-              : '请先选择字段'
-          "
+          :placeholder="localField ? '请选择具体取值' : '请先选择字段'"
           :disabled="disabled || !localField"
           allow-clear
           show-search

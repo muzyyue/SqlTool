@@ -102,7 +102,7 @@
             <template #icon>
               <span v-if="!isGenerating" class="i-carbon-magic-wand"></span>
             </template>
-            {{ isGenerating ? '生成中...' : '生成' }}
+            {{ isGenerating ? "生成中..." : "生成" }}
           </a-button>
           <span v-if="inputValue.trim()" class="shortcut-hint">
             按 Enter 快速生成
@@ -114,21 +114,13 @@
           <div class="result-header">
             <span class="result-label">生成结果</span>
             <a-space>
-              <a-button
-                type="link"
-                size="small"
-                @click="handleCopyResult"
-              >
+              <a-button type="link" size="small" @click="handleCopyResult">
                 <template #icon>
                   <span class="i-carbon-copy"></span>
                 </template>
                 复制
               </a-button>
-              <a-button
-                type="link"
-                size="small"
-                @click="handleClearResult"
-              >
+              <a-button type="link" size="small" @click="handleClearResult">
                 <template #icon>
                   <span class="i-carbon-close"></span>
                 </template>
@@ -191,11 +183,11 @@
  * />
  */
 
-import { ref, computed, watch } from 'vue'
-import { message } from 'ant-design-vue'
-import { useAiStore } from '@/stores/ai.js'
-import { getModelManager } from '@/composables/ai/useModelManager'
-import type { GenerateOptions } from '@/composables/ai/types'
+import { ref, computed, watch } from "vue";
+import { message } from "ant-design-vue";
+import { useAiStore } from "@/stores/ai.js";
+import { getModelManager } from "@/composables/ai/useModelManager";
+import type { GenerateOptions } from "@/composables/ai/types";
 
 // ===== 类型定义 =====
 
@@ -204,24 +196,24 @@ import type { GenerateOptions } from '@/composables/ai/types'
  */
 interface AiContext {
   /** 表名 */
-  tableName?: string
+  tableName?: string;
   /** 操作类型 (SELECT, INSERT, UPDATE 等) */
-  operationType?: string
+  operationType?: string;
   /** 字段数量 */
-  fieldCount?: number
+  fieldCount?: number;
   /** DDL 结构 */
-  ddl?: string
+  ddl?: string;
   /** 其他自定义上下文 */
-  [key: string]: unknown
+  [key: string]: unknown;
 }
 
 /**
  * 生成错误接口
  */
 interface GenerateError {
-  message: string
-  code?: string
-  details?: unknown
+  message: string;
+  code?: string;
+  details?: unknown;
 }
 
 // ===== Props 定义 =====
@@ -229,79 +221,79 @@ interface GenerateError {
 const props = withDefaults(
   defineProps<{
     /** 对话框是否打开 */
-    open: boolean
+    open: boolean;
     /** 对话框标题 */
-    title?: string
+    title?: string;
     /** 输入框占位符 */
-    placeholder?: string
+    placeholder?: string;
     /** AI 上下文信息 */
-    context?: AiContext
+    context?: AiContext;
   }>(),
   {
-    title: 'AI 助手',
-    placeholder: '请描述您的需求...',
+    title: "AI 助手",
+    placeholder: "请描述您的需求...",
     context: () => ({}),
-  }
-)
+  },
+);
 
 // ===== Emits 定义 =====
 
 const emit = defineEmits<{
   /** 打开状态更新事件 */
-  'update:open': [open: boolean]
+  "update:open": [open: boolean];
   /** 生成结果事件 */
-  result: [result: string]
+  result: [result: string];
   /** 错误事件 */
-  error: [error: GenerateError]
-}>()
+  error: [error: GenerateError];
+}>();
 
 // ===== Store & Composables =====
 
-const aiStore = useAiStore()
-const modelManager = getModelManager()
+const aiStore = useAiStore();
+const modelManager = getModelManager();
 
 // ===== 响应式状态 =====
 
 /** 用户输入的自然语言 */
-const inputValue = ref('')
+const inputValue = ref("");
 
 /** AI 生成的结果 */
-const generatedResult = ref('')
+const generatedResult = ref("");
 
 /** 是否正在生成 */
-const isGenerating = ref(false)
+const isGenerating = ref(false);
 
 /** 是否正在检查 AI 状态 */
-const isCheckingAi = ref(false)
+const isCheckingAi = ref(false);
 
 /** AI 错误信息 */
-const aiError = ref<string | null>(null)
+const aiError = ref<string | null>(null);
 
 /** 生成错误信息 */
-const generateError = ref<GenerateError | null>(null)
+const generateError = ref<GenerateError | null>(null);
 
 // ===== 计算属性 =====
 
 /** AI 是否就绪 */
 const isAiReady = computed(() => {
-  return aiStore.canUseAi && !aiError.value
-})
+  return aiStore.canUseAi && !aiError.value;
+});
 
 /** AI 错误标题 */
 const aiErrorTitle = computed(() => {
   if (!aiStore.isEnabled) {
-    return 'AI 功能未启用'
+    return "AI 功能未启用";
   }
   if (aiStore.lastError) {
-    return 'AI 服务不可用'
+    return "AI 服务不可用";
   }
-  return 'AI 服务异常'
-})
+  return "AI 服务异常";
+});
 
 /** 是否有上下文信息 */
 const hasContext = computed(() => {
-  return props.context && Object.keys(props.context).length > 0
-})
+  return props.context && Object.keys(props.context).length > 0;
+});
 
 // ===== 监听器 =====
 
@@ -314,16 +306,16 @@ watch(
   async (newOpen) => {
     if (newOpen) {
       // 重置状态
-      inputValue.value = ''
-      generatedResult.value = ''
-      generateError.value = null
-      aiError.value = null
+      inputValue.value = "";
+      generatedResult.value = "";
+      generateError.value = null;
+      aiError.value = null;
 
       // 检查 AI 可用性
-      await checkAiAvailability()
+      await checkAiAvailability();
     }
-  }
-)
+  },
+);
 
 // ===== 方法 =====
 
@@ -331,50 +323,51 @@ watch(
  * 检查 AI 服务可用性
  */
 const checkAiAvailability = async (): Promise<void> => {
-  isCheckingAi.value = true
-  aiError.value = null
+  isCheckingAi.value = true;
+  aiError.value = null;
 
   try {
     // 如果未启用，不检查
     if (!aiStore.isEnabled) {
-      isCheckingAi.value = false
-      return
+      isCheckingAi.value = false;
+      return;
     }
 
     // 检查可用性
-    const isAvailable = await aiStore.checkAvailability()
+    const isAvailable = await aiStore.checkAvailability();
 
     if (!isAvailable) {
-      aiError.value = aiStore.lastError?.message || 'AI 服务暂时不可用，请稍后重试'
+      aiError.value =
+        aiStore.lastError?.message || "AI 服务暂时不可用，请稍后重试";
     }
   } catch (error) {
-    const err = error instanceof Error ? error : new Error(String(error))
-    aiError.value = err.message
+    const err = error instanceof Error ? error : new Error(String(error));
+    aiError.value = err.message;
   } finally {
-    isCheckingAi.value = false
+    isCheckingAi.value = false;
   }
-}
+};
 
 /**
  * 启用 AI 功能
  */
 const handleEnableAi = async (): Promise<void> => {
   try {
-    aiStore.toggleEnabled()
-    await checkAiAvailability()
+    aiStore.toggleEnabled();
+    await checkAiAvailability();
   } catch (error) {
-    const err = error instanceof Error ? error : new Error(String(error))
-    message.error(`启用 AI 失败: ${err.message}`)
+    const err = error instanceof Error ? error : new Error(String(error));
+    message.error(`启用 AI 失败: ${err.message}`);
   }
-}
+};
 
 /**
  * 处理对话框打开状态变化
  * @param newOpen - 新的打开状态
  */
 const handleOpenChange = (newOpen: boolean): void => {
-  emit('update:open', newOpen)
-}
+  emit("update:open", newOpen);
+};
 
 /**
  * 处理生成操作
@@ -382,50 +375,50 @@ const handleOpenChange = (newOpen: boolean): void => {
 const handleGenerate = async (): Promise<void> => {
   // 验证输入
   if (!inputValue.value.trim()) {
-    message.warning('请输入您的需求描述')
-    return
+    message.warning("请输入您的需求描述");
+    return;
   }
 
   // 验证 AI 可用性
   if (!isAiReady.value) {
-    message.warning('AI 服务不可用，请稍后重试')
-    return
+    message.warning("AI 服务不可用，请稍后重试");
+    return;
   }
 
-  isGenerating.value = true
-  generateError.value = null
+  isGenerating.value = true;
+  generateError.value = null;
 
   try {
     // 构建提示词
-    const prompt = buildPrompt(inputValue.value)
+    const prompt = buildPrompt(inputValue.value);
 
     // 调用 AI 生成
     const options: GenerateOptions = {
       maxTokens: 2000,
       temperature: 0.7,
-    }
+    };
 
-    const response = await modelManager.generate(prompt, options)
+    const response = await modelManager.generate(prompt, options);
 
     // ModelResponse 直接返回 content，失败时会抛出异常
     if (response.content) {
-      generatedResult.value = response.content.trim()
-      message.success('生成成功')
+      generatedResult.value = response.content.trim();
+      message.success("生成成功");
     } else {
-      throw new Error('生成结果为空，请重试')
+      throw new Error("生成结果为空，请重试");
     }
   } catch (error) {
-    const err = error instanceof Error ? error : new Error(String(error))
+    const err = error instanceof Error ? error : new Error(String(error));
     generateError.value = {
       message: err.message,
-      code: 'GENERATE_ERROR',
+      code: "GENERATE_ERROR",
       details: error,
-    }
-    emit('error', generateError.value)
+    };
+    emit("error", generateError.value);
   } finally {
-    isGenerating.value = false
+    isGenerating.value = false;
   }
-}
+};
 
 /**
  * 构建提示词
@@ -433,70 +426,72 @@ const handleGenerate = async (): Promise<void> => {
  * @returns 完整的提示词
  */
 const buildPrompt = (userInput: string): string => {
-  const parts: string[] = []
+  const parts: string[] = [];
 
   // 添加上下文信息
   if (hasContext.value) {
-    parts.push('## 上下文信息')
+    parts.push("## 上下文信息");
     if (props.context.tableName) {
-      parts.push(`表名: ${props.context.tableName}`)
+      parts.push(`表名: ${props.context.tableName}`);
     }
     if (props.context.operationType) {
-      parts.push(`操作类型: ${props.context.operationType}`)
+      parts.push(`操作类型: ${props.context.operationType}`);
     }
     if (props.context.fieldCount) {
-      parts.push(`字段数量: ${props.context.fieldCount}`)
+      parts.push(`字段数量: ${props.context.fieldCount}`);
     }
     if (props.context.ddl) {
-      parts.push(`DDL 结构:\n${props.context.ddl}`)
+      parts.push(`DDL 结构:\n${props.context.ddl}`);
     }
-    parts.push('')
+    parts.push("");
   }
 
   // 添加用户需求
-  parts.push('## 用户需求')
-  parts.push(userInput)
-  parts.push('')
+  parts.push("## 用户需求");
+  parts.push(userInput);
+  parts.push("");
 
   // 添加输出要求
-  parts.push('## 输出要求')
-  parts.push('请根据上述上下文和需求，生成相应的内容。只输出结果，不要添加额外的解释或说明。')
+  parts.push("## 输出要求");
+  parts.push(
+    "请根据上述上下文和需求，生成相应的内容。只输出结果，不要添加额外的解释或说明。",
+  );
 
-  return parts.join('\n')
-}
+  return parts.join("\n");
+};
 
 /**
  * 复制结果到剪贴板
  */
 const handleCopyResult = async (): Promise<void> => {
   try {
-    await navigator.clipboard.writeText(generatedResult.value)
-    message.success('已复制到剪贴板')
+    await navigator.clipboard.writeText(generatedResult.value);
+    message.success("已复制到剪贴板");
   } catch {
-    message.error('复制失败，请手动复制')
+    message.error("复制失败，请手动复制");
   }
-}
+};
 
 /**
  * 清除生成结果
  */
 const handleClearResult = (): void => {
-  generatedResult.value = ''
-}
+  generatedResult.value = "";
+};
 
 /**
  * 应用生成结果
  */
 const handleApply = (): void => {
   if (!generatedResult.value.trim()) {
-    message.warning('没有可应用的结果')
-    return
+    message.warning("没有可应用的结果");
+    return;
   }
 
-  emit('result', generatedResult.value)
-  emit('update:open', false)
-  message.success('结果已应用')
-}
+  emit("result", generatedResult.value);
+  emit("update:open", false);
+  message.success("结果已应用");
+};
 </script>
 
 <style scoped>
@@ -622,7 +617,10 @@ const handleApply = (): void => {
   border-color: var(--input-border);
   background: var(--input-bg);
   color: var(--text-primary);
-  transition: border-color var(--transition-fast) ease, background-color var(--transition-fast) ease, box-shadow var(--transition-fast) ease;
+  transition:
+    border-color var(--transition-fast) ease,
+    background-color var(--transition-fast) ease,
+    box-shadow var(--transition-fast) ease;
 }
 
 .input-textarea:focus,
@@ -647,7 +645,11 @@ const handleApply = (): void => {
 .generate-btn {
   min-width: 100px;
   border-radius: var(--border-radius-sm);
-  transition: transform var(--transition-fast) ease, box-shadow var(--transition-fast) ease, background-color var(--transition-fast) ease, border-color var(--transition-fast) ease;
+  transition:
+    transform var(--transition-fast) ease,
+    box-shadow var(--transition-fast) ease,
+    background-color var(--transition-fast) ease,
+    border-color var(--transition-fast) ease;
 }
 
 .generate-btn:not(:disabled):hover {
@@ -691,7 +693,7 @@ const handleApply = (): void => {
   border-color: var(--input-border);
   background: var(--input-bg);
   color: var(--text-primary);
-  font-family: 'Fira Code', 'Consolas', monospace;
+  font-family: "Fira Code", "Consolas", monospace;
   font-size: 13px;
   line-height: 1.6;
 }

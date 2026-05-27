@@ -41,18 +41,22 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
-import { message } from 'ant-design-vue'
-import { CopyOutlined, DownloadOutlined, ClearOutlined } from '@ant-design/icons-vue'
-import { Codemirror } from 'vue-codemirror'
-import { basicSetup } from 'codemirror'
-import { defaultKeymap, indentWithTab } from '@codemirror/commands'
-import { keymap } from '@codemirror/view'
-import { search, highlightSelectionMatches } from '@codemirror/search'
-import { foldGutter } from '@codemirror/language'
-import { json } from '@codemirror/lang-json'
-import { sql } from '@codemirror/lang-sql'
-import { oneDark } from '@codemirror/theme-one-dark'
+import { ref, computed, watch } from "vue";
+import { message } from "ant-design-vue";
+import {
+  CopyOutlined,
+  DownloadOutlined,
+  ClearOutlined,
+} from "@ant-design/icons-vue";
+import { Codemirror } from "vue-codemirror";
+import { basicSetup } from "codemirror";
+import { defaultKeymap, indentWithTab } from "@codemirror/commands";
+import { keymap } from "@codemirror/view";
+import { search, highlightSelectionMatches } from "@codemirror/search";
+import { foldGutter } from "@codemirror/language";
+import { json } from "@codemirror/lang-json";
+import { sql } from "@codemirror/lang-sql";
+import { oneDark } from "@codemirror/theme-one-dark";
 
 /**
  * 组件属性定义
@@ -61,19 +65,19 @@ const props = defineProps({
   /** 编辑器值（v-model） */
   modelValue: {
     type: String,
-    default: '',
+    default: "",
   },
   /** 语言类型：json、sql */
   language: {
     type: String,
-    default: 'sql',
-    validator: (value) => ['json', 'sql'].includes(value),
+    default: "sql",
+    validator: (value) => ["json", "sql"].includes(value),
   },
   /** 主题：light、dark */
   theme: {
     type: String,
-    default: 'light',
-    validator: (value) => ['light', 'dark'].includes(value),
+    default: "light",
+    validator: (value) => ["light", "dark"].includes(value),
   },
   /** 是否只读 */
   readonly: {
@@ -93,7 +97,7 @@ const props = defineProps({
   /** 占位符文本 */
   placeholder: {
     type: String,
-    default: '请输入代码...',
+    default: "请输入代码...",
   },
   /** 是否启用代码折叠 */
   enableFold: {
@@ -105,140 +109,142 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
-})
+});
 
 /**
  * 组件事件定义
  */
-const emit = defineEmits(['update:modelValue', 'change', 'focus', 'blur'])
+const emit = defineEmits(["update:modelValue", "change", "focus", "blur"]);
 
 /**
  * 内部值（用于v-model）
  */
-const internalValue = ref(props.modelValue)
+const internalValue = ref(props.modelValue);
 
 /**
  * 编辑器实例
  */
-const view = ref(null)
+const view = ref(null);
 
 /**
  * 扩展配置
  */
 const extensions = computed(() => {
-  const exts = [basicSetup, keymap.of([defaultKeymap, indentWithTab])]
+  const exts = [basicSetup, keymap.of([defaultKeymap, indentWithTab])];
 
-  if (props.language === 'json') {
-    exts.push(json())
-  } else if (props.language === 'sql') {
-    exts.push(sql())
+  if (props.language === "json") {
+    exts.push(json());
+  } else if (props.language === "sql") {
+    exts.push(sql());
   }
 
-  if (props.theme === 'dark') {
-    exts.push(oneDark)
+  if (props.theme === "dark") {
+    exts.push(oneDark);
   }
 
   if (props.enableSearch) {
-    exts.push(search({ top: true }))
-    exts.push(highlightSelectionMatches())
+    exts.push(search({ top: true }));
+    exts.push(highlightSelectionMatches());
   }
 
   if (props.enableFold) {
     exts.push(
       foldGutter({
-        openText: '▼',
-        closedText: '▶',
+        openText: "▼",
+        closedText: "▶",
       }),
-    )
+    );
   }
 
-  return exts
-})
+  return exts;
+});
 
 /**
  * 处理编辑器就绪事件
  */
 const handleReady = (payload) => {
-  view.value = payload.view
-}
+  view.value = payload.view;
+};
 
 /**
  * 处理值变化事件
  */
 const handleChange = (value) => {
-  emit('update:modelValue', value)
-  emit('change', value)
-}
+  emit("update:modelValue", value);
+  emit("change", value);
+};
 
 /**
  * 处理焦点事件
  */
 const handleFocus = (viewUpdate) => {
-  emit('focus', viewUpdate)
-}
+  emit("focus", viewUpdate);
+};
 
 /**
  * 处理失焦事件
  */
 const handleBlur = (viewUpdate) => {
-  emit('blur', viewUpdate)
-}
+  emit("blur", viewUpdate);
+};
 
 /**
  * 复制内容到剪贴板
  */
 const handleCopy = async () => {
   if (!props.modelValue) {
-    message.warning('没有内容可复制')
-    return
+    message.warning("没有内容可复制");
+    return;
   }
 
   try {
-    await navigator.clipboard.writeText(props.modelValue)
-    message.success('已复制到剪贴板')
+    await navigator.clipboard.writeText(props.modelValue);
+    message.success("已复制到剪贴板");
   } catch (error) {
-    message.error('复制失败，请检查浏览器权限')
+    message.error("复制失败，请检查浏览器权限");
   }
-}
+};
 
 /**
  * 下载内容为文件
  */
 const handleDownload = () => {
   if (!props.modelValue) {
-    message.warning('没有内容可下载')
-    return
+    message.warning("没有内容可下载");
+    return;
   }
 
   try {
-    const extension = props.language === 'json' ? 'json' : 'sql'
-    const blob = new Blob([props.modelValue], { type: 'text/plain;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `code.${extension}`
-    a.click()
-    URL.revokeObjectURL(url)
-    message.success('文件下载成功')
+    const extension = props.language === "json" ? "json" : "sql";
+    const blob = new Blob([props.modelValue], {
+      type: "text/plain;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `code.${extension}`;
+    a.click();
+    URL.revokeObjectURL(url);
+    message.success("文件下载成功");
   } catch (error) {
-    message.error('下载失败')
+    message.error("下载失败");
   }
-}
+};
 
 /**
  * 清空编辑器内容
  */
 const handleClear = () => {
   if (!props.modelValue) {
-    message.warning('内容已为空')
-    return
+    message.warning("内容已为空");
+    return;
   }
 
-  internalValue.value = ''
-  emit('update:modelValue', '')
-  emit('change', '')
-  message.success('内容已清空')
-}
+  internalValue.value = "";
+  emit("update:modelValue", "");
+  emit("change", "");
+  message.success("内容已清空");
+};
 
 /**
  * 监听 modelValue 变化
@@ -247,10 +253,10 @@ watch(
   () => props.modelValue,
   (newValue) => {
     if (newValue !== internalValue.value) {
-      internalValue.value = newValue
+      internalValue.value = newValue;
     }
   },
-)
+);
 
 /**
  * 暴露方法给父组件
@@ -264,7 +270,7 @@ defineExpose({
   clear: handleClear,
   /** 获取编辑器实例 */
   getEditor: () => view.value,
-})
+});
 </script>
 
 <style scoped>
@@ -305,7 +311,7 @@ defineExpose({
  */
 .code-editor-container :deep(.cm-editor) {
   height: 100%;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
 }
 
 .code-editor-container :deep(.cm-scroller) {

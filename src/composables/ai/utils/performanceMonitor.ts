@@ -8,23 +8,23 @@
  */
 export interface PerformanceMetric {
   /** 指标名称 */
-  name: string
+  name: string;
   /** 开始时间 */
-  startTime: number
+  startTime: number;
   /** 结束时间 */
-  endTime?: number
+  endTime?: number;
   /** 持续时间（ms） */
-  duration?: number
+  duration?: number;
   /** 额外信息 */
-  metadata?: Record<string, unknown>
+  metadata?: Record<string, unknown>;
 }
 
 /**
  * 性能监控器
  */
 class PerformanceMonitor {
-  private metrics: Map<string, PerformanceMetric> = new Map()
-  private completedMetrics: PerformanceMetric[] = []
+  private metrics: Map<string, PerformanceMetric> = new Map();
+  private completedMetrics: PerformanceMetric[] = [];
 
   /**
    * 开始计时
@@ -36,8 +36,8 @@ class PerformanceMonitor {
       name,
       startTime: performance.now(),
       metadata,
-    }
-    this.metrics.set(name, metric)
+    };
+    this.metrics.set(name, metric);
   }
 
   /**
@@ -46,32 +46,32 @@ class PerformanceMonitor {
    * @returns 性能指标
    */
   end(name: string): PerformanceMetric | undefined {
-    const metric = this.metrics.get(name)
+    const metric = this.metrics.get(name);
     if (!metric) {
-      console.warn(`[PerformanceMonitor] 未找到指标: ${name}`)
-      return undefined
+      console.warn(`[PerformanceMonitor] 未找到指标: ${name}`);
+      return undefined;
     }
 
-    metric.endTime = performance.now()
-    metric.duration = metric.endTime - metric.startTime
+    metric.endTime = performance.now();
+    metric.duration = metric.endTime - metric.startTime;
 
-    this.metrics.delete(name)
-    this.completedMetrics.push(metric)
+    this.metrics.delete(name);
+    this.completedMetrics.push(metric);
 
     // 输出性能日志
     console.log(
       `[PerformanceMonitor] ${name}: ${metric.duration.toFixed(2)}ms`,
-      metric.metadata || ''
-    )
+      metric.metadata || "",
+    );
 
-    return metric
+    return metric;
   }
 
   /**
    * 获取所有已完成的指标
    */
   getCompletedMetrics(): PerformanceMetric[] {
-    return [...this.completedMetrics]
+    return [...this.completedMetrics];
   }
 
   /**
@@ -79,58 +79,61 @@ class PerformanceMonitor {
    * @param name - 指标名称
    */
   getMetricStats(name: string): {
-    count: number
-    avgDuration: number
-    minDuration: number
-    maxDuration: number
+    count: number;
+    avgDuration: number;
+    minDuration: number;
+    maxDuration: number;
   } | null {
-    const metrics = this.completedMetrics.filter((m) => m.name === name)
+    const metrics = this.completedMetrics.filter((m) => m.name === name);
     if (metrics.length === 0) {
-      return null
+      return null;
     }
 
-    const durations = metrics.map((m) => m.duration || 0)
+    const durations = metrics.map((m) => m.duration || 0);
     return {
       count: metrics.length,
       avgDuration: durations.reduce((a, b) => a + b, 0) / durations.length,
       minDuration: Math.min(...durations),
       maxDuration: Math.max(...durations),
-    }
+    };
   }
 
   /**
    * 清空所有指标
    */
   clear(): void {
-    this.metrics.clear()
-    this.completedMetrics = []
+    this.metrics.clear();
+    this.completedMetrics = [];
   }
 
   /**
    * 导出性能报告
    */
   exportReport(): {
-    metrics: PerformanceMetric[]
-    summary: Record<string, ReturnType<PerformanceMonitor['getMetricStats']>>
+    metrics: PerformanceMetric[];
+    summary: Record<string, ReturnType<PerformanceMonitor["getMetricStats"]>>;
   } {
-    const metricNames = new Set(this.completedMetrics.map((m) => m.name))
-    const summary: Record<string, ReturnType<PerformanceMonitor['getMetricStats']>> = {}
+    const metricNames = new Set(this.completedMetrics.map((m) => m.name));
+    const summary: Record<
+      string,
+      ReturnType<PerformanceMonitor["getMetricStats"]>
+    > = {};
 
     metricNames.forEach((name) => {
-      summary[name] = this.getMetricStats(name)
-    })
+      summary[name] = this.getMetricStats(name);
+    });
 
     return {
       metrics: this.completedMetrics,
       summary,
-    }
+    };
   }
 }
 
 /**
  * 全局性能监控实例
  */
-export const performanceMonitor = new PerformanceMonitor()
+export const performanceMonitor = new PerformanceMonitor();
 
 /**
  * 性能计时装饰器
@@ -141,24 +144,24 @@ export function measurePerformance(name: string) {
   return function (
     target: unknown,
     propertyKey: string,
-    descriptor: PropertyDescriptor
+    descriptor: PropertyDescriptor,
   ) {
-    const originalMethod = descriptor.value
+    const originalMethod = descriptor.value;
 
     descriptor.value = async function (...args: unknown[]) {
-      performanceMonitor.start(name)
+      performanceMonitor.start(name);
       try {
-        const result = await originalMethod.apply(this, args)
-        performanceMonitor.end(name)
-        return result
+        const result = await originalMethod.apply(this, args);
+        performanceMonitor.end(name);
+        return result;
       } catch (error) {
-        performanceMonitor.end(name)
-        throw error
+        performanceMonitor.end(name);
+        throw error;
       }
-    }
+    };
 
-    return descriptor
-  }
+    return descriptor;
+  };
 }
 
 /**
@@ -170,16 +173,16 @@ export function measurePerformance(name: string) {
 export async function measureAsync<T>(
   name: string,
   fn: () => Promise<T>,
-  metadata?: Record<string, unknown>
+  metadata?: Record<string, unknown>,
 ): Promise<T> {
-  performanceMonitor.start(name, metadata)
+  performanceMonitor.start(name, metadata);
   try {
-    const result = await fn()
-    performanceMonitor.end(name)
-    return result
+    const result = await fn();
+    performanceMonitor.end(name);
+    return result;
   } catch (error) {
-    performanceMonitor.end(name)
-    throw error
+    performanceMonitor.end(name);
+    throw error;
   }
 }
 
@@ -192,15 +195,15 @@ export async function measureAsync<T>(
 export function measureSync<T>(
   name: string,
   fn: () => T,
-  metadata?: Record<string, unknown>
+  metadata?: Record<string, unknown>,
 ): T {
-  performanceMonitor.start(name, metadata)
+  performanceMonitor.start(name, metadata);
   try {
-    const result = fn()
-    performanceMonitor.end(name)
-    return result
+    const result = fn();
+    performanceMonitor.end(name);
+    return result;
   } catch (error) {
-    performanceMonitor.end(name)
-    throw error
+    performanceMonitor.end(name);
+    throw error;
   }
 }

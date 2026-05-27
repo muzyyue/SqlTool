@@ -1568,7 +1568,11 @@ const JsonTreeNode = {
 .analyze-btn {
   min-width: 120px;
   border-radius: var(--border-radius-sm);
-  transition: transform var(--transition-fast) ease, box-shadow var(--transition-fast) ease, background-color var(--transition-fast) ease, border-color var(--transition-fast) ease;
+  transition:
+    transform var(--transition-fast) ease,
+    box-shadow var(--transition-fast) ease,
+    background-color var(--transition-fast) ease,
+    border-color var(--transition-fast) ease;
 }
 
 .analyze-btn:not(:disabled):hover {

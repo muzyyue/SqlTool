@@ -5,7 +5,10 @@
       :size="size"
       :disabled="isButtonDisabled"
       :loading="isButtonLoading"
-      :class="['ai-assist-button', { 'ai-assist-button--disabled': isButtonDisabled }]"
+      :class="[
+        'ai-assist-button',
+        { 'ai-assist-button--disabled': isButtonDisabled },
+      ]"
       @click="handleClick"
     >
       <template #icon>
@@ -13,9 +16,7 @@
           <span class="i-carbon-cube ai-assist-button__icon" />
         </slot>
       </template>
-      <slot>
-        AI 助手
-      </slot>
+      <slot> AI 助手 </slot>
     </Button>
   </Tooltip>
 </template>
@@ -46,21 +47,21 @@
  * </AiAssistButton>
  */
 
-import { computed } from 'vue'
-import { Button, Tooltip } from 'ant-design-vue'
-import { useAiStore } from '@/stores/ai.js'
+import { computed } from "vue";
+import { Button, Tooltip } from "ant-design-vue";
+import { useAiStore } from "@/stores/ai.js";
 
 // ===== 类型定义 =====
 
 /**
  * 按钮类型
  */
-type ButtonType = 'primary' | 'default' | 'text'
+type ButtonType = "primary" | "default" | "text";
 
 /**
  * 按钮尺寸
  */
-type ButtonSize = 'small' | 'default' | 'large'
+type ButtonSize = "small" | "default" | "large";
 
 // ===== Props 定义 =====
 
@@ -69,40 +70,40 @@ interface Props {
    * 按钮类型
    * @default 'default'
    */
-  type?: ButtonType
+  type?: ButtonType;
 
   /**
    * 按钮尺寸
    * @default 'default'
    */
-  size?: ButtonSize
+  size?: ButtonSize;
 
   /**
    * 是否禁用（外部控制）
    * @default false
    */
-  disabled?: boolean
+  disabled?: boolean;
 
   /**
    * 是否显示加载状态（外部控制）
    * @default false
    */
-  loading?: boolean
+  loading?: boolean;
 
   /**
    * 自定义 Tooltip 提示文字
    * 不设置时根据 AI 状态自动生成
    */
-  tooltip?: string
+  tooltip?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  type: 'default',
-  size: 'default',
+  type: "default",
+  size: "default",
   disabled: false,
   loading: false,
   tooltip: undefined,
-})
+});
 
 // ===== Emits 定义 =====
 
@@ -111,14 +112,14 @@ interface Emits {
    * 点击事件
    * 仅在按钮可点击时触发
    */
-  (e: 'click'): void
+  (e: "click"): void;
 }
 
-const emit = defineEmits<Emits>()
+const emit = defineEmits<Emits>();
 
 // ===== Store =====
 
-const aiStore = useAiStore()
+const aiStore = useAiStore();
 
 // ===== 计算属性 =====
 
@@ -129,29 +130,29 @@ const aiStore = useAiStore()
 const isButtonDisabled = computed(() => {
   // 外部显式禁用
   if (props.disabled) {
-    return true
+    return true;
   }
 
   // AI 未启用
   if (!aiStore.isEnabled) {
-    return true
+    return true;
   }
 
   // AI 不可用（非加载状态）
   if (!aiStore.isAvailable && !aiStore.isLoading) {
-    return true
+    return true;
   }
 
-  return false
-})
+  return false;
+});
 
 /**
  * 按钮是否显示加载状态
  * 外部 loading 或 AI Store 加载中
  */
 const isButtonLoading = computed(() => {
-  return props.loading || aiStore.isLoading
-})
+  return props.loading || aiStore.isLoading;
+});
 
 /**
  * 计算后的 Tooltip 内容
@@ -160,27 +161,27 @@ const isButtonLoading = computed(() => {
 const computedTooltip = computed(() => {
   // 使用自定义 tooltip
   if (props.tooltip) {
-    return props.tooltip
+    return props.tooltip;
   }
 
   // AI 未启用
   if (!aiStore.isEnabled) {
-    return 'AI 功能未启用'
+    return "AI 功能未启用";
   }
 
   // AI 加载中
   if (aiStore.isLoading) {
-    return 'AI 服务加载中...'
+    return "AI 服务加载中...";
   }
 
   // AI 不可用
   if (!aiStore.isAvailable) {
-    return aiStore.errorMessage || 'AI 服务不可用'
+    return aiStore.errorMessage || "AI 服务不可用";
   }
 
   // AI 可用
-  return '点击使用 AI 辅助功能'
-})
+  return "点击使用 AI 辅助功能";
+});
 
 // ===== 方法 =====
 
@@ -191,16 +192,16 @@ const computedTooltip = computed(() => {
 const handleClick = () => {
   // 禁用状态不触发事件
   if (isButtonDisabled.value) {
-    return
+    return;
   }
 
   // 加载状态不触发事件
   if (isButtonLoading.value) {
-    return
+    return;
   }
 
-  emit('click')
-}
+  emit("click");
+};
 </script>
 
 <style scoped>
@@ -222,7 +223,12 @@ const handleClick = () => {
   color: var(--text-primary) !important;
 
   /* 过渡动画 - 仅针对实际变化的属性 */
-  transition: transform var(--transition-fast) ease, box-shadow var(--transition-fast) ease, background-color var(--transition-fast) ease, border-color var(--transition-fast) ease, opacity var(--transition-fast) ease !important;
+  transition:
+    transform var(--transition-fast) ease,
+    box-shadow var(--transition-fast) ease,
+    background-color var(--transition-fast) ease,
+    border-color var(--transition-fast) ease,
+    opacity var(--transition-fast) ease !important;
 
   /* 圆角 */
   border-radius: var(--border-radius-sm) !important;

@@ -1,1 +1,1 @@
-export { default as FieldMappingCard } from './FieldMappingCard.vue'
+export { default as FieldMappingCard } from "./FieldMappingCard.vue";

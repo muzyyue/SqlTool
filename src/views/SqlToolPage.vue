@@ -2,7 +2,9 @@
   <div class="sql-tool-page">
     <div class="page-header">
       <h1 class="page-title">SQL 生成工具</h1>
-      <p class="page-subtitle">基于 Excel 数据快速生成 SQL 语句，支持多种数据库</p>
+      <p class="page-subtitle">
+        基于 Excel 数据快速生成 SQL 语句，支持多种数据库
+      </p>
     </div>
 
     <div class="feature-section">
@@ -53,7 +55,9 @@
             <InsertRowAboveOutlined class="card-icon" />
           </template>
           <template #extra>
-            <a-button type="primary" size="small"> 开始使用 <RightOutlined /> </a-button>
+            <a-button type="primary" size="small">
+              开始使用 <RightOutlined />
+            </a-button>
           </template>
         </VbenGlassCard>
 
@@ -67,7 +71,9 @@
             <EditOutlined class="card-icon" />
           </template>
           <template #extra>
-            <a-button type="primary" size="small"> 开始使用 <RightOutlined /> </a-button>
+            <a-button type="primary" size="small">
+              开始使用 <RightOutlined />
+            </a-button>
           </template>
         </VbenGlassCard>
 
@@ -81,7 +87,9 @@
             <CodeOutlined class="card-icon" />
           </template>
           <template #extra>
-            <a-button type="primary" size="small"> 开始使用 <RightOutlined /> </a-button>
+            <a-button type="primary" size="small">
+              开始使用 <RightOutlined />
+            </a-button>
           </template>
         </VbenGlassCard>
       </div>
@@ -118,7 +126,7 @@
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router'
+import { useRouter } from "vue-router";
 import {
   DatabaseOutlined,
   FileExcelOutlined,
@@ -127,14 +135,14 @@ import {
   InsertRowAboveOutlined,
   EditOutlined,
   RightOutlined,
-} from '@ant-design/icons-vue'
-import VbenGlassCard from '@/components/common/VbenGlassCard.vue'
+} from "@ant-design/icons-vue";
+import VbenGlassCard from "@/components/common/VbenGlassCard.vue";
 
-const router = useRouter()
+const router = useRouter();
 
 const navigateTo = (path) => {
-  router.push(path)
-}
+  router.push(path);
+};
 </script>
 
 <style scoped lang="scss">
@@ -193,7 +201,11 @@ const navigateTo = (path) => {
   padding: 24px;
   background: $bg-elevated;
   border-radius: $border-radius-md;
-  transition: transform $transition-normal ease, box-shadow $transition-normal ease, background-color $transition-normal ease, border-color $transition-normal ease;
+  transition:
+    transform $transition-normal ease,
+    box-shadow $transition-normal ease,
+    background-color $transition-normal ease,
+    border-color $transition-normal ease;
   will-change: transform;
   animation: fadeInUp 0.6s cubic-bezier(0.32, 0.72, 0, 1) both;
 

@@ -6,7 +6,7 @@
  * 2. 提供加载状态和错误处理
  * 3. 支持预加载策略
  */
-import { defineAsyncComponent } from 'vue'
+import { defineAsyncComponent } from "vue";
 
 /**
  * 创建异步组件包装器
@@ -39,44 +39,44 @@ const createAsyncComponent = (componentName, loader) => {
     },
     delay: 200, // 延迟显示加载组件
     timeout: 10000, // 10秒超时
-  })
-}
+  });
+};
 
 // 导出异步组件
 export const AiStatusIndicator = createAsyncComponent(
-  'AiStatusIndicator',
-  () => import('./AiStatusIndicator.vue')
-)
+  "AiStatusIndicator",
+  () => import("./AiStatusIndicator.vue"),
+);
 
 export const AiConfigPanel = createAsyncComponent(
-  'AiConfigPanel',
-  () => import('./AiConfigPanel.vue')
-)
+  "AiConfigPanel",
+  () => import("./AiConfigPanel.vue"),
+);
 
 export const AiDialog = createAsyncComponent(
-  'AiDialog',
-  () => import('./AiDialog.vue')
-)
+  "AiDialog",
+  () => import("./AiDialog.vue"),
+);
 
 export const AiAssistButton = createAsyncComponent(
-  'AiAssistButton',
-  () => import('./AiAssistButton.vue')
-)
+  "AiAssistButton",
+  () => import("./AiAssistButton.vue"),
+);
 
 export const SqlAiAssistant = createAsyncComponent(
-  'SqlAiAssistant',
-  () => import('./SqlAiAssistant.vue')
-)
+  "SqlAiAssistant",
+  () => import("./SqlAiAssistant.vue"),
+);
 
 export const RegexAiAssistant = createAsyncComponent(
-  'RegexAiAssistant',
-  () => import('./RegexAiAssistant.vue')
-)
+  "RegexAiAssistant",
+  () => import("./RegexAiAssistant.vue"),
+);
 
 export const JsonAiAssistant = createAsyncComponent(
-  'JsonAiAssistant',
-  () => import('./JsonAiAssistant.vue')
-)
+  "JsonAiAssistant",
+  () => import("./JsonAiAssistant.vue"),
+);
 
 /**
  * 预加载 AI 组件
@@ -92,15 +92,15 @@ export const preloadAiComponents = (components = []) => {
     SqlAiAssistant,
     RegexAiAssistant,
     JsonAiAssistant,
-  }
+  };
 
   components.forEach((name) => {
-    const component = componentMap[name]
-    if (component && typeof component.__asyncLoader === 'function') {
-      component.__asyncLoader()
+    const component = componentMap[name];
+    if (component && typeof component.__asyncLoader === "function") {
+      component.__asyncLoader();
     }
-  })
-}
+  });
+};
 
 /**
  * 预加载所有 AI 组件
@@ -108,15 +108,15 @@ export const preloadAiComponents = (components = []) => {
  */
 export const preloadAllAiComponents = () => {
   preloadAiComponents([
-    'AiStatusIndicator',
-    'AiConfigPanel',
-    'AiDialog',
-    'AiAssistButton',
-    'SqlAiAssistant',
-    'RegexAiAssistant',
-    'JsonAiAssistant',
-  ])
-}
+    "AiStatusIndicator",
+    "AiConfigPanel",
+    "AiDialog",
+    "AiAssistButton",
+    "SqlAiAssistant",
+    "RegexAiAssistant",
+    "JsonAiAssistant",
+  ]);
+};
 
 // 默认导出所有组件
 export default {
@@ -129,4 +129,4 @@ export default {
   JsonAiAssistant,
   preloadAiComponents,
   preloadAllAiComponents,
-}
+};

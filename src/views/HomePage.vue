@@ -47,8 +47,13 @@
           @click="navigateToTool(tool)"
         >
           <div class="quick-access-content">
-            <component :is="iconMap[tool.icon] || DatabaseOutlined" class="tool-icon" />
-            <a-button type="link" size="small"> 立即使用 <RightOutlined /> </a-button>
+            <component
+              :is="iconMap[tool.icon] || DatabaseOutlined"
+              class="tool-icon"
+            />
+            <a-button type="link" size="small">
+              立即使用 <RightOutlined />
+            </a-button>
           </div>
         </VbenGlassCard>
       </div>
@@ -57,8 +62,8 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed } from "vue";
+import { useRouter } from "vue-router";
 import {
   DatabaseOutlined,
   CodeOutlined,
@@ -75,16 +80,16 @@ import {
   SafetyCertificateOutlined,
   QrcodeOutlined,
   BgColorsOutlined,
-} from '@ant-design/icons-vue'
-import VbenGlassCard from '@/components/common/VbenGlassCard.vue'
-import ToolsGrid from '@/components/common/ToolsGrid.vue'
-import { tools, categories } from '@/config/tools.js'
+} from "@ant-design/icons-vue";
+import VbenGlassCard from "@/components/common/VbenGlassCard.vue";
+import ToolsGrid from "@/components/common/ToolsGrid.vue";
+import { tools, categories } from "@/config/tools.js";
 
-const router = useRouter()
+const router = useRouter();
 
 const popularTools = computed(() => {
-  return tools.slice(0, 4)
-})
+  return tools.slice(0, 4);
+});
 
 const iconMap = {
   DatabaseOutlined,
@@ -101,11 +106,11 @@ const iconMap = {
   SwapOutlined,
   PlusSquareOutlined,
   AppstoreOutlined,
-}
+};
 
 const navigateToTool = (tool) => {
-  router.push(tool.route)
-}
+  router.push(tool.route);
+};
 </script>
 
 <style lang="scss" scoped>

@@ -298,7 +298,9 @@ onMounted(() => {
   );
   padding: 0;
   box-shadow: var(--shadow-header);
-  transition: background var(--transition-normal) ease, box-shadow var(--transition-normal) ease;
+  transition:
+    background var(--transition-normal) ease,
+    box-shadow var(--transition-normal) ease;
 }
 
 .header-content {
@@ -339,7 +341,10 @@ onMounted(() => {
 .nav-menu :deep(.ant-menu) {
   background: transparent;
   border: none;
-  transition: color var(--transition-normal) ease, background-color var(--transition-normal) ease, border-color var(--transition-normal) ease;
+  transition:
+    color var(--transition-normal) ease,
+    background-color var(--transition-normal) ease,
+    border-color var(--transition-normal) ease;
 }
 
 .nav-menu :deep(.ant-menu-item) {
@@ -365,7 +370,11 @@ onMounted(() => {
 .theme-toggle,
 .settings-btn {
   color: var(--header-text) !important;
-  transition: color var(--transition-normal) ease, background-color var(--transition-normal) ease, border-color var(--transition-normal) ease, box-shadow var(--transition-normal) ease;
+  transition:
+    color var(--transition-normal) ease,
+    background-color var(--transition-normal) ease,
+    border-color var(--transition-normal) ease,
+    box-shadow var(--transition-normal) ease;
 }
 
 .theme-toggle:hover,
@@ -404,7 +413,9 @@ onMounted(() => {
   border-radius: var(--border-radius-sm);
   box-shadow: var(--shadow-sm);
   min-height: 600px;
-  transition: background var(--transition-normal) ease, box-shadow var(--transition-normal) ease;
+  transition:
+    background var(--transition-normal) ease,
+    box-shadow var(--transition-normal) ease;
 }
 
 .footer {
@@ -415,7 +426,9 @@ onMounted(() => {
   );
   color: var(--header-text-secondary);
   padding: 16px 0;
-  transition: background var(--transition-normal) ease, color var(--transition-normal) ease;
+  transition:
+    background var(--transition-normal) ease,
+    color var(--transition-normal) ease;
 }
 
 .footer-content {

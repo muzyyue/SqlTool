@@ -7,11 +7,11 @@
  * SQL统计信息接口
  */
 export interface SqlStats {
-  statementCount: number
-  affectedRows: number
-  generationTime: number
-  tableName?: string
-  fieldCount?: number
+  statementCount: number;
+  affectedRows: number;
+  generationTime: number;
+  tableName?: string;
+  fieldCount?: number;
 }
 
 /**
@@ -21,10 +21,10 @@ export interface SqlStats {
  */
 export const countSqlStatements = (sql: string): number => {
   if (!sql || !sql.trim()) {
-    return 0
+    return 0;
   }
-  return sql.split(';').filter((s) => s.trim()).length
-}
+  return sql.split(";").filter((s) => s.trim()).length;
+};
 
 /**
  * 提取SQL中的表名
@@ -32,20 +32,20 @@ export const countSqlStatements = (sql: string): number => {
  * @returns {string | null} 表名
  */
 export const extractTableName = (sql: string): string | null => {
-  if (!sql) return null
+  if (!sql) return null;
 
-  const insertMatch = sql.match(/INSERT\s+INTO\s+[`"']?(\w+)[`"']?/i)
+  const insertMatch = sql.match(/INSERT\s+INTO\s+[`"']?(\w+)[`"']?/i);
   if (insertMatch) {
-    return insertMatch[1]
+    return insertMatch[1];
   }
 
-  const updateMatch = sql.match(/UPDATE\s+[`"']?(\w+)[`"']?/i)
+  const updateMatch = sql.match(/UPDATE\s+[`"']?(\w+)[`"']?/i);
   if (updateMatch) {
-    return updateMatch[1]
+    return updateMatch[1];
   }
 
-  return null
-}
+  return null;
+};
 
 /**
  * 计算SQL统计信息
@@ -59,8 +59,8 @@ export const calculateSqlStats = (
   dataRowCount: number = 0,
   generationTime: number = 0,
 ): SqlStats => {
-  const statementCount = countSqlStatements(sql)
-  const tableName = extractTableName(sql)
+  const statementCount = countSqlStatements(sql);
+  const tableName = extractTableName(sql);
 
   return {
     statementCount,
@@ -68,8 +68,8 @@ export const calculateSqlStats = (
     generationTime,
     tableName,
     fieldCount: 0,
-  }
-}
+  };
+};
 
 /**
  * 获取SQL统计摘要
@@ -77,22 +77,22 @@ export const calculateSqlStats = (
  * @returns {string} 摘要字符串
  */
 export const getSqlStatsSummary = (stats: SqlStats): string => {
-  const parts: string[] = []
+  const parts: string[] = [];
 
   if (stats.statementCount > 0) {
-    parts.push(`${stats.statementCount} 条语句`)
+    parts.push(`${stats.statementCount} 条语句`);
   }
 
   if (stats.affectedRows > 0) {
-    parts.push(`影响 ${stats.affectedRows} 行`)
+    parts.push(`影响 ${stats.affectedRows} 行`);
   }
 
   if (stats.generationTime > 0) {
-    parts.push(`耗时 ${stats.generationTime}ms`)
+    parts.push(`耗时 ${stats.generationTime}ms`);
   }
 
-  return parts.join(' | ')
-}
+  return parts.join(" | ");
+};
 
 /**
  * 格式化SQL大小
@@ -100,7 +100,7 @@ export const getSqlStatsSummary = (stats: SqlStats): string => {
  * @returns {{ bytes: number; kb: string }} 大小信息
  */
 export const formatSqlSize = (sql: string): { bytes: number; kb: string } => {
-  const bytes = new Blob([sql]).size
-  const kb = (bytes / 1024).toFixed(2)
-  return { bytes, kb: `${kb} KB` }
-}
+  const bytes = new Blob([sql]).size;
+  const kb = (bytes / 1024).toFixed(2);
+  return { bytes, kb: `${kb} KB` };
+};

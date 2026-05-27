@@ -6,124 +6,124 @@
 // SQL关键字列表
 const SQL_KEYWORDS = [
   // 数据操作语言 (DML)
-  'SELECT',
-  'INSERT',
-  'UPDATE',
-  'DELETE',
-  'MERGE',
+  "SELECT",
+  "INSERT",
+  "UPDATE",
+  "DELETE",
+  "MERGE",
   // 数据定义语言 (DDL)
-  'CREATE',
-  'ALTER',
-  'DROP',
-  'TRUNCATE',
-  'RENAME',
+  "CREATE",
+  "ALTER",
+  "DROP",
+  "TRUNCATE",
+  "RENAME",
   // 数据控制语言 (DCL)
-  'GRANT',
-  'REVOKE',
+  "GRANT",
+  "REVOKE",
   // 事务控制语言 (TCL)
-  'COMMIT',
-  'ROLLBACK',
-  'SAVEPOINT',
-  'SET TRANSACTION',
+  "COMMIT",
+  "ROLLBACK",
+  "SAVEPOINT",
+  "SET TRANSACTION",
   // 其他关键字
-  'FROM',
-  'WHERE',
-  'JOIN',
-  'INNER JOIN',
-  'LEFT JOIN',
-  'RIGHT JOIN',
-  'FULL JOIN',
-  'ON',
-  'IN',
-  'EXISTS',
-  'NOT EXISTS',
-  'LIKE',
-  'BETWEEN',
-  'AND',
-  'OR',
-  'NOT',
-  'ORDER BY',
-  'GROUP BY',
-  'HAVING',
-  'UNION',
-  'UNION ALL',
-  'DISTINCT',
-  'VALUES',
-  'SET',
-  'INTO',
-  'AS',
-  'IS',
-  'NULL',
-  'NULLS',
-  'FIRST',
-  'LAST',
-  'ASC',
-  'DESC',
-  'LIMIT',
-  'OFFSET',
-  'TOP',
-  'PERCENT',
-  'WITH',
-  'CTE',
-  'PRIMARY KEY',
-  'FOREIGN KEY',
-  'REFERENCES',
-  'CONSTRAINT',
-  'INDEX',
-  'UNIQUE',
-  'CHECK',
-  'DEFAULT',
-  'AUTO_INCREMENT',
-  'IDENTITY',
-  'CASE',
-  'WHEN',
-  'THEN',
-  'ELSE',
-  'END',
-  'IF',
-  'ELSEIF',
-  'WHILE',
-  'DECLARE',
-  'SET',
-  'BEGIN',
-  'END',
-  'TRANSACTION',
-  'USE',
-  'DATABASE',
-  'TABLE',
-  'VIEW',
-  'PROCEDURE',
-  'FUNCTION',
-  'TRIGGER',
-  'SCHEMA',
-  'ALTER TABLE',
-  'CREATE TABLE',
-  'DROP TABLE',
-  'CREATE INDEX',
-  'DROP INDEX',
-]
+  "FROM",
+  "WHERE",
+  "JOIN",
+  "INNER JOIN",
+  "LEFT JOIN",
+  "RIGHT JOIN",
+  "FULL JOIN",
+  "ON",
+  "IN",
+  "EXISTS",
+  "NOT EXISTS",
+  "LIKE",
+  "BETWEEN",
+  "AND",
+  "OR",
+  "NOT",
+  "ORDER BY",
+  "GROUP BY",
+  "HAVING",
+  "UNION",
+  "UNION ALL",
+  "DISTINCT",
+  "VALUES",
+  "SET",
+  "INTO",
+  "AS",
+  "IS",
+  "NULL",
+  "NULLS",
+  "FIRST",
+  "LAST",
+  "ASC",
+  "DESC",
+  "LIMIT",
+  "OFFSET",
+  "TOP",
+  "PERCENT",
+  "WITH",
+  "CTE",
+  "PRIMARY KEY",
+  "FOREIGN KEY",
+  "REFERENCES",
+  "CONSTRAINT",
+  "INDEX",
+  "UNIQUE",
+  "CHECK",
+  "DEFAULT",
+  "AUTO_INCREMENT",
+  "IDENTITY",
+  "CASE",
+  "WHEN",
+  "THEN",
+  "ELSE",
+  "END",
+  "IF",
+  "ELSEIF",
+  "WHILE",
+  "DECLARE",
+  "SET",
+  "BEGIN",
+  "END",
+  "TRANSACTION",
+  "USE",
+  "DATABASE",
+  "TABLE",
+  "VIEW",
+  "PROCEDURE",
+  "FUNCTION",
+  "TRIGGER",
+  "SCHEMA",
+  "ALTER TABLE",
+  "CREATE TABLE",
+  "DROP TABLE",
+  "CREATE INDEX",
+  "DROP INDEX",
+];
 
 /**
  * SQL token类型枚举
  */
 const TOKEN_TYPES = {
-  KEYWORD: 'keyword',
-  STRING: 'string',
-  NUMBER: 'number',
-  COMMENT: 'comment',
-  TABLE: 'table',
-  COLUMN: 'column',
-  OPERATOR: 'operator',
-  PUNCTUATION: 'punctuation',
-  IDENTIFIER: 'identifier',
-}
+  KEYWORD: "keyword",
+  STRING: "string",
+  NUMBER: "number",
+  COMMENT: "comment",
+  TABLE: "table",
+  COLUMN: "column",
+  OPERATOR: "operator",
+  PUNCTUATION: "punctuation",
+  IDENTIFIER: "identifier",
+};
 
 /**
  * SQL语法解析器类
  */
 class SqlSyntaxParser {
   constructor() {
-    this.keywords = new Set(SQL_KEYWORDS.map((k) => k.toUpperCase()))
+    this.keywords = new Set(SQL_KEYWORDS.map((k) => k.toUpperCase()));
   }
 
   /**
@@ -132,131 +132,137 @@ class SqlSyntaxParser {
    * @returns {Array} token数组
    */
   parse(sql) {
-    if (!sql) return []
+    if (!sql) return [];
 
-    const tokens = []
-    let i = 0
-    const length = sql.length
+    const tokens = [];
+    let i = 0;
+    const length = sql.length;
 
     while (i < length) {
-      const char = sql[i]
+      const char = sql[i];
 
-      if (char === ' ' || char === '\t' || char === '\n' || char === '\r') {
-        let whitespaceEnd = i
-        while (whitespaceEnd < length && (sql[whitespaceEnd] === ' ' || sql[whitespaceEnd] === '\t' || sql[whitespaceEnd] === '\n' || sql[whitespaceEnd] === '\r')) {
-          whitespaceEnd++
+      if (char === " " || char === "\t" || char === "\n" || char === "\r") {
+        let whitespaceEnd = i;
+        while (
+          whitespaceEnd < length &&
+          (sql[whitespaceEnd] === " " ||
+            sql[whitespaceEnd] === "\t" ||
+            sql[whitespaceEnd] === "\n" ||
+            sql[whitespaceEnd] === "\r")
+        ) {
+          whitespaceEnd++;
         }
         tokens.push({
-          type: 'whitespace',
+          type: "whitespace",
           value: sql.slice(i, whitespaceEnd),
           start: i,
           end: whitespaceEnd,
-        })
-        i = whitespaceEnd
-        continue
+        });
+        i = whitespaceEnd;
+        continue;
       }
 
       // 注释处理
-      if (char === '-' && i + 1 < length && sql[i + 1] === '-') {
-        const comment = this._parseComment(sql, i)
+      if (char === "-" && i + 1 < length && sql[i + 1] === "-") {
+        const comment = this._parseComment(sql, i);
         tokens.push({
           type: TOKEN_TYPES.COMMENT,
           value: comment.text,
           start: comment.start,
           end: comment.end,
-        })
-        i = comment.end
-        continue
+        });
+        i = comment.end;
+        continue;
       }
 
       // 多行注释
-      if (char === '/' && i + 1 < length && sql[i + 1] === '*') {
-        const comment = this._parseMultiLineComment(sql, i)
+      if (char === "/" && i + 1 < length && sql[i + 1] === "*") {
+        const comment = this._parseMultiLineComment(sql, i);
         tokens.push({
           type: TOKEN_TYPES.COMMENT,
           value: comment.text,
           start: comment.start,
           end: comment.end,
-        })
-        i = comment.end
-        continue
+        });
+        i = comment.end;
+        continue;
       }
 
       // 字符串处理 (单引号)
       if (char === "'") {
-        const string = this._parseString(sql, i)
+        const string = this._parseString(sql, i);
         tokens.push({
           type: TOKEN_TYPES.STRING,
           value: string.text,
           start: string.start,
           end: string.end,
-        })
-        i = string.end
-        continue
+        });
+        i = string.end;
+        continue;
       }
 
       // 字符串处理 (双引号)
       if (char === '"') {
-        const string = this._parseString(sql, i, '"')
+        const string = this._parseString(sql, i, '"');
         tokens.push({
           type: TOKEN_TYPES.STRING,
           value: string.text,
           start: string.start,
           end: string.end,
-        })
-        i = string.end
-        continue
+        });
+        i = string.end;
+        continue;
       }
 
       // 数字处理
       if (this._isDigit(char)) {
-        const number = this._parseNumber(sql, i)
+        const number = this._parseNumber(sql, i);
         tokens.push({
           type: TOKEN_TYPES.NUMBER,
           value: number.text,
           start: number.start,
           end: number.end,
-        })
-        i = number.end
-        continue
+        });
+        i = number.end;
+        continue;
       }
 
       // 标识符处理 (表名、字段名)
       if (this._isIdentifierStart(char)) {
-        const identifier = this._parseIdentifier(sql, i)
+        const identifier = this._parseIdentifier(sql, i);
         tokens.push({
           type: TOKEN_TYPES.IDENTIFIER,
           value: identifier.text,
           start: identifier.start,
           end: identifier.end,
-        })
-        i = identifier.end
-        continue
+        });
+        i = identifier.end;
+        continue;
       }
 
       // 操作符和标点符号
-      if ('()[]{};,.*+-/<>='.includes(char)) {
+      if ("()[]{};,.*+-/<>=".includes(char)) {
         tokens.push({
           type: TOKEN_TYPES.PUNCTUATION,
           value: char,
           start: i,
           end: i + 1,
-        })
-        i++
-        continue
+        });
+        i++;
+        continue;
       }
 
       // 默认处理为普通字符
       tokens.push({
-        type: 'text',
+        type: "text",
         value: char,
         start: i,
         end: i + 1,
-      })
-      i++
+      });
+      i++;
     }
 
-    return this._classifyTokens(tokens)
+    return this._classifyTokens(tokens);
   }
 
   /**
@@ -267,15 +273,15 @@ class SqlSyntaxParser {
    * @private
    */
   _parseComment(sql, start) {
-    let end = start + 2
-    while (end < sql.length && sql[end] !== '\n') {
-      end++
+    let end = start + 2;
+    while (end < sql.length && sql[end] !== "\n") {
+      end++;
     }
     return {
       text: sql.slice(start, end),
       start: start,
       end: end,
-    }
+    };
   }
 
   /**
@@ -286,16 +292,16 @@ class SqlSyntaxParser {
    * @private
    */
   _parseMultiLineComment(sql, start) {
-    let end = start + 2
-    while (end < sql.length && !(sql[end] === '*' && sql[end + 1] === '/')) {
-      end++
+    let end = start + 2;
+    while (end < sql.length && !(sql[end] === "*" && sql[end + 1] === "/")) {
+      end++;
     }
-    end += 2 // 包含结束的 */
+    end += 2; // 包含结束的 */
     return {
       text: sql.slice(start, Math.min(end, sql.length)),
       start: start,
       end: Math.min(end, sql.length),
-    }
+    };
   }
 
   /**
@@ -307,26 +313,26 @@ class SqlSyntaxParser {
    * @private
    */
   _parseString(sql, start, quoteChar = "'") {
-    let end = start + 1
-    let escaped = false
+    let end = start + 1;
+    let escaped = false;
 
     while (end < sql.length) {
       if (escaped) {
-        escaped = false
-      } else if (sql[end] === '\\') {
-        escaped = true
+        escaped = false;
+      } else if (sql[end] === "\\") {
+        escaped = true;
       } else if (sql[end] === quoteChar) {
-        end++
-        break
+        end++;
+        break;
       }
-      end++
+      end++;
     }
 
     return {
       text: sql.slice(start, end),
       start: start,
       end: end,
-    }
+    };
   }
 
   /**
@@ -337,15 +343,15 @@ class SqlSyntaxParser {
    * @private
    */
   _parseNumber(sql, start) {
-    let end = start
-    while (end < sql.length && (this._isDigit(sql[end]) || sql[end] === '.')) {
-      end++
+    let end = start;
+    while (end < sql.length && (this._isDigit(sql[end]) || sql[end] === ".")) {
+      end++;
     }
     return {
       text: sql.slice(start, end),
       start: start,
       end: end,
-    }
+    };
   }
 
   /**
@@ -356,15 +362,15 @@ class SqlSyntaxParser {
    * @private
    */
   _parseIdentifier(sql, start) {
-    let end = start
+    let end = start;
     while (end < sql.length && this._isIdentifierChar(sql[end])) {
-      end++
+      end++;
     }
     return {
       text: sql.slice(start, end),
       start: start,
       end: end,
-    }
+    };
   }
 
   /**
@@ -374,18 +380,18 @@ class SqlSyntaxParser {
    * @private
    */
   _classifyTokens(tokens) {
-    const classified = []
+    const classified = [];
 
     for (let i = 0; i < tokens.length; i++) {
-      const token = { ...tokens[i] }
+      const token = { ...tokens[i] };
 
       if (token.type === TOKEN_TYPES.IDENTIFIER) {
-        const value = token.value.toUpperCase()
+        const value = token.value.toUpperCase();
 
         // 检查是否为关键字
         if (this.keywords.has(value)) {
-          token.type = TOKEN_TYPES.KEYWORD
-          token.value = value // 统一为大写
+          token.type = TOKEN_TYPES.KEYWORD;
+          token.value = value; // 统一为大写
         }
         // 检查是否为特殊标识符
         else if (this._isSpecialIdentifier(token.value)) {
@@ -394,19 +400,19 @@ class SqlSyntaxParser {
         }
         // 检查上下文，判断是表名还是字段名
         else {
-          const context = this._getTokenContext(tokens, i)
+          const context = this._getTokenContext(tokens, i);
           if (this._isTableName(token.value, context)) {
-            token.type = TOKEN_TYPES.TABLE
+            token.type = TOKEN_TYPES.TABLE;
           } else if (this._isColumnName(token.value, context)) {
-            token.type = TOKEN_TYPES.COLUMN
+            token.type = TOKEN_TYPES.COLUMN;
           }
         }
       }
 
-      classified.push(token)
+      classified.push(token);
     }
 
-    return classified
+    return classified;
   }
 
   /**
@@ -420,23 +426,23 @@ class SqlSyntaxParser {
     const context = {
       previous: [],
       next: [],
-    }
+    };
 
     // 获取前面的非空白token (最多3个)
     for (let i = index - 1; i >= 0 && context.previous.length < 3; i--) {
-      if (!(tokens[i].type === 'text' && !tokens[i].value.trim())) {
-        context.previous.push(tokens[i])
+      if (!(tokens[i].type === "text" && !tokens[i].value.trim())) {
+        context.previous.push(tokens[i]);
       }
     }
 
     // 获取后面的非空白token (最多3个)
     for (let i = index + 1; i < tokens.length && context.next.length < 3; i++) {
-      if (!(tokens[i].type === 'text' && !tokens[i].value.trim())) {
-        context.next.push(tokens[i])
+      if (!(tokens[i].type === "text" && !tokens[i].value.trim())) {
+        context.next.push(tokens[i]);
       }
     }
 
-    return context
+    return context;
   }
 
   /**
@@ -449,45 +455,49 @@ class SqlSyntaxParser {
   _isTableName(value, context) {
     // 在FROM后面的是表名
     if (context.previous.length > 0) {
-      const prev = context.previous[0]
+      const prev = context.previous[0];
       if (
-        (prev.type === TOKEN_TYPES.KEYWORD || prev.type === TOKEN_TYPES.IDENTIFIER) &&
-        prev.value.toUpperCase() === 'FROM'
+        (prev.type === TOKEN_TYPES.KEYWORD ||
+          prev.type === TOKEN_TYPES.IDENTIFIER) &&
+        prev.value.toUpperCase() === "FROM"
       ) {
-        return true
+        return true;
       }
     }
 
     // 在UPDATE后面的是表名
     if (context.previous.length > 0) {
-      const prev = context.previous[0]
+      const prev = context.previous[0];
       if (
-        (prev.type === TOKEN_TYPES.KEYWORD || prev.type === TOKEN_TYPES.IDENTIFIER) &&
-        prev.value.toUpperCase() === 'UPDATE'
+        (prev.type === TOKEN_TYPES.KEYWORD ||
+          prev.type === TOKEN_TYPES.IDENTIFIER) &&
+        prev.value.toUpperCase() === "UPDATE"
       ) {
-        return true
+        return true;
       }
     }
 
     // 在INTO后面的是表名 (INSERT INTO table_name)
     if (context.previous.length > 0) {
-      const prev = context.previous[0]
+      const prev = context.previous[0];
       if (
-        (prev.type === TOKEN_TYPES.KEYWORD || prev.type === TOKEN_TYPES.IDENTIFIER) &&
-        prev.value.toUpperCase() === 'INTO'
+        (prev.type === TOKEN_TYPES.KEYWORD ||
+          prev.type === TOKEN_TYPES.IDENTIFIER) &&
+        prev.value.toUpperCase() === "INTO"
       ) {
-        return true
+        return true;
       }
     }
 
     // 在JOIN后面的是表名
     if (context.previous.length > 0) {
-      const prev = context.previous[0]
+      const prev = context.previous[0];
       if (
-        (prev.type === TOKEN_TYPES.KEYWORD || prev.type === TOKEN_TYPES.IDENTIFIER) &&
-        prev.value.toUpperCase().includes('JOIN')
+        (prev.type === TOKEN_TYPES.KEYWORD ||
+          prev.type === TOKEN_TYPES.IDENTIFIER) &&
+        prev.value.toUpperCase().includes("JOIN")
       ) {
-        return true
+        return true;
       }
     }
 
@@ -495,22 +505,24 @@ class SqlSyntaxParser {
     // 对于INSERT INTO table_name，table_name前面紧跟着INTO
     const hasInsertKeywordBefore = context.previous.some(
       (token) =>
-        (token.type === TOKEN_TYPES.KEYWORD || token.type === TOKEN_TYPES.IDENTIFIER) &&
-        token.value.toUpperCase() === 'INSERT',
-    )
+        (token.type === TOKEN_TYPES.KEYWORD ||
+          token.type === TOKEN_TYPES.IDENTIFIER) &&
+        token.value.toUpperCase() === "INSERT",
+    );
     const hasIntoKeywordBefore = context.previous.some(
       (token) =>
-        (token.type === TOKEN_TYPES.KEYWORD || token.type === TOKEN_TYPES.IDENTIFIER) &&
-        token.value.toUpperCase() === 'INTO',
-    )
+        (token.type === TOKEN_TYPES.KEYWORD ||
+          token.type === TOKEN_TYPES.IDENTIFIER) &&
+        token.value.toUpperCase() === "INTO",
+    );
 
     // 如果前面同时有INSERT和INTO，那么当前token是表名
     if (hasInsertKeywordBefore && hasIntoKeywordBefore) {
-      return true
+      return true;
     }
 
     // 特殊标识符 (但这些通常不是表名)
-    return false
+    return false;
   }
 
   /**
@@ -523,18 +535,18 @@ class SqlSyntaxParser {
   _isColumnName(value, context) {
     // 在INSERT INTO (field1, field2) 这种情况中，括号内的标识符是字段名
     const hasOpeningParenBefore = context.previous.some(
-      (token) => token.type === TOKEN_TYPES.PUNCTUATION && token.value === '(',
-    )
+      (token) => token.type === TOKEN_TYPES.PUNCTUATION && token.value === "(",
+    );
 
     if (hasOpeningParenBefore) {
-      return true
+      return true;
     }
 
     // 在SELECT后面的可能是字段名
     if (context.previous.length > 0) {
-      const prev = context.previous[0]
-      if (prev.type === TOKEN_TYPES.KEYWORD && prev.value === 'SELECT') {
-        return true
+      const prev = context.previous[0];
+      if (prev.type === TOKEN_TYPES.KEYWORD && prev.value === "SELECT") {
+        return true;
       }
     }
 
@@ -543,14 +555,14 @@ class SqlSyntaxParser {
 
     // 如果前面是逗号分隔的列表中的标识符，很可能是字段名
     const hasCommaBefore = context.previous.some(
-      (token) => token.type === TOKEN_TYPES.PUNCTUATION && token.value === ',',
-    )
+      (token) => token.type === TOKEN_TYPES.PUNCTUATION && token.value === ",",
+    );
 
     if (hasCommaBefore) {
-      return true
+      return true;
     }
 
-    return false
+    return false;
   }
 
   /**
@@ -560,8 +572,15 @@ class SqlSyntaxParser {
    * @private
    */
   _isSpecialIdentifier(value) {
-    const specialIdentifiers = ['NULL', 'TRUE', 'FALSE', 'DEFAULT', 'CURRENT_TIMESTAMP', 'NOW()']
-    return specialIdentifiers.includes(value.toUpperCase())
+    const specialIdentifiers = [
+      "NULL",
+      "TRUE",
+      "FALSE",
+      "DEFAULT",
+      "CURRENT_TIMESTAMP",
+      "NOW()",
+    ];
+    return specialIdentifiers.includes(value.toUpperCase());
   }
 
   /**
@@ -571,7 +590,7 @@ class SqlSyntaxParser {
    * @private
    */
   _isDigit(char) {
-    return char >= '0' && char <= '9'
+    return char >= "0" && char <= "9";
   }
 
   /**
@@ -582,8 +601,11 @@ class SqlSyntaxParser {
    */
   _isIdentifierStart(char) {
     return (
-      (char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z') || char === '_' || char === '$'
-    )
+      (char >= "a" && char <= "z") ||
+      (char >= "A" && char <= "Z") ||
+      char === "_" ||
+      char === "$"
+    );
   }
 
   /**
@@ -593,7 +615,7 @@ class SqlSyntaxParser {
    * @private
    */
   _isIdentifierChar(char) {
-    return this._isIdentifierStart(char) || this._isDigit(char)
+    return this._isIdentifierStart(char) || this._isDigit(char);
   }
 }
 
@@ -602,7 +624,7 @@ class SqlSyntaxParser {
  */
 class SqlHighlighter {
   constructor() {
-    this.parser = new SqlSyntaxParser()
+    this.parser = new SqlSyntaxParser();
   }
 
   /**
@@ -611,10 +633,10 @@ class SqlHighlighter {
    * @returns {string} 带语法高亮的HTML字符串
    */
   highlight(sql) {
-    if (!sql) return ''
+    if (!sql) return "";
 
-    const tokens = this.parser.parse(sql)
-    return this._renderHighlightedHtml(tokens)
+    const tokens = this.parser.parse(sql);
+    return this._renderHighlightedHtml(tokens);
   }
 
   /**
@@ -624,39 +646,39 @@ class SqlHighlighter {
    * @private
    */
   _renderHighlightedHtml(tokens) {
-    let html = ''
+    let html = "";
 
     for (const token of tokens) {
-      const escapedValue = this._escapeHtml(token.value)
+      const escapedValue = this._escapeHtml(token.value);
 
       switch (token.type) {
         case TOKEN_TYPES.KEYWORD:
-          html += `<span class="sql-keyword">${escapedValue}</span>`
-          break
+          html += `<span class="sql-keyword">${escapedValue}</span>`;
+          break;
         case TOKEN_TYPES.STRING:
-          html += `<span class="sql-string">${escapedValue}</span>`
-          break
+          html += `<span class="sql-string">${escapedValue}</span>`;
+          break;
         case TOKEN_TYPES.NUMBER:
-          html += `<span class="sql-number">${escapedValue}</span>`
-          break
+          html += `<span class="sql-number">${escapedValue}</span>`;
+          break;
         case TOKEN_TYPES.COMMENT:
-          html += `<span class="sql-comment">${escapedValue}</span>`
-          break
+          html += `<span class="sql-comment">${escapedValue}</span>`;
+          break;
         case TOKEN_TYPES.TABLE:
-          html += `<span class="sql-table">${escapedValue}</span>`
-          break
+          html += `<span class="sql-table">${escapedValue}</span>`;
+          break;
         case TOKEN_TYPES.COLUMN:
-          html += `<span class="sql-column">${escapedValue}</span>`
-          break
-        case 'whitespace':
-          html += escapedValue
-          break
+          html += `<span class="sql-column">${escapedValue}</span>`;
+          break;
+        case "whitespace":
+          html += escapedValue;
+          break;
         default:
-          html += escapedValue
+          html += escapedValue;
       }
     }
 
-    return html
+    return html;
   }
 
   /**
@@ -666,21 +688,21 @@ class SqlHighlighter {
    * @private
    */
   _escapeHtml(text) {
-    if (!text) return ''
+    if (!text) return "";
 
     const escapeMap = {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#x27;',
-      '/': '&#x2F;',
-    }
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#x27;",
+      "/": "&#x2F;",
+    };
 
-    return text.replace(/[&<>"'/]/g, (char) => escapeMap[char])
+    return text.replace(/[&<>"'/]/g, (char) => escapeMap[char]);
   }
 }
 
 // 导出单例实例
-export const sqlHighlighter = new SqlHighlighter()
-export { SqlSyntaxParser, SqlHighlighter, TOKEN_TYPES }
+export const sqlHighlighter = new SqlHighlighter();
+export { SqlSyntaxParser, SqlHighlighter, TOKEN_TYPES };

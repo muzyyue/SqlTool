@@ -913,7 +913,10 @@ function parseSelectedFieldAsJson(depth = 0) {
 function parseFromFormattedSample(depth) {
   try {
     const sampleText = formattedSampleJson.value;
-    if (!sampleText || !(sampleText.startsWith("{") || sampleText.startsWith("["))) {
+    if (
+      !sampleText ||
+      !(sampleText.startsWith("{") || sampleText.startsWith("["))
+    ) {
       return false;
     }
 
@@ -1690,7 +1693,7 @@ function extractFieldValue(data, fieldPath, innerPath) {
             return result
               .map((item) =>
                 typeof item === "object" && item !== null
-                  ? item.value ?? JSON.stringify(item)
+                  ? (item.value ?? JSON.stringify(item))
                   : String(item),
               )
               .join(", ");
@@ -2043,7 +2046,9 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
       margin-bottom: 8px;
       padding-left: 10px;
       border-left: 3px solid #6366f1;
-      transition: color 0.2s ease, border-left-color 0.2s ease;
+      transition:
+        color 0.2s ease,
+        border-left-color 0.2s ease;
 
       &:hover {
         color: #4f46e5;
@@ -2127,7 +2132,9 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
       margin-bottom: 8px;
       padding-left: 10px;
       border-left: 3px solid #059669;
-      transition: color 0.2s ease, border-left-color 0.2s ease;
+      transition:
+        color 0.2s ease,
+        border-left-color 0.2s ease;
 
       &:hover {
         color: #047857;
@@ -2153,7 +2160,9 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
         min-height: 44px;
         border: 1.5px solid #e5e7eb;
         background: white;
-        transition: border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        transition:
+          border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+          box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
         &:hover {
           border-color: #93c5fd;
@@ -2181,7 +2190,11 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
         font-weight: 500;
         font-size: 13px;
         margin: 2px;
-        transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition:
+          background 0.2s ease,
+          border-color 0.2s ease,
+          transform 0.2s ease,
+          box-shadow 0.2s ease;
 
         &:hover {
           background: #dbeafe !important;
@@ -2288,7 +2301,9 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
             font-size: 12px;
             color: #9ca3af;
             font-weight: 500;
-            transition: color 0.2s ease, font-weight 0.2s ease;
+            transition:
+              color 0.2s ease,
+              font-weight 0.2s ease;
 
             &.active {
               color: #059669;
@@ -2310,7 +2325,9 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
       margin-bottom: 8px;
       padding-left: 10px;
       border-left: 3px solid #8b5cf6;
-      transition: color 0.2s ease, border-left-color 0.2s ease;
+      transition:
+        color 0.2s ease,
+        border-left-color 0.2s ease;
 
       &:hover {
         color: #7c3aed;

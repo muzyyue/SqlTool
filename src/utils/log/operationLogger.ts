@@ -7,33 +7,33 @@
  * 日志级别枚举
  */
 export enum LogLevel {
-  INFO = 'info',
-  WARNING = 'warning',
-  ERROR = 'error',
-  SUCCESS = 'success',
+  INFO = "info",
+  WARNING = "warning",
+  ERROR = "error",
+  SUCCESS = "success",
 }
 
 /**
  * 日志条目接口
  */
 export interface LogEntry {
-  id: string
-  timestamp: Date
-  level: LogLevel
-  message: string
-  type: string
-  context?: Record<string, any>
+  id: string;
+  timestamp: Date;
+  level: LogLevel;
+  message: string;
+  type: string;
+  context?: Record<string, any>;
 }
 
 /**
  * 日志筛选选项接口
  */
 export interface LogFilterOptions {
-  level?: LogLevel | LogLevel[]
-  type?: string | string[]
-  startTime?: Date
-  endTime?: Date
-  keyword?: string
+  level?: LogLevel | LogLevel[];
+  type?: string | string[];
+  startTime?: Date;
+  endTime?: Date;
+  keyword?: string;
 }
 
 /**
@@ -41,8 +41,8 @@ export interface LogFilterOptions {
  * @returns {string} 唯一的日志ID
  */
 export const createLogId = (): string => {
-  return `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-}
+  return `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+};
 
 /**
  * 创建日志条目
@@ -65,8 +65,8 @@ export const createLogEntry = (
     message,
     type,
     context,
-  }
-}
+  };
+};
 
 /**
  * 格式化日志时间
@@ -76,23 +76,23 @@ export const createLogEntry = (
  */
 export const formatLogTime = (
   timestamp: Date,
-  format: 'YYYY-MM-DD HH:mm:ss' | 'HH:mm:ss' = 'HH:mm:ss',
+  format: "YYYY-MM-DD HH:mm:ss" | "HH:mm:ss" = "HH:mm:ss",
 ): string => {
-  const pad = (n: number) => n.toString().padStart(2, '0')
+  const pad = (n: number) => n.toString().padStart(2, "0");
 
-  const year = timestamp.getFullYear()
-  const month = pad(timestamp.getMonth() + 1)
-  const day = pad(timestamp.getDate())
-  const hours = pad(timestamp.getHours())
-  const minutes = pad(timestamp.getMinutes())
-  const seconds = pad(timestamp.getSeconds())
+  const year = timestamp.getFullYear();
+  const month = pad(timestamp.getMonth() + 1);
+  const day = pad(timestamp.getDate());
+  const hours = pad(timestamp.getHours());
+  const minutes = pad(timestamp.getMinutes());
+  const seconds = pad(timestamp.getSeconds());
 
-  if (format === 'YYYY-MM-DD HH:mm:ss') {
-    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+  if (format === "YYYY-MM-DD HH:mm:ss") {
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
   }
 
-  return `${hours}:${minutes}:${seconds}`
-}
+  return `${hours}:${minutes}:${seconds}`;
+};
 
 /**
  * 过滤日志条目
@@ -100,42 +100,47 @@ export const formatLogTime = (
  * @param {LogFilterOptions} options - 筛选选项
  * @returns {LogEntry[]} 过滤后的日志数组
  */
-export const filterLogs = (logs: LogEntry[], options: LogFilterOptions): LogEntry[] => {
+export const filterLogs = (
+  logs: LogEntry[],
+  options: LogFilterOptions,
+): LogEntry[] => {
   return logs.filter((log) => {
     if (options.level) {
-      const levels = Array.isArray(options.level) ? options.level : [options.level]
+      const levels = Array.isArray(options.level)
+        ? options.level
+        : [options.level];
       if (!levels.includes(log.level)) {
-        return false
+        return false;
       }
     }
 
     if (options.type) {
-      const types = Array.isArray(options.type) ? options.type : [options.type]
+      const types = Array.isArray(options.type) ? options.type : [options.type];
       if (!types.includes(log.type)) {
-        return false
+        return false;
       }
     }
 
     if (options.startTime && log.timestamp < options.startTime) {
-      return false
+      return false;
     }
 
     if (options.endTime && log.timestamp > options.endTime) {
-      return false
+      return false;
     }
 
     if (options.keyword) {
-      const keyword = options.keyword.toLowerCase()
+      const keyword = options.keyword.toLowerCase();
       const searchableText =
-        `${log.message} ${log.type} ${JSON.stringify(log.context || {})}`.toLowerCase()
+        `${log.message} ${log.type} ${JSON.stringify(log.context || {})}`.toLowerCase();
       if (!searchableText.includes(keyword)) {
-        return false
+        return false;
       }
     }
 
-    return true
-  })
-}
+    return true;
+  });
+};
 
 /**
  * 获取日志级别颜色
@@ -144,13 +149,13 @@ export const filterLogs = (logs: LogEntry[], options: LogFilterOptions): LogEntr
  */
 export const getLogLevelColor = (level: LogLevel): string => {
   const colors: Record<LogLevel, string> = {
-    [LogLevel.INFO]: '#1890ff',
-    [LogLevel.WARNING]: '#faad14',
-    [LogLevel.ERROR]: '#ff4d4f',
-    [LogLevel.SUCCESS]: '#52c41a',
-  }
-  return colors[level] || colors[LogLevel.INFO]
-}
+    [LogLevel.INFO]: "#1890ff",
+    [LogLevel.WARNING]: "#faad14",
+    [LogLevel.ERROR]: "#ff4d4f",
+    [LogLevel.SUCCESS]: "#52c41a",
+  };
+  return colors[level] || colors[LogLevel.INFO];
+};
 
 /**
  * 获取日志级别文本
@@ -159,13 +164,13 @@ export const getLogLevelColor = (level: LogLevel): string => {
  */
 export const getLogLevelText = (level: LogLevel): string => {
   const texts: Record<LogLevel, string> = {
-    [LogLevel.INFO]: '信息',
-    [LogLevel.WARNING]: '警告',
-    [LogLevel.ERROR]: '错误',
-    [LogLevel.SUCCESS]: '成功',
-  }
-  return texts[level] || '未知'
-}
+    [LogLevel.INFO]: "信息",
+    [LogLevel.WARNING]: "警告",
+    [LogLevel.ERROR]: "错误",
+    [LogLevel.SUCCESS]: "成功",
+  };
+  return texts[level] || "未知";
+};
 
 /**
  * 按类型分组统计日志
@@ -173,38 +178,40 @@ export const getLogLevelText = (level: LogLevel): string => {
  * @returns {Record<string, number>} 类型统计结果
  */
 export const countLogsByType = (logs: LogEntry[]): Record<string, number> => {
-  const counts: Record<string, number> = {}
+  const counts: Record<string, number> = {};
   logs.forEach((log) => {
-    counts[log.type] = (counts[log.type] || 0) + 1
-  })
-  return counts
-}
+    counts[log.type] = (counts[log.type] || 0) + 1;
+  });
+  return counts;
+};
 
 /**
  * 按级别分组统计日志
  * @param {LogEntry[]} logs - 日志数组
  * @returns {Record<LogLevel, number>} 级别统计结果
  */
-export const countLogsByLevel = (logs: LogEntry[]): Record<LogLevel, number> => {
+export const countLogsByLevel = (
+  logs: LogEntry[],
+): Record<LogLevel, number> => {
   const counts: Record<LogLevel, number> = {
     [LogLevel.INFO]: 0,
     [LogLevel.WARNING]: 0,
     [LogLevel.ERROR]: 0,
     [LogLevel.SUCCESS]: 0,
-  }
+  };
   logs.forEach((log) => {
-    counts[log.level] = (counts[log.level] || 0) + 1
-  })
-  return counts
-}
+    counts[log.level] = (counts[log.level] || 0) + 1;
+  });
+  return counts;
+};
 
 /**
  * 清空日志
  * @returns {LogEntry[]} 清空后的空日志数组
  */
 export const clearLogs = (): LogEntry[] => {
-  return []
-}
+  return [];
+};
 
 /**
  * 导出日志为JSON格式
@@ -212,8 +219,8 @@ export const clearLogs = (): LogEntry[] => {
  * @returns {string} JSON字符串
  */
 export const exportLogsAsJson = (logs: LogEntry[]): string => {
-  return JSON.stringify(logs, null, 2)
-}
+  return JSON.stringify(logs, null, 2);
+};
 
 /**
  * 导出日志为CSV格式
@@ -221,16 +228,17 @@ export const exportLogsAsJson = (logs: LogEntry[]): string => {
  * @returns {string} CSV字符串
  */
 export const exportLogsAsCsv = (logs: LogEntry[]): string => {
-  const headers = ['时间', '级别', '类型', '消息', '上下文']
+  const headers = ["时间", "级别", "类型", "消息", "上下文"];
   const rows = logs.map((log) => [
-    formatLogTime(log.timestamp, 'YYYY-MM-DD HH:mm:ss'),
+    formatLogTime(log.timestamp, "YYYY-MM-DD HH:mm:ss"),
     getLogLevelText(log.level),
     log.type,
     log.message,
-    log.context ? JSON.stringify(log.context) : '',
-  ])
+    log.context ? JSON.stringify(log.context) : "",
+  ]);
 
-  return [headers.join(','), ...rows.map((row) => row.map((cell) => `"${cell}"`).join(','))].join(
-    '\n',
-  )
-}
+  return [
+    headers.join(","),
+    ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
+  ].join("\n");
+};

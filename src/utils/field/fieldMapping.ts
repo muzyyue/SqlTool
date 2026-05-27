@@ -6,25 +6,25 @@
 /**
  * 置信度等级
  */
-export type ConfidenceLevel = 'high' | 'medium' | 'low' | 'manual' | string
+export type ConfidenceLevel = "high" | "medium" | "low" | "manual" | string;
 
 /**
  * 置信度配置
  */
 export interface ConfidenceConfig {
-  high: { color: string; text: string; threshold: number }
-  medium: { color: string; text: string; threshold: number }
-  low: { color: string; text: string; threshold: number }
+  high: { color: string; text: string; threshold: number };
+  medium: { color: string; text: string; threshold: number };
+  low: { color: string; text: string; threshold: number };
 }
 
 /**
  * 默认置信度配置
  */
 export const DEFAULT_CONFIDENCE_CONFIG: ConfidenceConfig = {
-  high: { color: '#52c41a', text: '高', threshold: 0.8 },
-  medium: { color: '#faad14', text: '中', threshold: 0.5 },
-  low: { color: '#ff4d4f', text: '低', threshold: 0 },
-}
+  high: { color: "#52c41a", text: "高", threshold: 0.8 },
+  medium: { color: "#faad14", text: "中", threshold: 0.5 },
+  low: { color: "#ff4d4f", text: "低", threshold: 0 },
+};
 
 /**
  * 获取置信度颜色
@@ -32,23 +32,23 @@ export const DEFAULT_CONFIDENCE_CONFIG: ConfidenceConfig = {
  * @returns {string} 颜色值
  */
 export const getConfidenceColor = (confidence: ConfidenceLevel): string => {
-  if (confidence === 'manual') {
-    return '#722ed1'
+  if (confidence === "manual") {
+    return "#722ed1";
   }
 
-  const config = DEFAULT_CONFIDENCE_CONFIG
+  const config = DEFAULT_CONFIDENCE_CONFIG;
 
   switch (confidence) {
-    case 'high':
-      return config.high.color
-    case 'medium':
-      return config.medium.color
-    case 'low':
-      return config.low.color
+    case "high":
+      return config.high.color;
+    case "medium":
+      return config.medium.color;
+    case "low":
+      return config.low.color;
     default:
-      return '#8c8c8c'
+      return "#8c8c8c";
   }
-}
+};
 
 /**
  * 获取置信度文本
@@ -56,23 +56,23 @@ export const getConfidenceColor = (confidence: ConfidenceLevel): string => {
  * @returns {string} 置信度文本
  */
 export const getConfidenceText = (confidence: ConfidenceLevel): string => {
-  if (confidence === 'manual') {
-    return '手动'
+  if (confidence === "manual") {
+    return "手动";
   }
 
-  const config = DEFAULT_CONFIDENCE_CONFIG
+  const config = DEFAULT_CONFIDENCE_CONFIG;
 
   switch (confidence) {
-    case 'high':
-      return config.high.text
-    case 'medium':
-      return config.medium.text
-    case 'low':
-      return config.low.text
+    case "high":
+      return config.high.text;
+    case "medium":
+      return config.medium.text;
+    case "low":
+      return config.low.text;
     default:
-      return '未知'
+      return "未知";
   }
-}
+};
 
 /**
  * 根据相似度获取置信度等级
@@ -81,12 +81,12 @@ export const getConfidenceText = (confidence: ConfidenceLevel): string => {
  */
 export const similarityToConfidence = (similarity: number): ConfidenceLevel => {
   if (similarity >= DEFAULT_CONFIDENCE_CONFIG.high.threshold) {
-    return 'high'
+    return "high";
   } else if (similarity >= DEFAULT_CONFIDENCE_CONFIG.medium.threshold) {
-    return 'medium'
+    return "medium";
   }
-  return 'low'
-}
+  return "low";
+};
 
 /**
  * 获取相似度颜色
@@ -95,19 +95,19 @@ export const similarityToConfidence = (similarity: number): ConfidenceLevel => {
  */
 export const getSimilarityColor = (similarity: number): string => {
   if (similarity >= 0.8) {
-    return '#52c41a'
+    return "#52c41a";
   } else if (similarity >= 0.5) {
-    return '#faad14'
+    return "#faad14";
   } else if (similarity >= 0.3) {
-    return '#1890ff'
+    return "#1890ff";
   }
-  return '#ff4d4f'
-}
+  return "#ff4d4f";
+};
 
 /**
  * 字段映射状态
  */
-export type MappingStatus = 'matched' | 'unmatched' | 'bound' | 'custom'
+export type MappingStatus = "matched" | "unmatched" | "bound" | "custom";
 
 /**
  * 获取映射状态
@@ -116,19 +116,19 @@ export type MappingStatus = 'matched' | 'unmatched' | 'bound' | 'custom'
  */
 export const getMappingStatus = (mapping: any): MappingStatus => {
   if (mapping.status) {
-    return mapping.status
+    return mapping.status;
   }
 
   if (mapping.excelIndex === -1 || mapping.excelIndex === undefined) {
-    return 'unmatched'
+    return "unmatched";
   }
 
   if (mapping.ddlField?.isCustom) {
-    return 'custom'
+    return "custom";
   }
 
-  return 'matched'
-}
+  return "matched";
+};
 
 /**
  * 过滤已被使用的列索引
@@ -136,10 +136,15 @@ export const getMappingStatus = (mapping: any): MappingStatus => {
  * @param {any[]} mappings - 现有映射列表
  * @returns {number[]} 未被使用的列索引
  */
-export const getUnusedColumnIndices = (columnIndices: number[], mappings: any[]): number[] => {
-  const usedIndices = new Set(mappings.filter((m) => m.excelIndex >= 0).map((m) => m.excelIndex))
-  return columnIndices.filter((idx) => !usedIndices.has(idx))
-}
+export const getUnusedColumnIndices = (
+  columnIndices: number[],
+  mappings: any[],
+): number[] => {
+  const usedIndices = new Set(
+    mappings.filter((m) => m.excelIndex >= 0).map((m) => m.excelIndex),
+  );
+  return columnIndices.filter((idx) => !usedIndices.has(idx));
+};
 
 /**
  * 检查列是否已被使用
@@ -148,8 +153,10 @@ export const getUnusedColumnIndices = (columnIndices: number[], mappings: any[])
  * @returns {boolean} 是否已被使用
  */
 export const isColumnUsed = (columnIndex: number, mappings: any[]): boolean => {
-  return mappings.some((m) => m.excelIndex >= 0 && m.excelIndex === columnIndex)
-}
+  return mappings.some(
+    (m) => m.excelIndex >= 0 && m.excelIndex === columnIndex,
+  );
+};
 
 /**
  * 创建手动映射模板
@@ -157,14 +164,17 @@ export const isColumnUsed = (columnIndex: number, mappings: any[]): boolean => {
  * @param {string[]} excelHeaders - Excel表头列表
  * @returns {any[]} 映射列表
  */
-export const createManualMappings = (ddlFields: any[], excelHeaders: string[]): any[] => {
+export const createManualMappings = (
+  ddlFields: any[],
+  excelHeaders: string[],
+): any[] => {
   return ddlFields.map((ddlField) => ({
     ddlField,
     excelHeader: null,
     excelIndex: -1,
     similarity: 0,
-    confidence: 'manual',
-    status: 'unmatched',
+    confidence: "manual",
+    status: "unmatched",
     generatedByFunction: ddlField.isCustom || false,
-  }))
-}
+  }));
+};

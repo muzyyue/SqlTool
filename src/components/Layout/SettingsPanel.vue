@@ -39,7 +39,9 @@
                 checked-children="开启"
                 un-checked-children="关闭"
               />
-              <div class="setting-description">在执行重要操作前显示确认对话框</div>
+              <div class="setting-description">
+                在执行重要操作前显示确认对话框
+              </div>
             </a-form-item>
 
             <a-form-item label="自动保存">
@@ -111,7 +113,10 @@
           <h3>字段映射设置</h3>
           <a-form layout="vertical">
             <a-form-item label="默认匹配算法">
-              <a-select v-model:value="defaultMatchingAlgorithm" style="width: 200px">
+              <a-select
+                v-model:value="defaultMatchingAlgorithm"
+                style="width: 200px"
+              >
                 <a-select-option value="similarity">相似度匹配</a-select-option>
                 <a-select-option value="pinyin">拼音匹配</a-select-option>
                 <a-select-option value="manual">手动匹配</a-select-option>
@@ -172,7 +177,9 @@
                 checked-children="开启"
                 un-checked-children="关闭"
               />
-              <div class="setting-description">对大文件进行分块处理以提高性能</div>
+              <div class="setting-description">
+                对大文件进行分块处理以提高性能
+              </div>
             </a-form-item>
 
             <a-form-item label="分块大小" v-if="chunkProcessing">
@@ -297,57 +304,62 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
-import { message } from 'ant-design-vue'
-import { storeToRefs } from 'pinia'
-import { useThemeStore } from '@/stores/theme.js'
-import { useSettings } from '@/composables/core/useSettings.js'
+import { ref, onMounted, watch } from "vue";
+import { message } from "ant-design-vue";
+import { storeToRefs } from "pinia";
+import { useThemeStore } from "@/stores/theme.js";
+import { useSettings } from "@/composables/core/useSettings.js";
 
-const emit = defineEmits(['close'])
+const emit = defineEmits(["close"]);
 
-const themeStore = useThemeStore()
-const { isDark } = storeToRefs(themeStore)
-const { settings, updateSettings, resetSettings: resetAllSettings, defaultSettings } = useSettings()
+const themeStore = useThemeStore();
+const { isDark } = storeToRefs(themeStore);
+const {
+  settings,
+  updateSettings,
+  resetSettings: resetAllSettings,
+  defaultSettings,
+} = useSettings();
 
-const activeTab = ref('general')
+const activeTab = ref("general");
 
-const themeMode = ref(settings.value.themeMode)
-const language = ref(settings.value.language)
-const layoutMode = ref(settings.value.layoutMode)
-const confirmDialogs = ref(settings.value.confirmDialogs)
-const autoSave = ref(settings.value.autoSave)
-const saveInterval = ref(settings.value.saveInterval)
+const themeMode = ref(settings.value.themeMode);
+const language = ref(settings.value.language);
+const layoutMode = ref(settings.value.layoutMode);
+const confirmDialogs = ref(settings.value.confirmDialogs);
+const autoSave = ref(settings.value.autoSave);
+const saveInterval = ref(settings.value.saveInterval);
 
 watch(themeMode, (newMode) => {
-  themeStore.setTheme(newMode)
-})
+  themeStore.setTheme(newMode);
+});
 
 watch(isDark, (newIsDark) => {
-  themeMode.value = newIsDark ? 'dark' : 'light'
-})
+  themeMode.value = newIsDark ? "dark" : "light";
+});
 
-const defaultDatabase = ref(settings.value.defaultDatabase)
-const sqlFormat = ref(settings.value.sqlFormat)
-const batchSize = ref(settings.value.batchSize)
-const includeComments = ref(settings.value.includeComments)
-const defaultMatchingAlgorithm = ref(settings.value.defaultMatchingAlgorithm)
-const similarityThreshold = ref(settings.value.similarityThreshold)
-const autoMapping = ref(settings.value.autoMapping)
+const defaultDatabase = ref(settings.value.defaultDatabase);
+const sqlFormat = ref(settings.value.sqlFormat);
+const batchSize = ref(settings.value.batchSize);
+const includeComments = ref(settings.value.includeComments);
+const defaultMatchingAlgorithm = ref(settings.value.defaultMatchingAlgorithm);
+const similarityThreshold = ref(settings.value.similarityThreshold);
+const autoMapping = ref(settings.value.autoMapping);
 
-const maxFileSize = ref(settings.value.maxFileSize)
-const supportedFormats = ref([...settings.value.supportedFormats])
-const chunkProcessing = ref(settings.value.chunkProcessing)
-const chunkSize = ref(settings.value.chunkSize)
-const defaultExportFormat = ref(settings.value.defaultExportFormat)
-const fileEncoding = ref(settings.value.fileEncoding)
-const autoDownload = ref(settings.value.autoDownload)
+const maxFileSize = ref(settings.value.maxFileSize);
+const supportedFormats = ref([...settings.value.supportedFormats]);
+const chunkProcessing = ref(settings.value.chunkProcessing);
+const chunkSize = ref(settings.value.chunkSize);
+const defaultExportFormat = ref(settings.value.defaultExportFormat);
+const fileEncoding = ref(settings.value.fileEncoding);
+const autoDownload = ref(settings.value.autoDownload);
 
-const cacheSize = ref(settings.value.cacheSize)
-const parallelProcessing = ref(settings.value.parallelProcessing)
-const logLevel = ref(settings.value.logLevel)
-const developerMode = ref(settings.value.developerMode)
-const consoleLogging = ref(settings.value.consoleLogging)
-const performanceMonitoring = ref(settings.value.performanceMonitoring)
+const cacheSize = ref(settings.value.cacheSize);
+const parallelProcessing = ref(settings.value.parallelProcessing);
+const logLevel = ref(settings.value.logLevel);
+const developerMode = ref(settings.value.developerMode);
+const consoleLogging = ref(settings.value.consoleLogging);
+const performanceMonitoring = ref(settings.value.performanceMonitoring);
 
 const handleSave = () => {
   const newSettings = {
@@ -377,48 +389,48 @@ const handleSave = () => {
     developerMode: developerMode.value,
     consoleLogging: consoleLogging.value,
     performanceMonitoring: performanceMonitoring.value,
-  }
+  };
 
-  updateSettings(newSettings)
-  message.success('设置保存成功')
-  emit('close')
-}
+  updateSettings(newSettings);
+  message.success("设置保存成功");
+  emit("close");
+};
 
 const handleReset = () => {
-  resetAllSettings()
-  themeMode.value = defaultSettings.themeMode
-  language.value = defaultSettings.language
-  layoutMode.value = defaultSettings.layoutMode
-  confirmDialogs.value = defaultSettings.confirmDialogs
-  autoSave.value = defaultSettings.autoSave
-  saveInterval.value = defaultSettings.saveInterval
-  defaultDatabase.value = defaultSettings.defaultDatabase
-  sqlFormat.value = defaultSettings.sqlFormat
-  batchSize.value = defaultSettings.batchSize
-  includeComments.value = defaultSettings.includeComments
-  defaultMatchingAlgorithm.value = defaultSettings.defaultMatchingAlgorithm
-  similarityThreshold.value = defaultSettings.similarityThreshold
-  autoMapping.value = defaultSettings.autoMapping
-  maxFileSize.value = defaultSettings.maxFileSize
-  supportedFormats.value = [...defaultSettings.supportedFormats]
-  chunkProcessing.value = defaultSettings.chunkProcessing
-  chunkSize.value = defaultSettings.chunkSize
-  defaultExportFormat.value = defaultSettings.defaultExportFormat
-  fileEncoding.value = defaultSettings.fileEncoding
-  autoDownload.value = defaultSettings.autoDownload
-  cacheSize.value = defaultSettings.cacheSize
-  parallelProcessing.value = defaultSettings.parallelProcessing
-  logLevel.value = defaultSettings.logLevel
-  developerMode.value = defaultSettings.developerMode
-  consoleLogging.value = defaultSettings.consoleLogging
-  performanceMonitoring.value = defaultSettings.performanceMonitoring
-  themeStore.setTheme('light')
-  message.success('设置已恢复为默认值')
-}
+  resetAllSettings();
+  themeMode.value = defaultSettings.themeMode;
+  language.value = defaultSettings.language;
+  layoutMode.value = defaultSettings.layoutMode;
+  confirmDialogs.value = defaultSettings.confirmDialogs;
+  autoSave.value = defaultSettings.autoSave;
+  saveInterval.value = defaultSettings.saveInterval;
+  defaultDatabase.value = defaultSettings.defaultDatabase;
+  sqlFormat.value = defaultSettings.sqlFormat;
+  batchSize.value = defaultSettings.batchSize;
+  includeComments.value = defaultSettings.includeComments;
+  defaultMatchingAlgorithm.value = defaultSettings.defaultMatchingAlgorithm;
+  similarityThreshold.value = defaultSettings.similarityThreshold;
+  autoMapping.value = defaultSettings.autoMapping;
+  maxFileSize.value = defaultSettings.maxFileSize;
+  supportedFormats.value = [...defaultSettings.supportedFormats];
+  chunkProcessing.value = defaultSettings.chunkProcessing;
+  chunkSize.value = defaultSettings.chunkSize;
+  defaultExportFormat.value = defaultSettings.defaultExportFormat;
+  fileEncoding.value = defaultSettings.fileEncoding;
+  autoDownload.value = defaultSettings.autoDownload;
+  cacheSize.value = defaultSettings.cacheSize;
+  parallelProcessing.value = defaultSettings.parallelProcessing;
+  logLevel.value = defaultSettings.logLevel;
+  developerMode.value = defaultSettings.developerMode;
+  consoleLogging.value = defaultSettings.consoleLogging;
+  performanceMonitoring.value = defaultSettings.performanceMonitoring;
+  themeStore.setTheme("light");
+  message.success("设置已恢复为默认值");
+};
 
 onMounted(() => {
-  themeMode.value = isDark.value ? 'dark' : 'light'
-})
+  themeMode.value = isDark.value ? "dark" : "light";
+});
 </script>
 
 <style scoped>

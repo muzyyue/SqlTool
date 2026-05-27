@@ -52,7 +52,9 @@
         </template>
 
         <template v-else-if="column.key === 'dataType'">
-          <a-tag color="default" size="small">{{ record.dataType || 'string' }}</a-tag>
+          <a-tag color="default" size="small">{{
+            record.dataType || "string"
+          }}</a-tag>
         </template>
 
         <template v-else-if="column.key === 'dataSource'">
@@ -64,21 +66,49 @@
         <template v-else-if="column.key === 'config'">
           <div class="config-detail">
             <template v-if="record.dataSource === 'system_function'">
-              <span>函数: {{ record.systemFunctionConfig?.functionName || 'NOW' }}</span>
+              <span
+                >函数:
+                {{ record.systemFunctionConfig?.functionName || "NOW" }}</span
+              >
               <a-tag color="blue" size="small">
-                {{ record.systemFunctionConfig?.databaseType || 'mysql' }}
+                {{ record.systemFunctionConfig?.databaseType || "mysql" }}
               </a-tag>
             </template>
 
             <template v-else-if="record.dataSource === 'excel_combine'">
               <div class="config-item">
-                <span>列: {{ formatColumns(record.excelCombineConfig?.columns || record.config?.sourceColumns) }}</span>
+                <span
+                  >列:
+                  {{
+                    formatColumns(
+                      record.excelCombineConfig?.columns ||
+                        record.config?.sourceColumns,
+                    )
+                  }}</span
+                >
               </div>
               <div class="config-item">
-                <span>分隔符: {{ record.excelCombineConfig?.separator || record.config?.separator || '' }}</span>
+                <span
+                  >分隔符:
+                  {{
+                    record.excelCombineConfig?.separator ||
+                    record.config?.separator ||
+                    ""
+                  }}</span
+                >
               </div>
-              <div v-if="record.excelCombineConfig?.format || record.config?.format" class="config-item">
-                <span>格式: {{ record.excelCombineConfig?.format || record.config?.format }}</span>
+              <div
+                v-if="
+                  record.excelCombineConfig?.format || record.config?.format
+                "
+                class="config-item"
+              >
+                <span
+                  >格式:
+                  {{
+                    record.excelCombineConfig?.format || record.config?.format
+                  }}</span
+                >
               </div>
             </template>
 
@@ -109,7 +139,12 @@
               <template #icon><EditOutlined /></template>
               编辑
             </a-button>
-            <a-button type="link" size="small" danger @click="handleDelete(record)">
+            <a-button
+              type="link"
+              size="small"
+              danger
+              @click="handleDelete(record)"
+            >
               <template #icon><DeleteOutlined /></template>
               删除
             </a-button>
@@ -128,9 +163,13 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
-import { message, Modal, Empty } from 'ant-design-vue'
-import { SearchOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons-vue'
+import { ref, computed, watch } from "vue";
+import { message, Modal, Empty } from "ant-design-vue";
+import {
+  SearchOutlined,
+  EditOutlined,
+  DeleteOutlined,
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   customFields: {
@@ -141,130 +180,135 @@ const props = defineProps({
     type: Object,
     required: true,
   },
-})
+});
 
-const emit = defineEmits(['edit', 'delete', 'refresh'])
+const emit = defineEmits(["edit", "delete", "refresh"]);
 
-const searchText = ref('')
-const filterType = ref('all')
+const searchText = ref("");
+const filterType = ref("all");
 
 const columns = [
   {
-    title: '字段名',
-    key: 'fieldName',
+    title: "字段名",
+    key: "fieldName",
     width: 150,
   },
   {
-    title: '数据类型',
-    key: 'dataType',
+    title: "数据类型",
+    key: "dataType",
     width: 100,
   },
   {
-    title: '数据来源',
-    key: 'dataSource',
+    title: "数据来源",
+    key: "dataSource",
     width: 120,
   },
   {
-    title: '配置详情',
-    key: 'config',
+    title: "配置详情",
+    key: "config",
     width: 300,
   },
   {
-    title: '操作',
-    key: 'actions',
+    title: "操作",
+    key: "actions",
     width: 120,
-    fixed: 'right',
+    fixed: "right",
   },
-]
+];
 
 const filteredFields = computed(() => {
-  let fields = [...props.customFields]
+  let fields = [...props.customFields];
 
   if (searchText.value) {
-    const searchLower = searchText.value.toLowerCase()
-    fields = fields.filter((field) => field.fieldName.toLowerCase().includes(searchLower))
+    const searchLower = searchText.value.toLowerCase();
+    fields = fields.filter((field) =>
+      field.fieldName.toLowerCase().includes(searchLower),
+    );
   }
 
-  if (filterType.value && filterType.value !== 'all') {
-    fields = fields.filter((field) => field.dataSource === filterType.value)
+  if (filterType.value && filterType.value !== "all") {
+    fields = fields.filter((field) => field.dataSource === filterType.value);
   }
 
-  return fields
-})
+  return fields;
+});
 
 watch(
   () => props.customFields,
   (newFields, oldFields) => {
     if (newFields && newFields.length !== oldFields?.length) {
-      searchText.value = ''
-      filterType.value = 'all'
+      searchText.value = "";
+      filterType.value = "all";
     }
   },
   { deep: true, immediate: false },
-)
+);
 
 const getDataSourceLabel = (dataSource) => {
   const labels = {
-    system_function: '系统函数',
-    excel_combine: 'Excel组合',
-    auto_increment: '自增',
-    static_value: '静态值',
-    single_binding: '单列绑定',
-  }
-  return labels[dataSource] || dataSource
-}
+    system_function: "系统函数",
+    excel_combine: "Excel组合",
+    auto_increment: "自增",
+    static_value: "静态值",
+    single_binding: "单列绑定",
+  };
+  return labels[dataSource] || dataSource;
+};
 
 const getDataSourceColor = (dataSource) => {
   const colors = {
-    system_function: 'blue',
-    excel_combine: 'green',
-    auto_increment: 'orange',
-    static_value: 'purple',
-    single_binding: 'cyan',
-  }
-  return colors[dataSource] || 'default'
-}
+    system_function: "blue",
+    excel_combine: "green",
+    auto_increment: "orange",
+    static_value: "purple",
+    single_binding: "cyan",
+  };
+  return colors[dataSource] || "default";
+};
 
 const formatColumns = (columns) => {
   if (!columns || columns.length === 0) {
-    return '无'
+    return "无";
   }
-  return columns.map((col) => `列${col + 1}`).join(', ')
-}
+  return columns.map((col) => `列${col + 1}`).join(", ");
+};
 
 const handleEdit = (record) => {
-  emit('edit', record)
-}
+  emit("edit", record);
+};
 
 const handleDelete = (record) => {
   Modal.confirm({
-    title: '确认删除',
+    title: "确认删除",
     content: `确定要删除 "${record.fieldName}" 吗？`,
-    okText: '确定',
-    okType: 'danger',
-    cancelText: '取消',
+    okText: "确定",
+    okType: "danger",
+    cancelText: "取消",
     onOk: () => {
       try {
-        const dataSource = record.dataSource
+        const dataSource = record.dataSource;
 
-        if (dataSource === 'single_binding') {
-          props.customBindingManager.removeCustomBinding(record.fieldName)
-        } else if (dataSource === 'excel_combine' && record.isConcatenationRule) {
+        if (dataSource === "single_binding") {
+          props.customBindingManager.removeCustomBinding(record.fieldName);
+        } else if (
+          dataSource === "excel_combine" &&
+          record.isConcatenationRule
+        ) {
           // 拼接规则（有 isConcatenationRule 标识）
-          props.customBindingManager.removeConcatenationRule(record.fieldName)
+          props.customBindingManager.removeConcatenationRule(record.fieldName);
         } else {
           // 自定义字段（包括 excel_combine 类型的自定义字段）
-          props.customBindingManager.removeCustomField(record.fieldName)
+          props.customBindingManager.removeCustomField(record.fieldName);
         }
 
-        emit('delete', record)
-        message.success(`已删除: ${record.fieldName}`)
+        emit("delete", record);
+        message.success(`已删除: ${record.fieldName}`);
       } catch (error) {
-        message.error(`删除失败: ${error.message}`)
+        message.error(`删除失败: ${error.message}`);
       }
     },
-  })
-}
+  });
+};
 </script>
 
 <style scoped>

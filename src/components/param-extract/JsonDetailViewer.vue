@@ -35,7 +35,11 @@
         <div class="unwrap-options">
           <div class="option-row">
             <span class="option-label">最大深度:</span>
-            <a-select v-model:value="unwrapConfig.maxDepth" size="small" style="width: 80px">
+            <a-select
+              v-model:value="unwrapConfig.maxDepth"
+              size="small"
+              style="width: 80px"
+            >
               <a-select-option :value="1">1</a-select-option>
               <a-select-option :value="2">2</a-select-option>
               <a-select-option :value="3">3</a-select-option>
@@ -44,23 +48,46 @@
             </a-select>
           </div>
           <div class="option-row">
-            <a-switch v-model:checked="unwrapConfig.detectStringifiedJson" size="small" />
+            <a-switch
+              v-model:checked="unwrapConfig.detectStringifiedJson"
+              size="small"
+            />
             <span>检测转义JSON</span>
           </div>
           <div class="option-row">
-            <a-switch v-model:checked="unwrapConfig.includeLineage" size="small" />
+            <a-switch
+              v-model:checked="unwrapConfig.includeLineage"
+              size="small"
+            />
             <span>显示血缘信息</span>
           </div>
-          <a-button type="primary" size="small" @click="runUnwrap" :loading="unwrapping">
+          <a-button
+            type="primary"
+            size="small"
+            @click="runUnwrap"
+            :loading="unwrapping"
+          >
             重新解包
           </a-button>
         </div>
 
         <!-- 统计卡片 -->
         <div class="unwrap-stats" v-if="atomicValues.length > 0">
-          <a-statistic title="✅ 成功" :value="successCount" :value-style="{ color: '#52c41a' }" />
-          <a-statistic title="⚠️ 深度限制" :value="depthLimitCount" :value-style="{ color: '#faad14' }" />
-          <a-statistic title="❌ 错误" :value="errorCount" :value-style="{ color: '#ff4d4f' }" />
+          <a-statistic
+            title="✅ 成功"
+            :value="successCount"
+            :value-style="{ color: '#52c41a' }"
+          />
+          <a-statistic
+            title="⚠️ 深度限制"
+            :value="depthLimitCount"
+            :value-style="{ color: '#faad14' }"
+          />
+          <a-statistic
+            title="❌ 错误"
+            :value="errorCount"
+            :value-style="{ color: '#ff4d4f' }"
+          />
         </div>
 
         <!-- 原子值列表 -->
@@ -71,12 +98,18 @@
             class="atomic-item"
           >
             <div class="atomic-value">
-              <span class="type-icon" :class="'type-' + item.dataType">{{ getTypeIcon(item.dataType) }}</span>
-              <span class="value-text">{{ truncateValue(item.finalValue) }}</span>
+              <span class="type-icon" :class="'type-' + item.dataType">{{
+                getTypeIcon(item.dataType)
+              }}</span>
+              <span class="value-text">{{
+                truncateValue(item.finalValue)
+              }}</span>
             </div>
             <div class="atomic-meta">
               <a-tag color="blue">路径: {{ item.fullPath }}</a-tag>
-              <a-tag :color="getTypeColor(item.dataType)">{{ item.dataType }}</a-tag>
+              <a-tag :color="getTypeColor(item.dataType)">{{
+                item.dataType
+              }}</a-tag>
               <a-tag>深度: {{ item.parseDepth }}</a-tag>
             </div>
             <div class="atomic-actions">
@@ -84,13 +117,20 @@
                 <template #icon><CopyOutlined /></template>
                 复制
               </a-button>
-              <a-button size="small" @click="showLineage(item)" :disabled="!item.lineage?.length">
+              <a-button
+                size="small"
+                @click="showLineage(item)"
+                :disabled="!item.lineage?.length"
+              >
                 <template #icon><EyeOutlined /></template>
                 查看血缘
               </a-button>
             </div>
           </div>
-          <a-empty v-if="atomicValues.length === 0 && !unwrapping" description="点击「重新解包」开始提取" />
+          <a-empty
+            v-if="atomicValues.length === 0 && !unwrapping"
+            description="点击「重新解包」开始提取"
+          />
         </div>
 
         <!-- 批量操作 -->
@@ -126,13 +166,23 @@
             {{ selectedLineageItem.parseDepth }}
           </a-descriptions-item>
           <a-descriptions-item label="包装模式">
-            <a-tag :color="selectedLineageItem.metadata?.originalWrapper ? 'green' : 'default'">
-              {{ selectedLineageItem.metadata?.originalWrapper || '未识别' }}
+            <a-tag
+              :color="
+                selectedLineageItem.metadata?.originalWrapper
+                  ? 'green'
+                  : 'default'
+              "
+            >
+              {{ selectedLineageItem.metadata?.originalWrapper || "未识别" }}
             </a-tag>
           </a-descriptions-item>
           <a-descriptions-item label="转义JSON">
-            <a-tag :color="selectedLineageItem.metadata?.isEscapedJson ? 'red' : 'default'">
-              {{ selectedLineageItem.metadata?.isEscapedJson ? '是 ✓' : '否' }}
+            <a-tag
+              :color="
+                selectedLineageItem.metadata?.isEscapedJson ? 'red' : 'default'
+              "
+            >
+              {{ selectedLineageItem.metadata?.isEscapedJson ? "是 ✓" : "否" }}
             </a-tag>
           </a-descriptions-item>
         </a-descriptions>
@@ -151,214 +201,249 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch } from "vue";
 import {
   CopyOutlined,
   DownloadOutlined,
   EyeOutlined,
-  ExportOutlined
-} from '@ant-design/icons-vue'
-import { message } from 'ant-design-vue'
-import JsonTreeNode from './JsonTreeNode.vue'
-import { extractAtomicValues } from '@/utils/json/jsonExtractor'
+  ExportOutlined,
+} from "@ant-design/icons-vue";
+import { message } from "ant-design-vue";
+import JsonTreeNode from "./JsonTreeNode.vue";
+import { extractAtomicValues } from "@/utils/json/jsonExtractor";
 
 const props = defineProps({
   item: {
     type: Object,
-    required: true
-  }
-})
+    required: true,
+  },
+});
 
-const activeTab = ref('tree')
-const unwrapping = ref(false)
-const lineageModalVisible = ref(false)
-const selectedLineageItem = ref(null)
+const activeTab = ref("tree");
+const unwrapping = ref(false);
+const lineageModalVisible = ref(false);
+const selectedLineageItem = ref(null);
 
 const unwrapConfig = ref({
   maxDepth: 3,
   detectStringifiedJson: true,
-  includeLineage: true
-})
+  includeLineage: true,
+});
 
-const atomicValues = ref([])
+const atomicValues = ref([]);
 
 const lineageColumns = [
-  { title: '步骤', dataIndex: 'step', key: 'step', width: 60 },
-  { title: '路径', dataIndex: 'path', key: 'path', width: 200 },
-  { title: '操作类型', dataIndex: 'action', key: 'action', width: 160 },
-  { title: '原始值(截断)', dataIndex: 'rawValue', key: 'rawValue', ellipsis: true }
-]
+  { title: "步骤", dataIndex: "step", key: "step", width: 60 },
+  { title: "路径", dataIndex: "path", key: "path", width: 200 },
+  { title: "操作类型", dataIndex: "action", key: "action", width: 160 },
+  {
+    title: "原始值(截断)",
+    dataIndex: "rawValue",
+    key: "rawValue",
+    ellipsis: true,
+  },
+];
 
 // 树形节点数据
 const treeNodes = computed(() => {
-  if (!props.item?.original) return []
+  if (!props.item?.original) return [];
   try {
-    const json = JSON.parse(props.item.original)
-    return buildTreeNodes(json, '$')
+    const json = JSON.parse(props.item.original);
+    return buildTreeNodes(json, "$");
   } catch {
-    return []
+    return [];
   }
-})
+});
 
-const successCount = computed(() =>
-  atomicValues.value.filter(v => v.status === 'success').length
-)
-const depthLimitCount = computed(() =>
-  atomicValues.value.filter(v => v.status === 'depth-limit').length
-)
-const errorCount = computed(() =>
-  atomicValues.value.filter(v => v.status === 'error' || v.status === 'parse-error').length
-)
+const successCount = computed(
+  () => atomicValues.value.filter((v) => v.status === "success").length,
+);
+const depthLimitCount = computed(
+  () => atomicValues.value.filter((v) => v.status === "depth-limit").length,
+);
+const errorCount = computed(
+  () =>
+    atomicValues.value.filter(
+      (v) => v.status === "error" || v.status === "parse-error",
+    ).length,
+);
 
 function buildTreeNodes(obj, path) {
   if (obj === null || obj === undefined) {
-    return [{ key: path, value: obj, type: 'null', isLeaf: true }]
+    return [{ key: path, value: obj, type: "null", isLeaf: true }];
   }
-  if (typeof obj !== 'object') {
-    return [{ key: path, value: obj, type: typeof obj, isLeaf: true }]
+  if (typeof obj !== "object") {
+    return [{ key: path, value: obj, type: typeof obj, isLeaf: true }];
   }
   if (Array.isArray(obj)) {
-    return [{
-      key: path,
-      value: `[${obj.length} items]`,
-      type: 'array',
-      isLeaf: false,
-      children: obj.map((item, i) => buildTreeNodes(item, `${path}[${i}`)).flat()
-    }]
+    return [
+      {
+        key: path,
+        value: `[${obj.length} items]`,
+        type: "array",
+        isLeaf: false,
+        children: obj
+          .map((item, i) => buildTreeNodes(item, `${path}[${i}`))
+          .flat(),
+      },
+    ];
   }
-  const children = []
+  const children = [];
   for (const [k, v] of Object.entries(obj)) {
-    children.push(...buildTreeNodes(v, `${path}.${k}`))
+    children.push(...buildTreeNodes(v, `${path}.${k}`));
   }
-  return [{ key: path, value: '{...}', type: 'object', isLeaf: false, children }]
+  return [
+    { key: path, value: "{...}", type: "object", isLeaf: false, children },
+  ];
 }
 
 function getTypeIcon(type) {
-  const icons = { string: 'T', number: '#', boolean: '?', null: '∅', object: '{', array: '[[]]' }
-  return icons[type] || '*'
+  const icons = {
+    string: "T",
+    number: "#",
+    boolean: "?",
+    null: "∅",
+    object: "{",
+    array: "[[]]",
+  };
+  return icons[type] || "*";
 }
 
 function getTypeColor(type) {
-  const colors = { string: 'green', number: 'blue', boolean: 'purple', null: 'default', object: 'orange', array: 'cyan' }
-  return colors[type] || 'default'
+  const colors = {
+    string: "green",
+    number: "blue",
+    boolean: "purple",
+    null: "default",
+    object: "orange",
+    array: "cyan",
+  };
+  return colors[type] || "default";
 }
 
 function truncateValue(val, maxLen = 80) {
-  if (val === null || val === undefined) return String(val)
-  const str = typeof val === 'string' ? val : JSON.stringify(val)
-  return str.length > maxLen ? str.slice(0, maxLen) + '...' : str
+  if (val === null || val === undefined) return String(val);
+  const str = typeof val === "string" ? val : JSON.stringify(val);
+  return str.length > maxLen ? str.slice(0, maxLen) + "..." : str;
 }
 
 async function runUnwrap() {
-  unwrapping.value = true
+  unwrapping.value = true;
   try {
-    let json
-    if (typeof props.item.original === 'string') {
-      json = JSON.parse(props.item.original)
+    let json;
+    if (typeof props.item.original === "string") {
+      json = JSON.parse(props.item.original);
     } else {
-      json = props.item.original
+      json = props.item.original;
     }
-    atomicValues.value = extractAtomicValues(json, unwrapConfig.value)
+    atomicValues.value = extractAtomicValues(json, unwrapConfig.value);
   } catch (e) {
-    message.error('解包失败: ' + e.message)
-    atomicValues.value = []
+    message.error("解包失败: " + e.message);
+    atomicValues.value = [];
   } finally {
-    unwrapping.value = false
+    unwrapping.value = false;
   }
 }
 
 async function copyOriginal() {
   try {
-    await navigator.clipboard.writeText(props.item.original || '')
-    message.success('已复制原始JSON')
+    await navigator.clipboard.writeText(props.item.original || "");
+    message.success("已复制原始JSON");
   } catch {
-    message.error('复制失败')
+    message.error("复制失败");
   }
 }
 
 async function copyFormatted() {
   try {
-    const formatted = JSON.stringify(JSON.parse(props.item.original), null, 2)
-    await navigator.clipboard.writeText(formatted)
-    message.success('已复制格式化JSON')
+    const formatted = JSON.stringify(JSON.parse(props.item.original), null, 2);
+    await navigator.clipboard.writeText(formatted);
+    message.success("已复制格式化JSON");
   } catch {
-    message.error('复制失败')
+    message.error("复制失败");
   }
 }
 
 function downloadJson() {
-  const blob = new Blob([props.item.original], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = 'extracted-data.json'
-  a.click()
-  URL.revokeObjectURL(url)
-  message.success('下载已开始')
+  const blob = new Blob([props.item.original], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "extracted-data.json";
+  a.click();
+  URL.revokeObjectURL(url);
+  message.success("下载已开始");
 }
 
 async function copyAtomicValue(item) {
   try {
-    const text = typeof item.finalValue === 'string' ? item.finalValue : JSON.stringify(item.finalValue)
-    await navigator.clipboard.writeText(text)
-    message.success('已复制')
+    const text =
+      typeof item.finalValue === "string"
+        ? item.finalValue
+        : JSON.stringify(item.finalValue);
+    await navigator.clipboard.writeText(text);
+    message.success("已复制");
   } catch {
-    message.error('复制失败')
+    message.error("复制失败");
   }
 }
 
 function showLineage(item) {
-  selectedLineageItem.value = item
-  lineageModalVisible.value = true
+  selectedLineageItem.value = item;
+  lineageModalVisible.value = true;
 }
 
 async function handleCopyPath(path) {
   try {
-    await navigator.clipboard.writeText(path)
-    message.success(`已复制路径: ${path}`)
+    await navigator.clipboard.writeText(path);
+    message.success(`已复制路径: ${path}`);
   } catch {
-    message.error('复制失败')
+    message.error("复制失败");
   }
 }
 
 async function copyAllAtoms() {
   const lines = atomicValues.value
-    .filter(v => v.status === 'success')
-    .map(v => `${v.fullPath}: ${v.finalValue}`)
-    .join('\n')
+    .filter((v) => v.status === "success")
+    .map((v) => `${v.fullPath}: ${v.finalValue}`)
+    .join("\n");
   try {
-    await navigator.clipboard.writeText(lines)
-    message.success(`已复制 ${lines.split('\n').length} 条原子值`)
+    await navigator.clipboard.writeText(lines);
+    message.success(`已复制 ${lines.split("\n").length} 条原子值`);
   } catch {
-    message.error('复制失败')
+    message.error("复制失败");
   }
 }
 
 function exportCSV() {
-  const headers = ['路径', '值', '类型', '深度', '状态']
-  const rows = atomicValues.value.map(v => [
+  const headers = ["路径", "值", "类型", "深度", "状态"];
+  const rows = atomicValues.value.map((v) => [
     `"${v.fullPath}"`,
     `"${truncateValue(v.finalValue, 50).replace(/"/g, '""')}"`,
     v.dataType,
     v.parseDepth,
-    v.status
-  ])
-  const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
-  const blob = new Blob([csv], { type: 'text/csv' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = 'atomic-values.csv'
-  a.click()
-  URL.revokeObjectURL(url)
-  message.success('CSV导出成功')
+    v.status,
+  ]);
+  const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "atomic-values.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+  message.success("CSV导出成功");
 }
 
-watch(() => props.item, () => {
-  if (activeTab.value === 'unwrap' && atomicValues.value.length === 0) {
-    runUnwrap()
-  }
-}, { immediate: true })
+watch(
+  () => props.item,
+  () => {
+    if (activeTab.value === "unwrap" && atomicValues.value.length === 0) {
+      runUnwrap();
+    }
+  },
+  { immediate: true },
+);
 </script>
 
 <style lang="scss" scoped>
@@ -372,7 +457,8 @@ watch(() => props.item, () => {
     background: var(--bg-base);
   }
 
-  .action-bar, .batch-actions {
+  .action-bar,
+  .batch-actions {
     display: flex;
     gap: 8px;
     justify-content: flex-end;
@@ -420,7 +506,9 @@ watch(() => props.item, () => {
       border: 1px solid var(--border-default);
       border-radius: 8px;
       margin-bottom: 8px;
-      transition: border-color,box-shadow 0.2s;
+      transition:
+        border-color,
+        box-shadow 0.2s;
 
       &:hover {
         border-color: var(--color-primary);
@@ -444,16 +532,28 @@ watch(() => props.item, () => {
           font-weight: bold;
           color: white;
 
-          &.type-string { background: #52c41a; }
-          &.type-number { background: #1677ff; }
-          &.type-boolean { background: #722ed1; }
-          &.type-null { background: #8c8c8c; }
-          &.type-object { background: #fa8c16; }
-          &.type-array { background: #13c2c2; }
+          &.type-string {
+            background: #52c41a;
+          }
+          &.type-number {
+            background: #1677ff;
+          }
+          &.type-boolean {
+            background: #722ed1;
+          }
+          &.type-null {
+            background: #8c8c8c;
+          }
+          &.type-object {
+            background: #fa8c16;
+          }
+          &.type-array {
+            background: #13c2c2;
+          }
         }
 
         .value-text {
-          font-family: 'Fira Code', Consolas, monospace;
+          font-family: "Fira Code", Consolas, monospace;
           font-size: 13px;
           word-break: break-all;
           color: var(--text-primary);

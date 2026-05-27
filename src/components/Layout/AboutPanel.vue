@@ -69,10 +69,10 @@
             {{ timezone }}
           </a-descriptions-item>
           <a-descriptions-item label="Cookie启用">
-            {{ cookieEnabled ? '是' : '否' }}
+            {{ cookieEnabled ? "是" : "否" }}
           </a-descriptions-item>
           <a-descriptions-item label="JavaScript启用">
-            {{ javascriptEnabled ? '是' : '否' }}
+            {{ javascriptEnabled ? "是" : "否" }}
           </a-descriptions-item>
         </a-descriptions>
       </div>
@@ -82,7 +82,9 @@
       <div class="info-section">
         <h3>开发团队</h3>
         <div class="team-info">
-          <p>SQL生成工具由专业开发团队精心打造，致力于提供高效、稳定的SQL生成解决方案。</p>
+          <p>
+            SQL生成工具由专业开发团队精心打造，致力于提供高效、稳定的SQL生成解决方案。
+          </p>
           <div class="contact-info">
             <p><strong>联系方式：</strong></p>
             <ul>
@@ -119,7 +121,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted } from "vue";
 import {
   DatabaseOutlined,
   CheckCircleOutlined,
@@ -128,8 +130,8 @@ import {
   CodeOutlined,
   ExportOutlined,
   SettingOutlined,
-} from '@ant-design/icons-vue'
-import { message } from 'ant-design-vue'
+} from "@ant-design/icons-vue";
+import { message } from "ant-design-vue";
 
 // 定义事件
 // const emit = defineEmits(['close']) // 暂时注释掉，如果需要使用可以取消注释
@@ -137,78 +139,85 @@ import { message } from 'ant-design-vue'
 // 响应式数据
 const features = ref([
   {
-    title: '智能字段映射',
-    description: '基于名称相似度和拼音匹配算法，自动建立DDL字段与Excel列的映射关系',
+    title: "智能字段映射",
+    description:
+      "基于名称相似度和拼音匹配算法，自动建立DDL字段与Excel列的映射关系",
     icon: TableOutlined,
   },
   {
-    title: '多数据库支持',
-    description: '支持MySQL、PostgreSQL、SQL Server等多种数据库语法',
+    title: "多数据库支持",
+    description: "支持MySQL、PostgreSQL、SQL Server等多种数据库语法",
     icon: DatabaseOutlined,
   },
   {
-    title: '批量SQL生成',
-    description: '支持大型Excel文件处理，智能分块生成高效的SQL语句',
+    title: "批量SQL生成",
+    description: "支持大型Excel文件处理，智能分块生成高效的SQL语句",
     icon: FileTextOutlined,
   },
   {
-    title: '实时预览',
-    description: '语法高亮显示，支持格式化和压缩两种显示模式',
+    title: "实时预览",
+    description: "语法高亮显示，支持格式化和压缩两种显示模式",
     icon: CodeOutlined,
   },
   {
-    title: '多种导出方式',
-    description: '支持SQL文件下载、剪贴板复制、直接导出到数据库',
+    title: "多种导出方式",
+    description: "支持SQL文件下载、剪贴板复制、直接导出到数据库",
     icon: ExportOutlined,
   },
   {
-    title: '个性化设置',
-    description: '丰富的配置选项，满足不同用户的个性化需求',
+    title: "个性化设置",
+    description: "丰富的配置选项，满足不同用户的个性化需求",
     icon: SettingOutlined,
   },
-])
+]);
 
-const frontendTechs = ref(['Vue 3', 'Ant Design Vue', 'Vite', 'ES6+', 'CSS3'])
+const frontendTechs = ref(["Vue 3", "Ant Design Vue", "Vite", "ES6+", "CSS3"]);
 
-const backendTechs = ref(['Node.js', 'Express', 'SQL Parser', 'XLSX', 'Pinyin'])
+const backendTechs = ref([
+  "Node.js",
+  "Express",
+  "SQL Parser",
+  "XLSX",
+  "Pinyin",
+]);
 
-const userAgent = ref('')
-const screenResolution = ref('')
-const navigatorLanguage = ref('')
-const timezone = ref('')
-const cookieEnabled = ref(false)
-const javascriptEnabled = ref(true)
+const userAgent = ref("");
+const screenResolution = ref("");
+const navigatorLanguage = ref("");
+const timezone = ref("");
+const cookieEnabled = ref(false);
+const javascriptEnabled = ref(true);
 
 // 方法
 const loadSystemInfo = () => {
-  userAgent.value = navigator.userAgent
-  screenResolution.value = `${screen.width}x${screen.height}`
-  navigatorLanguage.value = navigator.language
-  timezone.value = Intl.DateTimeFormat().resolvedOptions().timeZone
-  cookieEnabled.value = navigator.cookieEnabled
-  javascriptEnabled.value = true // 如果能运行这段代码，说明JavaScript已启用
-}
+  userAgent.value = navigator.userAgent;
+  screenResolution.value = `${screen.width}x${screen.height}`;
+  navigatorLanguage.value = navigator.language;
+  timezone.value = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  cookieEnabled.value = navigator.cookieEnabled;
+  javascriptEnabled.value = true; // 如果能运行这段代码，说明JavaScript已启用
+};
 
 const checkUpdate = () => {
-  message.info('已是最新版本')
-}
+  message.info("已是最新版本");
+};
 
 const showChangelog = () => {
-  message.info('查看更新日志功能开发中')
-}
+  message.info("查看更新日志功能开发中");
+};
 
 const showLicense = () => {
-  message.info('查看许可证功能开发中')
-}
+  message.info("查看许可证功能开发中");
+};
 
 const showPrivacy = () => {
-  message.info('查看隐私政策功能开发中')
-}
+  message.info("查看隐私政策功能开发中");
+};
 
 // 生命周期
 onMounted(() => {
-  loadSystemInfo()
-})
+  loadSystemInfo();
+});
 </script>
 
 <style scoped>

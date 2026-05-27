@@ -7,7 +7,11 @@
           placeholder="选择源工作表"
           @change="handleSheetChange"
         >
-          <a-select-option v-for="sheet in sheetNames" :key="sheet" :value="sheet">
+          <a-select-option
+            v-for="sheet in sheetNames"
+            :key="sheet"
+            :value="sheet"
+          >
             {{ sheet }}
           </a-select-option>
         </a-select>
@@ -21,7 +25,11 @@
           :filter-option="filterOption"
           @change="handleSourceColumnChange"
         >
-          <a-select-option v-for="col in columns" :key="col.letter" :value="col.letter">
+          <a-select-option
+            v-for="col in columns"
+            :key="col.letter"
+            :value="col.letter"
+          >
             {{ col.letter }} ({{ col.name }})
           </a-select-option>
         </a-select>
@@ -33,7 +41,11 @@
           placeholder="选择目标工作表"
           @change="handleTargetSheetChange"
         >
-          <a-select-option v-for="sheet in sheetNames" :key="sheet" :value="sheet">
+          <a-select-option
+            v-for="sheet in sheetNames"
+            :key="sheet"
+            :value="sheet"
+          >
             {{ sheet }}
           </a-select-option>
         </a-select>
@@ -47,7 +59,11 @@
           :filter-option="filterOption"
           @change="handleTargetColumnChange"
         >
-          <a-select-option v-for="col in targetColumns" :key="col.letter" :value="col.letter">
+          <a-select-option
+            v-for="col in targetColumns"
+            :key="col.letter"
+            :value="col.letter"
+          >
             {{ col.letter }} ({{ col.name }})
           </a-select-option>
         </a-select>
@@ -65,7 +81,9 @@
       <a-form-item label="保持合并单元格格式">
         <a-switch v-model:checked="localConfig.keepMergedFormat" />
         <template #extra>
-          <span class="hint-text"> 开启后，合并单元格会先解除合并，填充数据后再重新合并 </span>
+          <span class="hint-text">
+            开启后，合并单元格会先解除合并，填充数据后再重新合并
+          </span>
         </template>
       </a-form-item>
     </a-form>
@@ -79,8 +97,8 @@
  * @author SqlTool
  */
 
-import { computed } from 'vue'
-import VbenGlassCard from '@/components/common/VbenGlassCard.vue'
+import { computed } from "vue";
+import VbenGlassCard from "@/components/common/VbenGlassCard.vue";
 
 /**
  * 组件Props定义
@@ -117,19 +135,19 @@ const props = defineProps({
     type: Function,
     default: () => true,
   },
-})
+});
 
 /**
  * 组件Emits定义
  * @typedef {Object} Emits
  */
 const emit = defineEmits([
-  'update:config',
-  'sheetChange',
-  'sourceColumnChange',
-  'targetSheetChange',
-  'targetColumnChange',
-])
+  "update:config",
+  "sheetChange",
+  "sourceColumnChange",
+  "targetSheetChange",
+  "targetColumnChange",
+]);
 
 /**
  * 本地配置对象（双向绑定）
@@ -137,40 +155,40 @@ const emit = defineEmits([
  */
 const localConfig = computed({
   get: () => props.config,
-  set: (value) => emit('update:config', value),
-})
+  set: (value) => emit("update:config", value),
+});
 
 /**
  * 处理工作表变更
  * @param {string} sheetName - 新的工作表名称
  */
 const handleSheetChange = (sheetName) => {
-  emit('sheetChange', sheetName)
-}
+  emit("sheetChange", sheetName);
+};
 
 /**
  * 处理源列变更
  * @param {string} value - 选中的列值
  */
 const handleSourceColumnChange = (value) => {
-  emit('sourceColumnChange', value)
-}
+  emit("sourceColumnChange", value);
+};
 
 /**
  * 处理目标工作表变更
  * @param {string} sheetName - 新的工作表名称
  */
 const handleTargetSheetChange = (sheetName) => {
-  emit('targetSheetChange', sheetName)
-}
+  emit("targetSheetChange", sheetName);
+};
 
 /**
  * 处理目标列变更
  * @param {string} value - 选中的列值
  */
 const handleTargetColumnChange = (value) => {
-  emit('targetColumnChange', value)
-}
+  emit("targetColumnChange", value);
+};
 </script>
 
 <style scoped lang="scss">

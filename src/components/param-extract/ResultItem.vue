@@ -340,7 +340,10 @@ const handleContextMenu = (e: MouseEvent): void => {
   border-bottom: 1px solid var(--border-default);
   cursor: pointer;
   /* 自定义cubic-bezier缓动曲线，模拟物理弹性 */
-  transition: background,box-shadow,transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+  transition:
+    background,
+    box-shadow,
+    transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
   /* GPU加速优化 */
   will-change: transform, opacity;
   /* 入场动画：从下方淡入上滑 */
@@ -534,7 +537,11 @@ const handleContextMenu = (e: MouseEvent): void => {
   /* 默认隐藏，hover时显示 */
   opacity: 0;
   transform: scale(0.9);
-  transition: opacity,transform,background,color 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+  transition:
+    opacity,
+    transform,
+    background,
+    color 0.2s cubic-bezier(0.32, 0.72, 0, 1);
 
   &:hover {
     /* 使用主题交互变量，自动适配深色模式 */
@@ -570,7 +577,11 @@ const handleContextMenu = (e: MouseEvent): void => {
   font-size: 14px;
   opacity: 0;
   transform: scale(0.9);
-  transition: opacity,transform,background,color 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+  transition:
+    opacity,
+    transform,
+    background,
+    color 0.2s cubic-bezier(0.32, 0.72, 0, 1);
 
   &:hover {
     /* 使用主题交互变量，自动适配深色模式 */
@@ -624,7 +635,9 @@ const handleContextMenu = (e: MouseEvent): void => {
     /* 使用主题主文字变量 */
     color: var(--text-primary);
     font-weight: 500;
-    transition: background,color 0.15s ease;
+    transition:
+      background,
+      color 0.15s ease;
     border-radius: 6px;
     margin: 2px 4px;
 
