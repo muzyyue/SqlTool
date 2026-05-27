@@ -86,6 +86,9 @@
           :end-row="endRow"
           :include-header="includeHeader"
           :total-excel-rows="totalExcelRows"
+          :auto-apply-enabled="autoApplyEnabled"
+          :countdown="countdown"
+          :row-range-history="rowRangeHistory"
           :cell-split-enabled="cellSplitEnabled"
           :cell-split-separator="cellSplitSeparator"
           :custom-separator="customSeparator"
@@ -103,6 +106,8 @@
           @row-range-reset="resetRowRange"
           @update:startRow="handleStartRowUpdate"
           @update:endRow="handleEndRowUpdate"
+          @auto-apply-toggle="handleAutoApplyToggle"
+          @apply-history="handleApplyHistory"
         />
 
         <!-- 字段映射 - 使用现有组件 -->
@@ -121,7 +126,6 @@
           :has-custom-binding-config="hasCustomBindingConfig"
           @auto-match-fields="autoMatchFields"
           @clear-all-mappings="clearAllMappings"
-          @validate-enhanced-mappings="validateEnhancedMappings"
           @update-mapping="updateMapping"
           @handle-generated-by-function-change="handleGeneratedByFunctionChange"
           @clear-mapping="clearMapping"
@@ -444,7 +448,15 @@ const {
   endRow,
   includeHeader,
   totalExcelRows,
+  autoApplyEnabled,
+  countdown,
+  history: rowRangeHistory,
   resetRowRange: resetRowRangeState,
+  startCountdown,
+  stopCountdown,
+  toggleAutoApply,
+  addHistory: addRowRangeHistory,
+  applyHistory: applyRowRangeHistory,
 } = useRowRange();
 
 const {
@@ -1033,12 +1045,89 @@ const applyDeduplication = () => {
   totalExcelRows.value = excelData.value.length;
 };
 
+let rowRangeDebounceTimer = null;
+const ROW_RANGE_DEBOUNCE_MS = 800;
+
+const debouncedApplyRowRange = () => {
+  if (!autoApplyEnabled.value) {
+    return;
+  }
+
+  if (rowRangeDebounceTimer) {
+    clearTimeout(rowRangeDebounceTimer);
+  }
+
+  // 启动倒计时（800ms = 0.8s，向上取整为 1 秒显示）
+  startCountdown(1);
+
+  rowRangeDebounceTimer = setTimeout(async () => {
+    stopCountdown();
+
+    if (
+      rowRangeEnabled.value &&
+      startRow.value &&
+      endRow.value &&
+      uploadedFile.value &&
+      excelData.value.length > 0
+    ) {
+      const previousLength = excelData.value.length;
+      await applyRowRange();
+
+      // 添加历史记录
+      if (startRow.value && endRow.value) {
+        addRowRangeHistory(
+          startRow.value,
+          endRow.value,
+          includeHeader.value,
+          excelData.value.length,
+        );
+      }
+
+      // 显示成功提示
+      message.success(
+        `已筛选 ${excelData.value.length} 行数据（原 ${previousLength} 行）`,
+      );
+    }
+    rowRangeDebounceTimer = null;
+  }, ROW_RANGE_DEBOUNCE_MS);
+};
+
 const handleStartRowUpdate = (val) => {
   startRow.value = val;
+  debouncedApplyRowRange();
 };
 
 const handleEndRowUpdate = (val) => {
   endRow.value = val;
+  debouncedApplyRowRange();
+};
+
+/**
+ * 处理自动应用开关切换
+ */
+const handleAutoApplyToggle = (checked) => {
+  toggleAutoApply(checked);
+  if (!checked) {
+    stopCountdown();
+    if (rowRangeDebounceTimer) {
+      clearTimeout(rowRangeDebounceTimer);
+      rowRangeDebounceTimer = null;
+    }
+  }
+};
+
+/**
+ * 应用历史记录
+ */
+const handleApplyHistory = (historyId) => {
+  const record = applyRowRangeHistory(historyId);
+  if (record) {
+    message.info(`已加载历史配置: ${record.startRow}-${record.endRow} 行`);
+    // 如果启用了自动应用，立即触发
+    if (autoApplyEnabled.value) {
+      debouncedApplyRowRange();
+    }
+  }
 };
 
 const handleRowRangeToggle = (checked) => {
@@ -1154,7 +1243,6 @@ const applyRowRange = async () => {
 
     excelData.value = rows;
     excelHeaders.value = headers;
-    totalExcelRows.value = rows.length;
 
     const selectedRowCount = rows.length;
     logInfo(
@@ -1325,25 +1413,48 @@ const clearMapping = (ddlFieldName) => {
 };
 
 const clearAllMappings = () => {
+  if (parsedFields.value.length === 0 || excelHeaders.value.length === 0) {
+    message.warning("请先解析DDL语句和上传Excel文件");
+    return;
+  }
+
   // 移除所有自定义字段
   const originalLength = parsedFields.value.length;
   parsedFields.value = parsedFields.value.filter((field) => !field.isCustom);
   const customFieldsRemoved = originalLength - parsedFields.value.length;
 
-  // 清除剩余普通字段的映射关系
-  parsedFields.value.forEach((field) => {
-    updateFieldMapping(field.name, null, -1);
-  });
+  try {
+    // 重新执行智能匹配
+    enhancedMatchFields(parsedFields.value, excelHeaders.value, "similarity");
 
-  if (customFieldsRemoved > 0) {
-    logInfo(`已移除 ${customFieldsRemoved} 个自定义字段`);
-    logInfo("已清除所有普通字段映射");
-    message.info(
-      `已移除 ${customFieldsRemoved} 个自定义字段并清除所有普通字段映射`,
-    );
-  } else {
-    logInfo("清除所有字段映射");
-    message.info("已清除所有字段映射");
+    // 同步更新parsedFields中的excelIndex
+    fieldMappings.value.forEach((mapping) => {
+      const field = parsedFields.value.find(
+        (f) => f.name === mapping.ddlField.name,
+      );
+      if (field) {
+        field.excelIndex = mapping.excelIndex;
+      }
+    });
+
+    if (customFieldsRemoved > 0) {
+      logInfo(
+        `已重置映射：移除 ${customFieldsRemoved} 个自定义字段并重新自动匹配`,
+      );
+      message.success(
+        `已重置字段映射并重新自动匹配（移除 ${customFieldsRemoved} 个自定义字段）`,
+      );
+    } else {
+      logInfo("已重置字段映射并重新自动匹配");
+      message.success("已重置字段映射并重新自动匹配");
+    }
+  } catch (error) {
+    const friendlyError = logError(error, "reset-mappings", {
+      operation: "clearAllMappings",
+      ddlFieldsCount: parsedFields.value.length,
+      excelHeadersCount: excelHeaders.value.length,
+    });
+    message.error(friendlyError);
   }
 };
 
@@ -2067,48 +2178,47 @@ onMounted(() => {
   contain: layout style;
 }
 
-  // --- 页面头部 ---
-  .page-header {
-    @include flex-between;
-    margin-bottom: 24px;
-    padding: 10px 20px;
-    border-bottom: 1px solid $page-header-border;
-    background: $page-header-bg;
-    border-radius: $border-radius-sm;
-    animation: fadeInUp 0.6s cubic-bezier(0.32, 0.72, 0, 1) both;
+// --- 页面头部 ---
+.page-header {
+  @include flex-between;
+  margin-bottom: 24px;
+  padding: 10px 20px;
+  border-bottom: 1px solid $page-header-border;
+  background: $page-header-bg;
+  border-radius: $border-radius-sm;
+  animation: fadeInUp 0.6s cubic-bezier(0.32, 0.72, 0, 1) both;
 
-    h2 {
-      margin: 0 20px 0 0;
-      color: $page-header-title;
-      font-size: 24px;
-      font-weight: 600;
-    }
+  h2 {
+    margin: 0 20px 0 0;
+    color: $page-header-title;
+    font-size: 24px;
+    font-weight: 600;
   }
+}
 
-  .header-actions {
-    display: flex;
-    gap: 10px;
-    margin-left: auto;
-  }
+.header-actions {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+}
 
-  // --- 内容区域 ---
-  .content-grid {
-    @include flex-column;
-    gap: 24px;
-    min-height: 600px;
-    width: 100%;
-    max-width: 100%;
-    contain: content;
-  }
+// --- 内容区域 ---
+.content-grid {
+  @include flex-column;
+  gap: 24px;
+  min-height: 600px;
+  width: 100%;
+  max-width: 100%;
+  contain: content;
+}
 
-  .input-section,
-  .output-section {
-    @include flex-column;
-    gap: 16px;
-    min-width: 0;
-    overflow: hidden;
-  }
-
+.input-section,
+.output-section {
+  @include flex-column;
+  gap: 16px;
+  min-width: 0;
+  overflow: hidden;
+}
 
 // ========================================
 // 卡片组件
@@ -2388,7 +2498,9 @@ onMounted(() => {
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  transition: box-shadow $transition-normal ease, background-color $transition-normal ease;
+  transition:
+    box-shadow $transition-normal ease,
+    background-color $transition-normal ease;
 
   @include glass-card-hover;
 }
@@ -2397,12 +2509,16 @@ onMounted(() => {
   @include glass-card;
   margin-top: 16px;
   padding: 20px;
-  transition: box-shadow $transition-normal ease, background-color $transition-normal ease;
+  transition:
+    box-shadow $transition-normal ease,
+    background-color $transition-normal ease;
 
   @include glass-card-hover;
 
   .ant-select {
-    transition: box-shadow $transition-fast ease, border-color $transition-fast ease;
+    transition:
+      box-shadow $transition-fast ease,
+      border-color $transition-fast ease;
 
     &:hover {
       box-shadow: 0 0 0 2px $color-primary-bg;
@@ -2423,7 +2539,9 @@ onMounted(() => {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
-  transition: box-shadow $transition-normal ease, background-color $transition-normal ease;
+  transition:
+    box-shadow $transition-normal ease,
+    background-color $transition-normal ease;
 
   &:hover {
     background: color-mix(in srgb, $color-primary 12%, transparent);
@@ -2437,7 +2555,10 @@ onMounted(() => {
     font-weight: 500;
     padding: 6px 14px;
     border-radius: $border-radius-xs;
-    transition: transform $transition-fast ease, box-shadow $transition-fast ease, border-color $transition-fast ease;
+    transition:
+      transform $transition-fast ease,
+      box-shadow $transition-fast ease,
+      border-color $transition-fast ease;
 
     &:hover {
       transform: translateY(-2px);
@@ -2474,7 +2595,9 @@ onMounted(() => {
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  transition: box-shadow $transition-normal ease, background-color $transition-normal ease;
+  transition:
+    box-shadow $transition-normal ease,
+    background-color $transition-normal ease;
 
   @include glass-card-hover;
 }
@@ -2483,7 +2606,9 @@ onMounted(() => {
   @include glass-card;
   margin-top: 16px;
   padding: 20px;
-  transition: box-shadow $transition-normal ease, background-color $transition-normal ease;
+  transition:
+    box-shadow $transition-normal ease,
+    background-color $transition-normal ease;
 
   @include glass-card-hover;
 }
@@ -2507,7 +2632,9 @@ onMounted(() => {
   }
 
   .ant-input-number {
-    transition: box-shadow $transition-fast ease, border-color $transition-fast ease;
+    transition:
+      box-shadow $transition-fast ease,
+      border-color $transition-fast ease;
 
     &:hover {
       box-shadow: 0 0 0 2px $color-primary-bg;
@@ -2543,7 +2670,9 @@ onMounted(() => {
     font-weight: 500;
     padding: 4px 12px;
     border-radius: $border-radius-xs;
-    transition: transform $transition-fast ease, background-color $transition-fast ease;
+    transition:
+      transform $transition-fast ease,
+      background-color $transition-fast ease;
 
     &:hover {
       background: color-mix(in srgb, $color-primary 15%, transparent);
@@ -2558,7 +2687,9 @@ onMounted(() => {
   margin-bottom: 16px;
 
   .ant-btn {
-    transition: transform $transition-fast ease, box-shadow $transition-fast ease;
+    transition:
+      transform $transition-fast ease,
+      box-shadow $transition-fast ease;
 
     &:hover {
       transform: translateY(-1px);
@@ -2580,7 +2711,9 @@ onMounted(() => {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
-  transition: box-shadow $transition-normal ease, background-color $transition-normal ease;
+  transition:
+    box-shadow $transition-normal ease,
+    background-color $transition-normal ease;
 
   &:hover {
     background: color-mix(in srgb, $color-primary 12%, transparent);
@@ -2594,7 +2727,10 @@ onMounted(() => {
     font-weight: 500;
     padding: 6px 14px;
     border-radius: $border-radius-xs;
-    transition: transform $transition-fast ease, box-shadow $transition-fast ease, border-color $transition-fast ease;
+    transition:
+      transform $transition-fast ease,
+      box-shadow $transition-fast ease,
+      border-color $transition-fast ease;
 
     &:hover {
       transform: translateY(-2px);

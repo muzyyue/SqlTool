@@ -1,5 +1,11 @@
 # 版本变更历史
 
+## 1.5.75 (2026-05-27) 优化字段映射功能
+- 删除无用的"确认映射"按钮（验证结果未展示，对用户无实际作用）
+- 修复"重置映射"功能：重置后自动重新执行智能匹配，避免字段数量异常变化和匹配率归零问题
+- InsertPage 和 UpdatePage 同步优化 clearAllMappings 函数逻辑
+- 涉及文件: FieldMappingCard.vue, InsertPage.vue, UpdatePage.vue
+
 ## 1.5.74 (2026-05-26) 字段映射部分性能优化（核显低配电脑专项）
 - 移除 backdrop-filter: blur() GPU合成瓶颈，改用纯色半透明背景
 - 优化 isColumnUsed() 从 O(n²) 降为 O(1) Set查找（2500次遍历→1次has调用）

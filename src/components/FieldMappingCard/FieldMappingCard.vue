@@ -354,14 +354,6 @@
             <template #icon><UndoOutlined /></template>
             重置映射
           </a-button>
-          <a-button
-            type="primary"
-            @click="handleValidateEnhancedMappings"
-            :disabled="!hasValidMappings"
-          >
-            <template #icon><CheckOutlined /></template>
-            确认映射
-          </a-button>
         </a-space>
       </div>
     </div>
@@ -387,7 +379,6 @@ import {
   ControlOutlined,
   UndoOutlined,
   DatabaseOutlined,
-  CheckOutlined,
   InfoCircleOutlined,
   WarningOutlined,
   EditOutlined,
@@ -430,7 +421,6 @@ const props = defineProps({
 const emit = defineEmits([
   "autoMatchFields",
   "clearAllMappings",
-  "validateEnhancedMappings",
   "updateMapping",
   "handleGeneratedByFunctionChange",
   "clearMapping",
@@ -520,7 +510,9 @@ const usedColumnSet = computed(() => {
 });
 
 const isColumnUsed = (columnIndex, currentExcelIndex = -1) => {
-  return columnIndex !== currentExcelIndex && usedColumnSet.value.has(columnIndex);
+  return (
+    columnIndex !== currentExcelIndex && usedColumnSet.value.has(columnIndex)
+  );
 };
 
 const getConfidenceColor = (confidence) => {
@@ -647,10 +639,6 @@ const handleClearAllMappings = () => {
   emit("clearAllMappings");
 };
 
-const handleValidateEnhancedMappings = () => {
-  emit("validateEnhancedMappings");
-};
-
 const handleCustomBindingToggle = (checked) => {
   customBindingEnabled.value = checked;
   emit("handleCustomBindingToggle", checked);
@@ -691,7 +679,9 @@ const handleDatabaseTypeChange = (e) => {
   border: 1px solid var(--border-glass-strong);
   border-radius: var(--border-radius-md);
   padding: 20px;
-  transition: border-color var(--transition-slow) ease, background-color var(--transition-slow) ease;
+  transition:
+    border-color var(--transition-slow) ease,
+    background-color var(--transition-slow) ease;
   contain: layout style;
 }
 
@@ -731,7 +721,9 @@ const handleDatabaseTypeChange = (e) => {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-inverse);
-  transition: background-color var(--transition-slow) ease, opacity var(--transition-slow) ease;
+  transition:
+    background-color var(--transition-slow) ease,
+    opacity var(--transition-slow) ease;
 }
 
 .match-rate-badge.excellent {
@@ -849,7 +841,9 @@ const handleDatabaseTypeChange = (e) => {
   background: var(--card-bg);
   border-radius: var(--border-radius-sm);
   border: 1px solid var(--border-default);
-  transition: border-color var(--transition-normal) ease, background-color var(--transition-normal) ease;
+  transition:
+    border-color var(--transition-normal) ease,
+    background-color var(--transition-normal) ease;
 }
 
 .mapping-item:hover {

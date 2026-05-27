@@ -114,7 +114,6 @@
           :has-custom-binding-config="hasCustomBindingConfig"
           @auto-match-fields="autoMatchFields"
           @clear-all-mappings="clearAllMappings"
-          @validate-enhanced-mappings="validateEnhancedMappings"
           @update-mapping="updateMapping"
           @handle-generated-by-function-change="handleGeneratedByFunctionChange"
           @clear-mapping="clearMapping"
@@ -502,7 +501,6 @@ const {
   matchFields,
   updateFieldMapping,
   validateMappings: validateFieldMappings,
-  validateEnhancedMappings,
   matchingStats,
   customBindingManager,
   resetMappings,
@@ -1004,17 +1002,25 @@ const clearMapping = (ddlFieldName) => {
 };
 
 const clearAllMappings = () => {
-  // 移除所有fieldMappings中的映射记录
-  const originalCount = fieldMappings.value.length;
-  fieldMappings.value = [];
+  if (parsedFields.value.length === 0 || excelHeaders.value.length === 0) {
+    message.warning("请先解析DDL语句和上传Excel文件");
+    return;
+  }
 
-  // 清除所有 updateFields（除了条件字段）
-  updateFields.value = updateFields.value.filter((field) =>
-    conditionFields.value.includes(field),
-  );
+  try {
+    // 重新执行智能匹配
+    matchFields(parsedFields.value, excelHeaders.value, "similarity");
 
-  logInfo("清除所有字段映射");
-  message.info("已清除所有字段映射");
+    logInfo("已重置字段映射并重新自动匹配");
+    message.success("已重置字段映射并重新自动匹配");
+  } catch (error) {
+    const friendlyError = logError(error, "reset-mappings", {
+      operation: "clearAllMappings",
+      ddlFieldsCount: parsedFields.value.length,
+      excelHeadersCount: excelHeaders.value.length,
+    });
+    message.error(friendlyError);
+  }
 };
 
 const generateSql = async () => {
@@ -1437,7 +1443,6 @@ const handleCustomBindingSave = (customFieldsData) => {
 
     // 从字段拼接规则中提取自定义字段
     fieldConcatenationRules.forEach((rule) => {
-
       // 使用 ddlFieldName 作为自定义字段名称
       if (rule.ddlFieldName && rule.ddlFieldName.trim() !== "") {
         // 注意：拼接规则已经存储在 fieldConcatenationRules 中
@@ -2132,7 +2137,9 @@ onMounted(() => {
   border: 1px solid $card-border;
   border-radius: $border-radius-md;
   box-shadow: $shadow-sm;
-  transition: box-shadow $transition-normal ease, background-color $transition-normal ease;
+  transition:
+    box-shadow $transition-normal ease,
+    background-color $transition-normal ease;
 
   &:hover {
     box-shadow: $shadow-md;
@@ -2148,14 +2155,18 @@ onMounted(() => {
   border: 1px solid $card-border;
   border-radius: $border-radius-md;
   box-shadow: $shadow-sm;
-  transition: box-shadow $transition-normal ease, background-color $transition-normal ease;
+  transition:
+    box-shadow $transition-normal ease,
+    background-color $transition-normal ease;
 
   &:hover {
     box-shadow: $shadow-md;
   }
 
   .ant-select {
-    transition: box-shadow $transition-fast ease, border-color $transition-fast ease;
+    transition:
+      box-shadow $transition-fast ease,
+      border-color $transition-fast ease;
 
     &:hover {
       box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
@@ -2176,7 +2187,9 @@ onMounted(() => {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
-  transition: box-shadow $transition-normal ease, background-color $transition-normal ease;
+  transition:
+    box-shadow $transition-normal ease,
+    background-color $transition-normal ease;
 
   &:hover {
     background: color-mix(in srgb, $color-primary 12%, transparent);
@@ -2190,7 +2203,10 @@ onMounted(() => {
     font-weight: 500;
     padding: 6px 14px;
     border-radius: $border-radius-xs;
-    transition: transform $transition-fast ease, box-shadow $transition-fast ease, border-color $transition-fast ease;
+    transition:
+      transform $transition-fast ease,
+      box-shadow $transition-fast ease,
+      border-color $transition-fast ease;
 
     &:hover {
       transform: translateY(-2px);
