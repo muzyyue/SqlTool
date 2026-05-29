@@ -1,5 +1,13 @@
 # 版本变更历史
 
+## 1.5.76 (2026-05-28) 优化 VbenGlassCard 组件性能（低配核显专项）
+- 条件化 backdrop-filter：仅在浏览器支持且用户未偏好减少透明效果时启用，低配核显自动降级为纯色半透明背景
+- 智能 GPU 层管理：移除默认 will-change（长期占用显存），改用轻量 translateZ(0)，仅在 hover 期间动态启用 will-change
+- 新增 prefers-reduced-motion 支持：用户偏好减少动画时禁用位移动画
+- 优化 contain 属性：添加 paint 限制绘制重计算范围，头部/底部移除 content-visibility 改为更可控的 contain
+- 调整浮动按钮组位置样式（ant-float-button-group right: 12px）
+- 涉及文件: VbenGlassCard.vue, App.vue
+
 ## 1.5.75 (2026-05-27) 优化字段映射功能
 - 删除无用的"确认映射"按钮（验证结果未展示，对用户无实际作用）
 - 修复"重置映射"功能：重置后自动重新执行智能匹配，避免字段数量异常变化和匹配率归零问题

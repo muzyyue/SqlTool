@@ -171,4 +171,9 @@ body {
   background-color: rgba(22, 119, 255, 0.15);
   color: inherit;
 }
+
+/* 第三方组件样式覆盖 */
+.ant-float-button-group {
+  right: 12px !important;
+}
 </style>

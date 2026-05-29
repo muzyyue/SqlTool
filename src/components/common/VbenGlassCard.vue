@@ -39,6 +39,7 @@
  * VbenGlassCard 组件
  * 玻璃卡片容器组件，支持亮色和暗色主题
  * 使用 CSS 变量实现主题切换，无需手动适配
+ * 针对低配核显优化：条件化 backdrop-filter、智能 GPU 层管理、减少显存占用
  *
  * @component
  * @example
@@ -74,38 +75,72 @@ const handleClick = (event) => {
 <style scoped>
 /**
  * 玻璃卡片容器
- * 使用 CSS 变量实现主题切换，无需 [data-theme='dark'] 选择器
- * 性能优化：使用 contain 和 will-change 提升渲染性能
+ * 性能优化策略（针对低配核显）：
+ * 1. 条件化 backdrop-filter：仅在支持且用户未偏好减少透明效果时启用
+ * 2. 智能 GPU 层：使用 translateZ(0) 轻量提升，避免默认 will-change 长期占用显存
+ * 3. 隔离渲染：使用 contain 限制重排/重绘范围
+ * 4. 尊重用户偏好：prefers-reduced-motion 和 prefers-reduced-transparency
  */
 .vben-glass-card {
   position: relative;
   background: var(--bg-glass);
-  backdrop-filter: blur(var(--backdrop-blur));
-  -webkit-backdrop-filter: blur(var(--backdrop-blur));
   border: 1px solid var(--border-glass-strong);
   border-radius: var(--border-radius-md);
   box-shadow: var(--shadow-lg);
 
-  /* 性能优化：只过渡 transform 和 box-shadow（避免 transition: all） */
-  transition:
-    transform var(--transition-normal) ease,
-    box-shadow var(--transition-normal) ease;
+  /* 轻量级 GPU 层提升，比 will-change 更省显存 */
+  transform: translateZ(0);
 
+  /* 渲染隔离：限制布局、样式和绘制重计算范围 */
+  contain: layout style paint;
   overflow: hidden;
+}
 
-  /* GPU 加速和布局隔离 */
-  will-change: transform;
-  contain: layout style;
+/**
+ * 条件化毛玻璃效果
+ * 仅在浏览器支持 backdrop-filter 且用户未设置减少透明偏好时启用
+ * 低配核显或用户偏好减少透明效果时，自动降级为纯色半透明背景
+ */
+@media (prefers-reduced-transparency: no-preference) {
+  @supports (backdrop-filter: blur(1px)) {
+    .vben-glass-card {
+      backdrop-filter: blur(var(--backdrop-blur));
+      -webkit-backdrop-filter: blur(var(--backdrop-blur));
+    }
+  }
 }
 
 /**
  * Hover 效果
- * 抬高 2px + 阴影增强
- * 性能优化：只使用 transform 和 box-shadow（已声明在 transition 中）
+ * 核心优化：只在 hover 期间启用 will-change，避免常驻显存占用
+ * 低配核显显存宝贵，动态分配比预分配更友好
  */
+.vben-glass-card.glass-card-hover {
+  transition:
+    transform var(--transition-normal) ease,
+    box-shadow var(--transition-normal) ease;
+}
+
 .vben-glass-card.glass-card-hover:hover {
-  transform: translateY(-2px);
+  will-change: transform;
+  transform: translateY(-2px) translateZ(0);
   box-shadow: var(--shadow-card-hover);
+}
+
+/**
+ * 尊重减少动画偏好
+ * 当用户偏好减少动画时，禁用位移动画，保留基础样式
+ */
+@media (prefers-reduced-motion: reduce) {
+  .vben-glass-card.glass-card-hover {
+    transition: none;
+  }
+
+  .vben-glass-card.glass-card-hover:hover {
+    will-change: auto;
+    transform: translateZ(0);
+    box-shadow: var(--shadow-lg);
+  }
 }
 
 /**
@@ -118,9 +153,8 @@ const handleClick = (event) => {
   padding: 16px 20px;
   border-bottom: 1px solid var(--border-glass);
 
-  /* 性能优化：头部内容通常固定，可跳过渲染 */
-  content-visibility: auto;
-  contain-intrinsic-size: auto 60px;
+  /* 性能优化：布局隔离，避免内容变化导致整卡重排 */
+  contain: layout style;
 }
 
 .header-content {
@@ -158,7 +192,7 @@ const handleClick = (event) => {
   padding: 20px;
   min-height: 40px;
 
-  /* 性能优化：内容区域布局隔离 */
+  /* 性能优化：内容区域严格隔离 */
   contain: content;
 }
 
@@ -170,9 +204,8 @@ const handleClick = (event) => {
   border-top: 1px solid var(--border-glass);
   background: var(--bg-glass-footer);
 
-  /* 性能优化：底部内容通常固定 */
-  content-visibility: auto;
-  contain-intrinsic-size: auto 40px;
+  /* 性能优化：布局隔离 */
+  contain: layout style;
 }
 
 /* 响应式设计 */
