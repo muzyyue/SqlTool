@@ -218,6 +218,70 @@ describe('SQL生成器功能', () => {
 
       expect(result).toContain('NULL')
     })
+
+    it('日期时间类型应保持本地时间，不进行UTC转换（字符串输入）', () => {
+      const tableName = 'events'
+      const fieldMappings = [
+        { ddlField: { name: 'event_time', type: 'DATETIME' }, excelHeader: '时间', excelIndex: 0 }
+      ]
+      // Excel 中常见的日期字符串格式
+      const excelData = [['2026-6-1 17:57:12.242']]
+
+      const result = sqlGenerator.generateInsertSql(tableName, fieldMappings, excelData)
+
+      // 期望输出本地时间格式，且小时仍为 17，不是转 UTC 后的 09
+      expect(result).toContain("'2026-06-01 17:57:12'")
+      // 确保不包含带 Z 的 ISO 8601 格式
+      expect(result).not.toContain('T09:')
+      expect(result).not.toContain('Z')
+    })
+
+    it('日期时间类型应保持本地时间，不进行UTC转换（Date对象输入）', () => {
+      const tableName = 'events'
+      const fieldMappings = [
+        { ddlField: { name: 'event_time', type: 'DATETIME' }, excelHeader: '时间', excelIndex: 0 }
+      ]
+      // 模拟 xlsx 解析后的 Date 对象：本地时间 17:57
+      const date = new Date(2026, 5, 1, 17, 57, 12, 242) // 月份从0开始
+      const excelData = [[date]]
+
+      const result = sqlGenerator.generateInsertSql(tableName, fieldMappings, excelData)
+
+      // 期望输出本地时间格式，小时仍为 17
+      expect(result).toContain("'2026-06-01 17:57:12'")
+      expect(result).not.toContain('T09:')
+      expect(result).not.toContain('Z')
+    })
+
+    it('日期时间类型支持毫秒精度配置', () => {
+      const tableName = 'events'
+      const fieldMappings = [
+        { ddlField: { name: 'event_time', type: 'DATETIME' }, excelHeader: '时间', excelIndex: 0 }
+      ]
+      const date = new Date(2026, 5, 1, 17, 57, 12, 242)
+      const excelData = [[date]]
+
+      const result = sqlGenerator.generateInsertSql(tableName, fieldMappings, excelData, {
+        dateTimePrecision: 'milliseconds'
+      })
+
+      expect(result).toContain("'2026-06-01 17:57:12.242'")
+    })
+
+    it('日期时间类型默认只取到秒', () => {
+      const tableName = 'events'
+      const fieldMappings = [
+        { ddlField: { name: 'event_time', type: 'DATETIME' }, excelHeader: '时间', excelIndex: 0 }
+      ]
+      const date = new Date(2026, 5, 1, 17, 57, 12, 242)
+      const excelData = [[date]]
+
+      const result = sqlGenerator.generateInsertSql(tableName, fieldMappings, excelData)
+
+      // 默认 seconds 精度，毫秒应被截断
+      expect(result).toContain("'2026-06-01 17:57:12'")
+      expect(result).not.toContain('.242')
+    })
   })
 
   describe('注释功能', () => {

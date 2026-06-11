@@ -152,6 +152,15 @@
                   un-checked-children="纯SQL"
                   size="small"
                 />
+                <a-select
+                  v-model:value="dateTimePrecision"
+                  size="small"
+                  style="width: 90px"
+                  :options="[
+                    { value: 'seconds', label: '秒级精度' },
+                    { value: 'milliseconds', label: '毫秒精度' },
+                  ]"
+                />
                 <a-button
                   @click="toggleBeautifyOptions"
                   type="dashed"
@@ -383,6 +392,9 @@ import { useSettings } from "@/composables/core/useSettings.js";
 const themeStore = useThemeStore();
 const { isDark } = storeToRefs(themeStore);
 const { getSetting } = useSettings();
+
+// 日期时间精度设置
+const dateTimePrecision = ref(getSetting("dateTimePrecision") || "seconds");
 
 const scrollToTop = () => {
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1601,6 +1613,7 @@ const generateSql = async () => {
       comments: includeComments.value,
       beautifyOptions: beautifyOptions.value,
       customBindingManager: customBindingManager,
+      dateTimePrecision: dateTimePrecision.value,
     });
 
     generatedSql.value = sql;
@@ -2156,6 +2169,7 @@ const generateSqlFromData = (data) => {
     comments: includeComments.value,
     beautifyOptions: beautifyOptions.value,
     customBindingManager: customBindingManager,
+    dateTimePrecision: dateTimePrecision.value,
   });
 
   return sql;

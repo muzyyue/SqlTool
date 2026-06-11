@@ -948,32 +948,23 @@ defineExpose({
 }
 
 .glass-card {
-  background: var(--bg-glass);
-  backdrop-filter: blur(var(--backdrop-blur));
-  -webkit-backdrop-filter: blur(var(--backdrop-blur));
+  background: var(--bg-elevated);
   border-radius: var(--border-radius-md);
-  box-shadow: var(--shadow-card);
-  border: 1px solid var(--border-glass);
+  border: 1px solid var(--border-default);
   overflow: hidden;
 }
 
 .glass-card-inner {
-  background: var(--bg-glass-light);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: var(--bg-elevated);
   border-radius: var(--border-radius-sm);
-  border: 1px solid var(--border-glass-light);
+  border: 1px solid var(--border-light);
   padding: 16px;
   margin-bottom: 12px;
-  transition:
-    box-shadow var(--transition-normal) ease,
-    transform var(--transition-normal) ease,
-    background-color var(--transition-normal) ease;
+  transition: border-color var(--transition-normal) ease;
 }
 
 .glass-card-inner:hover {
-  box-shadow: var(--shadow-card-hover);
-  transform: translateY(-2px);
+  border-color: var(--color-primary-border);
 }
 
 .action-bar {
@@ -981,7 +972,7 @@ defineExpose({
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: var(--gradient-primary-light);
+  background: var(--color-primary-bg);
   border-bottom: 1px solid var(--color-primary-border);
   margin-bottom: 16px;
   border-radius: var(--border-radius-sm);
@@ -996,6 +987,8 @@ defineExpose({
   max-height: 500px;
   overflow-y: auto;
   padding: 0;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 300px;
 }
 
 .rule-item {
@@ -1072,7 +1065,7 @@ defineExpose({
   display: flex;
   align-items: center;
   padding: 16px;
-  background: var(--gradient-primary-light);
+  background: var(--color-primary-bg);
   border-top: 1px solid var(--color-primary-border);
   margin-top: 16px;
   border-radius: var(--border-radius-sm);
@@ -1120,6 +1113,7 @@ defineExpose({
 :deep(.ant-collapse-content) {
   border: none;
   background: transparent;
+  transition: none;
 }
 
 :deep(.ant-collapse-content-box) {
@@ -1127,35 +1121,28 @@ defineExpose({
 }
 
 :deep(.ant-btn) {
-  transition:
-    transform var(--transition-fast) ease,
-    box-shadow var(--transition-fast) ease,
-    background-color var(--transition-fast) ease;
+  transition: background-color var(--transition-fast) ease;
 }
 
 :deep(.ant-btn:hover) {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-button-hover);
+  opacity: 0.9;
 }
 
 :deep(.ant-btn:active) {
-  transform: translateY(0);
-  box-shadow: none;
+  opacity: 1;
 }
 
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(-10px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
 .rule-item {
-  animation: fadeIn 0.3s ease;
+  animation: fadeIn 0.2s ease;
 }
 
 .import-content {

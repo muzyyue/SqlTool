@@ -29,6 +29,7 @@ const defaultSettings = {
   developerMode: false,
   consoleLogging: false,
   performanceMonitoring: false,
+  dateTimePrecision: "seconds", // 日期时间精度: seconds, milliseconds
 };
 
 const settings = ref({ ...defaultSettings });

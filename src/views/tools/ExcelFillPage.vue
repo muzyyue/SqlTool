@@ -1602,7 +1602,36 @@ const handleAdvancedProcess = (
 
     updateProgress(i, sourceData.length, "处理第", progressRef, statusTextRef);
 
-    const splitItems = splitData(value, advancedConfig.value.splitDelimiter);
+    // 🆕 JSON 预处理：当源数据列为 JSON 数组格式（如 srcs 列）时，
+    // 先解析 JSON 并提取目标字段的值，再进行分割
+    let actualValue = value;
+    if (
+      typeof value === "string" &&
+      value.trim().startsWith("[") &&
+      value.includes('"field"')
+    ) {
+      try {
+        const parsed = JSON.parse(value);
+        if (Array.isArray(parsed)) {
+          // 优先查找 field 为 "content" / "text_input" 等含实际数据的项
+          const dataField = parsed.find(
+            (item) =>
+              item.field &&
+              !["files"].includes(item.field) &&
+              item.value !== undefined &&
+              item.value !== "",
+          );
+          if (dataField) {
+            actualValue = String(dataField.value);
+          }
+        }
+      } catch (e) {
+        // JSON 解析失败时使用原始值，静默处理
+        console.warn("[AdvancedFill] JSON 预解析失败，使用原始值:", e.message);
+      }
+    }
+
+    const splitItems = splitData(actualValue, advancedConfig.value.splitDelimiter);
     splitDataCount += splitItems.length;
 
     const extractedValues = [];

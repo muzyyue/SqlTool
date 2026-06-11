@@ -744,11 +744,14 @@ const valueOptions = computed(() => {
     );
 
     if (field?.values?.length > 0) {
-      return field.values.map((v) => ({
-        label: v,
-        value: v,
-        count: field.count,
-      }));
+      // 过滤掉空值，避免下拉选项中出现空数据
+      return field.values
+        .filter((v) => v !== undefined && v !== null && String(v).trim() !== "")
+        .map((v) => ({
+          label: v,
+          value: v,
+          count: field.count,
+        }));
     }
   }
 
@@ -1671,14 +1674,15 @@ function extractFieldValue(data, fieldPath, innerPath) {
 
       for (const item of items) {
         const value = getNestedValue(item, fieldPath);
-        if (value !== undefined) {
+        // 字段值为空字符串时跳过，继续查找下一个 item
+        if (value !== undefined && value !== "") {
           let result = value;
 
           if (typeof result === "string" && isStringifiedJsonSimple(result)) {
             try {
               result = JSON.parse(result);
             } catch (e) {
-              return result;
+              return cleanExtractResult(result);
             }
           }
 
@@ -1690,26 +1694,54 @@ function extractFieldValue(data, fieldPath, innerPath) {
           }
 
           if (Array.isArray(result)) {
-            return result
+            if (result.length === 0) return "[]";
+            const mapped = result
               .map((item) =>
                 typeof item === "object" && item !== null
                   ? (item.value ?? JSON.stringify(item))
                   : String(item),
               )
-              .join(", ");
+              .map((v) => v.trim()); // 去掉每个值的首尾空白
+            // 过滤：空串、纯逗号、纯分隔符
+            const filtered = mapped.filter(
+              (v) => v !== "" && !/^[,\s;，；]+$/.test(v),
+            );
+            if (filtered.length === 0) return "";
+            const joined = filtered.join(", ");
+            console.log(
+              "[DEBUG] extractFieldValue mapped:",
+              JSON.stringify(mapped),
+              "filtered:",
+              JSON.stringify(filtered),
+              "joined:",
+              JSON.stringify(joined),
+            );
+            return cleanExtractResult(joined);
           }
 
-          return typeof result === "object"
-            ? JSON.stringify(result)
-            : String(result);
+          return cleanExtractResult(
+            typeof result === "object"
+              ? JSON.stringify(result)
+              : String(result),
+          );
         }
       }
     }
 
-    return data;
+    return cleanExtractResult(data);
   } catch (e) {
     return data;
   }
+}
+
+/**
+ * 清理提取结果：去掉首尾多余的分隔符和空白
+ * 处理原始数据中已包含 ",觉文" 这类带前导逗号的情况
+ */
+function cleanExtractResult(result) {
+  if (typeof result !== "string") return result;
+  // 去掉前导的 ", " / "," / "，" / "；" 等分隔符 + 空白
+  return result.replace(/^[,\s;，；]+/, "").replace(/[,\s;，；]+$/, "");
 }
 
 /**
@@ -1770,7 +1802,12 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
       ws[targetCellAddress] = {};
     }
 
-    ws[targetCellAddress].v = result.extracted || result.original;
+    // 使用 ?? 仅对 null/undefined 回退，保留空字符串/0/false
+    const valueToWrite =
+      result.extracted !== undefined && result.extracted !== null
+        ? result.extracted
+        : result.original;
+    ws[targetCellAddress].v = valueToWrite;
     ws[targetCellAddress].t = "s";
   }
 }

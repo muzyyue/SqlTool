@@ -120,6 +120,11 @@ export function useParamExtractor(config = {}) {
     autoExtract: options.autoExtract, // 自动提取开关
     lastExtractTime: null, // 上次提取时间
     lastError: null, // 最后的错误信息
+
+    // 交互式参数选择
+    interactiveMode: false, // 是否处于交互模式
+    selectedField: null, // 当前选中的字段
+    selectedValues: [], // 当前选中的取值列表
   });
 
   // 防抖定时器
@@ -129,10 +134,37 @@ export function useParamExtractor(config = {}) {
   // ==================== 计算属性 ====================
 
   /**
-   * 过滤后的结果列表（仅状态筛选）
+   * 过滤后的结果列表（支持状态筛选和交互式字段-取值筛选）
    */
   const filteredItems = computed(() => {
     let items = state.extractedItems;
+
+    // 交互模式：按字段和取值精准筛选
+    if (
+      state.interactiveMode &&
+      state.selectedField &&
+      state.selectedValues?.length > 0
+    ) {
+      items = items
+        .map((item) => {
+          if (!item.extracted?.length) return null;
+          const matched = item.extracted.filter((ext) => {
+            const path = ext.path || ext.key;
+            if (path !== state.selectedField) return false;
+            const extValue =
+              typeof ext.value === "object" && ext.value !== null
+                ? JSON.stringify(ext.value)
+                : String(ext.value ?? "");
+            return state.selectedValues.some((sv) => {
+              const svStr = String(sv ?? "");
+              return extValue === svStr || extValue.includes(svStr);
+            });
+          });
+          if (matched.length === 0) return null;
+          return { ...item, extracted: matched };
+        })
+        .filter(Boolean);
+    }
 
     // 状态筛选
     if (state.filterStatus !== "all") {
@@ -257,6 +289,35 @@ export function useParamExtractor(config = {}) {
         extract();
       }
     }, options.debounceDelay);
+  }
+
+  /**
+   * 设置交互模式
+   * @param {boolean} enabled - 是否启用交互模式
+   */
+  function setInteractiveMode(enabled) {
+    state.interactiveMode = !!enabled;
+    if (!enabled) {
+      state.selectedField = null;
+      state.selectedValues = [];
+    }
+  }
+
+  /**
+   * 按字段和取值进行精准提取/筛选
+   * @param {string} field - 字段路径
+   * @param {Array} values - 取值列表
+   */
+  async function extractByFieldAndValue(field, values) {
+    try {
+      state.selectedField = field;
+      state.selectedValues = Array.isArray(values) ? values : [values];
+      state.lastError = null;
+      return true;
+    } catch (error) {
+      state.lastError = error.message || "精准提取失败";
+      throw error;
+    }
   }
 
   /**
@@ -493,6 +554,8 @@ export function useParamExtractor(config = {}) {
     switchType,
     setFilter,
     setInputText,
+    setInteractiveMode,
+    extractByFieldAndValue,
 
     // 清理方法
     cleanup,

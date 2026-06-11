@@ -1,5 +1,11 @@
 # 版本变更历史
 
+## 1.5.77 (2026-06-11) 修复高级数据处理JSON源列分割错误
+- 修复 AdvancedFillTab 处理 JSON 数组格式源列（如 srcs 列）时，splitData 直接对整个 JSON 字符串做逗号分割导致产生无意义碎片的 bug
+- 新增 JSON 预处理逻辑：在 splitData 前检测 JSON 数组格式 → 解析 → 提取 content/text_input 等数据字段的 value → 再执行分割匹配
+- 修复效果：content="1,2,3" 现在正确输出3个文件名而非仅1个
+- 涉及文件: ExcelFillPage.vue
+
 ## 1.5.76 (2026-05-28) 优化 VbenGlassCard 组件性能（低配核显专项）
 - 条件化 backdrop-filter：仅在浏览器支持且用户未偏好减少透明效果时启用，低配核显自动降级为纯色半透明背景
 - 智能 GPU 层管理：移除默认 will-change（长期占用显存），改用轻量 translateZ(0)，仅在 hover 期间动态启用 will-change

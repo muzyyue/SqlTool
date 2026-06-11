@@ -10,6 +10,10 @@ export function useSqlGeneratorEnhanced() {
   const sqlFormat = ref("formatted"); // formatted, minified
   const batchSize = ref(100); // 批量生成大小
   const includeComments = ref(true); // 是否包含注释
+  const dateTimePrecision = ref("seconds"); // 日期时间精度: seconds, milliseconds
+
+  // 当前正在使用的日期时间精度（用于generateInsertSql/generateUpdateSql的临时覆盖）
+  let currentDateTimePrecision = "seconds";
 
   // SQL美化选项
   const beautifyOptions = ref({
@@ -38,52 +42,61 @@ export function useSqlGeneratorEnhanced() {
       comments = includeComments.value,
       beautifyOptions = {},
       customBindingManager = null,
+      dateTimePrecision: dtPrecision = dateTimePrecision.value,
     } = options;
 
-    if (
-      customBindingManager &&
-      customBindingManager.resetAutoIncrementCounters
-    ) {
-      customBindingManager.resetAutoIncrementCounters();
-    }
+    // 设置当前日期时间精度
+    const savedPrecision = currentDateTimePrecision;
+    currentDateTimePrecision = dtPrecision;
 
-    const sqlStatements = [];
+    try {
+      if (
+        customBindingManager &&
+        customBindingManager.resetAutoIncrementCounters
+      ) {
+        customBindingManager.resetAutoIncrementCounters();
+      }
 
-    // 添加表头注释
-    if (comments) {
-      sqlStatements.push(
-        generateHeaderComment(tableName, fieldMappings, dbType),
-      );
-    }
+      const sqlStatements = [];
 
-    // 分批处理数据
-    // 如果数据行数小于等于批量大小，生成单个INSERT语句
-    if (excelData.length <= batch) {
-      const batchSql = generateBatchInsertSql(
-        tableName,
-        fieldMappings,
-        excelData,
-        dbType,
-        customBindingManager,
-      );
-      sqlStatements.push(batchSql);
-    } else {
-      // 否则按原逻辑分批处理
-      for (let i = 0; i < excelData.length; i += batch) {
-        const batchData = excelData.slice(i, i + batch);
+      // 添加表头注释
+      if (comments) {
+        sqlStatements.push(
+          generateHeaderComment(tableName, fieldMappings, dbType),
+        );
+      }
+
+      // 分批处理数据
+      // 如果数据行数小于等于批量大小，生成单个INSERT语句
+      if (excelData.length <= batch) {
         const batchSql = generateBatchInsertSql(
           tableName,
           fieldMappings,
-          batchData,
+          excelData,
           dbType,
           customBindingManager,
         );
         sqlStatements.push(batchSql);
+      } else {
+        // 否则按原逻辑分批处理
+        for (let i = 0; i < excelData.length; i += batch) {
+          const batchData = excelData.slice(i, i + batch);
+          const batchSql = generateBatchInsertSql(
+            tableName,
+            fieldMappings,
+            batchData,
+            dbType,
+            customBindingManager,
+          );
+          sqlStatements.push(batchSql);
+        }
       }
-    }
 
-    // 格式化输出
-    return formatSql(sqlStatements.join("\n\n"), format, beautifyOptions);
+      // 格式化输出
+      return formatSql(sqlStatements.join("\n\n"), format, beautifyOptions);
+    } finally {
+      currentDateTimePrecision = savedPrecision;
+    }
   };
 
   /**
@@ -105,42 +118,51 @@ export function useSqlGeneratorEnhanced() {
       beautifyOptions = {},
       updateFields = null,
       customBindingManager = null,
+      dateTimePrecision: dtPrecision = dateTimePrecision.value,
     } = options;
 
-    if (
-      customBindingManager &&
-      customBindingManager.resetAutoIncrementCounters
-    ) {
-      customBindingManager.resetAutoIncrementCounters();
-    }
+    // 设置当前日期时间精度
+    const savedPrecision = currentDateTimePrecision;
+    currentDateTimePrecision = dtPrecision;
 
-    const sqlStatements = [];
-
-    // 添加表头注释
-    if (comments) {
-      sqlStatements.push(
-        generateHeaderComment(tableName, fieldMappings, dbType, "UPDATE"),
-      );
-    }
-
-    // 生成每条记录的UPDATE语句
-    excelData.forEach((row) => {
-      const updateSql = generateSingleUpdateSql(
-        tableName,
-        fieldMappings,
-        row,
-        whereFields,
-        dbType,
-        updateFields,
-        customBindingManager,
-      );
-      if (updateSql) {
-        sqlStatements.push(updateSql);
+    try {
+      if (
+        customBindingManager &&
+        customBindingManager.resetAutoIncrementCounters
+      ) {
+        customBindingManager.resetAutoIncrementCounters();
       }
-    });
 
-    // 格式化输出
-    return formatSql(sqlStatements.join("\n\n"), format, beautifyOptions);
+      const sqlStatements = [];
+
+      // 添加表头注释
+      if (comments) {
+        sqlStatements.push(
+          generateHeaderComment(tableName, fieldMappings, dbType, "UPDATE"),
+        );
+      }
+
+      // 生成每条记录的UPDATE语句
+      excelData.forEach((row) => {
+        const updateSql = generateSingleUpdateSql(
+          tableName,
+          fieldMappings,
+          row,
+          whereFields,
+          dbType,
+          updateFields,
+          customBindingManager,
+        );
+        if (updateSql) {
+          sqlStatements.push(updateSql);
+        }
+      });
+
+      // 格式化输出
+      return formatSql(sqlStatements.join("\n\n"), format, beautifyOptions);
+    } finally {
+      currentDateTimePrecision = savedPrecision;
+    }
   };
 
   /**
@@ -896,21 +918,14 @@ export function useSqlGeneratorEnhanced() {
     if (isDateTimeType(dataType)) {
       if (strValue === "") return "NULL";
 
-      const date = parseDateTime(strValue);
+      const date = value instanceof Date ? value : parseDateTime(strValue);
       if (!date) {
         throw new Error(`日期时间类型字段的值"${strValue}"格式不正确`);
       }
 
-      switch (dbType) {
-        case "mysql":
-          return `'${date.toISOString().slice(0, 19).replace("T", " ")}'`;
-        case "postgresql":
-          return `'${date.toISOString()}'`;
-        case "sqlserver":
-          return `'${date.toISOString().slice(0, 23)}'`;
-        default:
-          return `'${date.toISOString()}'`;
-      }
+      // 使用本地时间格式化，避免 toISOString() 的时区转换问题
+      const formatted = formatLocalDateTime(date, currentDateTimePrecision);
+      return `'${formatted}'`;
     }
 
     // 默认处理字符串类型
@@ -993,6 +1008,29 @@ export function useSqlGeneratorEnhanced() {
       "smalldatetime",
     ];
     return dateTimeTypes.some((type) => dataType.toLowerCase().includes(type));
+  };
+
+  /**
+   * 格式化本地日期时间（不进行时区转换）
+   * @param {Date} date - Date 对象
+   * @param {string} precision - 精度: seconds | milliseconds
+   * @returns {string} 本地时间字符串 yyyy-MM-dd HH:mm:ss[.sss]
+   */
+  const formatLocalDateTime = (date, precision = "seconds") => {
+    const pad = (n) => String(n).padStart(2, "0");
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1);
+    const day = pad(date.getDate());
+    const hour = pad(date.getHours());
+    const minute = pad(date.getMinutes());
+    const second = pad(date.getSeconds());
+
+    if (precision === "milliseconds") {
+      const ms = String(date.getMilliseconds()).padStart(3, "0");
+      return `${year}-${month}-${day} ${hour}:${minute}:${second}.${ms}`;
+    }
+
+    return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
   };
 
   /**
@@ -1508,12 +1546,27 @@ export function useSqlGeneratorEnhanced() {
     };
   };
 
+  /**
+   * 设置日期时间精度
+   */
+  const setDateTimePrecision = (precision) => {
+    const supportedPrecisions = ["seconds", "milliseconds"];
+    if (supportedPrecisions.includes(precision)) {
+      dateTimePrecision.value = precision;
+    } else {
+      throw new Error(
+        `不支持的日期时间精度: ${precision}，支持的值: ${supportedPrecisions.join(", ")}`,
+      );
+    }
+  };
+
   return {
     databaseType: computed(() => databaseType.value),
     sqlFormat: computed(() => sqlFormat.value),
     batchSize: computed(() => batchSize.value),
     includeComments: computed(() => includeComments.value),
     beautifyOptions: computed(() => beautifyOptions.value),
+    dateTimePrecision: computed(() => dateTimePrecision.value),
 
     generateInsertSql,
     generateUpdateSql,
@@ -1527,5 +1580,6 @@ export function useSqlGeneratorEnhanced() {
     setBatchSize,
     setBeautifyOptions,
     resetBeautifyOptions,
+    setDateTimePrecision,
   };
 }
