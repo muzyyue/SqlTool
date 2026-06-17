@@ -133,7 +133,7 @@
           @open-custom-binding-modal="openCustomBindingModal"
           @handle-edit-custom-field="handleEditCustomField"
           @handle-delete-custom-field="handleDeleteCustomField"
-          @handle-refresh-custom-fields="handleRefreshCustomFields"
+          @validate-enhanced-mappings="handleValidateEnhancedMappings"
           @update:database-type="handleDatabaseTypeChange"
         />
       </div>
@@ -441,7 +441,7 @@ const {
   setBeautifyOptions,
   resetBeautifyOptions: resetDefaultBeautifyOptions,
 } = useSqlGeneratorEnhanced();
-const { logError } = useErrorHandler();
+const { logError, logWarning } = useErrorHandler();
 
 const {
   deduplicationEnabled,
@@ -1844,23 +1844,8 @@ const handleCustomBindingSave = (savedConfig) => {
       }
     });
 
-    // 注册拼接规则到 customBindingManager（如果尚未注册）
-    const savedRules = customBindingManager.fieldConcatenationRules.value || [];
-    fieldConcatenationRules.forEach((rule) => {
-      const exists = savedRules.some(
-        (savedRule) => savedRule.ddlFieldName === rule.ddlFieldName,
-      );
-      if (!exists) {
-        customBindingManager.addFieldConcatenationRule(
-          rule.ddlFieldName,
-          rule.sourceColumns,
-          rule.separator,
-          rule.format,
-          rule.dataType,
-        );
-        logInfo(`注册拼接规则: ${rule.ddlFieldName}`);
-      }
-    });
+    // 拼接规则已由 CustomBindingModal 的 saveBindings 注册到 customBindingManager
+    // 此处不再重复注册，避免调用不存在的 addFieldConcatenationRule
 
     let customFields = [];
 
@@ -1899,6 +1884,11 @@ const handleCustomBindingSave = (savedConfig) => {
     });
     const validCustomFields = Array.from(validCustomFieldsMap.values());
 
+    // 获取拼接规则字段名集合，保留这些字段不被清理
+    const concatenationRuleNames = new Set(
+      fieldConcatenationRules.map((r) => r.ddlFieldName).filter(Boolean),
+    );
+
     const newFieldConfigMap = new Map();
     validCustomFields.forEach((field) => {
       if (field.fieldName) {
@@ -1906,31 +1896,31 @@ const handleCustomBindingSave = (savedConfig) => {
       }
     });
 
-    const fieldsToRemove = new Set();
-    parsedFields.value.forEach((field, index) => {
-      if (field.isCustom) {
-        if (newFieldConfigMap.has(field.name)) {
-          const newConfig = newFieldConfigMap.get(field.name);
-          parsedFields.value[index] = {
-            ...parsedFields.value[index],
-            isCustom: true,
-            customConfig: newConfig,
-            type: newConfig.dataType || field.type,
-            updatedAt: new Date().toISOString(),
-          };
-          newFieldConfigMap.delete(field.name);
-        } else {
-          fieldsToRemove.add(field.name);
-        }
+    // 清理 parsedFields：更新已有自定义字段，移除不再存在的字段
+    // 但保留拼接规则字段（属于 fieldConcatenationRules）
+    parsedFields.value = parsedFields.value.map((field, index) => {
+      if (!field.isCustom) return field;
+      // 拼接规则字段直接保留
+      if (concatenationRuleNames.has(field.name)) return field;
+      // 在 newFieldConfigMap 中的自定义字段，更新配置
+      if (newFieldConfigMap.has(field.name)) {
+        const newConfig = newFieldConfigMap.get(field.name);
+        newFieldConfigMap.delete(field.name);
+        return {
+          ...field,
+          isCustom: true,
+          customConfig: newConfig,
+          type: newConfig.dataType || field.type,
+          updatedAt: new Date().toISOString(),
+        };
       }
-    });
+      // 不在映射中的自定义字段，标记为 null 以便过滤
+      return null;
+    }).filter(Boolean);
 
-    if (fieldsToRemove.size > 0) {
-      parsedFields.value = parsedFields.value.filter(
-        (field) => !fieldsToRemove.has(field.name),
-      );
-      logInfo(`已移除 ${fieldsToRemove.size} 个不再存在的自定义字段`);
-    }
+    logInfo(
+      `已清理自定义字段，保留 ${concatenationRuleNames.size} 个拼接规则字段`,
+    );
 
     let addedCount = 0;
     newFieldConfigMap.forEach((customField) => {
@@ -1963,7 +1953,7 @@ const handleCustomBindingSave = (savedConfig) => {
     });
 
     logInfo(
-      `成功更新 ${parsedFields.value.length - fieldsToRemove.size} 个现有字段，添加 ${addedCount} 个新字段`,
+      `自定义字段处理完成：更新 ${validCustomFields.length - addedCount} 个现有字段，添加 ${addedCount} 个新字段`,
     );
 
     validCustomFields.forEach((customField) => {
@@ -2000,12 +1990,14 @@ const handleCustomBindingSave = (savedConfig) => {
     });
 
     if (parsedFields.value && excelHeaders.value) {
-      fieldMappings.value = enhancedMatchFields(
+      const result = enhancedMatchFields(
         parsedFields.value,
         excelHeaders.value,
         "similarity",
         true,
       );
+
+      fieldMappings.value = result;
     }
 
     editingCustomField.value = null;
@@ -2064,10 +2056,31 @@ const handleDeleteCustomField = (record) => {
   }
 };
 
-const handleRefreshCustomFields = () => {
-  logInfo("刷新自定义字段列表");
-  // 删除自定义字段后不需要重新解析DDL，只需要更新字段映射
-  // parseDdl(false)  // 注释掉，避免覆盖已配置的数据
+const handleValidateEnhancedMappings = () => {
+  const validation = validateEnhancedMappings();
+  if (validation.isValid) {
+    message.success("字段映射配置完整，所有字段均已正确映射");
+    logInfo("字段映射完整性验证通过");
+  } else {
+    Modal.error({
+      title: "字段映射配置存在以下问题",
+      content: h("div", [
+        h("p", "以下字段存在问题，请修复："),
+        h(
+          "ul",
+          { style: { paddingLeft: "20px", marginTop: "10px" } },
+          validation.errors.map((error) =>
+            h("li", { style: { marginBottom: "5px", color: "#ff4d4f" } }, error),
+          ),
+        ),
+        h("p", { style: { marginTop: "15px", color: "#8c8c8c" } }, [
+          '提示：对于不需要映射的字段（如自增主键），请在字段映射表格中勾选"自定义"复选框',
+        ]),
+      ]),
+      okText: "我知道了",
+    });
+    logWarning("字段映射验证失败", { errors: validation.errors });
+  }
 };
 
 const resetAll = () => {

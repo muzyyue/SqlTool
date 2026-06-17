@@ -1,5 +1,10 @@
 # 版本变更历史
 
+## 1.5.78 (2026-06-17) 修复字段拼接规则保存时sourceColumns为空导致规则不显示
+- 修复 saveBindings 中拼接规则保存条件：原要求 sourceColumns.length > 0，现允许格式化模板为空时也能保存
+- 修复 enhancedMatchFields 写回内部 ref 触发响应式更新（computed readonly 问题）
+- 涉及文件: CustomBindingModal.vue, useFieldMatcher.js
+
 ## 1.5.77 (2026-06-11) 修复高级数据处理JSON源列分割错误
 - 修复 AdvancedFillTab 处理 JSON 数组格式源列（如 srcs 列）时，splitData 直接对整个 JSON 字符串做逗号分割导致产生无意义碎片的 bug
 - 新增 JSON 预处理逻辑：在 splitData 前检测 JSON 数组格式 → 解析 → 提取 content/text_input 等数据字段的 value → 再执行分割匹配

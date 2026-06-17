@@ -317,7 +317,6 @@
                     :custom-binding-manager="props.customBindingManager"
                     @edit="handleEditCustomField"
                     @delete="handleDeleteCustomField"
-                    @refresh="handleRefreshCustomFields"
                   />
                 </div>
               </div>
@@ -428,7 +427,7 @@ const emit = defineEmits([
   "openCustomBindingModal",
   "handleEditCustomField",
   "handleDeleteCustomField",
-  "handleRefreshCustomFields",
+  "validateEnhancedMappings",
   "update:databaseType",
   "update:customBindingEnabled",
 ]);
@@ -639,6 +638,10 @@ const handleClearAllMappings = () => {
   emit("clearAllMappings");
 };
 
+const handleValidateEnhancedMappings = () => {
+  emit("validateEnhancedMappings");
+};
+
 const handleCustomBindingToggle = (checked) => {
   customBindingEnabled.value = checked;
   emit("handleCustomBindingToggle", checked);
@@ -654,10 +657,6 @@ const handleEditCustomField = (record) => {
 
 const handleDeleteCustomField = (record) => {
   emit("handleDeleteCustomField", record);
-};
-
-const handleRefreshCustomFields = () => {
-  emit("handleRefreshCustomFields");
 };
 
 const handleDatabaseTypeChange = (e) => {

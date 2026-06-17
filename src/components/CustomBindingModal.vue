@@ -1119,6 +1119,45 @@ const removeSingleBinding = (id) => {
 const handleSingleBindingChange = (record) => {
   // 只更新本地状态，不立即添加到管理器中
   // 最终保存时由saveBindings统一处理
+  // 选择模式下，检查选中的DDL字段名是否与手动映射/自定义字段冲突
+  if (record.ddlFieldName) {
+    const trimmedName = record.ddlFieldName.trim();
+
+    // 检查是否与已有的手动映射字段名冲突
+    if (
+      props.fieldMappings &&
+      props.fieldMappings.some(
+        (mapping) => mapping.ddlField?.name === trimmedName,
+      )
+    ) {
+      Modal.warning({
+        title: "字段名冲突",
+        content: `字段 "${record.ddlFieldName}" 已存在于手动映射中，请选择其他字段。`,
+        okText: "我知道了",
+        onOk: () => {
+          record.ddlFieldName = "";
+        },
+      });
+      return;
+    }
+
+    // 检查是否与自定义字段名冲突
+    if (
+      customFields.value.some(
+        (field) => field.id !== record.id && field.fieldName === trimmedName,
+      )
+    ) {
+      Modal.warning({
+        title: "字段名冲突",
+        content: `字段 "${record.ddlFieldName}" 与现有的自定义字段存在冲突，请选择其他字段。`,
+        okText: "我知道了",
+        onOk: () => {
+          record.ddlFieldName = "";
+        },
+      });
+      return;
+    }
+  }
 };
 
 const addConcatenationRule = () => {
@@ -1162,6 +1201,24 @@ const handleConcatenationChange = (record) => {
     });
     record.columnVariables = newColumnVariables;
   }
+
+  // 检查字段名冲突（排除当前记录自身）
+  if (record.customFieldName) {
+    const conflictResult = checkFieldConflictExcludingCurrent(
+      record.customFieldName,
+      record.id,
+    );
+    if (conflictResult.isConflict) {
+      Modal.warning({
+        title: "字段名冲突",
+        content: `字段 "${record.customFieldName}" 与现有的${conflictResult.conflictSource}存在冲突，请使用其他字段名。`,
+        okText: "我知道了",
+        onOk: () => {
+          record.customFieldName = "";
+        },
+      });
+    }
+  }
 };
 
 const isFieldBound = (fieldName, currentBindingId) => {
@@ -1182,6 +1239,23 @@ const handleCustomFieldNameChange = (record) => {
   // 最终保存时由saveBindings统一处理
   if (record.customFieldName) {
     record.ddlFieldName = record.customFieldName;
+
+    // 检查字段名冲突（排除当前记录自身）
+    const conflictResult = checkFieldConflictExcludingCurrent(
+      record.customFieldName,
+      record.id,
+    );
+    if (conflictResult.isConflict) {
+      Modal.warning({
+        title: "字段名冲突",
+        content: `字段 "${record.customFieldName}" 与现有的${conflictResult.conflictSource}存在冲突，请使用其他字段名。`,
+        okText: "我知道了",
+        onOk: () => {
+          record.customFieldName = "";
+          record.ddlFieldName = "";
+        },
+      });
+    }
   }
 };
 
@@ -1450,19 +1524,21 @@ const checkFieldConflictExcludingCurrent = (
     }
   }
 
-  // 检查单列绑定中的自定义字段名
+  // 检查单列绑定中的自定义字段名（排除当前记录）
   if (
     singleBindings.value.some(
-      (binding) => binding.customFieldName === trimmedName,
+      (binding) =>
+        binding.id !== currentId && binding.customFieldName === trimmedName,
     )
   ) {
     return { isConflict: true, conflictSource: "单列绑定" };
   }
 
-  // 检查字段拼接规则中的自定义字段名
+  // 检查字段拼接规则中的自定义字段名（排除当前记录）
   if (
     concatenationRules.value.some(
-      (rule) => rule.customFieldName === trimmedName,
+      (rule) =>
+        rule.id !== currentId && rule.customFieldName === trimmedName,
     )
   ) {
     return { isConflict: true, conflictSource: "字段拼接规则" };
@@ -1604,18 +1680,19 @@ const saveBindings = () => {
         props.editingField.fieldName,
       );
       concatenationRules.value.forEach((rule) => {
-        if (
-          rule.customFieldName &&
-          rule.sourceColumns &&
-          rule.sourceColumns.length > 0
-        ) {
-          props.customBindingManager.addConcatenationRule(
-            rule.customFieldName,
-            rule.sourceColumns,
-            rule.separator || "",
-            rule.format || "",
-            rule.dataType || "string",
-          );
+        if (rule.customFieldName) {
+          const hasSourceColumns =
+            Array.isArray(rule.sourceColumns) && rule.sourceColumns.length > 0;
+          const hasFormatTemplate = rule.format && rule.format.trim() !== "";
+          if (hasSourceColumns || hasFormatTemplate) {
+            props.customBindingManager.addConcatenationRule(
+              rule.customFieldName,
+              rule.sourceColumns || [],
+              rule.separator || "",
+              rule.format || "",
+              rule.dataType || "string",
+            );
+          }
         }
       });
     } else {
@@ -1651,22 +1728,24 @@ const saveBindings = () => {
 
     // 2. 添加本地字段拼接规则
     concatenationRules.value.forEach((rule) => {
-      if (
-        rule.customFieldName &&
-        rule.sourceColumns &&
-        rule.sourceColumns.length > 0
-      ) {
-        // 先删除同名的旧规则（如果存在）
-        props.customBindingManager.removeConcatenationRule(
-          rule.customFieldName,
-        );
-        props.customBindingManager.addConcatenationRule(
-          rule.customFieldName,
-          rule.sourceColumns,
-          rule.separator || "",
-          rule.format || "",
-          rule.dataType || "string",
-        );
+      if (rule.customFieldName) {
+        // 允许无源列但提供格式化模板的情况（如静态值）
+        const hasSourceColumns =
+          Array.isArray(rule.sourceColumns) && rule.sourceColumns.length > 0;
+        const hasFormatTemplate = rule.format && rule.format.trim() !== "";
+        if (hasSourceColumns || hasFormatTemplate) {
+          // 先删除同名的旧规则（如果存在）
+          props.customBindingManager.removeConcatenationRule(
+            rule.customFieldName,
+          );
+          props.customBindingManager.addConcatenationRule(
+            rule.customFieldName,
+            rule.sourceColumns || [],
+            rule.separator || "",
+            rule.format || "",
+            rule.dataType || "string",
+          );
+        }
       }
     });
 

@@ -1,4 +1,4 @@
-import { ref, computed } from "vue";
+﻿import { ref, computed } from "vue";
 import { pinyin } from "pinyin-pro";
 import { useCustomBinding } from "./useCustomBinding";
 import { batchConcatenate } from "@/utils/field/fieldConcatenator";
@@ -646,9 +646,17 @@ export function useFieldMatcher() {
       baseMappings = matchFields(ddlFields, excelHeaders, algorithm);
     }
 
+
     if (customBindingManager.enableCustomBinding.value) {
-      return applyCustomBindingsToMappings(baseMappings);
+      baseMappings = applyCustomBindingsToMappings(baseMappings);
     }
+
+    // 将结果写回内部 ref 以触发响应式更新
+    // 调用方（如 InsertPage）解构的是 computed(() => fieldMappings.value)，
+    // 其 .value 赋值会因 "computed is readonly" 静默失败，导致 fieldMappings 的
+    // 依赖链（filteredFieldMappings 等）无法被标记"脏"，模板展示陈旧数据
+    fieldMappings.value = baseMappings;
+
 
     return baseMappings;
   };

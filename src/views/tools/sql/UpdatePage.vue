@@ -121,7 +121,7 @@
           @open-custom-binding-modal="openCustomBindingModal"
           @handle-edit-custom-field="handleEditCustomField"
           @handle-delete-custom-field="handleDeleteCustomField"
-          @handle-refresh-custom-fields="handleRefreshCustomFields"
+          @validate-enhanced-mappings="handleValidateEnhancedMappings"
           @update:database-type="handleDatabaseTypeChange"
         />
 
@@ -501,6 +501,7 @@ const {
   matchFields,
   updateFieldMapping,
   validateMappings: validateFieldMappings,
+  validateEnhancedMappings,
   matchingStats,
   customBindingManager,
   resetMappings,
@@ -644,13 +645,19 @@ const enhancedMatchingStats = computed(() => {
 // 过滤后的字段映射，排除来自字段拼接规则的excel_combine类型字段
 const filteredFieldMappings = computed(() => {
   return fieldMappings.value.filter((mapping) => {
-    if (
-      mapping.ddlField?.isCustom &&
-      mapping.ddlField?.customConfig?.dataSource === "excel_combine" &&
-      mapping.ddlField?.customConfig?.isFromConcatenationRule
-    ) {
+    // 检查DDL字段是否存在于parsedFields中
+    const ddlFieldExists = parsedFields.value.some(
+      (field) => field.name === mapping.ddlField?.name,
+    );
+
+    // 如果字段不在parsedFields中，但标记为自定义字段，则保留
+    if (!ddlFieldExists) {
+      if (mapping.ddlField?.isCustom) {
+        return true;
+      }
       return false;
     }
+
     return true;
   });
 });
@@ -1023,6 +1030,33 @@ const clearAllMappings = () => {
   }
 };
 
+const handleValidateEnhancedMappings = () => {
+  const validation = validateEnhancedMappings();
+  if (validation.isValid) {
+    message.success("字段映射配置完整，所有字段均已正确映射");
+    logInfo("字段映射完整性验证通过");
+  } else {
+    Modal.error({
+      title: "字段映射配置存在以下问题",
+      content: h("div", [
+        h("p", "以下字段存在问题，请修复："),
+        h(
+          "ul",
+          { style: { paddingLeft: "20px", marginTop: "10px" } },
+          validation.errors.map((error) =>
+            h("li", { style: { marginBottom: "5px", color: "#ff4d4f" } }, error),
+          ),
+        ),
+        h("p", { style: { marginTop: "15px", color: "#8c8c8c" } }, [
+          '提示：对于不需要映射的字段（如自增主键），请在字段映射表格中勾选"自定义"复选框',
+        ]),
+      ]),
+      okText: "我知道了",
+    });
+    logWarning("字段映射验证失败", { errors: validation.errors });
+  }
+};
+
 const generateSql = async () => {
   if (parsedFields.value.length === 0) {
     message.warning("请先解析DDL语句");
@@ -1370,10 +1404,6 @@ const handleCustomBindingSave = (customFieldsData) => {
   logInfo("自定义绑定配置已保存");
 
   try {
-    if (customFieldsData && typeof customFieldsData === "object") {
-      customBindingManager.importBindings(customFieldsData);
-    }
-
     const customBindings = Array.isArray(
       customBindingManager.customBindings.value,
     )
@@ -1698,10 +1728,6 @@ const handleDeleteCustomField = (record) => {
       parsedFields.value.splice(fieldIndex, 1);
     }
   }
-};
-
-const handleRefreshCustomFields = () => {
-  logInfo("刷新自定义字段列表");
 };
 
 const handleDatabaseTypeChange = (type) => {
