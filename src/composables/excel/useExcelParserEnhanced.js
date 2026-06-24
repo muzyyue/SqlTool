@@ -577,7 +577,12 @@ export function useExcelParserEnhanced() {
     );
 
     // 处理一对多关系
-    const processedRows = processOneToManyRelations(standardizedRows);
+    const rowsWithInheritance = processOneToManyRelations(standardizedRows);
+
+    // 过滤掉所有值为空的行，避免 Excel 末尾空行生成 SQL
+    const processedRows = rowsWithInheritance.filter((row) =>
+      row.some((value) => value !== "" && value !== null && value !== undefined),
+    );
 
     console.log(
       `Excel解析完成: ${trimmedHeaders.length} 列, ${processedRows.length} 行`,

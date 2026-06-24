@@ -1,17 +1,26 @@
 # 版本变更历史
 
+## 1.5.79 (2026-06-24) 修复 Excel 空行生成 SQL 及清除文件后自定义字段残留
+
+- 修复 Excel 解析器：在 processExcelData 中过滤所有值为空的数据行，避免表格末尾空行生成 SQL
+- 修复 InsertPage 清除文件逻辑：清除文件时同步移除 parsedFields 中 isCustom=true 的自定义字段，避免自定义绑定下拉仍显示旧字段
+- 涉及文件: src/composables/excel/useExcelParserEnhanced.js, src/views/tools/sql/InsertPage.vue, test/unit/empty-row-and-clear-field.test.js
+
 ## 1.5.78 (2026-06-17) 修复字段拼接规则保存时sourceColumns为空导致规则不显示
+
 - 修复 saveBindings 中拼接规则保存条件：原要求 sourceColumns.length > 0，现允许格式化模板为空时也能保存
 - 修复 enhancedMatchFields 写回内部 ref 触发响应式更新（computed readonly 问题）
 - 涉及文件: CustomBindingModal.vue, useFieldMatcher.js
 
 ## 1.5.77 (2026-06-11) 修复高级数据处理JSON源列分割错误
+
 - 修复 AdvancedFillTab 处理 JSON 数组格式源列（如 srcs 列）时，splitData 直接对整个 JSON 字符串做逗号分割导致产生无意义碎片的 bug
 - 新增 JSON 预处理逻辑：在 splitData 前检测 JSON 数组格式 → 解析 → 提取 content/text_input 等数据字段的 value → 再执行分割匹配
 - 修复效果：content="1,2,3" 现在正确输出3个文件名而非仅1个
 - 涉及文件: ExcelFillPage.vue
 
 ## 1.5.76 (2026-05-28) 优化 VbenGlassCard 组件性能（低配核显专项）
+
 - 条件化 backdrop-filter：仅在浏览器支持且用户未偏好减少透明效果时启用，低配核显自动降级为纯色半透明背景
 - 智能 GPU 层管理：移除默认 will-change（长期占用显存），改用轻量 translateZ(0)，仅在 hover 期间动态启用 will-change
 - 新增 prefers-reduced-motion 支持：用户偏好减少动画时禁用位移动画
@@ -20,12 +29,14 @@
 - 涉及文件: VbenGlassCard.vue, App.vue
 
 ## 1.5.75 (2026-05-27) 优化字段映射功能
+
 - 删除无用的"确认映射"按钮（验证结果未展示，对用户无实际作用）
 - 修复"重置映射"功能：重置后自动重新执行智能匹配，避免字段数量异常变化和匹配率归零问题
 - InsertPage 和 UpdatePage 同步优化 clearAllMappings 函数逻辑
 - 涉及文件: FieldMappingCard.vue, InsertPage.vue, UpdatePage.vue
 
 ## 1.5.74 (2026-05-26) 字段映射部分性能优化（核显低配电脑专项）
+
 - 移除 backdrop-filter: blur() GPU合成瓶颈，改用纯色半透明背景
 - 优化 isColumnUsed() 从 O(n²) 降为 O(1) Set查找（2500次遍历→1次has调用）
 - CustomBindingModal 添加 destroyInactiveTabPane 减少内存占用60%+
@@ -71,9 +82,10 @@
 - 移除 components/json/ 下全部 6 个子组件
 - 移除 utils/json/ 下 5 个工具文件（保留 jsonExtractor.js 供参数提取工具复用）
 - 移除 composables/json/ 目录和 types/json.ts
-- 涉及文件: tools.js, JsonPage.vue, JsonFormat.vue, components/json/*, utils/json/* (部分), composables/json/*, types/json.ts
+- 涉及文件: tools.js, JsonPage.vue, JsonFormat.vue, components/json/_, utils/json/_ (部分), composables/json/\*, types/json.ts
 
 ## v1.5.68 (2026-05-23) 视图层全面性能优化
+
 - 替换全部 25 处 transition: all 为具体 CSS 属性（transform, box-shadow, opacity, background-color, border-color）
 - 清理生产环境不需要的 console 调试日志约 35 处（UpdatePage.vue 约30处 + InsertPage.vue 4处 + 其他）
 - 为所有页面根容器添加 contain: layout style，内容区域添加 contain: content
@@ -83,6 +95,7 @@
 - 涉及文件: UpdatePage.vue, InsertPage.vue, ParamExtractPage.vue, SqlToolPage.vue, NotFound.vue, JsonPage.vue, ExcelFillPage.vue, DdlPage.vue, TimestampPage.vue, JsonFormat.vue, HomePage.vue
 
 ## v1.5.67 (2026-05-23) Excel 组件性能优化
+
 - 将所有 transition: all 替换为具体 CSS 属性（box-shadow, border-color, transform, background-color 等）
 - 清理调试用 console.log/warn 共 9 处，保留关键错误处理中的 console.error
 - 添加 CSS containment（contain: layout style / contain: content）限制浏览器重算范围
@@ -90,6 +103,7 @@
 - 涉及文件: BasicFillTab.vue, AdvancedFillTab.vue, QuoteConvertTab.vue, ExcelUploadCard.vue, FieldMappingCard.vue, CustomFieldManager.vue, CustomBindingModal.vue, SqlPreview.vue, BatchEditPanel.vue
 
 ## v1.5.66 (2026-05-22) 增强 JSON 字符串化解包能力与嵌套字段选择
+
 - 新增 JSON 树形结构预览（CodeMirror 编辑器）
 - 字段选择器升级为树形选择器（a-tree-select），支持嵌套结构展示
 - 新增自动检测字符串化 JSON 字段并提供解包模式切换
@@ -99,6 +113,7 @@
 - 涉及文件: ParamExtractTab.vue
 
 ## v1.5.65 (2026-05-18) 修复参数提取工具核心功能并增强字符串化JSON解包能力
+
 - 修复按钮无法点击问题：RadioGroup事件处理、Props类型传递（toRefs解构）、ResultItem数据兼容
 - 修复字符串化JSON未完全解包的致命bug：将检测优先级提升至原子值检查之前
 - 增强extractAtomicValues：默认maxDepth从3提升至8，支持深层嵌套解包

@@ -920,6 +920,10 @@ const clearFile = () => {
 
   resetMappings();
 
+  // 清除 parsedFields 中由自定义绑定/自定义字段添加的字段，
+  // 避免"清除文件"后自定义字段下拉仍显示旧字段
+  parsedFields.value = parsedFields.value.filter((field) => !field.isCustom);
+
   customBindingEnabled.value = false;
   customBindingManager.resetBindings();
 
