@@ -45,5 +45,5 @@ pnpm format
 
 - Vue 使用 Composition API + `<script setup>`；组件名使用 PascalCase；`utils/` 保持纯函数 ES module。
 - ESLint 使用 flat config；`test/` 被全局忽略；`no-unused-vars` 与 `no-explicit-any` 是 warning，不是阻断错误。
-- 发布以 `.github/workflows/build-and-release.yml` 为准：触发 `main`、`master`、`rebuild` 和 `v*.*.*` 标签；CI 使用 Node 20、pnpm 8、`pnpm install --no-frozen-lockfile` 和 `pnpm run build`，发布产物是 `dist.zip`。
+- 发布以 `.github/workflows/build-and-release.yml` 为准：触发 `main`、`master`、`rebuild` 和 `v*.*.*` 标签；CI 使用 Node 20、pnpm 8、`pnpm install --no-frozen-lockfile` 和 `pnpm run build`，发布产物是 `dist.zip`；`.npmrc` 中启用 `ignore-scripts`，避免原生依赖安装脚本影响构建。
 - 不要把 README 的端口或旧测试说明当作可执行事实；配置和 scripts 是冲突时的优先级更高依据。
