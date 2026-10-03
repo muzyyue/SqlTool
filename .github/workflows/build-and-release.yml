@@ -35,7 +35,6 @@ jobs:
         with:
           version: ${{ env.PNPM_VERSION }}
 
-
       - name: Get pnpm store directory
         shell: bash
         run: |
