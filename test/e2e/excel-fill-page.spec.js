@@ -1,4 +1,6 @@
 import { test, expect } from "@playwright/test";
+import fs from "node:fs";
+import XLSX from "xlsx";
 import {
   ExcelFillPage,
   TEST_EXCEL_FILE,
@@ -55,6 +57,156 @@ test.describe("Excel 填充页面功能测试", () => {
     const uploadStatus =
       await excelFillPage.locators.uploadStatusText.textContent();
     expect(uploadStatus).toContain("成功");
+  });
+
+  test("精准筛选 - 根据 JSON 对象所有者显示通用字段树", async () => {
+    const jsonData = [
+      {
+        field: "files",
+        type: "files",
+        value_data: {
+          files: [],
+          file: ["鉴定文书", "鉴定意见书"],
+          wsml: "",
+        },
+        value: '[{"type":1,"value":"鉴定文书,鉴定意见书"}]',
+      },
+      { field: "content", type: "qzscx", value: "" },
+      {
+        field: "content",
+        type: "qzscx",
+        value: "JCJSSCX937A9C4764A7B21107850DCF6",
+      },
+      {
+        field: "specified",
+        value_data: { files: [], file: "", wsml: "" },
+        value: [
+          {
+            title: "文书卷宗-阅卷目录",
+            type: "WSYJML",
+            priority: "1",
+            select: true,
+          },
+        ],
+      },
+    ];
+    const workbook = XLSX.utils.book_new();
+    const sheet = XLSX.utils.json_to_sheet([
+      { 入参: JSON.stringify(jsonData), 目标: "" },
+    ]);
+    XLSX.utils.book_append_sheet(workbook, sheet, "Sheet1");
+    const workbookBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+    fs.writeFileSync(
+      "./test/e2e/fixtures/test_param_extract_json.xlsx",
+      Buffer.from(workbookBuffer),
+    );
+
+    await excelFillPage.uploadExcel(
+      "./test/e2e/fixtures/test_param_extract_json.xlsx",
+    );
+    await excelFillPage.waitForUploadSuccess();
+
+    await sharedPage
+      .locator(".ant-tabs-tab:has-text('参数提取')")
+      .first()
+      .click();
+
+    const dataSourceSelect = sharedPage
+      .locator(".param-extract-tab .ant-select")
+      .nth(0);
+    await dataSourceSelect.click();
+    await sharedPage.waitForTimeout(300);
+    await sharedPage
+      .locator(".ant-select-dropdown:visible .ant-select-item-option")
+      .filter({ hasText: "从源列读取" })
+      .first()
+      .click({ force: true });
+    await sharedPage.waitForTimeout(1500);
+
+    const sourceColumnSelect = sharedPage
+      .locator(".param-extract-tab .form-item .ant-select")
+      .nth(1);
+    await sourceColumnSelect.click();
+    await sharedPage.waitForTimeout(300);
+    await sharedPage
+      .locator(".ant-select-dropdown:visible .ant-select-item-option")
+      .filter({ hasText: "A (入参)" })
+      .first()
+      .click({ force: true });
+    await sharedPage.waitForTimeout(500);
+
+    const targetColumnSelect = sharedPage
+      .locator(".param-extract-tab .form-item .ant-select")
+      .nth(2);
+    await targetColumnSelect.click();
+    await sharedPage.waitForTimeout(300);
+    await sharedPage
+      .locator(".ant-select-dropdown:visible .ant-select-item-option")
+      .filter({ hasText: "B (目标)" })
+      .first()
+      .click({ force: true });
+    await sharedPage.waitForTimeout(500);
+
+    const extractModeSelect = sharedPage
+      .locator(".form-row .ant-select")
+      .nth(1);
+    await extractModeSelect.click();
+    await sharedPage.waitForTimeout(300);
+    await sharedPage
+      .locator(".ant-select-dropdown:visible .ant-select-item-option")
+      .filter({ hasText: "精准筛选" })
+      .first()
+      .click({ force: true });
+    await sharedPage.waitForTimeout(500);
+
+    await sharedPage
+      .locator(".interactive-selector .ant-select")
+      .first()
+      .click();
+    await sharedPage.waitForSelector(".ant-select-tree-node-content-wrapper", {
+      state: "visible",
+      timeout: 10000,
+    });
+    await sharedPage.locator(".ant-select-tree-list-holder").evaluate((el) => {
+      el.scrollTop = el.scrollHeight;
+    });
+    await sharedPage.waitForTimeout(500);
+
+    const schemaPreviewText = await sharedPage
+      .locator(".schema-preview .cm-content")
+      .innerText();
+    expect(schemaPreviewText).toContain("value");
+    expect(schemaPreviewText).toContain("specified");
+
+    const fieldTreeText = await sharedPage
+      .locator(".ant-select-tree-list-holder")
+      .innerText();
+    expect(fieldTreeText).toContain("value_data");
+    expect(fieldTreeText).toContain("file[0]");
+    expect(fieldTreeText).not.toContain("0 (string)");
+
+    await sharedPage
+      .locator(".ant-select-tree-node-content-wrapper")
+      .nth(3)
+      .click({ force: true });
+    await sharedPage.waitForTimeout(500);
+
+    await sharedPage
+      .locator(".param-extract-tab button")
+      .filter({ hasText: "开始提取" })
+      .first()
+      .click({ force: true });
+    await expect(sharedPage.locator(".ant-message").first()).toContainText(
+      "批量提取完成",
+    );
+
+    const previewRows = sharedPage.locator(".preview-table .ant-table-row");
+    expect(await previewRows.nth(1).innerText()).toContain(
+      "鉴定文书,鉴定意见书",
+    );
   });
 
   test("基础配置 - 选择源工作表", async () => {

@@ -739,6 +739,9 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+@use "@/design/scss/variables" as *;
+@use "@/design/scss/mixins" as *;
+
 // ========================================
 // DDL 页面样式
 // ========================================

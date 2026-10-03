@@ -187,6 +187,9 @@ defineExpose({
 </script>
 
 <style scoped lang="scss">
+@use "@/design/scss/variables" as *;
+@use "@/design/scss/mixins" as *;
+
 /* ============================================
    ExtractResultList 容器样式
    设计规范：Soft Structuralism 风格

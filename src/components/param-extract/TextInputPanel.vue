@@ -148,6 +148,9 @@ defineExpose({
 </script>
 
 <style scoped lang="scss">
+@use "@/design/scss/variables" as *;
+@use "@/design/scss/mixins" as *;
+
 .text-input-panel {
   width: 100%;
   height: 100%;
@@ -589,6 +592,6 @@ defineExpose({
    - Switch track: var(--border-default)
    - Switch thumb: var(--bg-elevated) + var(--shadow-xs)
 
-   所有变量定义见 src/design/theme.js，亮色/暗色值自动切换。
+    所有变量定义见 src/design/theme.css，亮色/暗色值由 data-theme 切换。
    ============================================ */
 </style>

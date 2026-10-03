@@ -93,6 +93,9 @@ async function handleCopyValue() {
 </script>
 
 <style lang="scss" scoped>
+@use "@/design/scss/variables" as *;
+@use "@/design/scss/mixins" as *;
+
 .json-tree-node {
   .node-header {
     display: flex;
@@ -211,6 +214,31 @@ async function handleCopyValue() {
   .node-children {
     border-left: 1px dashed var(--border-color-split, #e5e5e5);
     margin-left: 10px;
+  }
+}
+
+html[data-theme="dark"] .json-tree-node {
+  .node-key {
+    color: #9cdcfe;
+  }
+
+  .node-separator {
+    color: #9ca3af;
+  }
+
+  .node-value {
+    &.value-string {
+      color: #ce9178;
+    }
+    &.value-number {
+      color: #b5cea8;
+    }
+    &.value-boolean {
+      color: #93c5fd;
+    }
+    &.value-null {
+      color: #9ca3af;
+    }
   }
 }
 </style>

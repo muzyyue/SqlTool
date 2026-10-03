@@ -5,7 +5,7 @@ import router from "./router";
 import Antd from "ant-design-vue";
 import "ant-design-vue/dist/reset.css";
 import "uno.css";
-import { applyTheme, getCurrentTheme } from "./design/theme.js";
+import "./design/theme.css";
 
 const app = createApp(App);
 
@@ -16,5 +16,3 @@ app.use(router);
 app.use(Antd);
 
 app.mount("#app");
-
-applyTheme(getCurrentTheme());

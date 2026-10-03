@@ -32,6 +32,7 @@
       :indent-with-tab="true"
       :tab-size="2"
       :extensions="extensions"
+      :class="{ 'cm-theme-dark': theme === 'dark' }"
       @ready="handleReady"
       @change="handleChange"
       @focus="handleFocus"
@@ -312,6 +313,92 @@ defineExpose({
 .code-editor-container :deep(.cm-editor) {
   height: 100%;
   font-family: "Consolas", "Monaco", "Courier New", monospace;
+}
+
+.code-editor-container :deep(.cm-theme-dark) {
+  background: var(--code-bg);
+  color: var(--text-primary);
+}
+
+.code-editor-container :deep(.cm-theme-dark .cm-gutters) {
+  background: var(--code-gutter-bg);
+  color: var(--code-gutter-text);
+}
+
+.code-editor-container :deep(.cm-theme-dark .cm-activeLineGutter) {
+  background: var(--bg-base);
+  color: var(--text-primary);
+}
+
+.code-editor-container :deep(.cm-theme-dark .cm-content) {
+  color: var(--text-primary);
+}
+
+.code-editor-container :deep(.cm-theme-dark .cm-selectionBackground) {
+  background: rgba(50, 50, 50, 0.9);
+}
+
+.code-editor-container :deep(.cm-theme-dark .cm-selection) {
+  background: rgba(50, 50, 50, 0.9);
+}
+
+.code-editor-container :deep(.cm-theme-dark .cm-cursor) {
+  border-left: 1px solid var(--text-primary);
+}
+
+.code-editor-container :deep(.cm-theme-dark .cm-scrollbar) {
+  background: var(--code-bg);
+}
+
+.code-editor-container :deep(.cm-theme-dark .cm-scrollbarThumb) {
+  background: var(--code-scrollbar-thumb);
+}
+
+.code-editor-container :deep(.cm-theme-dark .cm-scrollbarHover) {
+  background: var(--code-scrollbar-thumb-hover);
+}
+
+.code-editor-container :deep(.cm-theme-dark .cm-tooltip) {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.code-editor-container :deep(.cm-theme-dark .cm-tooltipArrow) {
+  border-color: var(--bg-elevated);
+}
+
+.code-editor-container :deep(.cm-theme-dark .cm-searchField) {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-default);
+}
+
+.code-editor-container :deep(.cm-theme-dark .cm-selectionLayer .cm-selectionBackground) {
+  background: rgba(50, 50, 50, 0.9);
+}
+
+.code-editor-container :deep(.cm-theme-dark .cm-activeLine) {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.code-editor-container :deep(.cm-theme-dark .cm-activeLineStatic) {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.code-editor-container :deep(.cm-theme-dark .cm-content) {
+  scrollbar-color: var(--code-scrollbar-thumb) var(--code-bg);
+}
+
+.code-editor-container :deep(.cm-theme-dark .cm-scroller::-webkit-scrollbar) {
+  background: var(--code-bg);
+}
+
+.code-editor-container :deep(.cm-theme-dark .cm-scroller::-webkit-scrollbar-thumb) {
+  background: var(--code-scrollbar-thumb);
+}
+
+.code-editor-container :deep(.cm-theme-dark .cm-scroller::-webkit-scrollbar-thumb:hover) {
+  background: var(--code-scrollbar-thumb-hover);
 }
 
 .code-editor-container :deep(.cm-scroller) {

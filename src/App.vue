@@ -9,7 +9,7 @@ const themeStore = useThemeStore();
 const antdTheme = computed(() => ({
   algorithm: themeStore.isDark ? theme.darkAlgorithm : theme.defaultAlgorithm,
   token: {
-    colorPrimary: "#1677ff",
+    colorPrimary: themeStore.isDark ? "#60a5fa" : "#1677ff",
     borderRadius: 6,
   },
 }));
@@ -160,11 +160,11 @@ body {
 }
 
 /* 焦点可见性（无障碍） */
-*:focus-visible {
-  outline: 2px solid #1677ff;
-  outline-offset: 2px;
-  border-radius: 4px;
-}
+  *:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
 
 /* 选择文本样式 */
 ::selection {

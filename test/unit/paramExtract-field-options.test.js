@@ -3,6 +3,7 @@
  * @description 测试 fieldOptions 和 valueOptions 的双策略提取逻辑
  */
 
+import { analyzeSampleData } from "../../src/composables/useParamExtractor.js";
 import { describe, it, expect } from "vitest";
 
 // 模拟 ParamExtractTab.vue 中的 fieldOptions 计算逻辑（策略2）
@@ -132,6 +133,26 @@ function buildValueOptionsFromExtractedItems(extractedItems, selectedField) {
 }
 
 describe("字段提取功能测试 - 真实数据", () => {
+  describe("sample schema analysis", () => {
+    it("should preserve generic JSON object owners in field paths", () => {
+      const sampleLines = [
+        JSON.stringify([
+          { field: "files", type: "files", value: "doc" },
+          { field: "content", type: "qzscx", value: "" },
+          { field: "content", type: "qzscx", value: "JCJSSCX937A9C4764A7B21107850DCF6" },
+          { field: "specified", value_data: { file: "" }, value: [{ title: "目录" }] },
+        ]),
+      ];
+
+      const schema = analyzeSampleData(sampleLines);
+
+      expect(schema.dataType).toBe("json");
+      expect(schema.fields.map((field) => field.path)).toEqual(
+        expect.arrayContaining(["files.value", "content.value", "specified.value[0].title"]),
+      );
+    });
+  });
+
   describe("测试数据解析", () => {
     const testData = `[{"field":"files","type":"files","value":"[{\\\"type\\\":1,\\\"value\\\":\\\"灼云间,无道书\\\"}]","value_data":{"files":[],"file":["灼云间","无道书"],"wsml":""}}]`;
 

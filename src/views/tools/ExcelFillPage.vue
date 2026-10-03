@@ -47,6 +47,7 @@
           </template>
           <BasicFillTab
             :config="config"
+            @update:config="handleConfigUpdate"
             :columns="columns"
             :sheet-names="sheetNames"
             :target-columns="targetColumns"
@@ -121,6 +122,10 @@
             :workbook="workbook"
             :sheets="sheetNames"
             :columns="columns"
+            :source-column="config.sourceColumn"
+            :target-column="config.targetColumn"
+            @source-column-change="handleSourceColumnChange"
+            @target-column-change="handleTargetColumnChange"
             @extract-complete="handleExtractComplete"
           />
         </a-tab-pane>
@@ -912,6 +917,7 @@ const loadSheet = (sheetName) => {
   const maxCol = range.e.c + 1;
 
   columns.value = [];
+
   for (let i = 0; i < maxCol; i++) {
     const colLetter = XLSX.utils.encode_col(i);
     const cellAddress = colLetter + "1";
@@ -924,7 +930,6 @@ const loadSheet = (sheetName) => {
       index: i,
     });
   }
-
   loadPreview();
 };
 
@@ -1103,16 +1108,20 @@ const handlePreviewSheetChange = (sheetName) => {
  * 处理源列变更
  * @param {string} value - 选中的列值
  */
-const handleSourceColumnChange = () => {
-  // 源列变更处理
+const handleConfigUpdate = (value) => {
+  config.value = value;
+};
+
+const handleSourceColumnChange = (value) => {
+  config.value.sourceColumn = value;
 };
 
 /**
  * 处理目标列变更
  * @param {string} value - 选中的列值
  */
-const handleTargetColumnChange = () => {
-  // 目标列变更处理
+const handleTargetColumnChange = (value) => {
+  config.value.targetColumn = value;
 };
 
 /**
@@ -1184,6 +1193,14 @@ const handleMatchSheetChange = (sheetName) => {
  */
 const handleMatchColumnChange = () => {
   // 查询匹配列变更处理
+};
+
+/**
+ * 处理结果列变更
+ * @param {string} value - 选中的列值
+ */
+const handleResultColumnChange = (value) => {
+  advancedConfig.value.resultColumn = value;
 };
 
 /**
@@ -2026,6 +2043,9 @@ const handleReset = () => {
 </script>
 
 <style scoped lang="scss">
+@use "@/design/scss/variables" as *;
+@use "@/design/scss/mixins" as *;
+
 // ========================================
 // Excel 数据填充工具页面样式
 // ========================================

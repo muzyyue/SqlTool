@@ -324,6 +324,9 @@ const handleContextMenu = (e: MouseEvent): void => {
 </script>
 
 <style scoped lang="scss">
+@use "@/design/scss/variables" as *;
+@use "@/design/scss/mixins" as *;
+
 /* ============================================
    ResultItem 卡片容器样式
    设计规范：Soft Structuralism 风格

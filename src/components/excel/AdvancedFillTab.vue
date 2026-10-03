@@ -584,6 +584,9 @@ const handleProcess = () => {
 </script>
 
 <style scoped lang="scss">
+@use "@/design/scss/variables" as *;
+@use "@/design/scss/mixins" as *;
+
 .advanced-card {
   padding: 32px;
   contain: layout style;

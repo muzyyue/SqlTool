@@ -1,23 +1,27 @@
 import { defineStore } from "pinia";
 import { ref, watch } from "vue";
-import { applyTheme, getCurrentTheme } from "@/design/theme.js";
+import { getInitialTheme } from "@/design/theme.js";
 
 export const useThemeStore = defineStore("theme", () => {
-  const isDark = ref(getCurrentTheme() === "dark");
+  const initialTheme = getInitialTheme();
+  const isDark = ref(initialTheme === "dark");
 
   const toggle = () => {
-    isDark.value = !isDark.value;
+    setTheme(isDark.value ? "light" : "dark");
   };
 
   const setTheme = (themeName) => {
+    if (themeName !== "light" && themeName !== "dark") return;
+
     isDark.value = themeName === "dark";
+    document.documentElement.setAttribute("data-theme", themeName);
+    localStorage.setItem("theme", themeName);
   };
 
   watch(
     isDark,
     (newIsDark) => {
-      const themeName = newIsDark ? "dark" : "light";
-      applyTheme(themeName);
+      setTheme(newIsDark ? "dark" : "light");
     },
     { immediate: true },
   );

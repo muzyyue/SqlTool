@@ -192,6 +192,9 @@ const handleTargetColumnChange = (value) => {
 </script>
 
 <style scoped lang="scss">
+@use "@/design/scss/variables" as *;
+@use "@/design/scss/mixins" as *;
+
 .config-card {
   padding: 32px;
   contain: layout style;

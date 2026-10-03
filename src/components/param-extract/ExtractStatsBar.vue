@@ -116,6 +116,9 @@ const handleFilter = (key: FilterKey) => emit("filter", key);
 </script>
 
 <style scoped lang="scss">
+@use "@/design/scss/variables" as *;
+@use "@/design/scss/mixins" as *;
+
 /* ============================================
    ExtractStatsBar - 高端视觉设计规范
    Pill-shaped 标签 + 自定义渐变进度条

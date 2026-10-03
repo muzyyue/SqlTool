@@ -56,6 +56,9 @@ const goToUpdate = () => {
 </script>
 
 <style lang="scss" scoped>
+@use "@/design/scss/variables" as *;
+@use "@/design/scss/mixins" as *;
+
 // ========================================
 // 404 页面样式
 // ========================================

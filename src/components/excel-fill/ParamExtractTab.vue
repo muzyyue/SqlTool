@@ -43,7 +43,7 @@
         <div class="form-item">
           <label>目标列</label>
           <a-select
-            v-model:value="targetColumn"
+            v-model:value="selectedTargetColumn"
             :options="targetColumnOptions"
             placeholder="选择或新建目标列"
             allow-clear
@@ -112,11 +112,15 @@
             </div>
 
             <!-- JSON 树形结构预览（使用 CodeMirror） -->
-            <div class="schema-preview">
+            <div
+              class="schema-preview"
+              :class="{ 'schema-preview-dark': schemaPreviewTheme === 'dark' }"
+            >
               <CodeEditor
                 :model-value="formattedSampleJson"
                 language="json"
                 :readonly="true"
+                :theme="schemaPreviewTheme"
                 :min-lines="8"
                 :max-lines="15"
                 placeholder="暂无数据预览..."
@@ -129,18 +133,23 @@
             <a-tree-select
               v-model:value="selectedField"
               :tree-data="fieldOptions"
+              :default-open="true"
+              :field-names="{
+                key: 'value',
+                title: 'title',
+                children: 'children',
+              }"
               :placeholder="
                 dataSource === 'column' && selectedColumn
                   ? '正在加载字段...'
                   : '请先提取数据以加载字段'
               "
               allow-clear
-              :disabled="!canUseInteractiveSelector"
               @change="handleFieldChange"
               show-search
               tree-node-filter-prop="title"
               :dropdown-style="{ maxHeight: '400px', overflow: 'auto' }"
-              :tree-default-expand-all="false"
+              :tree-default-expand-all="true"
             />
           </div>
 
@@ -369,7 +378,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from "vue";
+import { ref, computed, watch, watchEffect, nextTick } from "vue";
 import {
   SearchOutlined,
   CopyOutlined,
@@ -380,7 +389,12 @@ import {
 import { message } from "ant-design-vue";
 import VbenGlassCard from "@/components/common/VbenGlassCard.vue";
 import CodeEditor from "@/components/common/CodeEditor.vue";
-import { useParamExtractor } from "@/composables/useParamExtractor.js";
+import {
+  analyzeSampleData,
+  flattenObject,
+  useParamExtractor,
+} from "@/composables/useParamExtractor.js";
+import { useThemeStore } from "@/stores/theme.js";
 import * as XLSX from "xlsx";
 
 const props = defineProps({
@@ -396,21 +410,80 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  sourceColumn: {
+    type: String,
+    default: "",
+  },
+  targetColumn: {
+    type: String,
+    default: "",
+  },
 });
 
-const emit = defineEmits(["extract-complete"]);
+const emit = defineEmits([
+  "extract-complete",
+  "source-column-change",
+  "target-column-change",
+]);
 
 // 数据源选项
-const dataSource = ref("manual");
+const dataSource = ref(props.sourceColumn ? "column" : "manual");
 const dataSourceOptions = [
   { value: "manual", label: "手动输入" },
   { value: "column", label: "从源列读取" },
 ];
 
-// 输入数据
 const inputText = ref("");
 const selectedColumn = ref(undefined);
-const targetColumn = ref(undefined);
+const selectedTargetColumn = ref(undefined);
+
+if (props.sourceColumn) {
+  selectedColumn.value = props.sourceColumn;
+}
+if (props.targetColumn) {
+  selectedTargetColumn.value = props.targetColumn;
+}
+
+watch(
+  () => props.sourceColumn,
+  (value) => {
+    if (value) {
+      dataSource.value = "column";
+      selectedColumn.value = value;
+    }
+  },
+);
+watch(
+  () => props.targetColumn,
+  (value) => {
+    if (value) {
+      selectedTargetColumn.value = value;
+    }
+  },
+);
+
+watch(inputText, () => {
+  const schema = analyzeSampleData([inputText.value]);
+
+  if (schema?.fields?.length > 0) {
+    sampleSchema.value = schema;
+    const selectedFieldExists = schema.fields.some(
+      (field) => field.path === selectedField.value,
+    );
+    if (!selectedFieldExists) {
+      selectedField.value = undefined;
+      selectedValues.value = [];
+    }
+  } else {
+    sampleSchema.value = null;
+    selectedField.value = undefined;
+    selectedValues.value = [];
+  }
+
+  parsedJsonCache.value = null;
+  innerFieldTree.value = [];
+  jsonUnwrapDepth.value = 0;
+});
 
 // 提取配置
 const extractType = ref("auto");
@@ -474,7 +547,7 @@ const isFieldStringifiedJson = computed(() => {
     }
 
     const parsedRoot = JSON.parse(firstSample);
-    const fieldValue = getNestedValue(parsedRoot, selectedField.value);
+    const fieldValue = getOwnerAwareValue(parsedRoot, selectedField.value);
 
     const result = isStringifiedJsonSimple(fieldValue);
 
@@ -510,6 +583,23 @@ const sampleSchema = ref(null); // 存储采样的通用结构
 const isSampleAnalyzed = computed(() => !!sampleSchema.value);
 const sourceDataCache = ref([]);
 
+watch(sourceDataCache, () => {
+  if (dataSource.value !== "manual" || sourceDataCache.value.length === 0) {
+    return;
+  }
+
+  const schema = analyzeSampleData(
+    sourceDataCache.value.map((item) => item.value),
+  );
+  sampleSchema.value = schema?.fields?.length > 0 ? schema : null;
+});
+
+const themeStore = useThemeStore();
+
+const schemaPreviewTheme = computed(() =>
+  themeStore.isDark ? "dark" : "light",
+);
+
 const dataTypeLabel = computed(() => {
   const map = {
     json: "JSON",
@@ -525,11 +615,14 @@ const dataTypeLabel = computed(() => {
  * 从缓存的第一条数据解析并格式化显示
  */
 const formattedSampleJson = computed(() => {
-  if (!sourceDataCache.value || sourceDataCache.value.length === 0) {
-    return "";
+  if (!sourceDataCache.value?.length) {
+    return inputText.value || "";
   }
 
-  const firstSample = sourceDataCache.value[0].value;
+  let firstSample = sourceDataCache.value[0]?.value;
+  if (firstSample === undefined) {
+    firstSample = inputText.value;
+  }
 
   // 尝试解析并格式化 JSON
   if (
@@ -566,53 +659,100 @@ function getFieldTypeColor(type) {
  * @param {Array<{path: string, label: string, type: string}>} flatFields - 扁平字段列表
  * @returns {Array<{value: string, title: string, children?: Array, type: string}>} 树形结构
  */
-function buildFieldTree(flatFields) {
-  const root = { children: {} };
+function parseFieldPath(path) {
+  const segments = [];
+  let index = 0;
 
-  for (const field of flatFields) {
-    const parts = field.path.split(/\.|\[|\]/).filter((p) => p !== "");
-    let current = root;
+  while (index < path.length) {
+    const nameStart = index;
+    while (index < path.length && path[index] !== "." && path[index] !== "[") {
+      index += 1;
+    }
 
-    for (let i = 0; i < parts.length; i++) {
-      const part = parts[i];
-      const isLast = i === parts.length - 1;
-      const nodeKey = part;
+    const name = path.slice(nameStart, index);
+    if (name) {
+      segments.push({ name, isIndex: false });
+    }
 
-      if (!current.children[nodeKey]) {
-        current.children[nodeKey] = {
-          value: isLast ? field.path : null,
-          title: part,
-          type: isLast ? field.type : inferTypeFromPath(part, i, parts),
-          children: {},
-          isLeaf: false,
-        };
+    if (path[index] === "[") {
+      const arrayStart = index + 1;
+      while (index < path.length && path[index] !== "]") {
+        index += 1;
       }
-
-      // 叶子节点：设置最终值和类型
-      if (isLast) {
-        current.children[nodeKey].value = field.path;
-        current.children[nodeKey].type = field.type;
-        current.children[nodeKey].isLeaf = true;
+      const arrayIndex = path.slice(arrayStart, index);
+      if (/^\d+$/.test(arrayIndex)) {
+        segments.push({ name: arrayIndex, isIndex: true });
       }
+      index += 1;
+    }
 
-      current = current.children[nodeKey];
+    if (path[index] === ".") {
+      index += 1;
     }
   }
 
-  // 将对象树转为数组格式，并清理空 children
+  return segments;
+}
+
+/**
+ * 将扁平字段路径列表构建为树形结构（用于 a-tree-select）
+ * 对象路径创建目录；数组索引作为值保留，不再展开成目录。
+ * @param {Array<{path: string, label?: string, type?: string}>} flatFields - 扁平字段列表
+ * @returns {Array<{value: string, title: string, children?: Array, type: string}>} 树形结构
+ */
+function buildFieldTree(flatFields = []) {
+  const root = { children: new Map() };
+
+  for (const field of flatFields) {
+    const segments = parseFieldPath(field.path || "");
+    if (segments.length === 0) continue;
+
+    let current = root;
+    for (let i = 0; i < segments.length; i += 1) {
+      const segment = segments[i];
+      const isLast = i === segments.length - 1;
+
+      if (!current.children.has(segment.name)) {
+        current.children.set(segment.name, {
+          value: null,
+          title: segment.name,
+          type: "object",
+          children: new Map(),
+          isLeaf: false,
+        });
+      }
+
+      const node = current.children.get(segment.name);
+      if (segment.isIndex || isLast) {
+        node.value = field.path;
+        node.title =
+          field.label ||
+          (segment.isIndex
+            ? `${segment.name} [${segment.name}]`
+            : segment.name);
+        node.type = segment.isIndex ? "array" : field.type || "unknown";
+        node.isLeaf = true;
+        break;
+      }
+
+      node.type = "object";
+      node.isLeaf = false;
+      current = node;
+    }
+  }
+
   function toArray(node) {
     const result = [];
-    for (const key of Object.keys(node.children || {}).sort()) {
-      const child = node.children[key];
+    for (const [key, child] of node.children || []) {
       const item = {
+        key: child.value || key,
         value: child.value || key,
-        title: `${key}${child.type ? ` (${child.type})` : ""}`,
+        title: child.title || key,
         type: child.type,
+        isLeaf: child.isLeaf,
       };
 
-      const hasChildren =
-        child.children && Object.keys(child.children).length > 0;
-      if (hasChildren) {
+      if (child.children && child.children.size > 0) {
         item.children = toArray(child);
       }
 
@@ -622,19 +762,6 @@ function buildFieldTree(flatFields) {
   }
 
   return toArray(root);
-}
-
-/**
- * 从路径片段推断类型（非叶子节点）
- * @param {string} part - 路径片段
- * @param {number} index - 当前索引
- * @param {string[]} parts - 所有路径片段
- * @returns {string} 推断的类型
- */
-function inferTypeFromPath(part, index, parts) {
-  if (/^\d+$/.test(part)) return "item";
-  if (index < parts.length - 1) return "object";
-  return "unknown";
 }
 
 // 使用 composable
@@ -696,13 +823,13 @@ const targetColumnOptions = computed(() => {
 });
 
 // 🆕 新架构：基于sampleSchema的即时字段选项（树形结构）
-const fieldOptions = computed(() => {
-  // ✅ 策略1：基于 sampleSchema（采样模式，<100ms响应）
+const fieldOptions = ref([]);
+watchEffect(() => {
   if (isSampleAnalyzed.value && sampleSchema.value?.fields?.length > 0) {
-    return buildFieldTree(sampleSchema.value.fields);
+    fieldOptions.value = buildFieldTree(sampleSchema.value.fields);
+    return;
   }
 
-  // ⚠️ 回退：手动输入模式 + 已有提取结果
   if (dataSource.value === "manual" && hasResults.value) {
     if (filteredItems.value?.length > 0) {
       const fields = [];
@@ -725,15 +852,15 @@ const fieldOptions = computed(() => {
       });
 
       if (fields.length > 0) {
-        return buildFieldTree(fields);
+        fieldOptions.value = buildFieldTree(fields);
+        return;
       }
     }
   }
 
-  return [];
+  fieldOptions.value = [];
 });
 
-// 🆕 新架构：两阶段取值选项
 const valueOptions = computed(() => {
   if (!selectedField.value) return [];
 
@@ -792,7 +919,7 @@ function parseSelectedFieldAsJson(depth = 0) {
   }
 
   try {
-    const firstSample = sourceDataCache.value[0].value;
+    const firstSample = sourceDataCache.value[0]?.value ?? inputText.value;
 
     const sampleStr = String(firstSample ?? "").trim();
 
@@ -803,9 +930,9 @@ function parseSelectedFieldAsJson(depth = 0) {
       parsedRoot = JSON.parse(sampleStr);
 
       if (depth === 0 && selectedField.value) {
-        targetData = getNestedValue(parsedRoot, selectedField.value);
+        targetData = getOwnerAwareValue(parsedRoot, selectedField.value);
       } else if (depth > 0 && selectedInnerField.value) {
-        targetData = getNestedValue(
+        targetData = getOwnerAwareValue(
           parsedJsonCache.value?.raw,
           selectedInnerField.value,
         );
@@ -927,7 +1054,7 @@ function parseFromFormattedSample(depth) {
     let targetData = parsedRoot;
 
     if (depth === 0 && selectedField.value) {
-      targetData = getNestedValue(parsedRoot, selectedField.value);
+      targetData = getOwnerAwareValue(parsedRoot, selectedField.value);
     }
 
     if (!targetData || !isStringifiedJsonSimple(targetData)) {
@@ -1022,18 +1149,26 @@ function handleInnerFieldChange(value) {
  * @param {string} innerPath - 内层字段路径
  */
 function loadInnerFieldValues(innerPath) {
-  if (!parsedJsonCache.value || !sourceDataCache.value.length) return;
+  if (
+    !parsedJsonCache.value ||
+    (!sourceDataCache.value.length && !inputText.value.trim())
+  )
+    return;
 
   try {
     const valuesSet = new Set();
+    const sourceItems =
+      sourceDataCache.value.length > 0
+        ? sourceDataCache.value
+        : [{ value: inputText.value, row: 1 }];
 
-    for (const sourceItem of sourceDataCache.value) {
+    for (const sourceItem of sourceItems) {
       let currentValue = sourceItem.value;
 
       // 第一层：提取外层字段
       if (jsonUnwrapDepth.value === 0 && selectedField.value) {
         const parsedRoot = JSON.parse(currentValue);
-        currentValue = getNestedValue(parsedRoot, selectedField.value);
+        currentValue = getOwnerAwareValue(parsedRoot, selectedField.value);
 
         // 如果是字符串化JSON，先解析
         if (isStringifiedJsonSimple(currentValue)) {
@@ -1176,17 +1311,11 @@ function handleDataSourceChange(value) {
   }
 }
 
-/**
- * 简化版字符串化JSON检测（用于 flattenObject）
- * @param {string} value - 要检测的字符串
- * @returns {boolean} 是否为字符串化JSON
- */
 function isStringifiedJsonSimple(value) {
   if (typeof value !== "string") return false;
 
   const trimmed = value.trim();
 
-  // 快速检查：必须以 { 或 [ 开头
   if (!/^\s*[{[]/.test(trimmed)) return false;
 
   try {
@@ -1197,186 +1326,6 @@ function isStringifiedJsonSimple(value) {
   }
 }
 
-/**
- * 递归展平嵌套对象为键值对数组（用于手动解析JSON）
- * @param {Object} obj - 要展平的对象
- * @param {string} prefix - 前缀路径
- * @returns {Array<{key: string, value: any, path: string, dataType: string}>}
- */
-function flattenObject(obj, prefix = "") {
-  const result = [];
-
-  if (obj === null || obj === undefined) {
-    return result;
-  }
-
-  if (typeof obj !== "object") {
-    // 基本类型：检查是否为字符串化JSON
-    if (typeof obj === "string" && isStringifiedJsonSimple(obj)) {
-      try {
-        const parsed = JSON.parse(obj);
-        return flattenObject(parsed, prefix);
-      } catch (e) {
-        // 解析失败，当作普通字符串处理
-      }
-    }
-
-    result.push({
-      key: prefix || "value",
-      value: obj,
-      path: prefix || "value",
-      dataType: typeof obj,
-    });
-    return result;
-  }
-
-  if (Array.isArray(obj)) {
-    // 数组：序列化为字符串值
-    result.push({
-      key: prefix || "array",
-      value: JSON.stringify(obj),
-      path: prefix || "array",
-      dataType: "array",
-    });
-
-    // 同时展平每个元素
-    obj.forEach((item, idx) => {
-      const itemPath = prefix ? `${prefix}[${idx}]` : `[${idx}]`;
-      result.push(...flattenObject(item, itemPath));
-    });
-
-    return result;
-  }
-
-  // 对象：递归展平每个属性
-  Object.entries(obj).forEach(([key, value]) => {
-    const fullPath = prefix ? `${prefix}.${key}` : key;
-
-    if (value !== null && typeof value === "object") {
-      // 嵌套对象或数组：递归展平
-      result.push(...flattenObject(value, fullPath));
-    } else {
-      // 基本类型：直接添加
-      result.push({
-        key: fullPath,
-        value: value,
-        path: fullPath,
-        dataType: typeof value,
-      });
-    }
-  });
-
-  return result;
-}
-
-/**
- * 🆕 分析样本数据，提取通用字段结构
- * @param {string[]} sampleLines - 样本数据行数组（通常3行）
- * @returns {Object|null} 结构对象 { fields: [{path, label, type, values[], count}], dataType, sampleCount }
- */
-function analyzeSampleData(sampleLines) {
-  if (!sampleLines || sampleLines.length === 0) return null;
-
-  const fields = new Map();
-  let dataType = "unknown";
-
-  for (const line of sampleLines) {
-    const trimmed = line.trim();
-
-    // 尝试JSON解析
-    if (
-      (trimmed.startsWith("[") || trimmed.startsWith("{")) &&
-      trimmed.length < 100000
-    ) {
-      try {
-        const parsed = JSON.parse(trimmed);
-        const items = Array.isArray(parsed) ? parsed : [parsed];
-        dataType = "json";
-
-        items.forEach((item) => {
-          flattenObject(item).forEach((f) => {
-            if (!fields.has(f.path)) {
-              fields.set(f.path, {
-                path: f.path,
-                label: f.path.split(".").pop(),
-                type: f.dataType,
-                values: new Set(),
-                count: 0,
-              });
-            }
-            const fieldInfo = fields.get(f.path);
-            if (f.value !== undefined && f.value !== null) {
-              fieldInfo.values.add(String(f.value).substring(0, 100));
-            }
-            fieldInfo.count++;
-          });
-        });
-      } catch (e) {
-        // JSON解析失败，继续其他格式检测
-      }
-    }
-
-    // 键值对模式检测
-    if (dataType === "unknown") {
-      const kvPattern = /(\w+)\s*[=:]\s*([^,;]+)/g;
-      let match;
-      let hasKV = false;
-
-      while ((match = kvPattern.exec(trimmed)) !== null) {
-        hasKV = true;
-        const key = match[1].trim();
-        const value = match[2].trim();
-
-        if (!fields.has(key)) {
-          fields.set(key, {
-            path: key,
-            label: key,
-            type: "string",
-            values: new Set(),
-            count: 0,
-          });
-        }
-        fields.get(key).values.add(value.substring(0, 100));
-        fields.get(key).count++;
-        dataType = "keyvalue";
-      }
-
-      // SQL参数模式检测
-      if (!hasKV) {
-        const sqlPattern = /[@:?](\w+)/g;
-        while ((match = sqlPattern.exec(trimmed)) !== null) {
-          const param = match[1].trim();
-          if (!fields.has(param)) {
-            fields.set(param, {
-              path: param,
-              label: param,
-              type: "parameter",
-              values: new Set(),
-              count: 0,
-            });
-          }
-          fields.get(param).count++;
-          dataType = "sql";
-        }
-      }
-    }
-  }
-
-  if (fields.size > 0) {
-    return {
-      fields: Array.from(fields.values()).map((f) => ({
-        ...f,
-        values: Array.from(f.values), // Set→Array for reactivity
-      })),
-      dataType,
-      sampleCount: sampleLines.length,
-    };
-  }
-
-  return null;
-}
-
-// 🆕 新架构：采样分析模式 - 只分析前3行，不处理全部数据
 watch(selectedColumn, async (newColumn) => {
   // 清空状态
   selectedField.value = undefined;
@@ -1416,9 +1365,7 @@ watch(selectedColumn, async (newColumn) => {
 
     sourceDataCache.value = allData;
 
-    // 2️⃣ 只取前3行作为样本
-    const SAMPLE_SIZE = Math.min(3, allData.length);
-    const sampleLines = allData.slice(0, SAMPLE_SIZE).map((d) => d.value);
+    const sampleLines = allData.map((d) => d.value);
 
     // 3️⃣ 分析样本，提取通用结构
     const schema = analyzeSampleData(sampleLines);
@@ -1446,7 +1393,7 @@ async function handleExtract() {
       return;
     }
 
-    if (!targetColumn.value) {
+    if (!selectedTargetColumn.value) {
       message.warning("请选择目标列");
       return;
     }
@@ -1485,7 +1432,11 @@ async function handleExtract() {
       }
 
       // 写入目标列
-      await writeBatchToTargetColumn(ws, batchResults, targetColumn.value);
+      await writeBatchToTargetColumn(
+        ws,
+        batchResults,
+        selectedTargetColumn.value,
+      );
 
       const excelBuffer = XLSX.write(
         { Sheets: { [props.sheets[0]]: ws }, SheetNames: [props.sheets[0]] },
@@ -1499,7 +1450,7 @@ async function handleExtract() {
 
       emit("extract-complete", {
         sourceColumn: selectedColumn.value,
-        targetColumn: targetColumn.value,
+        targetColumn: selectedTargetColumn.value,
         processedCount: batchResults.length,
         outputBlob,
       });
@@ -1514,6 +1465,11 @@ async function handleExtract() {
   extractor.state.inputText = textToProcess;
   extractor.state.extractType = extractType.value;
   extractor.state.flattenNested = flattenNested.value;
+
+  // 手动模式也需要可供预览和字段树使用的样本缓存
+  sourceDataCache.value = [{ value: textToProcess, row: 1 }];
+  const manualSchema = analyzeSampleData([textToProcess]);
+  sampleSchema.value = manualSchema?.fields?.length > 0 ? manualSchema : null;
 
   await extractor.extract();
 
@@ -1673,7 +1629,7 @@ function extractFieldValue(data, fieldPath, innerPath) {
       const items = Array.isArray(parsed) ? parsed : [parsed];
 
       for (const item of items) {
-        const value = getNestedValue(item, fieldPath);
+        const value = getOwnerAwareValue(item, fieldPath);
         // 字段值为空字符串时跳过，继续查找下一个 item
         if (value !== undefined && value !== "") {
           let result = value;
@@ -1708,14 +1664,6 @@ function extractFieldValue(data, fieldPath, innerPath) {
             );
             if (filtered.length === 0) return "";
             const joined = filtered.join(", ");
-            console.log(
-              "[DEBUG] extractFieldValue mapped:",
-              JSON.stringify(mapped),
-              "filtered:",
-              JSON.stringify(filtered),
-              "joined:",
-              JSON.stringify(joined),
-            );
             return cleanExtractResult(joined);
           }
 
@@ -1745,7 +1693,46 @@ function cleanExtractResult(result) {
 }
 
 /**
- * 🆕 按路径获取嵌套对象的值
+ * 按路径获取嵌套对象的值，并兼容 `{ field, value }` 所有者结构。
+ * 字段树使用所有者路径（如 `content.value`），但原始样本通常是
+ * `{ field: "content", value: "..." }`，因此需要先尝试直接路径，
+ * 再映射到当前对象的 `value` 字段。
+ * @param {Object} obj - 对象或数组
+ * @param {string} path - 路径（如 "a.b.c" 或 "value[0].value"）
+ * @returns {*} 值
+ */
+function getOwnerAwareValue(obj, path) {
+  if (obj === null || obj === undefined) return undefined;
+
+  const directValue = getNestedValue(obj, path);
+  if (directValue !== undefined) return directValue;
+
+  if (Array.isArray(obj)) {
+    for (const item of obj) {
+      const value = getOwnerAwareValue(item, path);
+      if (value !== undefined) return value;
+    }
+    return undefined;
+  }
+
+  const owner = typeof obj.field === "string" ? obj.field : "";
+  if (!owner) return directValue;
+
+  if (path === owner) return getNestedValue(obj, "value");
+
+  const suffix = path.startsWith(`${owner}.`)
+    ? path.slice(owner.length + 1)
+    : "";
+  if (!suffix) return directValue;
+
+  return getNestedValue(
+    obj,
+    suffix.startsWith("value") ? suffix : `value.${suffix}`,
+  );
+}
+
+/**
+ * 按路径获取嵌套对象的值
  * 支持点号分隔和数组索引：如 "a.b.c" 或 "value[0].value"
  * @param {Object} obj - 对象
  * @param {string} path - 路径（如 "a.b.c" 或 "value[0].value"）
@@ -1814,6 +1801,9 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
 </script>
 
 <style scoped lang="scss">
+@use "@/design/scss/variables" as *;
+@use "@/design/scss/mixins" as *;
+
 .param-extract-tab {
   content-visibility: auto;
   contain-intrinsic-size: auto 800px;
@@ -1982,19 +1972,19 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
   }
 
   .interactive-selector {
-    background: #f8f9fb;
+    background: var(--bg-elevated);
     border-radius: 12px;
     padding: 24px;
     margin-top: 16px;
-    border: 1px solid rgba(22, 119, 255, 0.08);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    border: 1px solid var(--border-default);
+    box-shadow: var(--shadow-sm);
     will-change: transform;
     contain: layout;
 
     // 数据结构概览
     .schema-summary {
-      background: rgba(8, 145, 178, 0.04);
-      border: 1px solid rgba(8, 145, 178, 0.12);
+      background: var(--color-info-bg);
+      border: 1px solid var(--color-info-border);
       border-radius: 10px;
       padding: 14px 18px;
       margin-bottom: 20px;
@@ -2007,15 +1997,15 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
 
         .anticon {
           font-size: 15px;
-          color: #0891b2;
+          color: var(--color-info);
         }
 
         .schema-type-tag {
           display: inline-flex;
           align-items: center;
           padding: 2px 10px;
-          background: #cffafe;
-          color: #0e7490;
+          background: var(--color-info-bg);
+          color: var(--color-info);
           font-size: 12px;
           font-weight: 700;
           border-radius: 4px;
@@ -2024,13 +2014,13 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
 
         .schema-meta {
           font-size: 12px;
-          color: #6b7280;
+          color: var(--text-secondary);
           font-weight: 500;
 
           &::before {
             content: "·";
             margin: 0 8px;
-            color: #0891b2;
+            color: var(--color-info);
             opacity: 0.4;
           }
         }
@@ -2041,11 +2031,9 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
         margin-top: 12px;
         border-radius: 8px;
         overflow: hidden;
-        border: 1px solid rgba(8, 145, 178, 0.15);
-        background: #ffffff;
-        box-shadow:
-          0 1px 3px rgba(0, 0, 0, 0.04),
-          inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        border: 1px solid var(--code-border);
+        background: var(--code-bg);
+        box-shadow: var(--shadow-sm);
 
         // 覆盖 CodeEditor 默认样式以适配容器
         :deep(.code-editor-container) {
@@ -2077,19 +2065,19 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      color: #6366f1;
+      color: var(--color-primary);
       font-size: 13px;
       font-weight: 600;
       margin-bottom: 8px;
       padding-left: 10px;
-      border-left: 3px solid #6366f1;
+      border-left: 3px solid var(--color-primary);
       transition:
         color 0.2s ease,
         border-left-color 0.2s ease;
 
       &:hover {
-        color: #4f46e5;
-        border-left-color: #4f46e5;
+        color: var(--color-primary-hover);
+        border-left-color: var(--color-primary-hover);
       }
 
       &::before {
@@ -2097,7 +2085,7 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
         display: inline-block;
         width: 16px;
         height: 16px;
-        background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+        background: var(--color-primary-bg);
         border-radius: 4px;
         transition: background 0.2s ease;
       }
@@ -2108,16 +2096,17 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
       .ant-select-selector {
         border-radius: 8px !important;
         min-height: 44px;
-        border: 1.5px solid #e5e7eb;
+        border: 1.5px solid var(--input-border);
+        background: var(--input-bg);
 
         &:hover {
-          border-color: #93c5fd;
-          box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.15);
+          border-color: var(--input-border-hover);
+          box-shadow: 0 0 0 3px var(--color-primary-border);
         }
 
         &.ant-select-focused {
-          border-color: #1677ff !important;
-          box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.12) !important;
+          border-color: var(--input-border-focus) !important;
+          box-shadow: 0 0 0 3px var(--color-primary-border) !important;
         }
       }
 
@@ -2132,19 +2121,15 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
           transition: background-color 0.15s ease;
 
           &:hover {
-            background: rgba(99, 102, 241, 0.08);
+            background: var(--interactive-hover);
           }
         }
 
         // 叶子节点（可选中）样式增强
         &.ant-select-tree-treenode-selected {
           .ant-select-tree-node-content-wrapper {
-            background: linear-gradient(
-              135deg,
-              rgba(99, 102, 241, 0.12) 0%,
-              rgba(139, 92, 246, 0.08) 100%
-            );
-            color: #4338ca;
+            background: var(--interactive-selected);
+            color: var(--text-primary);
             font-weight: 600;
           }
         }
@@ -2163,19 +2148,19 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      color: #059669;
+      color: var(--color-success);
       font-size: 13px;
       font-weight: 600;
       margin-bottom: 8px;
       padding-left: 10px;
-      border-left: 3px solid #059669;
+      border-left: 3px solid var(--color-success);
       transition:
         color 0.2s ease,
         border-left-color 0.2s ease;
 
       &:hover {
-        color: #047857;
-        border-left-color: #047857;
+        color: var(--color-success-hover, #047857);
+        border-left-color: var(--color-success-hover, #047857);
       }
 
       &::before {
@@ -2183,7 +2168,7 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
         display: inline-block;
         width: 16px;
         height: 16px;
-        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+        background: var(--color-success-bg);
         border-radius: 4px;
         transition: background 0.2s ease;
       }
@@ -2195,35 +2180,35 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
       .ant-select-selector {
         border-radius: 8px !important;
         min-height: 44px;
-        border: 1.5px solid #e5e7eb;
-        background: white;
+        border: 1.5px solid var(--input-border);
+        background: var(--input-bg);
         transition:
           border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
           box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
         &:hover {
-          border-color: #93c5fd;
-          box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.15);
+          border-color: var(--input-border-hover);
+          box-shadow: 0 0 0 3px var(--color-primary-border);
         }
 
         &.ant-select-focused {
-          border-color: #1677ff !important;
-          box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.12) !important;
+          border-color: var(--input-border-focus) !important;
+          box-shadow: 0 0 0 3px var(--color-primary-border) !important;
         }
       }
 
       .ant-select-selection-placeholder {
-        color: #9ca3af;
+        color: var(--input-placeholder);
         font-size: 14px;
       }
     }
 
     :deep(.ant-select-multiple) {
       .ant-select-selection-item {
-        background: #eff6ff !important;
-        border: 1.5px solid #93c5fd !important;
+        background: var(--color-primary-bg) !important;
+        border: 1.5px solid var(--color-primary-border) !important;
         border-radius: 6px;
-        color: #1e40af;
+        color: var(--text-primary);
         font-weight: 500;
         font-size: 13px;
         margin: 2px;
@@ -2234,19 +2219,19 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
           box-shadow 0.2s ease;
 
         &:hover {
-          background: #dbeafe !important;
-          border-color: #60a5fa !important;
+          background: var(--interactive-hover) !important;
+          border-color: var(--color-primary-hover) !important;
           transform: translateY(-1px);
-          box-shadow: 0 2px 4px rgba(96, 165, 250, 0.15);
+          box-shadow: 0 2px 4px var(--color-primary-border);
         }
 
         .ant-select-selection-item-remove {
-          color: #60a5fa;
+          color: var(--color-primary);
           margin-left: 6px;
           font-size: 12px;
 
           &:hover {
-            color: #dc2626;
+            color: var(--color-error);
             transform: scale(1.15);
           }
         }
@@ -2260,7 +2245,7 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
     .hint-text {
       margin-top: 8px;
       font-style: italic;
-      color: #6b7280;
+      color: var(--text-tertiary);
       font-size: 12px;
       opacity: 0.85;
     }
@@ -2272,13 +2257,13 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
       overflow: hidden;
 
       &.ant-alert-info {
-        background: rgba(99, 102, 241, 0.06);
-        border: 1px solid rgba(99, 102, 241, 0.18);
+        background: var(--color-primary-bg);
+        border: 1px solid var(--color-primary-border);
       }
 
       &.ant-alert-success {
-        background: rgba(16, 185, 129, 0.06);
-        border: 1px solid rgba(16, 185, 129, 0.2);
+        background: var(--color-success-bg);
+        border: 1px solid var(--color-success-border);
       }
 
       :deep(.ant-alert-icon) {
@@ -2307,7 +2292,7 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
           .hint-text {
             display: block;
             font-size: 13px;
-            color: #4338ca;
+            color: var(--color-primary);
             font-weight: 600;
             margin: 0 0 4px 0;
             font-style: normal;
@@ -2317,9 +2302,9 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
           .hint-preview {
             display: block;
             font-size: 11px;
-            color: #7c3aed;
+            color: var(--color-primary);
             font-family: "Consolas", "Monaco", "Courier New", monospace;
-            background: rgba(139, 92, 246, 0.08);
+            background: var(--color-primary-bg);
             padding: 2px 8px;
             border-radius: 4px;
             overflow: hidden;
@@ -2336,14 +2321,14 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
 
           .switch-label {
             font-size: 12px;
-            color: #9ca3af;
+            color: var(--text-secondary);
             font-weight: 500;
             transition:
               color 0.2s ease,
               font-weight 0.2s ease;
 
             &.active {
-              color: #059669;
+              color: var(--color-success);
               font-weight: 600;
             }
           }
@@ -2356,19 +2341,19 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      color: #8b5cf6;
+      color: var(--color-primary);
       font-size: 13px;
       font-weight: 600;
       margin-bottom: 8px;
       padding-left: 10px;
-      border-left: 3px solid #8b5cf6;
+      border-left: 3px solid var(--color-primary);
       transition:
         color 0.2s ease,
         border-left-color 0.2s ease;
 
       &:hover {
-        color: #7c3aed;
-        border-left-color: #7c3aed;
+        color: var(--color-primary-hover);
+        border-left-color: var(--color-primary-hover);
       }
 
       &::before {
@@ -2376,7 +2361,7 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
         display: inline-block;
         width: 16px;
         height: 16px;
-        background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+        background: var(--color-primary-bg);
         border-radius: 4px;
         transition: background 0.2s ease;
       }
@@ -2388,8 +2373,8 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
         padding: 1px 6px;
         font-size: 10px;
         font-weight: 700;
-        color: #fff;
-        background: #8b5cf6;
+        color: var(--text-inverse);
+        background: var(--color-primary);
         border-radius: 10px;
         letter-spacing: 0.5px;
       }
@@ -2398,10 +2383,10 @@ async function writeBatchToTargetColumn(ws, results, targetColumnValue) {
     // 🆕 字段路径提示（在取值标签后显示）
     .field-path-hint {
       font-size: 11px;
-      color: #8b5cf6;
+      color: var(--color-primary);
       font-family: "Consolas", "Monaco", "Courier New", monospace;
       font-weight: 500;
-      background: rgba(139, 92, 246, 0.1);
+      background: var(--color-primary-bg);
       padding: 2px 8px;
       border-radius: 4px;
       max-width: 200px;

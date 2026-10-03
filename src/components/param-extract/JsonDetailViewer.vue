@@ -447,6 +447,9 @@ watch(
 </script>
 
 <style lang="scss" scoped>
+@use "@/design/scss/variables" as *;
+@use "@/design/scss/mixins" as *;
+
 .json-detail-viewer {
   .tree-container {
     max-height: 400px;

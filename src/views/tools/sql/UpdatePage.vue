@@ -1831,6 +1831,9 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+@use "@/design/scss/variables" as *;
+@use "@/design/scss/mixins" as *;
+
 .update-page {
   padding: 0;
   min-height: 100%;

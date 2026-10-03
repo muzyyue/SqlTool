@@ -10,7 +10,7 @@ export default defineConfig({
   base: "/SqlTool/",
   plugins: [
     vue(),
-    vueDevTools(),
+    vueDevTools({ componentInspector: false }),
     UnoCSS(),
     visualizer({
       filename: "./dist/stats.html",
@@ -23,14 +23,6 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
-    },
-  },
-  css: {
-    preprocessorOptions: {
-      scss: {
-        additionalData: `@use "@/design/scss/variables.scss" as *; @use "@/design/scss/mixins.scss" as *;`,
-        silenceDeprecations: ["import"],
-      },
     },
   },
   server: {

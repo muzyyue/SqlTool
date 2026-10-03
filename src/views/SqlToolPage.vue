@@ -146,6 +146,9 @@ const navigateTo = (path) => {
 </script>
 
 <style scoped lang="scss">
+@use "@/design/scss/variables" as *;
+@use "@/design/scss/mixins" as *;
+
 // ========================================
 // SQL 工具页面样式
 // ========================================

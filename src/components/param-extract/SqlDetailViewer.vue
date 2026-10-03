@@ -110,6 +110,9 @@ async function copyFormatted() {
 </script>
 
 <style lang="scss" scoped>
+@use "@/design/scss/variables" as *;
+@use "@/design/scss/mixins" as *;
+
 .sql-detail-viewer {
   contain: content;
 

@@ -2199,6 +2199,9 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+@use "@/design/scss/variables" as *;
+@use "@/design/scss/mixins" as *;
+
 // ========================================
 // 页面容器
 // ========================================

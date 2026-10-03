@@ -23,6 +23,184 @@ const DEFAULT_CONFIG = {
 
 const MAX_EXTRACT_DEPTH = 5;
 
+function isStringifiedJsonSimple(value) {
+  if (typeof value !== "string") return false;
+
+  const trimmed = value.trim();
+
+  if (!/^\s*[{[]/.test(trimmed)) return false;
+
+  try {
+    const parsed = JSON.parse(trimmed);
+    return typeof parsed === "object" && parsed !== null;
+  } catch (e) {
+    return false;
+  }
+}
+
+export function flattenObject(obj, prefix = "") {
+  const result = [];
+
+  if (obj === null || obj === undefined) {
+    return result;
+  }
+
+  if (typeof obj !== "object") {
+    if (typeof obj === "string" && isStringifiedJsonSimple(obj)) {
+      try {
+        const parsed = JSON.parse(obj);
+        return flattenObject(parsed, prefix);
+      } catch {
+        return [];
+      }
+    }
+
+    result.push({
+      key: prefix || "value",
+      value: obj,
+      path: prefix || "value",
+      dataType: typeof obj,
+    });
+    return result;
+  }
+
+  if (Array.isArray(obj)) {
+    result.push({
+      key: prefix || "array",
+      value: JSON.stringify(obj),
+      path: prefix || "array",
+      dataType: "array",
+    });
+
+    obj.forEach((item, idx) => {
+      const itemPath = prefix ? `${prefix}[${idx}]` : `[${idx}]`;
+      result.push(...flattenObject(item, itemPath));
+    });
+
+    return result;
+  }
+
+  Object.entries(obj).forEach(([key, value]) => {
+    const fullPath = prefix ? `${prefix}.${key}` : key;
+
+    if (value !== null && typeof value === "object") {
+      result.push(...flattenObject(value, fullPath));
+    } else {
+      result.push({
+        key: fullPath,
+        value: value,
+        path: fullPath,
+        dataType: typeof value,
+      });
+    }
+  });
+
+  return result;
+}
+
+export function analyzeSampleData(sampleLines) {
+  if (!sampleLines || sampleLines.length === 0) return null;
+
+  const fields = new Map();
+  let dataType = "unknown";
+
+  for (const line of sampleLines) {
+    const trimmed = line.trim();
+
+    if (
+      (trimmed.startsWith("[") || trimmed.startsWith("{")) &&
+      trimmed.length < 100000
+    ) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        const items = Array.isArray(parsed) ? parsed : [parsed];
+        dataType = "json";
+
+        items.forEach((item) => {
+          const ownerPath =
+            typeof item?.field === "string" && item.field.length > 0
+              ? item.field
+              : "";
+          flattenObject(item, ownerPath).forEach((f) => {
+            if (!fields.has(f.path)) {
+              fields.set(f.path, {
+                path: f.path,
+                label: f.path.split(".").pop(),
+                type: f.dataType,
+                values: new Set(),
+                count: 0,
+              });
+            }
+            const fieldInfo = fields.get(f.path);
+            if (f.value !== undefined && f.value !== null) {
+              fieldInfo.values.add(String(f.value).substring(0, 100));
+            }
+            fieldInfo.count++;
+          });
+        });
+      } catch {
+        return;
+      }
+    }
+
+    if (dataType === "unknown") {
+      const kvPattern = /(\w+)\s*[=:]\s*([^,;]+)/g;
+      let match;
+      let hasKV = false;
+
+      while ((match = kvPattern.exec(trimmed)) !== null) {
+        hasKV = true;
+        const key = match[1].trim();
+        const value = match[2].trim();
+
+        if (!fields.has(key)) {
+          fields.set(key, {
+            path: key,
+            label: key,
+            type: "string",
+            values: new Set(),
+            count: 0,
+          });
+        }
+        fields.get(key).values.add(value.substring(0, 100));
+        fields.get(key).count++;
+        dataType = "keyvalue";
+      }
+
+      if (!hasKV) {
+        const sqlPattern = /[@:?](\w+)/g;
+        while ((match = sqlPattern.exec(trimmed)) !== null) {
+          const param = match[1].trim();
+          if (!fields.has(param)) {
+            fields.set(param, {
+              path: param,
+              label: param,
+              type: "parameter",
+              values: new Set(),
+              count: 0,
+            });
+          }
+          fields.get(param).count++;
+          dataType = "sql";
+        }
+      }
+    }
+  }
+
+  if (fields.size > 0) {
+    return {
+      fields: Array.from(fields.values()).map((f) => ({
+        ...f,
+        values: Array.from(f.values),
+      })),
+      dataType,
+      sampleCount: sampleLines.length,
+    };
+  }
+
+  return null;
+}
+
 /**
  * 从提取结果项中智能提取可读值
  * 支持字符串化JSON、嵌套对象、数组等复杂结构

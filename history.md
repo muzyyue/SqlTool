@@ -1,5 +1,12 @@
 # 版本变更历史
 
+## 1.5.80 (2026-10-03) 优化参数提取字段树与主题预览
+
+- 字段树按对象建立目录，数组索引作为值保留，避免强制展开数组节点
+- 手动输入 JSON 时同步提供字段树和代码预览
+- 预览主题跟随全局浅/暗色主题切换，CodeMirror 与字段树样式使用统一 CSS 变量
+- 涉及文件: ParamExtractTab.vue, useParamExtractor.js, excel-fill-page.spec.js
+
 ## 1.5.79 (2026-06-24) 修复 Excel 空行生成 SQL 及清除文件后自定义字段残留
 
 - 修复 Excel 解析器：在 processExcelData 中过滤所有值为空的数据行，避免表格末尾空行生成 SQL

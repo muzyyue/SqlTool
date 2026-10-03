@@ -100,7 +100,7 @@ MD5/SHA 加密：实时计算 32/16 位大/小写；支持文件拖入哈希
 卡片 hover：抬高 2px + 阴影 lg 过渡 200ms
 代码编辑器：Tab 键插入 2 空格；切换暗色时编辑器主题同步 monokai / vs-light
 五、样式架构
-CSS变量（theme.js）→ UnoCSS（高频原子类）→ SCSS（复杂组件）→ Ant Design（基础UI）
+CSS变量（src/design/theme.css）→ UnoCSS（高频原子类）→ SCSS（显式 @use 变量/mixins）→ Ant Design（基础UI）
 CSS变量作为桥梁，三者共享主题；主题切换时变量值自动更新；元素只引用变量，不直接写颜色值
 六、性能 \& 兼容性
 首屏 JS ≤ 150 KB（gzip）

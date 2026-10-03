@@ -232,6 +232,9 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
+@use "@/design/scss/variables" as *;
+@use "@/design/scss/mixins" as *;
+
 // ========================================
 // 时间戳转换页面样式
 // 使用 SCSS 变量和混入实现主题适配
