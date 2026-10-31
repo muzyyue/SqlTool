@@ -114,6 +114,46 @@ describe("scanInvisibleChars", () => {
     const { issues } = scanInvisibleChars(src);
     expect(issues[0].context).toContain("⟦U+00A0⟧");
   });
+
+  it("注释中的全角标点降级为警告并标记 inComment", () => {
+    // 注释内容不参与解析，其中的全角标点不可能导致 YAML 报错
+    const src = `a: 1\n# 中文，注释：说明\nb: 2\n`;
+    const { issues } = scanInvisibleChars(src);
+    expect(issues).toHaveLength(2);
+    expect(issues.every((i) => i.severity === "warning")).toBe(true);
+    expect(issues.every((i) => i.inComment === true)).toBe(true);
+    expect(issues[0].reason).toContain("不影响解析");
+  });
+
+  it("正文中的全角标点仍判为错误", () => {
+    const src = `image${FULLWIDTH_COLON} nginx\n`;
+    const { issues } = scanInvisibleChars(src);
+    expect(issues[0].severity).toBe("error");
+    expect(issues[0].inComment).toBe(false);
+  });
+
+  it("# 前若不是空白则不视为注释", () => {
+    // `a#b` 中的 # 属于标量内容，其后的全角字符仍在正文里
+    const src = `key: a#${NBSP}b\n`;
+    const { issues } = scanInvisibleChars(src);
+    expect(issues[0].inComment).toBe(false);
+    expect(issues[0].severity).toBe("error");
+  });
+
+  it("引号内的 # 不开启注释状态", () => {
+    const src = `key: "a # b${FULLWIDTH_COLON} c"\n`;
+    const { issues } = scanInvisibleChars(src);
+    expect(issues[0].inComment).toBe(false);
+    expect(issues[0].severity).toBe("error");
+  });
+
+  it("注释内的零宽字符仍保持 error 级别", () => {
+    // 零宽字符属于应清理的脏字符，即便在注释里也不该放过
+    const src = `a: 1\n# note${ZWSP}\n`;
+    const { issues } = scanInvisibleChars(src);
+    expect(issues[0].codePoint).toBe(0x200b);
+    expect(issues[0].severity).toBe("error");
+  });
 });
 
 describe("fixRiskyChars", () => {

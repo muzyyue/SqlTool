@@ -80,6 +80,39 @@ pnpm lint                # 检查并自动修复
 Vitest 的 `isCustomElement: tag => tag.startsWith('a-')` 配置限制，含具名插槽的
 页面无法编译，因此页面主要通过 e2e 覆盖。
 
+## 持续集成
+
+工作流统一在 `.github/workflows/build.yml`（原先的 `build-and-release.yml`
+与 `build-and-deploy.yml` 已合并，避免每次 push 重复构建两遍）。
+
+| 事件 | 行为 |
+|---|---|
+| PR | 只跑 Lint + 单元测试，不构建、不发布 |
+| push 到 main / master | 构建一次 → 发布 GitHub Release |
+| 推送 `v*.*.*` 标签 | 构建一次 → 发布 GitHub Release |
+| push 且提交消息含 `Deploy` | 额外部署到 GitHub Pages |
+| 手动触发 | 可勾选 `deploy_pages` 部署 Pages |
+
+要点：
+
+- **构建只做一次**。产物同时以 `dist-zip`（Release 用）和 `dist-files`
+  （Pages 用）两种形态上传，`release` 与 `deploy` 各取所需。
+- **Release 无需特殊关键字**，push 即发布；只有 Pages 部署需要 `Deploy`。
+  关键字区分大小写，且只看最后一次提交的消息。
+- **权限按 job 隔离**：`release` 需要 `contents: write`，`deploy` 需要
+  `pages: write` + `id-token: write`。合并到顶层会互相干扰，必须分开写。
+- **不包含 Prettier 检查**。原 `build-and-deploy.yml` 写的
+  `pnpm run format -- --check` 实际执行 `prettier --write ... --check`，
+  `--check` 被忽略，该步骤永远通过；真实的 `prettier --check src/` 当前有
+  约 100 个文件不通过。要恢复严格检查，需先单独做一次全量格式化提交。
+
+调整工作流后可用以下命令自检关键行为（PR 是否误构建、deploy 是否误触发等）：
+
+```bash
+node scripts/check-workflow.mjs
+```
+
+
 ## 技术栈
 
 - Vue 3 + Composition API + `<script setup>`

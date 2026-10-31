@@ -268,6 +268,13 @@ export function scanInvisibleChars(text, options = {}) {
   let column = 1;
   // 全文只切分一次：命中多条问题时若每次都 text.split()，大文件会产生大量重复工作
   let lines = null;
+  // 注释状态：YAML 中 # 之后到行尾的内容不参与解析。
+  // 注释里的全角标点、零宽字符不会导致语法错误，必须与正文区分，
+  // 否则任何带中文注释的文件都会刷出一堆误报的错误。
+  let inComment = false;
+  let inSingleQuote = false;
+  let inDoubleQuote = false;
+  let prevChar = "";
 
   for (const char of text) {
     const code = char.codePointAt(0);
@@ -276,10 +283,29 @@ export function scanInvisibleChars(text, options = {}) {
     if (char === "\n") {
       line += 1;
       column = 1;
+      inComment = false;
+      prevChar = "";
       continue;
     }
     if (char === "\r") {
       continue;
+    }
+
+    // 引号状态只在与注释无关的正文中跟踪
+    if (!inComment) {
+      if (char === "'" && !inDoubleQuote) {
+        inSingleQuote = !inSingleQuote;
+      } else if (char === '"' && !inSingleQuote) {
+        inDoubleQuote = !inDoubleQuote;
+      } else if (
+        char === "#" &&
+        !inSingleQuote &&
+        !inDoubleQuote &&
+        (prevChar === "" || prevChar === " " || prevChar === "\t")
+      ) {
+        // # 之前必须是空白或行首才构成注释；`a#b` 中的 # 属于标量内容
+        inComment = true;
+      }
     }
 
     const info = RISKY_CHARS[code];
@@ -289,6 +315,10 @@ export function scanInvisibleChars(text, options = {}) {
       total += 1;
       if (issues.length < maxIssues) {
         lines ??= text.split(/\r?\n/);
+        // 注释内的全角标点不会破坏解析：降级为 warning 并说明原因。
+        // 零宽字符、BOM 即便在注释里也属于应清理的脏字符，保持原级别。
+        const harmlessInComment =
+          inComment && code >= 0xff00 && code <= 0xffef;
         issues.push({
           line,
           column,
@@ -296,15 +326,19 @@ export function scanInvisibleChars(text, options = {}) {
           codeHex: "U+" + code.toString(16).toUpperCase().padStart(4, "0"),
           char,
           name: info.name,
-          severity: info.severity,
-          reason: info.reason,
+          severity: harmlessInComment ? "warning" : info.severity,
+          reason: harmlessInComment
+            ? `${info.reason}（该字符位于注释中，不影响解析，可忽略）`
+            : info.reason,
           fix: info.fix,
+          inComment,
           // 便于在 UI 中展示上下文
           context: buildContext(lines, line, column),
         });
       }
     }
 
+    prevChar = char;
     column += 1;
   }
 
