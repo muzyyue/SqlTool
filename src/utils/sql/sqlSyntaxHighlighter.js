@@ -703,6 +703,27 @@ class SqlHighlighter {
   }
 }
 
+/**
+ * HTML 转义（供需要在 v-html 中展示原始文本的调用方复用）
+ * 与 SqlHighlighter._escapeHtml 保持同一套映射，避免两处规则漂移
+ * @param {string} text - 原始文本
+ * @returns {string} 转义后的文本
+ */
+export function escapeHtml(text) {
+  if (!text) return "";
+
+  const escapeMap = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#x27;",
+    "/": "&#x2F;",
+  };
+
+  return String(text).replace(/[&<>"'/]/g, (char) => escapeMap[char]);
+}
+
 // 导出单例实例
 export const sqlHighlighter = new SqlHighlighter();
 export { SqlSyntaxParser, SqlHighlighter, TOKEN_TYPES };

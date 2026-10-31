@@ -141,7 +141,7 @@ import {
 } from "@ant-design/icons-vue";
 import { useErrorHandler } from "@/composables/core/useErrorHandler";
 import { useSqlGeneratorEnhanced } from "@/composables/sql/useSqlGeneratorEnhanced";
-import { sqlHighlighter } from "@/utils/sql/sqlSyntaxHighlighter";
+import { sqlHighlighter, escapeHtml } from "@/utils/sql/sqlSyntaxHighlighter";
 
 const props = defineProps({
   sql: {
@@ -309,10 +309,12 @@ const highlightedSql = computed(() => {
       highlighted = sqlHighlighter.highlight(formattedSql.value);
     } catch (error) {
       console.error("语法高亮处理失败:", error);
-      highlighted = formattedSql.value;
+      // 高亮失败时同样必须转义，v-html 不接受未转义的原文
+      highlighted = escapeHtml(formattedSql.value);
     }
   } else {
-    highlighted = formattedSql.value;
+    // 关闭高亮时渲染纯文本，但仍要转义，否则 SQL 中的 HTML 会被执行
+    highlighted = escapeHtml(formattedSql.value);
   }
 
   // 更新缓存

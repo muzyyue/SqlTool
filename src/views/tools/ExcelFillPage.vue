@@ -8,7 +8,11 @@
     </div>
 
     <div class="content-container">
-      <VbenGlassCard title="上传 Excel 文件" class="upload-card">
+      <VbenGlassCard
+        :hoverable="false"
+        title="上传 Excel 文件"
+        class="upload-card"
+      >
         <a-upload-dragger
           :file-list="fileList"
           :before-upload="beforeUpload"
@@ -131,7 +135,12 @@
         </a-tab-pane>
       </a-tabs>
 
-      <VbenGlassCard title="数据预览" class="preview-card" v-if="workbook">
+      <VbenGlassCard
+        :hoverable="false"
+        title="数据预览"
+        class="preview-card"
+        v-if="workbook"
+      >
         <a-form layout="inline" style="margin-bottom: 16px">
           <a-form-item label="预览工作表">
             <a-select
@@ -208,7 +217,12 @@
         </template>
       </div>
 
-      <VbenGlassCard title="处理结果" class="result-card" v-if="result">
+      <VbenGlassCard
+        :hoverable="false"
+        title="处理结果"
+        class="result-card"
+        v-if="result"
+      >
         <a-descriptions bordered :column="1">
           <a-descriptions-item label="输入文件">
             {{ result.inputFile }}
@@ -2087,12 +2101,22 @@ const handleReset = () => {
   contain-intrinsic-size: auto 1000px;
 }
 
-// 卡片统一样式
+// 卡片统一样式（禁用 hover 上浮，仅保留内边距）
 .upload-card,
 .preview-card,
 .result-card {
   padding: 32px;
-  will-change: transform;
+}
+
+// 兜底：显式取消卡片 hover 时的位移与阴影增强
+.content-container :deep(.vben-glass-card) {
+  transition: none;
+  will-change: auto;
+}
+
+.content-container :deep(.vben-glass-card:hover) {
+  transform: translateZ(0);
+  box-shadow: var(--shadow-lg);
 }
 
 // 预览表格性能优化

@@ -103,6 +103,25 @@ export const tools = [
     route: "/tools/paramextract",
     tags: ["extract", "sql", "json", "parser", "unwrap"],
   },
+  {
+    id: "log-analyzer",
+    name: "日志错误分析",
+    description: "提取日志中的错误条目（含堆栈），统计错误类型与时间分布",
+    icon: "FileSearchOutlined",
+    category: "developer",
+    route: "/tools/loganalyzer",
+    tags: ["log", "error", "stack", "analyze", "统计"],
+  },
+  {
+    id: "yaml-validator",
+    name: "YAML 校验",
+    description:
+      "定位不可见字符与全角标点，检查 YAML 语法并提供 Docker Compose 专项规则",
+    icon: "FileTextOutlined",
+    category: "developer",
+    route: "/tools/yamlvalidator",
+    tags: ["yaml", "compose", "docker", "lint", "校验"],
+  },
 ];
 
 /**

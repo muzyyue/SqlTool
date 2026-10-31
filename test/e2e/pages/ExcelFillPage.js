@@ -100,7 +100,7 @@ export class ExcelFillPage {
    * 导航到 Excel 填充页面
    */
   async goto() {
-    await this.page.goto("http://localhost:5173/SqlTool/tools/excelfill");
+    await this.page.goto("http://localhost:8024/SqlTool/tools/excelfill");
     await this.page.waitForLoadState("domcontentloaded");
   }
 

@@ -70,7 +70,7 @@ export async function clickParseDdl(page) {
  * @param {string} baseUrl - 基础URL
  * @returns {Promise<boolean>} 是否成功上传
  */
-export async function uploadExcelFile(page, fileName = TEST_EXCEL_FILE, baseUrl = 'http://localhost:5173') {
+export async function uploadExcelFile(page, fileName = TEST_EXCEL_FILE, baseUrl = 'http://localhost:8024') {
   const result = await page.evaluate(async (options) => {
     try {
       const response = await fetch(`${options.baseUrl}/${options.fileName}`);

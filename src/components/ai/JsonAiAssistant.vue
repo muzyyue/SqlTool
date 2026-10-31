@@ -1281,11 +1281,34 @@ const formatFieldsResult = (result: FieldsResult): string => {
 
 /**
  * 格式化 Markdown
+ *
+ * 安全说明：输出经 v-html 渲染，因此必须先转义原始文本再生成标签，
+ * 否则 AI 返回的 `<script>`、`onerror=` 等内容会被当 HTML 执行。
+ * 转义发生在最前面，后续替换只会引入固定的安全标签。
+ *
  * @param text - Markdown 文本
  * @returns HTML 字符串
  */
 const formatMarkdown = (text: string): string => {
-  return text
+  if (!text) return "";
+
+  const escapeMap: Record<string, string> = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#x27;",
+  };
+
+  // 步骤 1：转义所有 HTML 元字符，断绝注入可能
+  const escaped = String(text).replace(
+    /[&<>"']/g,
+    (char) => escapeMap[char] ?? char,
+  );
+
+  // 步骤 2：在已转义的安全文本上生成受支持的标签
+  // 注意：`code` 在转义后可能包含 &lt; 等实体，但不会再形成标签
+  return escaped
     .replace(/^### (.*$)/gm, "<h3>$1</h3>")
     .replace(/^## (.*$)/gm, "<h2>$1</h2>")
     .replace(/^# (.*$)/gm, "<h1>$1</h1>")

@@ -32,7 +32,7 @@ export class InsertPage {
    * 导航到 INSERT 页面
    */
   async goto() {
-    await this.page.goto("http://localhost:5173/SqlTool/sql/insert");
+    await this.page.goto("http://localhost:8024/SqlTool/sql/insert");
     await this.page.waitForLoadState("domcontentloaded");
   }
 
@@ -190,7 +190,7 @@ export class UpdatePage {
   }
 
   async goto() {
-    await this.page.goto("http://localhost:5173/SqlTool/sql/update");
+    await this.page.goto("http://localhost:8024/SqlTool/sql/update");
     await this.page.waitForLoadState("domcontentloaded");
   }
 

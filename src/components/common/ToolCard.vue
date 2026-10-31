@@ -58,6 +58,8 @@ import {
   QrcodeOutlined,
   BgColorsOutlined,
   SearchOutlined,
+  FileSearchOutlined,
+  FileTextOutlined,
 } from "@ant-design/icons-vue";
 import { useFavorites } from "@/composables/data/useFavorites.js";
 
@@ -88,6 +90,8 @@ const iconMap = {
   QrcodeOutlined: QrcodeOutlined,
   BgColorsOutlined: BgColorsOutlined,
   SearchOutlined: SearchOutlined,
+  FileSearchOutlined: FileSearchOutlined,
+  FileTextOutlined: FileTextOutlined,
 };
 
 /**

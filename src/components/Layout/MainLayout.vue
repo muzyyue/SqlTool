@@ -336,15 +336,39 @@ onMounted(() => {
   flex: 1;
   display: flex;
   justify-content: center;
+  align-items: center;
 }
 
 .nav-menu :deep(.ant-menu) {
   background: transparent;
   border: none;
+  height: 100%;
+  max-height: 64px;
+  overflow: hidden;
   transition:
     color var(--transition-normal) ease,
     background-color var(--transition-normal) ease,
     border-color var(--transition-normal) ease;
+}
+
+/* 去掉 antd 水平菜单的底部蓝色指示条：
+   选中态已由背景色标识，该指示条会越过 header 底边形成溢出的蓝线 */
+.nav-menu :deep(.ant-menu-item::after),
+.nav-menu :deep(.ant-menu-submenu::after),
+.nav-menu :deep(.ant-menu-submenu-title::after) {
+  display: none !important;
+  border-bottom: none !important;
+}
+
+.nav-menu :deep(.ant-menu-item),
+.nav-menu :deep(.ant-menu-submenu-title) {
+  height: auto;
+  line-height: 1.5;
+  display: flex;
+  align-items: center;
+  border-radius: 8px;
+  margin: 0 2px;
+  padding: 8px 16px;
 }
 
 .nav-menu :deep(.ant-menu-item) {
@@ -359,6 +383,7 @@ onMounted(() => {
 .nav-menu :deep(.ant-menu-item-selected) {
   color: var(--nav-item-text-hover);
   background: var(--nav-item-bg-selected);
+  border-radius: 8px;
 }
 
 .header-actions {

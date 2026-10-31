@@ -51,8 +51,15 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
+      # 质量门禁：lint 与单元测试在构建前执行，失败即中止发布
+      - name: Lint
+        run: pnpm run lint:check
+
+      - name: Unit tests
+        run: pnpm run test:run
+
       - name: Build project
-        run: pnpm run build
+        run: pnpm run build:full
 
       - name: Archive build files
         run: |

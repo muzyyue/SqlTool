@@ -160,11 +160,11 @@ body {
 }
 
 /* 焦点可见性（无障碍） */
-  *:focus-visible {
-    outline: 2px solid var(--border-focus);
-    outline-offset: 2px;
-    border-radius: 4px;
-  }
+*:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
 
 /* 选择文本样式 */
 ::selection {

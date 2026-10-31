@@ -27,9 +27,6 @@ test/scripts/
 *.xlsx
 # test/config/目录需要被git跟踪，供GitHub Actions使用
 !test/config/
-*.md
-!AGENTS.md
-!CLAUDE.md
 test/custom_field_function_test.js
 test_data.csv
 
@@ -61,6 +58,8 @@ Thumbs.db
 .trae/
 .eslintcache
 *.tsbuildinfo
+# OpenChamber 会话截图与工作区元数据，仅本地使用
+.openchamber/
 
 # IDE/Editor configs (local only)
 .vscode/
@@ -77,6 +76,9 @@ Thumbs.db
 
 # Documentation
 项目重构架构设计.md
+# 个人需求清单与版本变更历史，仅本地保留，不入库
+request.md
+history.md
 
 
 # Cypress
