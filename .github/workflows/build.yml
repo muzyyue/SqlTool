@@ -124,7 +124,48 @@ jobs:
         id: version
         run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
 
+      # 防止重复发布覆盖旧产物
+      #
+      # 背景：action-gh-release 在 tag 已存在时不会报错，而是把新附件
+      # 追加/覆盖到旧 Release 上。若提交时忘记递增 package.json 版本号，
+      # 同一个 v1.5.x 会被反复写入，先前版本的 dist.zip 就此丢失。
+      #
+      # 这里检测 tag 是否已存在：存在则跳过发布并给出警告，不覆盖旧产物，
+      # 也不让整个流水线变红（避免纯文档提交因未升版本号而报错）。
+      # 若希望改为硬失败，把本步骤的 exit 0 换成 exit 1 即可。
+      - name: Check whether tag already exists
+        id: tag_check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+          REPO: ${{ github.repository }}
+        run: |
+          status=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${REPO}/git/ref/tags/v${VERSION}")
+
+          case "$status" in
+            404)
+              # 明确不存在，可以发布
+              echo "exists=false" >> "$GITHUB_OUTPUT"
+              echo "标签 v${VERSION} 可用，继续发布"
+              ;;
+            200)
+              # 已存在，跳过以免覆盖
+              echo "exists=true" >> "$GITHUB_OUTPUT"
+              echo "::warning title=版本号未递增，已跳过发布::标签 v${VERSION} 已存在，为避免覆盖该版本已有的发布产物，本次跳过创建 Release。请递增 package.json 中的版本号后再提交。"
+              ;;
+            *)
+              # 401/403/网络异常等：无法确认安全，按“已存在”处理并跳过，
+              # 避免在不确定的状态下写入、把旧产物覆盖掉
+              echo "exists=true" >> "$GITHUB_OUTPUT"
+              echo "::warning title=无法确认标签状态，已跳过发布::查询 v${VERSION} 返回 HTTP ${status}，为避免误覆盖已跳过发布。"
+              ;;
+          esac
+
       - name: Download build artifact
+        if: steps.tag_check.outputs.exists == 'false'
         uses: actions/download-artifact@v4
         with:
           name: dist-zip
@@ -132,6 +173,7 @@ jobs:
 
       - name: Create GitHub Release
         id: create_release
+        if: steps.tag_check.outputs.exists == 'false'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.version }}

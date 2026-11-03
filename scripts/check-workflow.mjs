@@ -60,6 +60,29 @@ checks.push(["deploy needs build", wf.jobs.deploy.needs === "build"]);
 const buildRuns = buildSteps.filter((s) => s.run?.includes("build:full"));
 checks.push(["构建命令只出现一次", buildRuns.length === 1]);
 
+// 7. 重复发布防护：tag 已存在时不得覆盖旧产物
+const releaseSteps = wf.jobs.release.steps;
+const tagCheck = releaseSteps.find((s) => s.id === "tag_check");
+checks.push(["release 有 tag 存在性检查", !!tagCheck]);
+checks.push([
+  "tag 检查查询 git/ref/tags",
+  !!tagCheck && String(tagCheck.run).includes("/git/ref/tags/"),
+]);
+checks.push([
+  "tag 已存在时跳过下载产物",
+  releaseSteps.find((s) => s.name === "Download build artifact")?.if ===
+    "steps.tag_check.outputs.exists == 'false'",
+]);
+checks.push([
+  "tag 已存在时跳过创建 Release",
+  releaseSteps.find((s) => s.name === "Create GitHub Release")?.if ===
+    "steps.tag_check.outputs.exists == 'false'",
+]);
+checks.push([
+  "查询失败时不按可用处理（避免误覆盖）",
+  !!tagCheck && String(tagCheck.run).includes("*)") && String(tagCheck.run).includes("exists=true"),
+]);
+
 let failed = 0;
 for (const [label, ok] of checks) {
   console.log(`${ok ? "PASS" : "FAIL"}  ${label}`);

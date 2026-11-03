@@ -105,11 +105,22 @@ Vitest 的 `isCustomElement: tag => tag.startsWith('a-')` 配置限制，含具�
   `pnpm run format -- --check` 实际执行 `prettier --write ... --check`，
   `--check` 被忽略，该步骤永远通过；真实的 `prettier --check src/` 当前有
   约 100 个文件不通过。要恢复严格检查，需先单独做一次全量格式化提交。
+- **发布前会检查 tag 是否已存在**。`action-gh-release` 在 tag 已存在时不会
+  报错，而是把新附件覆盖到旧 Release 上。若提交时忘记递增 `package.json`
+  版本号，同一版本号的 `dist.zip` 会被反复写入，先前产物就此丢失。
+  为此 `release` 步骤会先查询 `git/ref/tags/v<version>`：
+  - 返回 404：正常发布
+  - 返回 200：跳过发布并输出 warning，提示版本号未递增
+  - 其他状态（401/403/5xx/网络失败）：同样跳过，避免在不确定状态下误覆盖
 
-调整工作流后可用以下命令自检关键行为（PR 是否误构建、deploy 是否误触发等）：
+  想让重复发布直接失败（而不是跳过），把该步骤中 `exists=true` 的分支
+  改为 `exit 1` 即可。
+
+调整工作流后可用以下命令自检关键行为：
 
 ```bash
-node scripts/check-workflow.mjs
+node scripts/check-workflow.mjs   # 结构断言：PR 不构建、deploy 不误触发、权限分离等
+node scripts/check-tag-guard.mjs  # 执行 workflow 中真实的 tag 检查 shell，验证 6 种返回码分支
 ```
 
 
