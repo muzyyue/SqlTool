@@ -10,6 +10,7 @@ import {
   fixRiskyChars,
   validateYaml,
   checkCompose,
+  guessFileKind,
   RISKY_CHARS,
 } from "@/utils/yaml/yamlValidator";
 
@@ -434,5 +435,205 @@ describe("真实故障场景回归", () => {
     const { issues } = scanInvisibleChars(`a:${NBSP}1\n`);
     expect(issues[0].reason).toMatch(/[\u4e00-\u9fa5]/);
     expect(issues[0].fix).toMatch(/[\u4e00-\u9fa5]/);
+  });
+});
+
+describe("通用 YAML 校验（非 Compose 文件）", () => {
+  it("K8s 清单在默认模式下直接通过", () => {
+    const src = [
+      "apiVersion: apps/v1",
+      "kind: Deployment",
+      "metadata:",
+      "  name: web",
+      "spec:",
+      "  replicas: 3",
+      "",
+    ].join("\n");
+    const r = validateYaml(src);
+    expect(r.ok).toBe(true);
+    expect(r.errorCount).toBe(0);
+    expect(r.composeIssues).toHaveLength(0);
+  });
+
+  it("默认不再要求顶层 services", () => {
+    // 旧实现把 compose 当默认，任何非 Compose 文件都会被判错误
+    const r = validateYaml("name: demo\nversion: 2\n");
+    expect(r.ok).toBe(true);
+    expect(r.composeIssues).toHaveLength(0);
+  });
+
+  it("显式开启 Compose 时才检查 services", () => {
+    const src = "kind: Pod\nmetadata:\n  name: a\n";
+    expect(validateYaml(src).composeIssues).toHaveLength(0);
+    expect(validateYaml(src, { compose: true }).composeIssues.length).toBeGreaterThan(0);
+  });
+
+  it("GitHub Actions 配置可正常校验", () => {
+    const src = [
+      "name: CI",
+      "on:",
+      "  push:",
+      "    branches: [main]",
+      "jobs:",
+      "  build:",
+      "    runs-on: ubuntu-latest",
+      "    steps:",
+      "      - uses: actions/checkout@v4",
+      "",
+    ].join("\n");
+    const r = validateYaml(src);
+    expect(r.ok).toBe(true);
+    expect(r.parseErrors).toHaveLength(0);
+  });
+
+  it("普通配置文件（无 Compose 结构）不报错误", () => {
+    const r = validateYaml("theme:\n  color: '#1677ff'\n  radius: 8\n");
+    expect(r.ok).toBe(true);
+  });
+});
+
+describe("多文档 YAML", () => {
+  it("--- 分隔的多文档不再报错", () => {
+    const src = [
+      "---",
+      "kind: Pod",
+      "metadata: { name: a }",
+      "---",
+      "kind: Service",
+      "metadata: { name: b }",
+      "",
+    ].join("\n");
+    const r = validateYaml(src);
+    expect(r.ok).toBe(true);
+    expect(r.docCount).toBe(2);
+    expect(r.parseErrors).toHaveLength(0);
+    // 多文档时结构摘要返回数组
+    expect(Array.isArray(r.data)).toBe(true);
+    expect(r.data).toHaveLength(2);
+  });
+
+  it("多文档中某一份有语法错误时能定位到对应文档", () => {
+    const src = ["---", "a: 1", "---", "b: [1, 2", "---", "c: 3", ""].join("\n");
+    const r = validateYaml(src);
+    expect(r.ok).toBe(false);
+    expect(r.parseErrors.length).toBeGreaterThan(0);
+    // 出错的是第 2 份（索引 1）
+    expect(r.parseErrors[0].docIndex).toBe(1);
+  });
+
+  it("单文档时内容摘要为对象而非数组", () => {
+    const r = validateYaml("a: 1\nb: 2\n");
+    expect(r.docCount).toBe(1);
+    expect(Array.isArray(r.data)).toBe(false);
+    expect(r.data).toEqual({ a: 1, b: 2 });
+  });
+});
+
+describe("通用 YAML 专项检查", () => {
+  it("末尾带 0 的数字被识别为精度丢失", () => {
+    // YAML 会把 1.10 解析成数字 1.1，版本号末位 0 消失
+    const r = validateYaml("version: 1.10\n");
+    expect(r.warningCount).toBeGreaterThan(0);
+    expect(r.genericIssues[0].message).toContain("1.10");
+    expect(r.genericIssues[0].hint).toContain('"1.10"');
+  });
+
+  it("前导 0 的数字被告警", () => {
+    const r = validateYaml("build: 0123\n");
+    expect(r.genericIssues.some((i) => i.message.includes("0123"))).toBe(true);
+  });
+
+  it("数字中的下划线在 YAML 1.2 下本就是字符串，不告警", () => {
+    // YAML 1.2 不再支持 1_000 作为数字，source 与 value 相同
+    const r = validateYaml("count: 1_000\n");
+    expect(r.genericIssues).toHaveLength(0);
+    expect(r.ok).toBe(true);
+  });
+
+  it("科学计数法被转成数字时告警", () => {
+    const r = validateYaml("big: 9e99\n");
+    expect(r.genericIssues.some((i) => i.message.includes("9e99"))).toBe(true);
+  });
+
+  it("普通整数与小数不告警", () => {
+    const r = validateYaml("port: 8080\nratio: 0.5\nneg: -3\n");
+    expect(r.genericIssues).toHaveLength(0);
+  });
+
+  it("加引号后不再告警", () => {
+    const r = validateYaml('version: "1.10"\n');
+    expect(r.genericIssues).toHaveLength(0);
+  });
+
+  it("空值与 ~ 不算类型转换问题", () => {
+    const r = validateYaml("a:\nb: ~\n");
+    expect(r.genericIssues).toHaveLength(0);
+  });
+
+  it("键名漏写冒号后的空格能被识别", () => {
+    const r = validateYaml("name:value\nurl: http://example.com\n");
+    const hit = r.genericIssues.find((i) => i.message.includes("漏了空格"));
+    expect(hit).toBeDefined();
+    expect(hit.severity).toBe("error");
+    expect(hit.hint).toContain("引号");
+  });
+
+  it("已加引号的含冒号键名不误报", () => {
+    const r = validateYaml('"a:b": 1\n');
+    expect(r.genericIssues).toHaveLength(0);
+    expect(r.ok).toBe(true);
+  });
+
+  it("未定义别名被报告为错误", () => {
+    // 这类问题 doc.errors 为空，只有 toJS 才会抛，旧实现会静默吞掉
+    const r = validateYaml("a: *nope\n");
+    const hit = r.genericIssues.find((i) => i.severity === "error");
+    expect(hit).toBeDefined();
+    expect(hit.message).toContain("别名");
+  });
+
+  it("已定义的锚点与别名不报错", () => {
+    const r = validateYaml("base: &b\n  x: 1\nuse:\n  <<: *b\n");
+    expect(r.genericIssues).toHaveLength(0);
+  });
+
+  it("关闭类型检查后不再提示", () => {
+    const r = validateYaml("version: 1.10\n", { checkTypes: false });
+    expect(r.genericIssues).toHaveLength(0);
+  });
+});
+
+describe("guessFileKind 文件名推断", () => {
+  it("识别 Compose 文件", () => {
+    expect(guessFileKind("docker-compose.yml")).toBe("compose");
+    expect(guessFileKind("docker-compose.yaml")).toBe("compose");
+    expect(guessFileKind("compose.yml")).toBe("compose");
+  });
+
+  it("识别 K8s 与 CI 配置", () => {
+    expect(guessFileKind("k8s/deploy.yaml")).toBe("k8s");
+    expect(guessFileKind(".github/workflows/ci.yml")).toBe("actions");
+    expect(guessFileKind(".gitlab-ci.yml")).toBe("ci");
+  });
+
+  it("识别 Helm 与包管理配置", () => {
+    expect(guessFileKind("Chart.yaml")).toBe("helm");
+    expect(guessFileKind("values.yaml")).toBe("helm");
+    expect(guessFileKind("pnpm-workspace.yaml")).toBe("packages");
+  });
+
+  it("未知文件名回退为 generic", () => {
+    expect(guessFileKind("随便.yaml")).toBe("generic");
+    expect(guessFileKind("")).toBe("generic");
+    expect(guessFileKind(undefined)).toBe("generic");
+  });
+
+  it("Windows 路径分隔符也能正确识别", () => {
+    expect(guessFileKind("deploy\\k8s\\chart.yaml")).not.toBe("generic");
+  });
+
+  it("validateYaml 会回填 fileKind", () => {
+    expect(validateYaml("a: 1\n", { fileName: "docker-compose.yml" }).fileKind).toBe("compose");
+    expect(validateYaml("a: 1\n", { fileName: "app.yml" }).fileKind).toBe("generic");
   });
 });

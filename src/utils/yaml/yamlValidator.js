@@ -1,18 +1,25 @@
 /**
  * YAML 校验模块
  *
- * 针对「Linux 上 Docker Compose 因 YAML 未知字符起不来」这一真实场景设计。
+ * 面向两类使用场景：
+ *   一、通用 YAML 文件（K8s 清单、CI 配置、Helm、任意配置文件）
+ *   二、Docker Compose 文件（在通用检查之上追加专项规则）
+ *
  * 与通用 YAML 解析器的关键区别：解析器只会报
  *   `found character that cannot start any token`
  * 却不告诉你到底是哪个字符、位于第几列、Unicode 码位是什么、从哪复制来的。
  *
- * 本模块分三层检查：
+ * 本模块分四层检查：
  *   1. scanInvisibleChars —— 逐字符扫描不可见字符与全角标点（解析器做不到）
- *   2. YAML.parseDocument —— 结构合法性（遵循 YAML 1.2，含重复键与缩进警告）
- *   3. checkCompose —— Docker Compose 专项规则
+ *   2. parseAllDocuments —— 结构合法性，支持多文档（解析器默认只认单文档）
+ *   3. checkGenericYaml  —— 任何 YAML 都可能踩到的坑（类型隐式转换、键名含冒号、别名）
+ *   4. checkCompose      —— Docker Compose 专项规则（按需启用）
  */
 
-import { parseDocument } from "yaml";
+import { isMap as yamlIsMap, isSeq as yamlIsSeq, parseAllDocuments } from "yaml";
+
+const isMap = (node) => yamlIsMap(node);
+const isSeq = (node) => yamlIsSeq(node);
 
 /**
  * 危险字符表
@@ -242,6 +249,39 @@ const DELETE_CHARS = new Set([
 
 /** 被视为「替换为普通换行」的码位 */
 const NEWLINE_CHARS = new Set([0x2028, 0x2029]);
+
+/**
+ * 常见文件类型推断
+ *
+ * 用于在「通用模式」下按文件名给出更贴合的提示，例如
+ * docker-compose.yml 自动启用 Compose 专项规则。
+ * 只做后缀文件名匹配，不读内容，避免误判。
+ */
+const FILE_KIND_HINTS = [
+  { pattern: /^(docker-)?compose\.ya?ml$/i, kind: "compose" },
+  { pattern: /^(k8s|kubernetes)/i, kind: "k8s" },
+  { pattern: /\.github\/workflows\//i, kind: "actions" },
+  { pattern: /^\.?gitlab-ci\.ya?ml$/i, kind: "ci" },
+  { pattern: /^Chart\.ya?ml$/i, kind: "helm" },
+  { pattern: /^values\.ya?ml$/i, kind: "helm" },
+  { pattern: /^pubspec\.ya?ml$/i, kind: "packages" },
+  { pattern: /^pnpm-workspace\.ya?ml$/i, kind: "packages" },
+  { pattern: /^\.?prettierrc\.ya?ml$/i, kind: "config" },
+];
+
+/**
+ * 依据文件名推断 YAML 用途
+ * @param {string} name - 文件名或路径
+ * @returns {string} compose / k8s / actions / ci / helm / packages / config / generic
+ */
+export function guessFileKind(name) {
+  const normalized = String(name ?? "").replace(/\\/g, "/");
+  const base = normalized.split("/").pop() ?? "";
+  for (const { pattern, kind } of FILE_KIND_HINTS) {
+    if (pattern.test(base) || pattern.test(normalized)) return kind;
+  }
+  return "generic";
+}
 
 /**
  * 扫描文本中的危险字符
@@ -623,77 +663,169 @@ export function checkCompose(doc) {
 }
 
 /**
- * 主校验入口
+ * 通用 YAML 专项检查（不假定是 Compose）
  *
- * @param {string} text - YAML 全文
- * @param {object} [options]
- * @param {boolean} [options.compose=false] - 是否启用 Docker Compose 专项检查
- * @param {boolean} [options.includeTab=true] - 是否把 Tab 视为问题
- * @returns {object} 校验结果
+ * 针对任何 YAML 文件都可能踩到的坑：
+ *   1. 隐式类型转换导致值被悄悄改写（如 version: 1.10 → 1.1、0123 → 123）
+ *   2. 键名里混入冒号（漏写冒号后的空格），键会被解析成一整串
+ *   3. 未定义别名（错误只在 toJS 时暴露）
+ *   4. 重复键（由解析器报告，这里补一条可读说明）
+ *   5. 顶层结构类型提示
+ *
+ * @param {*} doc - 单个 YAML Document
+ * @param {string} source - 该文档对应的源码片段
+ * @param {number} [docIndex] - 多文档时的序号（从 0 开始）
+ * @returns {Array} 问题列表
  */
-export function validateYaml(text, options = {}) {
-  const { compose = false, includeTab = true } = options;
+export function checkGenericYaml(doc, source) {
+  const issues = [];
+  const push = (item) => issues.push(item);
 
-  const source = typeof text === "string" ? text : "";
+  const contents = doc?.contents;
+  if (!contents) {
+    // 空文档（空文件、仅注释）不算错误，直接返回
+    return issues;
+  }
 
-  // 第一层：不可见字符
-  const invisible = scanInvisibleChars(source, { includeTab });
+  // 1. 未定义别名：doc.errors 为空，但 toJS 会抛错
+  if (isMap(contents) || isSeq(contents)) {
+    try {
+      doc.toJS({ maxAliasCount: 100 });
+    } catch (err) {
+      const msg = String(err?.message ?? "");
+      if (/alias|anchor/i.test(msg)) {
+        push({
+          severity: "error",
+          path: "(别名)",
+          message: `别名无法解析：${msg.split("\n")[0]}`,
+          hint: "别名（*name）必须先由锚点（&name）定义，且锚点要在引用之前出现。",
+        });
+      }
+    }
+  }
 
-  // 第二层：结构解析
-  const doc = parseDocument(source, {
-    // 记录出现重复键等情况
-    uniqueKeys: true,
-    // 保留注释便于后续显示
-    keepSourceTokens: false,
-  });
+  // 2. 键名中混入冒号（通常是 "key:value" 漏了空格）
+  if (isMap(contents)) {
+    for (const pair of contents.items) {
+      const key = pair.key;
+      if (!key || typeof key.value !== "string") continue;
+      const raw = typeof key.source === "string" ? key.source : "";
+      // 已加引号的键是作者有意为之，不报
+      if (key.type && key.type !== "PLAIN") continue;
+      // 未加引号的键里出现冒号，几乎必然是漏写空格
+      if (raw.includes(":")) {
+        const line = key.range?.[0] != null ? lineOf(source, key.range[0]) : null;
+        push({
+          severity: "error",
+          path: String(key.value),
+          line,
+          message: `键名「${key.value}」中含有冒号，冒号后可能漏了空格。`,
+          hint: 'YAML 的键值分隔必须是「冒号 + 空格」。若键名本身含冒号，需加引号，如 "a:b": 1。',
+        });
+      }
+    }
+  }
 
-  const parseErrors = doc.errors.map((e) => ({
-    line: e.linePos?.[0]?.line ?? null,
-    column: e.linePos?.[0]?.col ?? null,
-    message: e.message.split("\n")[0],
-    fullMessage: e.message,
-  }));
-
-  const parseWarnings = doc.warnings.map((w) => ({
-    line: w.linePos?.[0]?.line ?? null,
-    column: w.linePos?.[0]?.col ?? null,
-    message: w.message.split("\n")[0],
-    fullMessage: w.message,
-  }));
-
-  // 第三层：Compose 专项
-  const composeIssues = compose ? checkCompose(doc) : [];
-
-  const lineCount = source.length === 0 ? 0 : source.split(/\r?\n/).length;
-
-  const errorCount =
-    parseErrors.length +
-    invisible.issues.filter((i) => i.severity === "error").length +
-    composeIssues.filter((i) => i.severity === "error").length;
-
-  const warningCount =
-    parseWarnings.length +
-    invisible.issues.filter((i) => i.severity === "warning").length +
-    composeIssues.filter((i) => i.severity === "warning").length;
-
-  return {
-    ok: errorCount === 0,
-    lineCount,
-    errorCount,
-    warningCount,
-    invisible: invisible.issues,
-    invisibleTotal: invisible.total,
-    invisibleTruncated: invisible.truncated,
-    parseErrors,
-    parseWarnings,
-    composeIssues,
-    // 解析成功时的数据结构，供 UI 展示摘要
-    data: doc.errors.length === 0 ? safeToJS(doc) : null,
-  };
+  return issues;
 }
 
 /**
- * 安全地把 YAML Document 转为 JS 对象
+ * 把字符偏移量换算成行号（从 1 开始）
+ * @param {string} source
+ * @param {number} offset
+ * @returns {number|null}
+ */
+function lineOf(source, offset) {
+  if (typeof source !== "string" || offset == null || offset < 0) return null;
+  let line = 1;
+  for (let i = 0; i < offset && i < source.length; i += 1) {
+    if (source[i] === "\n") line += 1;
+  }
+  return line;
+}
+
+/**
+ * 检查隐式类型转换
+ *
+ * YAML 会按规范把未加引号的值转成数字/布尔/null，这在配置里常常是事故来源：
+ *   version: 1.10   → 1.1     （版本号被吃掉末位 0）
+ *   build: 0123     → 123     （前导 0 被去掉）
+ *   port: 1_000     → 1000
+ * 只要 source（原文）与转换后的 value 文本不一致，就提示用户加引号。
+ *
+ * @param {*} doc
+ * @param {string} source
+ * @returns {Array}
+ */
+function checkImplicitTypes(doc, source) {
+  const issues = [];
+  const contents = doc?.contents;
+  if (!isMap(contents)) return issues;
+
+  for (const pair of contents.items) {
+    const node = pair.value;
+    if (!node || typeof node.source !== "string") continue;
+    const raw = node.source;
+    const converted = String(node.value);
+
+    // 只关心「原文与转换结果不同」的标量
+    if (raw === converted) continue;
+
+    // 空值（键后面什么都没写）是合法的 YAML，不是类型转换
+    if (raw === "" || raw === "~") continue;
+
+    // null 转换（~、null、Null、NULL）一般是有意的，不报
+    if (node.value === null && /^(~|null)$/i.test(raw)) continue;
+
+    // 普通整数/小数且能原样还原的不报：1、-2、0.5、9e99 之外的常规写法
+    // 注意 1.10 这类「末尾带 0 的小数」必须报，因为转成 1.1 丢了信息
+    if (
+      typeof node.value === "number" &&
+      /^-?(0|[1-9]\d*)$/.test(raw)
+    ) {
+      continue;
+    }
+
+    const keyName = pair.key?.value;
+    const line = node.range?.[0] != null ? lineOf(source, node.range[0]) : null;
+
+    let reason = `值「${raw}」被解释为 ${typeof node.value}（${converted}），与原文不一致。`;
+    if (typeof node.value === "number" && /^0\d/.test(raw)) {
+      reason = `值「${raw}」以 0 开头，被当作数字解析成 ${converted}，前导 0 丢失。`;
+    } else if (typeof node.value === "number" && /^\d+\.\d*0$/.test(raw)) {
+      reason = `值「${raw}」作为数字会丢掉末尾的 0，实际值为 ${converted}。`;
+    }
+
+    issues.push({
+      severity: "warning",
+      path: String(keyName ?? ""),
+      line,
+      message: reason,
+      hint: `若要保持原文，请加引号：${keyName}: "${raw}"`,
+    });
+  }
+
+  return issues;
+}
+
+/**
+ * 把解析器错误/警告统一成 UI 可用的结构
+ * @param {Array} list - doc.errors 或 doc.warnings
+ * @param {number} docIndex
+ * @returns {Array}
+ */
+function normalizeMessages(list, docIndex = 0) {
+  return (list ?? []).map((e) => ({
+    line: e.linePos?.[0]?.line ?? null,
+    column: e.linePos?.[0]?.col ?? null,
+    message: String(e.message ?? "").split("\n")[0],
+    fullMessage: String(e.message ?? ""),
+    docIndex,
+  }));
+}
+
+/**
+ * 安全地把 YAML Document 转为 JS，失败时返回 null 而不抛错
  * @param {*} doc
  * @returns {*}
  */
@@ -703,4 +835,98 @@ function safeToJS(doc) {
   } catch {
     return null;
   }
+}
+
+/**
+ * 主校验入口
+ *
+ * 默认按「通用 YAML」校验：不再强制要求顶层 services，
+ * 因此 K8s 清单、CI 配置、Helm values、任意配置文件都能正常通过。
+ *
+ * @param {string} text - YAML 全文
+ * @param {object} [options]
+ * @param {boolean} [options.compose=false] - 是否追加 Docker Compose 专项检查
+ * @param {boolean} [options.includeTab=true] - 是否把 Tab 视为问题
+ * @param {boolean} [options.checkTypes=true] - 是否检查隐式类型转换
+ * @param {string} [options.fileName] - 文件名，用于推断用途
+ * @returns {object} 校验结果
+ */
+export function validateYaml(text, options = {}) {
+  const {
+    compose = false,
+    includeTab = true,
+    checkTypes = true,
+    fileName = "",
+  } = options;
+
+  const source = typeof text === "string" ? text : "";
+
+  // 第一层：不可见字符
+  const invisible = scanInvisibleChars(source, { includeTab });
+
+  // 第二层：结构解析，支持 --- 分隔的多文档
+  const docs = parseAllDocuments(source, {
+    uniqueKeys: true,
+    keepSourceTokens: false,
+  });
+
+  const parseErrors = [];
+  const parseWarnings = [];
+  docs.forEach((doc, index) => {
+    parseErrors.push(...normalizeMessages(doc.errors, index));
+    parseWarnings.push(...normalizeMessages(doc.warnings, index));
+  });
+
+  // 第三层：通用 YAML 检查
+  const genericIssues = [];
+  docs.forEach((doc) => {
+    genericIssues.push(...checkGenericYaml(doc, source));
+    if (checkTypes) genericIssues.push(...checkImplicitTypes(doc, source));
+  });
+
+  // 第四层：Compose 专项。多文档场景下 Compose 语义不适用，避免误报
+  const composeIssues =
+    compose && docs.length === 1 ? checkCompose(docs[0]) : [];
+
+  const lineCount = source.length === 0 ? 0 : source.split(/\r?\n/).length;
+
+  const countSeverity = (list, level) =>
+    list.filter((i) => i.severity === level).length;
+
+  const errorCount =
+    parseErrors.length +
+    countSeverity(invisible.issues, "error") +
+    countSeverity(genericIssues, "error") +
+    countSeverity(composeIssues, "error");
+
+  const warningCount =
+    parseWarnings.length +
+    countSeverity(invisible.issues, "warning") +
+    countSeverity(genericIssues, "warning") +
+    countSeverity(composeIssues, "warning");
+
+  // 解析成功时给出结构摘要：多文档返回数组，单文档返回对象
+  const data =
+    parseErrors.length > 0
+      ? null
+      : docs.length > 1
+        ? docs.map((d) => safeToJS(d))
+        : safeToJS(docs[0]);
+
+  return {
+    ok: errorCount === 0,
+    lineCount,
+    docCount: docs.length,
+    fileKind: guessFileKind(fileName),
+    errorCount,
+    warningCount,
+    invisible: invisible.issues,
+    invisibleTotal: invisible.total,
+    invisibleTruncated: invisible.truncated,
+    parseErrors,
+    parseWarnings,
+    genericIssues,
+    composeIssues,
+    data,
+  };
 }

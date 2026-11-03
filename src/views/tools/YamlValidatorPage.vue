@@ -7,7 +7,8 @@
           <div>
             <h1 class="page-title">YAML 校验</h1>
             <p class="page-subtitle">
-              定位不可见字符与全角标点，并做 Docker Compose 专项检查
+              通用 YAML 校验：定位不可见字符与全角标点，检查语法与类型陷阱；可选
+              Docker Compose 专项规则
             </p>
           </div>
           <div class="header-actions">
@@ -69,6 +70,11 @@
             </div>
 
             <div class="option-row">
+              <label>检查类型隐式转换</label>
+              <a-switch v-model:checked="options.checkTypes" />
+            </div>
+
+            <div class="option-row">
               <label>启用 Docker Compose 检查</label>
               <a-switch v-model:checked="options.compose" />
             </div>
@@ -90,13 +96,22 @@
           </div>
 
           <div class="supported-formats">
-            <div class="formats-title">能定位的问题</div>
+            <div class="formats-title">通用检查（适用于任何 YAML）</div>
             <ul>
-              <li><code>NBSP U+00A0</code>、各类 Unicode 空格、全角空格</li>
-              <li><code>ZWSP U+200B</code>、ZWNJ / ZWJ、BOM</li>
-              <li>全角冒号<code>：</code>、逗号、括号、引号</li>
-              <li><code>U+2028 / U+2029</code> 行与段分隔符</li>
-              <li>Tab 缩进，以及 Compose 的 image / volumes / depends_on / ports</li>
+              <li>语法错误：缩进、未闭合引号、重复键、多文档结构</li>
+              <li>
+                类型隐式转换：<code>version: 1.10</code> → 1.1、<code>0123</code> →
+                123
+              </li>
+              <li>键名漏写冒号后的空格（<code>name:value</code>）</li>
+              <li>未定义的别名（<code>*name</code> 找不到锚点）</li>
+              <li>不可见字符：NBSP、零宽字符、BOM、全角标点、Tab、行分隔符</li>
+            </ul>
+            <div class="formats-title">Compose 专项（需手动开启）</div>
+            <ul>
+              <li>services 顶层键缺失或拼写错误</li>
+              <li>image 未指定 tag、相对路径挂载</li>
+              <li>depends_on 引用不存在的服务、ports 格式</li>
             </ul>
           </div>
         </VbenGlassCard>
@@ -121,6 +136,10 @@
             <div class="summary-item">
               <span class="summary-value">{{ result.invisibleTotal }}</span>
               <span class="summary-label">不可见字符</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-value">{{ result.docCount }}</span>
+              <span class="summary-label">文档数</span>
             </div>
           </div>
 
@@ -180,11 +199,16 @@
           </div>
         </VbenGlassCard>
 
-        <!-- 解析错误与警告 -->
+        <!-- 语法解析 -->
         <VbenGlassCard
           v-if="result.parseErrors.length || result.parseWarnings.length"
           :hoverable="false"
           title="语法解析"
+          :description="
+            result.docCount > 1
+              ? `共 ${result.docCount} 个文档，出错条目会标注所属文档序号`
+              : ''
+          "
         >
           <div class="issue-list">
             <div
@@ -196,6 +220,9 @@
                 <a-tag :color="index < result.parseErrors.length ? 'red' : 'orange'">
                   {{ index < result.parseErrors.length ? "错误" : "警告" }}
                 </a-tag>
+                <span v-if="result.docCount > 1" class="issue-pos">
+                  第 {{ item.docIndex + 1 }} 份文档
+                </span>
                 <span class="issue-pos">
                   {{
                     item.line
@@ -205,6 +232,32 @@
                 </span>
               </div>
               <div class="issue-context">{{ item.message }}</div>
+            </div>
+          </div>
+        </VbenGlassCard>
+
+        <!-- 通用 YAML 专项 -->
+        <VbenGlassCard
+          v-if="result.genericIssues.length"
+          :hoverable="false"
+          :title="`通用 YAML 检查（${result.genericIssues.length} 条）`"
+          description="类型隐式转换、键名含冒号、别名未定义等"
+        >
+          <div class="issue-list">
+            <div
+              v-for="(item, index) in result.genericIssues"
+              :key="`generic-${index}`"
+              class="issue-item"
+            >
+              <div class="issue-head">
+                <a-tag :color="item.severity === 'error' ? 'red' : 'orange'">
+                  {{ item.severity === "error" ? "错误" : "警告" }}
+                </a-tag>
+                <code v-if="item.path" class="issue-code">{{ item.path }}</code>
+                <span v-if="item.line" class="issue-pos">第 {{ item.line }} 行</span>
+              </div>
+              <div class="issue-context">{{ item.message }}</div>
+              <div v-if="item.hint" class="issue-fix">建议：{{ item.hint }}</div>
             </div>
           </div>
         </VbenGlassCard>
@@ -257,7 +310,7 @@
         <div class="empty-state">
           <FileSearchOutlined class="empty-state-icon" />
           <h3>等待 YAML 内容</h3>
-          <p>粘贴 Compose 配置或上传文件，点击「校验」定位不可见字符</p>
+          <p>粘贴 YAML 或上传文件，点击「校验」定位不可见字符与语法问题</p>
         </div>
       </VbenGlassCard>
     </div>
@@ -275,12 +328,12 @@ import {
 } from "@ant-design/icons-vue";
 import VbenGlassCard from "@/components/common/VbenGlassCard.vue";
 import GradientButton from "@/components/common/GradientButton.vue";
-import { validateYaml, fixRiskyChars } from "@/utils/yaml/yamlValidator";
+import { validateYaml, fixRiskyChars, guessFileKind } from "@/utils/yaml/yamlValidator";
 
 const MAX_FILE_MB = 10;
 const MAX_FILE_SIZE = MAX_FILE_MB * 1024 * 1024;
 
-const SAMPLE = [
+const SAMPLE_COMPOSE = [
   "services:",
   "  web:",
   "    image: nginx",
@@ -295,6 +348,29 @@ const SAMPLE = [
   "",
 ].join("\n");
 
+// 通用 YAML 示例：K8s 清单，含一处会被误判的类型转换
+const SAMPLE_GENERIC = [
+  "apiVersion: apps/v1",
+  "kind: Deployment",
+  "metadata:",
+  "  name: web",
+  '  labels: { app: "web", version: "1.10" }',
+  "spec:",
+  "  replicas: 3",
+  "  selector:",
+  "    matchLabels: { app: web }",
+  "  template:",
+  "    metadata:",
+  "      labels: { app: web }",
+  "    spec:",
+  "      containers:",
+  "        - name: web",
+  "          image: nginx:1.27-alpine",
+  "          ports:",
+  "            - containerPort: 80",
+  "",
+].join("\n");
+
 const inputText = ref("");
 const fileName = ref("");
 const hasResult = ref(false);
@@ -302,7 +378,9 @@ const fixInfo = ref("");
 
 const options = reactive({
   includeTab: true,
-  compose: true,
+  checkTypes: true,
+  // 默认关闭 Compose 专项：大多数 YAML 不是 Compose 文件
+  compose: false,
   indentWidth: 2,
   keepBom: false,
 });
@@ -310,16 +388,37 @@ const options = reactive({
 const result = reactive({
   ok: true,
   lineCount: 0,
+  docCount: 0,
+  fileKind: "generic",
   errorCount: 0,
   warningCount: 0,
   invisible: [],
   parseErrors: [],
   parseWarnings: [],
+  genericIssues: [],
   composeIssues: [],
   invisibleTotal: 0,
   invisibleTruncated: false,
   data: null,
 });
+
+/** 空结果，用于清空与初始化，避免两处字段定义漂移 */
+const EMPTY_RESULT = {
+  ok: true,
+  lineCount: 0,
+  docCount: 0,
+  fileKind: "generic",
+  errorCount: 0,
+  warningCount: 0,
+  invisible: [],
+  parseErrors: [],
+  parseWarnings: [],
+  genericIssues: [],
+  composeIssues: [],
+  invisibleTotal: 0,
+  invisibleTruncated: false,
+  data: null,
+};
 
 const inputSizeText = computed(() => {
   const kb = new Blob([inputText.value || ""]).size / 1024;
@@ -330,6 +429,7 @@ const hasIssues = computed(
   () =>
     result.invisible.length > 0 ||
     result.parseErrors.length > 0 ||
+    result.genericIssues.length > 0 ||
     result.composeIssues.length > 0,
 );
 
@@ -359,12 +459,35 @@ const handleFileRead = (file) => {
   reader.onload = () => {
     inputText.value = String(reader.result || "");
     fileName.value = file.name;
-    message.success(`已读取 ${file.name}`);
+
+    // 按文件名推断用途：Compose 文件自动打开专项检查，避免漏检
+    const kind = guessFileKind(file.name);
+    if (kind === "compose") {
+      options.compose = true;
+    } else if (kind !== "generic") {
+      options.compose = false;
+    }
+
+    message.success(`已读取 ${file.name}${kindLabel(kind)}`);
   };
   reader.onerror = () => message.error("读取文件失败");
   reader.readAsText(file, "utf-8");
   return false;
 };
+
+/** 用途的中文名，仅用于提示文案 */
+function kindLabel(kind) {
+  const labels = {
+    compose: "（识别为 Docker Compose，已开启专项检查）",
+    k8s: "（识别为 K8s 清单）",
+    actions: "（识别为 GitHub Actions）",
+    ci: "（识别为 CI 配置）",
+    helm: "（识别为 Helm 配置）",
+    packages: "（识别为包管理配置）",
+    config: "（识别为工具配置）",
+  };
+  return labels[kind] ?? "";
+}
 
 function handleValidate() {
   const source = inputText.value;
@@ -376,6 +499,8 @@ function handleValidate() {
   const res = validateYaml(source, {
     compose: options.compose,
     includeTab: options.includeTab,
+    checkTypes: options.checkTypes,
+    fileName: fileName.value,
   });
 
   Object.assign(result, res);
@@ -421,11 +546,17 @@ async function copySource() {
 }
 
 function loadSample() {
-  inputText.value = SAMPLE;
+  // Compose 选项已开启时给 Compose 示例，否则给通用 YAML 示例
+  if (options.compose) {
+    inputText.value = SAMPLE_COMPOSE;
+    message.success("已载入示例 Compose 配置");
+  } else {
+    inputText.value = SAMPLE_GENERIC;
+    message.success("已载入示例 K8s 清单");
+  }
   fileName.value = "";
   hasResult.value = false;
   fixInfo.value = "";
-  message.success("已载入示例 Compose 配置");
 }
 
 function clearAll() {
@@ -433,19 +564,7 @@ function clearAll() {
   fileName.value = "";
   hasResult.value = false;
   fixInfo.value = "";
-  Object.assign(result, {
-    ok: true,
-    lineCount: 0,
-    errorCount: 0,
-    warningCount: 0,
-    invisible: [],
-    parseErrors: [],
-    parseWarnings: [],
-    composeIssues: [],
-    invisibleTotal: 0,
-    invisibleTruncated: false,
-    data: null,
-  });
+  Object.assign(result, EMPTY_RESULT);
   message.success("已清空");
 }
 </script>
@@ -570,7 +689,7 @@ function clearAll() {
 
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 12px;
 }
 

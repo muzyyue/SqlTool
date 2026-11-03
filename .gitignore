@@ -60,6 +60,8 @@ Thumbs.db
 *.tsbuildinfo
 # OpenChamber 会话截图与工作区元数据，仅本地使用
 .openchamber/
+# CodeGraph 代码索引，仅本地生成
+.codegraph/
 
 # IDE/Editor configs (local only)
 .vscode/

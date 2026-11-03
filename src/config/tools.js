@@ -116,7 +116,7 @@ export const tools = [
     id: "yaml-validator",
     name: "YAML 校验",
     description:
-      "定位不可见字符与全角标点，检查 YAML 语法并提供 Docker Compose 专项规则",
+      "通用 YAML 校验：语法、类型陷阱与不可见字符，可选 Docker Compose 专项规则",
     icon: "FileTextOutlined",
     category: "developer",
     route: "/tools/yamlvalidator",
