@@ -19,9 +19,76 @@ import UnoCSS from "unocss/vite";
  */
 const fullBuild = process.env.FULL_BUILD === "1";
 
+/**
+ * 生成 404.html，修复 GitHub Pages 深链接 404
+ *
+ * Pages 是静态托管，没有服务端 rewrite：用户直接访问 /SqlTool/tools/xxx
+ * 时会拿到 404。这里生成的 404.html 会把原始路径编码进 ?p= 参数，
+ * 用 location.replace 跳回站点根路径，再由 index.html 里的脚本还原。
+ *
+ * 为什么不在 404.html 里直接渲染应用：
+ *   Pages 对 404.html 返回的 HTTP 状态码是 404。虽然能显示页面，但
+ *   搜索引擎与部分 CDN 会把它当作错误；跳回根路径后拿到的是 200。
+ *
+ * 为什么用 sessionStorage + ?p= 双通道：
+ *   部分环境会剥离 query，sessionStorage 作为兜底；两者都没有时
+ *   退回首页，不影响正常访问。
+ */
+function spaFallbackPlugin() {
+  return {
+    name: "spa-fallback-404",
+    apply: "build",
+    enforce: "post",
+    generateBundle(_options, bundle) {
+      const indexHtml = bundle["index.html"];
+      if (!indexHtml || indexHtml.type !== "asset") return;
+
+      // 404.html 只负责跳转，不渲染应用，因此无需引用 JS/CSS。
+      // 早先想复用 index.html 的资源标签，但用正则从 HTML 里抓 <script>
+      // 容易漏掉闭合标签、产出无效 HTML；不引用反而更稳、也更快。
+      const fallback = `<!DOCTYPE html>
+<html lang="">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>正在打开… - 在线工具箱</title>
+    <link rel="icon" href="/SqlTool/favicon.ico" />
+  </head>
+  <body>
+    <div id="app"></div>
+    <script>
+      // GitHub Pages 深链接回退：保存原始路径后跳回根路径。
+      // 根路径的 index.html 会用同样的 key 取回并还原 URL。
+      (function () {
+        var target =
+          window.location.pathname +
+          window.location.search +
+          window.location.hash;
+        var encoded = encodeURIComponent(target);
+        try {
+          window.sessionStorage.setItem("spa-redirect", "?p=" + encoded);
+        } catch (e) {
+          // 隐私模式下 sessionStorage 不可用，退化为只用 query 传递
+        }
+        window.location.replace("/SqlTool/?p=" + encoded);
+      })();
+    </script>
+  </body>
+</html>
+`;
+
+      this.emitFile({
+        type: "asset",
+        fileName: "404.html",
+        source: fallback,
+      });
+    },
+  };
+}
+
 export default defineConfig({
   base: "/SqlTool/",
-  plugins: [vue(), vueDevTools({ componentInspector: false }), UnoCSS()],
+  plugins: [vue(), vueDevTools({ componentInspector: false }), UnoCSS(), spaFallbackPlugin()],
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),

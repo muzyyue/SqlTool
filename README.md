@@ -115,12 +115,23 @@ Vitest 的 `isCustomElement: tag => tag.startsWith('a-')` 配置限制，含具�
 
   想让重复发布直接失败（而不是跳过），把该步骤中 `exists=true` 的分支
   改为 `exit 1` 即可。
+- **GitHub Pages 深链接可用**。Pages 是静态托管、没有服务端 rewrite，直接
+  访问 `/SqlTool/tools/xxx` 原本返回 404。构建时 `vite.config.js` 会生成
+  `404.html`，把原路径写入 sessionStorage 再跳回根路径；应用启动时
+  `src/utils/spaFallback.js` 的 `restoreDeepLink()` 还原 URL。
+
+  > 还原必须在 `createWebHistory` 之前执行。`createWebHistory` 在构造时就
+  > 读取 `window.location` 定下初始路由，晚于它还原会让 URL 停在 `?p=…`
+  > 并停留在首页。因为 ES module 的 import 会先求值，放在 `main.js` 里调用
+  > 同样来不及——`import router from "./router"` 一执行，router 就已创建。
+  > 因此调用点在 `src/router/index.js`，有测试守护这个顺序。
 
 调整工作流后可用以下命令自检关键行为：
 
 ```bash
 node scripts/check-workflow.mjs   # 结构断言：PR 不构建、deploy 不误触发、权限分离等
 node scripts/check-tag-guard.mjs  # 执行 workflow 中真实的 tag 检查 shell，验证 6 种返回码分支
+node scripts/mock-pages-server.mjs 8037   # 本地模拟 Pages（深链接返回 404.html），验证深链接回退
 ```
 
 

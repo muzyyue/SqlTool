@@ -12,6 +12,11 @@
   </head>
   <body>
     <div id="app"></div>
+    <!--
+      GitHub Pages 深链接回退由 src/utils/spaFallback.js 在 main.js 中执行，
+      不在此处写内联脚本：Vite 会把 main.js 提升到 <head>，内联脚本留在
+      body，实际执行顺序是 main.js 先跑，反而晚于路由初始化。
+    -->
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

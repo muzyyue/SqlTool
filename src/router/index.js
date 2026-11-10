@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from "vue-router";
+import { restoreDeepLink } from "@/utils/spaFallback";
 
 /**
  * 动态导入工具页面
@@ -81,7 +82,17 @@ const routes = [...staticRoutes, ...toolRoutes, notFoundRoute];
 /**
  * 创建路由实例
  * 使用 HTML5 History 模式
+ *
+ * 注意 restoreDeepLink() 必须在 createWebHistory 之前执行：
+ * createWebHistory 会在构造时就读取 window.location 并确定初始路由，
+ * 之后再 replaceState 已经晚了——页面会先按旧 URL 渲染，且地址栏
+ * 不会还原（实测：URL 停在 ?p=…，停留在首页）。
+ *
+ * 放在 main.js 里调用也不行：ES module 的 import 会在模块体执行前求值，
+ * `import router from "./router"` 一执行，router 就已创建完毕。
  */
+restoreDeepLink();
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
