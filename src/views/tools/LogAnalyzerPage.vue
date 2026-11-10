@@ -45,7 +45,7 @@
             <p class="ant-upload-text">点击或拖拽日志文件到此区域</p>
             <p class="ant-upload-hint">
               在浏览器本地解析，文件不会上传到任何服务器（限制
-              {{ MAX_FILE_MB }} MB）
+              {{ maxFileSizeMb }} MB，可在「系统设置 → 文件设置」调整）
             </p>
           </a-upload-dragger>
 
@@ -295,9 +295,16 @@ import {
   classifyError,
   getSummary,
 } from "@/utils/log/logErrorExtractor";
+import { useSettings } from "@/composables/core/useSettings.js";
 
-const MAX_FILE_MB = 20;
-const MAX_FILE_SIZE = MAX_FILE_MB * 1024 * 1024;
+const { getSetting } = useSettings();
+
+/** 日志文件大小上限（MB），来自系统设置的「文件设置」页 */
+const maxFileSizeMb = computed(() => {
+  const v = Number(getSetting("logMaxFileSize"));
+  return Number.isFinite(v) && v > 0 ? v : 20;
+});
+const maxFileSizeBytes = computed(() => maxFileSizeMb.value * 1024 * 1024);
 
 const inputText = ref("");
 const fileName = ref("");
@@ -398,8 +405,12 @@ function toggle(index) {
 }
 
 const handleFileRead = (file) => {
-  if (file.size > MAX_FILE_SIZE) {
-    message.error(`文件超过 ${MAX_FILE_MB}MB 限制`);
+  if (file.size > maxFileSizeBytes.value) {
+    // 显示实际大小，便于判断是哪个文件触发了限制
+    const actualMb = (file.size / 1024 / 1024).toFixed(2);
+    message.error(
+      `文件 ${actualMb}MB，超过 ${maxFileSizeMb.value}MB 限制。可在「系统设置 → 文件设置」中调整`,
+    );
     return false;
   }
   const reader = new FileReader();

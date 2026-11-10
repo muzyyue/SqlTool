@@ -160,7 +160,23 @@
                 addon-after="MB"
                 style="width: 150px"
               />
-              <div class="setting-description">单个文件的最大上传大小</div>
+              <div class="setting-description">
+                Excel 等数据处理工具的单个文件上限
+              </div>
+            </a-form-item>
+
+            <a-form-item label="日志文件大小上限">
+              <a-input-number
+                v-model:value="logMaxFileSize"
+                :min="1"
+                :max="1024"
+                addon-after="MB"
+                style="width: 150px"
+              />
+              <div class="setting-description">
+                日志错误分析工具读取日志文件的上限，日志通常比 Excel 大，建议
+                20 MB 以上
+              </div>
             </a-form-item>
 
             <a-form-item label="支持的文件格式">
@@ -347,6 +363,7 @@ const similarityThreshold = ref(settings.value.similarityThreshold);
 const autoMapping = ref(settings.value.autoMapping);
 
 const maxFileSize = ref(settings.value.maxFileSize);
+const logMaxFileSize = ref(settings.value.logMaxFileSize);
 const supportedFormats = ref([...settings.value.supportedFormats]);
 const chunkProcessing = ref(settings.value.chunkProcessing);
 const chunkSize = ref(settings.value.chunkSize);
@@ -377,6 +394,7 @@ const handleSave = () => {
     similarityThreshold: similarityThreshold.value,
     autoMapping: autoMapping.value,
     maxFileSize: maxFileSize.value,
+    logMaxFileSize: logMaxFileSize.value,
     supportedFormats: supportedFormats.value,
     chunkProcessing: chunkProcessing.value,
     chunkSize: chunkSize.value,
@@ -412,6 +430,7 @@ const handleReset = () => {
   similarityThreshold.value = defaultSettings.similarityThreshold;
   autoMapping.value = defaultSettings.autoMapping;
   maxFileSize.value = defaultSettings.maxFileSize;
+  logMaxFileSize.value = defaultSettings.logMaxFileSize;
   supportedFormats.value = [...defaultSettings.supportedFormats];
   chunkProcessing.value = defaultSettings.chunkProcessing;
   chunkSize.value = defaultSettings.chunkSize;

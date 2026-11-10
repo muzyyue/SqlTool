@@ -17,6 +17,9 @@ const defaultSettings = {
   similarityThreshold: 0.3,
   autoMapping: true,
   maxFileSize: 50,
+  // 日志分析工具的文件大小上限（MB）。日志常比 Excel 大，单独配置，
+  // 避免被 Excel 的上限约束，也不影响其他工具。
+  logMaxFileSize: 20,
   supportedFormats: ["xlsx", "xls", "csv"],
   chunkProcessing: true,
   chunkSize: 1000,
