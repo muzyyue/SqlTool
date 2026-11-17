@@ -25,6 +25,8 @@ export default defineConfig([
       globals: {
         ...globals.browser,
         ...globals.node,
+        // 由 vite.config.js 的 define 注入，构建时替换为 package.json 版本号
+        __APP_VERSION__: 'readonly',
       },
       parser: vueParser,
       parserOptions: {

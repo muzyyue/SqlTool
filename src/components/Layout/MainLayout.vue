@@ -5,7 +5,7 @@
       <div class="header-content">
         <div class="logo">
           <h1>在线工具箱</h1>
-          <span class="version">v2.0</span>
+          <span class="version">v{{ appVersion }}</span>
         </div>
 
         <div class="nav-menu">
@@ -102,7 +102,7 @@
     <a-layout-footer class="footer">
       <div class="footer-content">
         <div class="footer-left">
-          <span>© 2024 在线工具箱 v2.0</span>
+          <span>© 2024 在线工具箱 v{{ appVersion }}</span>
           <a-divider type="vertical" />
           <span>基于Vue 3 + Ant Design Vue开发</span>
         </div>
@@ -153,6 +153,14 @@ import {
 import SettingsPanel from "./SettingsPanel.vue";
 import AboutPanel from "./AboutPanel.vue";
 import { useThemeStore } from "@/stores/theme.js";
+
+/**
+ * 当前项目版本号
+ *
+ * 由 vite.config.js 的 define 在构建时从 package.json 注入，
+ * 顶部导航、页脚与「关于」面板共用同一来源，避免各处手写版本号不一致。
+ */
+const appVersion = __APP_VERSION__;
 
 /**
  * 路由配置类型

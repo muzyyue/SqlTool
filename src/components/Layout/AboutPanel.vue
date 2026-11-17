@@ -6,7 +6,7 @@
       </div>
       <div class="app-info">
         <h2>SQL生成工具</h2>
-        <p class="version">版本 2.0.0</p>
+        <p class="version">版本 {{ appVersion }}</p>
         <p class="description">基于DDL语句和Excel文件智能生成SQL语句的工具</p>
       </div>
     </div>
@@ -132,6 +132,14 @@ import {
   SettingOutlined,
 } from "@ant-design/icons-vue";
 import { message } from "ant-design-vue";
+
+/**
+ * 当前项目版本号
+ *
+ * 由 vite.config.js 的 define 在构建时从 package.json 注入，
+ * 避免像过去那样手写「2.0.0」而与实际版本脱节。
+ */
+const appVersion = __APP_VERSION__;
 
 // 定义事件
 // const emit = defineEmits(['close']) // 暂时注释掉，如果需要使用可以取消注释
