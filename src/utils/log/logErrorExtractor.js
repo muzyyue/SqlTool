@@ -9,11 +9,11 @@ export const ERROR_LEVELS = new Set(["ERRO", "ERROR", "FATAL", "CRITICAL", "PANI
 export const WARN_LEVELS = new Set(["WARN", "WARNING"]);
 
 // 格式 A: 2026-09-28T10:54:06.369+08:00 [ERRO] ...
-const LOG_LINE_RE =
+export const LOG_LINE_RE =
   /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[.\d]*[+-]\d{2}:\d{2})\s+\[([A-Z]{4,8})\]/;
 // 格式 B: 2026-09-28 10:54:06 ERROR ...（毫秒与时区偏移均可选；
 // 修正了 Python 原版将偏移写为必需的 bug，与文档声明的格式 B 保持一致）
-const ALT_LEVEL_RE =
+export const ALT_LEVEL_RE =
   /^(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:[.\d]*)?(?:[+-]\d{2}:?\d{2})?)\s+(ERROR|ERRO|FATAL|CRITICAL|PANIC|WARN|WARNING|INFO|DEBU|DEBUG)\b/;
 // 摘要/详情用（不捕获级别）
 const ALT_MSG_RE = new RegExp(ALT_LEVEL_RE.source.replace("(ERROR|ERRO", "(?:ERROR|ERRO"));

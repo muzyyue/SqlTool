@@ -125,6 +125,25 @@
         </VbenGlassCard>
       </div>
 
+      <!-- 解析进度：大文件解析期间给出明确反馈，避免用户以为卡死 -->
+      <VbenGlassCard v-if="analyzing" :hoverable="false" class="progress-card">
+        <div class="progress-head">
+          <LoadingOutlined class="progress-icon" />
+          <span class="progress-title">{{ progressStageLabel }}</span>
+          <span class="progress-percent">{{ progress.percent }}%</span>
+        </div>
+        <a-progress
+          :percent="progress.percent"
+          :show-info="false"
+          :status="'active'"
+          size="small"
+        />
+        <div class="progress-detail">{{ progress.detail }}</div>
+        <div class="progress-actions">
+          <a-button size="small" @click="cancelAnalyze">取消分析</a-button>
+        </div>
+      </VbenGlassCard>
+
       <!-- 结果区：全部内容收在卡片内 -->
       <template v-if="hasResult">
         <VbenGlassCard v-if="!result.entries.length" :hoverable="false">
@@ -226,17 +245,38 @@
               >
                 <template #prefix><SearchOutlined /></template>
               </a-input>
+              <div v-if="visibleEntries.length > PAGE_SIZE" class="entries-pager">
+                <span class="pager-info">
+                  显示前 {{ PAGE_SIZE }} 条（共
+                  {{ visibleEntries.length.toLocaleString() }} 条）
+                </span>
+                <a-button
+                  size="small"
+                  :disabled="renderLimit >= visibleEntries.length"
+                  @click="showMore"
+                >
+                  再显示 {{ PAGE_STEP }} 条
+                </a-button>
+                <a-button
+                  size="small"
+                  type="link"
+                  :disabled="renderLimit <= PAGE_SIZE"
+                  @click="renderLimit = PAGE_SIZE"
+                >
+                  收起到 {{ PAGE_SIZE }} 条
+                </a-button>
+              </div>
             </div>
 
             <div class="entries-list">
               <div
-                v-for="(item, index) in visibleEntries"
-                :key="index"
+                v-for="item in renderedEntries"
+                :key="item.__index"
                 class="entry-item"
               >
-                <div class="entry-head" @click="toggle(index)">
+                <div class="entry-head" @click="toggle(item.__index)">
                   <span class="entry-index">
-                    {{ String(result.entries.indexOf(item) + 1).padStart(3, "0") }}
+                    {{ String(item.__index + 1).padStart(3, "0") }}
                   </span>
                   <span class="entry-time">{{ item.timestamp }}</span>
                   <a-tag :color="levelTagColor(item.level)">{{ item.level }}</a-tag>
@@ -244,10 +284,10 @@
                   <span class="entry-summary">{{ summaryOf(item) }}</span>
                   <RightOutlined
                     class="entry-arrow"
-                    :class="{ expanded: expandedSet.has(index) }"
+                    :class="{ expanded: expandedSet.has(item.__index) }"
                   />
                 </div>
-                <pre v-if="expandedSet.has(index)" class="entry-body">{{
+                <pre v-if="expandedSet.has(item.__index)" class="entry-body">{{
                   item.lines.join("\n")
                 }}</pre>
               </div>
@@ -276,7 +316,7 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref } from "vue";
+import { computed, reactive, ref, watch } from "vue";
 import { message } from "ant-design-vue";
 import {
   InboxOutlined,
@@ -285,16 +325,17 @@ import {
   SearchOutlined,
   RightOutlined,
   CheckCircleOutlined,
+  LoadingOutlined,
   FileSearchOutlined,
 } from "@ant-design/icons-vue";
 import VbenGlassCard from "@/components/common/VbenGlassCard.vue";
 import GradientButton from "@/components/common/GradientButton.vue";
 import {
-  analyzeLogText,
   renderReportText,
   classifyError,
   getSummary,
 } from "@/utils/log/logErrorExtractor";
+import { analyzeLogTextAsync } from "@/utils/log/logAnalyzerAsync";
 import { useSettings } from "@/composables/core/useSettings.js";
 
 const { getSetting } = useSettings();
@@ -313,6 +354,38 @@ const hasResult = ref(false);
 const entryFilter = ref("");
 const expandedSet = ref(new Set());
 
+/** 渲染上限：一次只渲染这么多条，避免十几万 DOM 节点把页面卡死 */
+const PAGE_SIZE = 200;
+const PAGE_STEP = 500;
+const renderLimit = ref(PAGE_SIZE);
+
+/** 解析进度 */
+const progress = reactive({
+  percent: 0,
+  detail: "",
+  stage: "",
+});
+const progressStageLabels = {
+  split: "正在切分文本",
+  parse: "正在解析日志",
+  filter: "正在应用过滤",
+  stats: "正在统计",
+  done: "完成",
+};
+const progressStageLabel = computed(
+  () => progressStageLabels[progress.stage] ?? "正在分析",
+);
+
+/** 取消控制器 */
+let analyzeController = null;
+
+function cancelAnalyze() {
+  if (analyzeController) {
+    analyzeController.abort();
+    message.info("已取消分析");
+  }
+}
+
 const options = reactive({
   includeWarn: false,
   levels: [],
@@ -320,16 +393,6 @@ const options = reactive({
   tail: 0,
   withStats: true,
 });
-
-/** 大日志分帧处理，避免主线程长时间阻塞 */
-const yieldToFrame = () =>
-  new Promise((resolve) => {
-    if (typeof requestAnimationFrame === "function") {
-      requestAnimationFrame(() => resolve());
-    } else {
-      setTimeout(resolve, 0);
-    }
-  });
 
 const levelOptions = [
   "ERRO",
@@ -378,6 +441,31 @@ const visibleEntries = computed(() => {
   return result.entries.filter((e) => e.lines.join("\n").toLowerCase().includes(kw));
 });
 
+/**
+ * 实际渲染的条目
+ *
+ * 只取前 renderLimit 条，并附加原始下标 __index：
+ * 之前在模板里用 result.entries.indexOf(item) 求序号，
+ * 那是每条一次 O(n) 的线性查找，十几万条时是 O(n²)，会直接卡死。
+ */
+const renderedEntries = computed(() =>
+  visibleEntries.value
+    .slice(0, renderLimit.value)
+    .map((item, i) => ({ ...item, __index: i })),
+);
+
+/** 筛选条件变化时重置渲染上限，避免残留上一次的展开量 */
+watch(entryFilter, () => {
+  renderLimit.value = PAGE_SIZE;
+});
+
+function showMore() {
+  renderLimit.value = Math.min(
+    renderLimit.value + PAGE_STEP,
+    visibleEntries.value.length,
+  );
+}
+
 function barWidth(count, max) {
   return `${Math.max(3, (count / max) * 100)}%`;
 }
@@ -413,50 +501,139 @@ const handleFileRead = (file) => {
     );
     return false;
   }
-  const reader = new FileReader();
-  reader.onload = () => {
-    inputText.value = String(reader.result || "");
-    fileName.value = file.name;
-    message.success(`已读取 ${file.name}`);
+
+  const sizeMb = (file.size / 1024 / 1024).toFixed(1);
+  // 大文件读取会给用户明确反馈，否则界面看起来像没反应
+  const isLarge = file.size > 5 * 1024 * 1024;
+  let hideLoading = null;
+
+  const showLoading = (percent) => {
+    if (!isLarge) return;
+    // 用 destroy 后重建会造成闪烁，先关闭上一条再开新的，
+    // 保证同一时刻只有一个加载提示
+    if (hideLoading) hideLoading();
+    hideLoading = message.loading(
+      `正在读取 ${file.name}（${sizeMb}MB）… ${percent}%`,
+      0,
+    );
   };
-  reader.onerror = () => message.error("读取文件失败");
-  reader.readAsText(file, "utf-8");
+
+  readFileWithProgress(file, showLoading)
+    .then((text) => {
+      inputText.value = text;
+      fileName.value = file.name;
+      if (hideLoading) hideLoading();
+      message.success(
+        `已读取 ${file.name}（${sizeMb}MB，${text.split("\n").length.toLocaleString()} 行）`,
+      );
+    })
+    .catch((err) => {
+      if (hideLoading) hideLoading();
+      message.error(`读取文件失败：${err.message}`);
+    });
+
   // 阻止 antd 自动上传
   return false;
 };
+
+/**
+ * 读取文件文本，并给出真实进度
+ *
+ * 为什么不用 FileReader.readAsText：
+ * 它虽然支持 progress 事件，但对本地 File 对象通常只触发一次，
+ * 100MB 文件读入期间界面没有任何反馈，看起来像卡死。
+ *
+ * 这里用 file.stream() 按块读取并逐块解码，块之间 await 让出主线程，
+ * 进度是真实的字节数比例。TextDecoder 使用 stream 模式，
+ * 避免在多字节字符（中文）被块边界截断时产生乱码。
+ *
+ * @param {File} file
+ * @param {(percent: number) => void} [onProgress]
+ * @returns {Promise<string>}
+ */
+async function readFileWithProgress(file, onProgress) {
+  // 浏览器不支持流式读取时退回一次性读取
+  if (typeof file.stream !== "function") {
+    const text = await file.text();
+    onProgress?.(100);
+    return text;
+  }
+
+  const reader = file.stream().getReader();
+  const decoder = new TextDecoder("utf-8");
+  const parts = [];
+  let loaded = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    loaded += value.length;
+    // stream: true 表示后续还有数据，遇到不完整的多字节字符先缓存
+    parts.push(decoder.decode(value, { stream: true }));
+    onProgress?.(Math.min(99, Math.round((loaded / file.size) * 100)));
+  }
+
+  parts.push(decoder.decode()); // 冲刷残留字节
+  onProgress?.(100);
+  return parts.join("");
+}
 
 async function handleAnalyze() {
   if (!inputText.value.trim()) {
     message.warning("请先输入或上传日志内容");
     return;
   }
+  if (analyzing.value) return;
+
   analyzing.value = true;
-  await yieldToFrame();
+  hasResult.value = false;
+  progress.percent = 0;
+  progress.detail = "准备中…";
+  progress.stage = "split";
+
+  analyzeController = new AbortController();
+  const startedAt = Date.now();
+
   try {
-    const res = analyzeLogText(inputText.value, {
+    const res = await analyzeLogTextAsync(inputText.value, {
       includeWarn: options.includeWarn,
       levels: options.levels,
       grep: options.grep.trim(),
       tail: options.tail || 0,
+      signal: analyzeController.signal,
+      onProgress: (p) => {
+        progress.percent = p.percent;
+        progress.detail = p.detail;
+        progress.stage = p.stage;
+      },
     });
+
     result.entries = res.entries;
     result.allEntries = res.allEntries;
     result.stats = res.stats;
     hasResult.value = true;
     expandedSet.value = new Set();
     entryFilter.value = "";
+    renderLimit.value = PAGE_SIZE;
 
+    const elapsed = Date.now() - startedAt;
     if (!res.entries.length) {
-      message.info("未发现符合条件的错误日志");
+      message.info(`未发现符合条件的错误日志（耗时 ${elapsed}ms）`);
     } else {
       message.success(
-        `识别 ${res.parsedCount} 条日志，提取 ${res.entries.length} 条错误`,
+        `识别 ${res.parsedCount.toLocaleString()} 条日志，提取 ${res.entries.length.toLocaleString()} 条错误（耗时 ${elapsed}ms）`,
       );
     }
   } catch (err) {
-    message.error(`分析失败：${err.message}`);
+    if (err?.name === "AbortError") {
+      // 用户主动取消，不当作错误
+      progress.detail = "已取消";
+    } else {
+      message.error(`分析失败：${err.message}`);
+    }
   } finally {
     analyzing.value = false;
+    analyzeController = null;
   }
 }
 
@@ -750,6 +927,60 @@ function clearAll() {
 
 .entries-filter {
   margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.entries-pager {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: $text-secondary;
+}
+
+.pager-info {
+  font-variant-numeric: tabular-nums;
+}
+
+.progress-card {
+  border: 1px solid var(--border-default);
+}
+
+.progress-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.progress-icon {
+  color: var(--color-primary);
+  font-size: 16px;
+}
+
+.progress-title {
+  font-weight: 600;
+  flex: 1;
+}
+
+.progress-percent {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.progress-detail {
+  margin-top: 6px;
+  font-size: 12px;
+  color: $text-secondary;
+  font-variant-numeric: tabular-nums;
+}
+
+.progress-actions {
+  margin-top: 10px;
 }
 
 .entries-list {
