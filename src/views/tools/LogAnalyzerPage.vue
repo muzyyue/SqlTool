@@ -125,8 +125,8 @@
         </VbenGlassCard>
       </div>
 
-      <!-- 解析进度：大文件解析期间给出明确反馈，避免用户以为卡死 -->
-      <VbenGlassCard v-if="analyzing" :hoverable="false" class="progress-card">
+      <!-- 进度：读取文件与解析共用一块区域，避免刷屏的 toast 提示 -->
+      <VbenGlassCard v-if="busy" :hoverable="false" class="progress-card">
         <div class="progress-head">
           <LoadingOutlined class="progress-icon" />
           <span class="progress-title">{{ progressStageLabel }}</span>
@@ -140,7 +140,7 @@
         />
         <div class="progress-detail">{{ progress.detail }}</div>
         <div class="progress-actions">
-          <a-button size="small" @click="cancelAnalyze">取消分析</a-button>
+          <a-button size="small" @click="cancelAnalyze">取消</a-button>
         </div>
       </VbenGlassCard>
 
@@ -349,7 +349,12 @@ const maxFileSizeBytes = computed(() => maxFileSizeMb.value * 1024 * 1024);
 
 const inputText = ref("");
 const fileName = ref("");
+/** 读取文件的进度 */
+const loading = ref(false);
 const analyzing = ref(false);
+
+/** 读取或解析进行中，两者共用同一块进度区域 */
+const busy = computed(() => loading.value || analyzing.value);
 const hasResult = ref(false);
 const entryFilter = ref("");
 const expandedSet = ref(new Set());
@@ -366,6 +371,7 @@ const progress = reactive({
   stage: "",
 });
 const progressStageLabels = {
+  read: "正在读取文件",
   split: "正在切分文本",
   parse: "正在解析日志",
   filter: "正在应用过滤",
@@ -378,8 +384,15 @@ const progressStageLabel = computed(
 
 /** 取消控制器 */
 let analyzeController = null;
+let readController = null;
 
 function cancelAnalyze() {
+  // 读取和解析共用同一个取消按钮，谁在进行就取消谁
+  if (readController) {
+    readController.abort();
+    message.info("已取消读取");
+    return;
+  }
   if (analyzeController) {
     analyzeController.abort();
     message.info("已取消分析");
@@ -503,33 +516,48 @@ const handleFileRead = (file) => {
   }
 
   const sizeMb = (file.size / 1024 / 1024).toFixed(1);
-  // 大文件读取会给用户明确反馈，否则界面看起来像没反应
-  const isLarge = file.size > 5 * 1024 * 1024;
-  let hideLoading = null;
 
-  const showLoading = (percent) => {
-    if (!isLarge) return;
-    // 用 destroy 后重建会造成闪烁，先关闭上一条再开新的，
-    // 保证同一时刻只有一个加载提示
-    if (hideLoading) hideLoading();
-    hideLoading = message.loading(
-      `正在读取 ${file.name}（${sizeMb}MB）… ${percent}%`,
-      0,
-    );
-  };
+  // 进度显示在页面内的进度卡片里，不用 message.loading 刷 toast。
+  // 早先用「销毁旧 toast 再弹新的」逐块更新，100MB 文件会连续刷新
+  // 几百次提示，观感极差——这正是现在改成卡片的原因。
+  //
+  // 小文件读取几乎瞬间完成，不显示进度卡片，否则会闪一下反而更糟。
+  const showProgress = file.size > 2 * 1024 * 1024;
 
-  readFileWithProgress(file, showLoading)
+  readController = new AbortController();
+  loading.value = showProgress;
+  progress.stage = "read";
+  progress.percent = 0;
+  progress.detail = `正在读取 ${file.name}（${sizeMb}MB）…`;
+
+  readFileWithProgress(
+    file,
+    (percent) => {
+      if (!showProgress) return;
+      // 只在百分比变化时更新，避免无谓的响应式触发
+      if (percent !== progress.percent) {
+        progress.percent = percent;
+        progress.detail = `正在读取 ${file.name}（${sizeMb}MB）… ${percent}%`;
+      }
+    },
+    readController?.signal,
+  )
     .then((text) => {
       inputText.value = text;
       fileName.value = file.name;
-      if (hideLoading) hideLoading();
       message.success(
         `已读取 ${file.name}（${sizeMb}MB，${text.split("\n").length.toLocaleString()} 行）`,
       );
     })
     .catch((err) => {
-      if (hideLoading) hideLoading();
+      if (err?.name === "AbortError") return; // 用户主动取消，不报错
       message.error(`读取文件失败：${err.message}`);
+    })
+    .finally(() => {
+      loading.value = false;
+      readController = null;
+      progress.percent = 0;
+      progress.detail = "";
     });
 
   // 阻止 antd 自动上传
@@ -551,7 +579,15 @@ const handleFileRead = (file) => {
  * @param {(percent: number) => void} [onProgress]
  * @returns {Promise<string>}
  */
-async function readFileWithProgress(file, onProgress) {
+async function readFileWithProgress(file, onProgress, signal) {
+  const throwIfAborted = () => {
+    if (signal?.aborted) {
+      const err = new Error("读取已取消");
+      err.name = "AbortError";
+      throw err;
+    }
+  };
+
   // 浏览器不支持流式读取时退回一次性读取
   if (typeof file.stream !== "function") {
     const text = await file.text();
@@ -564,13 +600,20 @@ async function readFileWithProgress(file, onProgress) {
   const parts = [];
   let loaded = 0;
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    loaded += value.length;
-    // stream: true 表示后续还有数据，遇到不完整的多字节字符先缓存
-    parts.push(decoder.decode(value, { stream: true }));
-    onProgress?.(Math.min(99, Math.round((loaded / file.size) * 100)));
+  try {
+    while (true) {
+      throwIfAborted();
+      const { done, value } = await reader.read();
+      if (done) break;
+      loaded += value.length;
+      // stream: true 表示后续还有数据，遇到不完整的多字节字符先缓存
+      parts.push(decoder.decode(value, { stream: true }));
+      onProgress?.(Math.min(99, Math.round((loaded / file.size) * 100)));
+    }
+  } catch (err) {
+    // 取消时释放底层流，避免占用文件句柄
+    await reader.cancel().catch(() => {});
+    throw err;
   }
 
   parts.push(decoder.decode()); // 冲刷残留字节
