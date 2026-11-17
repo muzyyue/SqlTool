@@ -235,7 +235,7 @@
             <template #header>
               <div class="entries-header">
                 <span class="entries-title">
-                  错误日志（{{ result.entries.length }} 条）
+                  错误日志（{{ result.entries.length.toLocaleString() }} 条）
                 </span>
                 <div class="entries-actions">
                   <a-button size="small" @click="copyReport">
@@ -251,32 +251,64 @@
             </template>
 
             <div class="entries-filter">
-              <a-input
-                v-model:value="entryFilter"
-                allow-clear
-                placeholder="在结果中即时筛选（不重新分析）"
-              >
-                <template #prefix><SearchOutlined /></template>
-              </a-input>
-              <div v-if="visibleEntries.length > PAGE_SIZE" class="entries-pager">
-                <span class="pager-info">
-                  显示前 {{ PAGE_SIZE }} 条（共
-                  {{ visibleEntries.length.toLocaleString() }} 条）
-                </span>
-                <a-button
-                  size="small"
-                  :disabled="renderLimit >= visibleEntries.length"
-                  @click="showMore"
+              <div class="filter-row">
+                <a-select
+                  v-model:value="typeFilter"
+                  mode="multiple"
+                  allow-clear
+                  :max-tag-count="2"
+                  placeholder="按错误类型筛选"
+                  :options="typeFilterOptions"
+                  class="filter-select"
+                />
+                <a-select
+                  v-model:value="levelFilter"
+                  mode="multiple"
+                  allow-clear
+                  :max-tag-count="2"
+                  placeholder="按级别筛选"
+                  :options="levelFilterOptions"
+                  class="filter-select filter-select-sm"
+                />
+              </div>
+
+              <div class="filter-row">
+                <a-input
+                  v-model:value="entryFilter"
+                  allow-clear
+                  placeholder="在结果中搜索关键词（不重新分析）"
                 >
+                  <template #prefix><SearchOutlined /></template>
+                </a-input>
+                <a-button v-if="hasActiveFilter" size="small" @click="resetFilters">
+                  清除筛选
+                </a-button>
+              </div>
+
+              <div class="filter-summary">
+                <span v-if="hasActiveFilter">
+                  筛选后 <strong>{{ visibleEntries.length.toLocaleString() }}</strong>
+                  条（共 {{ result.entries.length.toLocaleString() }} 条）
+                </span>
+                <span v-else>
+                  共 <strong>{{ result.entries.length.toLocaleString() }}</strong> 条
+                </span>
+              </div>
+
+              <!-- 渲染上限提示：只限制显示数量，筛选范围仍是全部结果 -->
+              <div v-if="visibleEntries.length > renderLimit" class="filter-hint">
+                当前显示前 {{ renderLimit.toLocaleString() }} 条，其余
+                {{ (visibleEntries.length - renderLimit).toLocaleString() }}
+                条未渲染（筛选与统计仍基于全部结果）
+                <a-button type="link" size="small" @click="showMore">
                   再显示 {{ PAGE_STEP }} 条
                 </a-button>
                 <a-button
-                  size="small"
                   type="link"
-                  :disabled="renderLimit <= PAGE_SIZE"
-                  @click="renderLimit = PAGE_SIZE"
+                  size="small"
+                  @click="renderLimit = visibleEntries.length"
                 >
-                  收起到 {{ PAGE_SIZE }} 条
+                  显示全部
                 </a-button>
               </div>
             </div>
@@ -393,6 +425,10 @@ const analyzing = ref(false);
 const busy = computed(() => loading.value || analyzing.value);
 const hasResult = ref(false);
 const entryFilter = ref("");
+/** 类型筛选（多选），值为 classifyError 返回的类型名 */
+const typeFilter = ref([]);
+/** 级别筛选（多选），值为 ERROR / FATAL 等 */
+const levelFilter = ref([]);
 const expandedSet = ref(new Set());
 
 /** 渲染上限：一次只渲染这么多条，避免十几万 DOM 节点把页面卡死 */
@@ -522,10 +558,63 @@ const maxLevelCount = computed(() =>
 );
 
 const visibleEntries = computed(() => {
+  let list = result.entries;
+
+  // 按错误类型筛选（可多选）
+  if (typeFilter.value.length) {
+    const set = new Set(typeFilter.value);
+    list = list.filter((e) => set.has(classifyError(e)));
+  }
+
+  // 按级别筛选（可多选）
+  if (levelFilter.value.length) {
+    const set = new Set(levelFilter.value);
+    list = list.filter((e) => set.has(e.level));
+  }
+
+  // 关键词过滤
   const kw = entryFilter.value.trim().toLowerCase();
-  if (!kw) return result.entries;
-  return result.entries.filter((e) => e.lines.join("\n").toLowerCase().includes(kw));
+  if (kw) {
+    list = list.filter((e) => e.lines.join("\n").toLowerCase().includes(kw));
+  }
+
+  return list;
 });
+
+/**
+ * 类型筛选项：来自本次分析结果的类型统计，带命中数量
+ *
+ * 用 stats.types 而不是重新分类全部条目，避免在筛选时重复执行
+ * 20 条正则匹配。分类结果在分析阶段已经算过。
+ */
+const typeFilterOptions = computed(() =>
+  (result.stats?.types ?? []).map((t) => ({
+    value: t.name,
+    label: `${t.name}（${t.count.toLocaleString()}）`,
+  })),
+);
+
+/** 级别筛选项，同样带数量 */
+const levelFilterOptions = computed(() =>
+  (result.stats?.levels ?? []).map((l) => ({
+    value: l.name,
+    label: `${l.name}（${l.count.toLocaleString()}）`,
+  })),
+);
+
+/** 是否有任何筛选条件生效 */
+const hasActiveFilter = computed(
+  () =>
+    entryFilter.value.trim() !== "" ||
+    typeFilter.value.length > 0 ||
+    levelFilter.value.length > 0,
+);
+
+function resetFilters() {
+  entryFilter.value = "";
+  typeFilter.value = [];
+  levelFilter.value = [];
+}
 
 /**
  * 实际渲染的条目
@@ -541,7 +630,7 @@ const renderedEntries = computed(() =>
 );
 
 /** 筛选条件变化时重置渲染上限，避免残留上一次的展开量 */
-watch(entryFilter, () => {
+watch([entryFilter, typeFilter, levelFilter], () => {
   renderLimit.value = PAGE_SIZE;
 });
 
@@ -781,7 +870,7 @@ async function handleAnalyze() {
     result.stats = res.stats;
     hasResult.value = true;
     expandedSet.value = new Set();
-    entryFilter.value = "";
+    resetFilters();
     renderLimit.value = PAGE_SIZE;
 
     const elapsed = Date.now() - startedAt;
@@ -1132,17 +1221,44 @@ function clearAll() {
   gap: 8px;
 }
 
-.entries-pager {
+.filter-row {
   display: flex;
-  align-items: center;
   gap: 8px;
+  align-items: center;
   flex-wrap: wrap;
-  font-size: 12px;
-  color: $text-secondary;
+
+  > .ant-input-affix-wrapper,
+  > .ant-select {
+    flex: 1;
+    min-width: 180px;
+  }
 }
 
-.pager-info {
-  font-variant-numeric: tabular-nums;
+.filter-select-sm {
+  max-width: 320px;
+}
+
+.filter-summary {
+  font-size: 12px;
+  color: $text-secondary;
+
+  strong {
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* 渲染上限提示：明确「只限制显示」，避免误解为筛选只作用于这 200 条 */
+.filter-hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--bg-sunken);
+  font-size: 12px;
+  color: $text-secondary;
 }
 
 .progress-card {
